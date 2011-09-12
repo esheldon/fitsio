@@ -135,14 +135,16 @@ class FITS:
     ----------
     filename: string
         The filename to open.  
-    mode: int/string
+    mode: int/string, optional
         The mode, either a string or integer.
         For reading only
             'r' or 0
         For reading and writing
             'rw' or 1
         You can also use fitsio.READONLY and fitsio.READWRITE.
-    clobber:        
+
+        Default is 'r'
+    clobber: bool, optional
         If the mode is READWRITE, and clobber=True, then remove any existing
         file before opening.
 
@@ -521,7 +523,7 @@ class FITSHDU:
                 self.write_key(k,records[k])
         else:
             if isinstance(records,list):
-                h = FITSHRD(records)
+                h = FITSHDR(records)
             elif isinstance(records,FITSHDR):
                 h = records
 
@@ -1124,12 +1126,15 @@ class FITSHDR:
         if record_list is not None:
 
             if isinstance(record_list, dict):
-                record_list = [record_list]
-            elif not isinstance(record_list, list):
-                raise ValueError("expected a list of dicts")
+                for k in record_list:
+                    r = {'name':k, 'value':record_list[k]}
+                    self.add_record(r)
+            elif isinstance(record_list, list):
+                for r in record_list:
+                    self.add_record(r)
+            else:
+                raise ValueError("expected a dict or list of dicts")
 
-            for h in record_list:
-                self.add_record(h)
 
     def add_record(self, record):   
         self.check_record(record)
@@ -1174,13 +1179,14 @@ class FITSHDR:
     def __contains__(self, item):
         return item in self._record_map
 
-    def __getitem__(self, item):
+    def get(self, item):
         if item not in self._record_map:
             raise ValueError("unknown record: %s" % item)
 
         if item == 'COMMENT':
             # there could be many comments, just return one
-            return self._record_map[item]['comment']
+            v = self._record_map[item].get('comment','')
+            return v
 
         s = self._record_map[item]['value']
         try:
@@ -1189,8 +1195,72 @@ class FITSHDR:
             val = s
         return val
 
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+    def _record2card(self, record):
+        """
+        when we add new records they don't have a card,
+        this sort of fakes it up similar to what cfitsio
+        does, just for display purposes.  e.g.
+
+            DBL     =            23.299843
+            LNG     =              3423432
+            KEYSNC  = 'hello   '
+            KEYSC   = 'hello   '           / a comment for string
+            KEYDC   =     3.14159265358979 / a comment for pi
+            KEYLC   =            323423432 / a comment for long
+        
+        basically, 
+            - 8 chars, left aligned, for the keyword name
+            - a space
+            - 20 chars for value, left aligned for strings, right aligned for
+              numbers
+            - if there is a comment, one space followed by / then another space
+              then the comment out to 80 chars
+
+        """
+        name = record['name']
+        value = record['value']
+
+
+        if name == 'COMMENT':
+            comment = record.get('comment','')
+            card = 'COMMENT %s' % comment
+        else:
+            card = '%-8s= ' % name[0:8]
+            # these may be string representations of data, or actual strings
+            if isinstance(value,(str,unicode)):
+                value = str(value)
+                if len(value) > 0:
+                    if value[0] != "'":
+                        # this is a string representing a string header field
+                        # make it look like it will look in the header
+                        value = "'" + value + "'"
+                        vstr = '%-20s' % value
+                    else:
+                        # this is a string representing a number
+                        vstr = "%20s" % value
+            else:
+                vstr = '%20s' % value
+                    
+            card += vstr
+
+            if 'comment' in record:
+                f += ' / %s' % record['comment']
+
+        return card[0:80]
+
     def __repr__(self):
-        rep = [r['card'] for r in self._record_list]
+        rep=[]
+        for r in self._record_list:
+            if 'card' not in r:
+                card = self._record2card(r)
+            else:
+                card = r['card']
+
+            rep.append(card)
         return '\n'.join(rep)
 
 READONLY=0

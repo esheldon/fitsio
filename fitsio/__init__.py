@@ -192,6 +192,10 @@ but read as is.
 """
 from . import fitslib
 from .fitslib import FITS
+from .fitslib import FITSHDU
+from .fitslib import FITSHDR
 from .fitslib import read
 from .fitslib import read_header
 from .fitslib import write
+from .fitslib import READONLY
+from .fitslib import READWRITE
