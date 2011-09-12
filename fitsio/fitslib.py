@@ -910,6 +910,7 @@ class FITSHDU:
             text.append("%sdims: [%s]" % (cspacing,dimstr))
 
         else:
+            text.append('%srows: %d' % (spacing,self.info['numrows']))
             text.append('%scolumn info:' % spacing)
 
             cspacing = ' '*4
