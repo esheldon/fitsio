@@ -976,6 +976,8 @@ class FITSHDU:
         text.append("%stype: %s" % (spacing,_hdu_type_map[self.info['hdutype']]))
         if self.info['extname'] != "":
             text.append("%sextname: %s" % (spacing,self.info['extname']))
+        if self.info['comptype'] is not None:
+            text.append("%scompression: %s" % (spacing,self.info['comptype']))
         
         if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             text.append("%simage info:" % spacing)
