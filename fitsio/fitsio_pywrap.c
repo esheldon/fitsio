@@ -9,6 +9,32 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
+void set_ioerr_string_from_status(int status) {
+    char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
+    char message[1024];
+
+    int nleft=1024;
+
+    if (status) {
+        fits_get_errstatus(status, status_str);  /* get the error description */
+
+        sprintf(message, "FITSIO status = %d: %s\n", status, status_str);
+
+        nleft -= strlen(status_str)+1;
+
+        while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
+            strncat(message, errmsg, nleft-1);
+            nleft -= strlen(errmsg)+1;
+            if (nleft >= 2) {
+                strncat(message, "\n", nleft-1);
+            }
+            nleft-=2;
+        }
+        PyErr_SetString(PyExc_IOError, message);
+    }
+    return;
+}
+
 
 
 static int
@@ -67,32 +93,6 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
     int status=0;
     fits_close_file(self->fits, &status);
     self->ob_type->tp_free((PyObject*)self);
-}
-
-void set_ioerr_string_from_status(int status) {
-    char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
-    char message[1024];
-
-    int nleft=1024;
-
-    if (status) {
-        fits_get_errstatus(status, status_str);  /* get the error description */
-
-        sprintf(message, "FITSIO status = %d: %s\n", status, status_str);
-
-        nleft -= strlen(status_str)+1;
-
-        while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
-            strncat(message, errmsg, nleft-1);
-            nleft -= strlen(errmsg)+1;
-            if (nleft >= 2) {
-                strncat(message, "\n", nleft-1);
-            }
-            nleft-=2;
-        }
-        PyErr_SetString(PyExc_IOError, message);
-    }
-    return;
 }
 
 
