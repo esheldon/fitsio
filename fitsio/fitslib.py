@@ -679,7 +679,24 @@ class FITSHDU:
         return array
 
 
-    def read_columns(self, columns, rows=None, slow=False):
+    def read_columns(self, columns, rows=None):
+        """
+        read a subset of columns from this binary table HDU
+
+        By default, all rows are read.  Send rows= to select subsets of the
+        data.  Table data are read into a recarray; use read_column() to get a
+        single column as an ordinary array.
+
+        parameters
+        ----------
+        columns: list/array
+            An optional set of columns to read from table HDUs.  Can be string
+            or number.
+        rows: list/array, optional
+            An optional list of rows to read from table HDUS.  Default is to
+            read all.
+        """
+
         if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             raise ValueError("Cannot yet read columns from an image HDU")
 
@@ -702,25 +719,16 @@ class FITSHDU:
             nrows = rows.size
         array = numpy.zeros(nrows, dtype=dtype)
 
-        if slow:
-            for i in xrange(colnums.size):
-                colnum = int(colnums[i])
-                name = array.dtype.names[i]
-                self._FITS.read_column(self.ext+1,colnum+1, array[name], rows)
-                self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
-        else:       
-            colnumsp = colnums[:].copy()
-            colnumsp[:] += 1
-            self._FITS.read_columns_as_rec(self.ext+1, colnumsp, array, rows)
-            
-            for i in xrange(colnums.size):
-                colnum = int(colnums[i])
-                name = array.dtype.names[i]
-                self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+        colnumsp = colnums[:].copy()
+        colnumsp[:] += 1
+        self._FITS.read_columns_as_rec(self.ext+1, colnumsp, array, rows)
+        
+        for i in xrange(colnums.size):
+            colnum = int(colnums[i])
+            name = array.dtype.names[i]
+            self._rescale_array(array[name], 
+                                self.info['colinfo'][colnum]['tscale'], 
+                                self.info['colinfo'][colnum]['tzero'])
         return array
 
 
