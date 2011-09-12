@@ -306,6 +306,8 @@ class FITS:
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
 
+        if compress not in _compress_map:
+            raise ValueError("compress must be one of %s" % list(_compress_map.keys()))
         comptype = _compress_map[compress]
         self._FITS.create_image_hdu(img, extname=extname, comptype=comptype)
 
@@ -979,7 +981,12 @@ class FITSHDU:
             text.append("%simage info:" % spacing)
             cspacing = ' '*4
 
-            dimstr = [str(d) for d in self.info['imgnaxis']]
+            if len(self.info['imgnaxis']) != 0:
+                dimstr = [str(d) for d in self.info['imgnaxis']]
+            elif len(self.info['znaxis']) != 0:
+                dimstr = [str(d) for d in self.info['znaxis']]
+            else:
+                dimstr=''
             dimstr = ",".join(dimstr)
 
             dt = _image_bitpix2npy[self.info['img_equiv_type']]

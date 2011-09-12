@@ -237,8 +237,10 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     PyDict_SetItemString(dict, "zndim", PyInt_FromLong((long)hdu->zndim));
 
     {
-        int i;
-        int imgtype;  
+        int i=0;
+        int imgtype=0;
+        char comptype[20];
+        int tstatus=0;
         PyObject* imgnaxis=PyList_New(0);
         PyObject* znaxis=PyList_New(0);
 
@@ -256,6 +258,13 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             PyList_Append(znaxis, PyInt_FromLong( (long)hdu->znaxis[i]));
         }
         PyDict_SetItemString(dict, "znaxis", znaxis);
+
+        if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
+            PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
+        } else {
+            Py_XINCREF(Py_None);
+            PyDict_SetItemString(dict, "comptype", Py_None);
+        }
 
     }
 
@@ -519,12 +528,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         dims[ndims-i-1] = PyArray_DIM(array, i);
     }
 
-    if (comptype != NOCOMPRESS) {
-        if (fits_set_compression_type(self->fits, comptype, &status)) {
-            set_ioerr_string_from_status(status);
-            goto create_image_hdu_cleanup;
-        }
+    // can be NOCOMPRESS
+    if (fits_set_compression_type(self->fits, comptype, &status)) {
+        set_ioerr_string_from_status(status);
+        goto create_image_hdu_cleanup;
     }
+
     if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
         set_ioerr_string_from_status(status);
         goto create_image_hdu_cleanup;
