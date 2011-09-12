@@ -165,7 +165,9 @@ optionally with a prefix
     python setup.py install --prefix=/some/path
 
 You will need the cfitsio library and headers installed on your system and
-visible.
+visible.  This man mean modifying LD_LIBRARY_PATH and C_INCLUDE_PATH to
+include the $PREFIX/lib and $PREFIX/include directories of your cfitsio
+install.
 
 TODO
 ----
