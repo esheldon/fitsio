@@ -147,10 +147,10 @@ class FITS:
         file before opening.
 
     """
-    def __init__(self, filename, mode, clobber=False):
+    def __init__(self, filename, mode='r', clobber=False):
         self.open(filename, mode, clobber=clobber)
     
-    def open(self, filename, mode, clobber=False):
+    def open(self, filename, mode='r', clobber=False):
         self.filename = extract_filename(filename)
         self.mode=mode
         self.clobber=clobber

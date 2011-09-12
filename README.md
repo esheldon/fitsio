@@ -40,7 +40,7 @@ Examples
     >>> h = fitsio.read_header(filename, extension)
     >>> data,h = fitsio.read_header(filename, extension, header=True)
 
-    # open the file and write a new binary table by default a new extension is
+    # open the file and write a binary table. By default a new extension is
     # appended to the file.  use clobber=True to overwrite an existing file
     # instead
     >>> fitsio.write(filename, recarray)
