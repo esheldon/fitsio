@@ -863,6 +863,9 @@ class FITSHDU:
         if columns is None:
             return numpy.arange(self.ncol, dtype='i8')
         
+        if isinstance(columns,(str,unicode)):
+            columns=[columns]
+
         colnums = numpy.zeros(len(columns), dtype='i8')
         for i in xrange(colnums.size):
             colnums[i] = self._extract_colnum(columns[i])
