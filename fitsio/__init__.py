@@ -10,6 +10,8 @@ Features
 - Read and write numpy arrays to and from image and binary table
   extensions.  
 - Read and write keywords.
+- Read and write images in tile-compressed format.  Read/write gzip and zip
+  files.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
 - TDIM information is used to return array columns in the correct shape
@@ -113,6 +115,9 @@ Examples
 
     # write the data to the primary HDU
     >>> fits.write_image(img)
+
+    # write the image with rice compression
+    >>> fits.write_image(img, compress='RICE_1')
  
     # create a rec array
     >>> nrows=35

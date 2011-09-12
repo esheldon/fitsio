@@ -483,6 +483,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     long dims[] = {0,0,0,0,0,0,0,0,0,0};
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
+    int comptype=NOCOMPRESS;
 
     PyObject* array;
     PyObject* extnameObj;
@@ -491,9 +492,9 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int i=0;
     int status=0;
 
-    static char *kwlist[] = {"array","extname", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|O", kwlist,
-                          &array, &extnameObj)) {
+    static char *kwlist[] = {"array","extname", "comptype", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oi", kwlist,
+                          &array, &extnameObj, &comptype)) {
         goto create_image_hdu_cleanup;
     }
  
@@ -518,6 +519,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         dims[ndims-i-1] = PyArray_DIM(array, i);
     }
 
+    if (comptype != NOCOMPRESS) {
+        if (fits_set_compression_type(self->fits, comptype, &status)) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
+    }
     if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
         set_ioerr_string_from_status(status);
         goto create_image_hdu_cleanup;

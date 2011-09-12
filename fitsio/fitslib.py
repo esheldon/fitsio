@@ -79,7 +79,7 @@ def read_header(filename, ext):
 
 
 
-def write(filename, data, extname=None, units=None, header=None, clobber=False):
+def write(filename, data, extname=None, units=None, compress=None, header=None, clobber=False):
     """
     Convenience function to Write data to a FITS file.
 
@@ -94,6 +94,16 @@ def write(filename, data, extname=None, units=None, header=None, clobber=False):
         to a new IMAGE_HDU and recarrays are written to BINARY_TBl hdus.
     extname: string, optional
         An optional name for the new header unit.
+    compress: string, optional
+        A string representing the compression algorithm for images, default None.
+        Must be one of
+           'RICE_1'
+           'GZIP_1'
+           'GZIP_2'
+           'PLIO_1'
+           'HCOMPRESS_1'
+        See the cfitsio manual for details.
+
     header: FITSHDR, list, dict, optional
         A set of header keys to write. The keys are written before the data
         is written to the table, preventing a resizing of the table area.
@@ -120,7 +130,7 @@ def write(filename, data, extname=None, units=None, header=None, clobber=False):
     fits = FITS(filename, 'rw', clobber=clobber)
     with FITS(filename, 'rw', clobber=clobber) as fits:
         if data.dtype.fields == None:
-            fits.write_image(data, extname=extname, header=header)
+            fits.write_image(data, extname=extname, compress=compress, header=header)
         else:
             fits.write_table(data, units=units, extname=extname, header=header)
 
@@ -210,7 +220,7 @@ class FITS:
         self.update_hdu_list()
 
 
-    def write_image(self, img, extname=None, header=None):
+    def write_image(self, img, extname=None, compress=None, header=None):
         """
         Create a new image extension and write the data.  
 
@@ -223,6 +233,15 @@ class FITS:
             An n-dimensional image.
         extname: string, optional
             An optional extension name.
+        compress: string, optional
+            A string representing the compression algorithm for images, default None.
+            Must be one of
+               'RICE_1'
+               'GZIP_1'
+               'GZIP_2'
+               'PLIO_1'
+               'HCOMPRESS_1'
+            See the cfitsio manual for details.
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Must be one of these:
                 - FITSHDR object
@@ -236,12 +255,11 @@ class FITS:
         ------------
         The File must be opened READWRITE
         """
-        print 'writing image type:',img.dtype.descr
-        self.create_image_hdu(img, extname=extname, header=header)
+        self.create_image_hdu(img, extname=extname, compress=compress, header=header)
         self._FITS.write_image(img)
         self.reopen()
 
-    def create_image_hdu(self, img, extname=None, header=None):
+    def create_image_hdu(self, img, extname=None, compress=None, header=None):
         """
         Create a new, empty image HDU and reload the hdu list.
 
@@ -261,6 +279,16 @@ class FITS:
             An image with which to determine the properties of the HDU
         extname: string, optional
             An optional extension name.
+        compress: string, optional
+            A string representing the compression algorithm for images, default None.
+            Must be one of
+               'RICE_1'
+               'GZIP_1'
+               'GZIP_2'
+               'PLIO_1'
+               'HCOMPRESS_1'
+            See the cfitsio manual for details.
+
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Must be one of these:
                 - FITSHDR object
@@ -277,7 +305,9 @@ class FITS:
 
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
-        self._FITS.create_image_hdu(img, extname=extname)
+
+        comptype = _compress_map[compress]
+        self._FITS.create_image_hdu(img, extname=extname, comptype=comptype)
 
         # fits seems to have some issues with flushing.
         self.reopen()
@@ -784,10 +814,8 @@ class FITSHDU:
 
     def _rescale_array(self, array, scale, zero):
         if scale != 1.0:
-            #print 'rescaling array'
             array *= scale
         if zero != 0.0:
-            #print 're-zeroing array'
             array += zero
 
     def get_rec_dtype(self, colnums=None):
@@ -1304,6 +1332,20 @@ READWRITE=1
 IMAGE_HDU=0
 ASCII_TBL=1
 BINARY_TBL=2
+
+NOCOMPRESS=0
+RICE_1 = 11
+GZIP_1 = 21
+GZIP_2 = 22
+PLIO_1 = 31
+HCOMPRESS_1 = 41
+
+_compress_map={None:NOCOMPRESS,
+               'RICE_1': RICE_1,
+               'GZIP_1': GZIP_1,
+               'GZIP_2': GZIP_2,
+               'PLIO_1': PLIO_1,
+               'HCOMPRESS_1': HCOMPRESS_1}
 
 _modeprint_map = {'r':'READONLY','rw':'READWRITE', 0:'READONLY',1:'READWRITE'}
 _char_modemap = {'r':'r','rw':'rw', 
