@@ -164,15 +164,23 @@ visible.
 
 TODO
 ----
-- test reading of all types both in read rec mode and read single
-  column mode.  Also with subsets of rows.
+
+- Full test sweet writing and reading of all types both in read rec mode and
+  read single column mode.  Also with subsets of rows.
+- Figure out how to make cfitsio flush write buffers.  Only needed
+  because my optimal read hack bypasses the buffers.
+- add lower,upper keywords to read routines.
 - append rows to tables
 - read row *ranges* more optimally
-- implement bit, logical, and complex types
-- write images with compression.  Should be straightforward.
-- error checking when creating, appending python lists in the c code
-- write TDIM using built in routine
+- write images with rice compression (note .gz files automagically supported)
+- More error checking in c code for python lists and dicts.
+- write TDIM using built in routine instead of rolling my own.
+- optimize writing tables when there are no unsigned short or long, no
+  signed bytes.  Can do one big "fwrite" but need to be careful with
+  confusing buffers.
+- complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?
+- variable length columns
 
 
 Note on array ordering
