@@ -887,7 +887,6 @@ static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status
     tcolumn* colptr=NULL;
     LONGLONG file_pos=0, row=0;
 
-    // these should be LONGLONG bug arent, arg cfitsio is so inconsistent!
     long gsize=0; // number of bytes in column
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
