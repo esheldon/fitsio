@@ -9,50 +9,7 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
-void set_ioerr_string_from_status(int status) {
-    char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
-    char message[1024];
 
-    int nleft=1024;
-
-    if (status) {
-        fits_get_errstatus(status, status_str);  /* get the error description */
-
-        sprintf(message, "FITSIO status = %d: %s\n", status, status_str);
-
-        nleft -= strlen(status_str)+1;
-
-        while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
-            strncat(message, errmsg, nleft-1);
-            nleft -= strlen(errmsg)+1;
-            if (nleft >= 2) {
-                strncat(message, "\n", nleft-1);
-            }
-            nleft-=2;
-        }
-        PyErr_SetString(PyExc_IOError, message);
-    }
-    return;
-}
-
-static PyObject *
-PyFITSObject_close(struct PyFITSObject* self)
-{
-    int status=0;
-    fits_close_file(self->fits, &status);
-    self->fits=NULL;
-    Py_RETURN_NONE;
-}
-
-
-
-static void
-PyFITSObject_dealloc(struct PyFITSObject* self)
-{
-    int status=0;
-    fits_close_file(self->fits, &status);
-    self->ob_type->tp_free((PyObject*)self);
-}
 
 static int
 PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
@@ -80,7 +37,6 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
-
 static PyObject *
 PyFITSObject_repr(struct PyFITSObject* self) {
     char repr[255];
@@ -90,6 +46,53 @@ PyFITSObject_repr(struct PyFITSObject* self) {
     }  else {
         return PyString_FromString("");
     }
+}
+
+
+
+static PyObject *
+PyFITSObject_close(struct PyFITSObject* self)
+{
+    int status=0;
+    fits_close_file(self->fits, &status);
+    self->fits=NULL;
+    Py_RETURN_NONE;
+}
+
+
+
+static void
+PyFITSObject_dealloc(struct PyFITSObject* self)
+{
+    int status=0;
+    fits_close_file(self->fits, &status);
+    self->ob_type->tp_free((PyObject*)self);
+}
+
+void set_ioerr_string_from_status(int status) {
+    char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
+    char message[1024];
+
+    int nleft=1024;
+
+    if (status) {
+        fits_get_errstatus(status, status_str);  /* get the error description */
+
+        sprintf(message, "FITSIO status = %d: %s\n", status, status_str);
+
+        nleft -= strlen(status_str)+1;
+
+        while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
+            strncat(message, errmsg, nleft-1);
+            nleft -= strlen(errmsg)+1;
+            if (nleft >= 2) {
+                strncat(message, "\n", nleft-1);
+            }
+            nleft-=2;
+        }
+        PyErr_SetString(PyExc_IOError, message);
+    }
+    return;
 }
 
 
@@ -168,9 +171,6 @@ PyFITSObject_moveabs_hdu(struct PyFITSObject* self, PyObject* args) {
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        // this will give full report
-        //fits_report_error(stderr, status);
-        // this for now is less
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -197,9 +197,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        // this will give full report
-        //fits_report_error(stderr, status);
-        // this for now is less
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -219,8 +216,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
         PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
     } else {
-        //sprintf(extname,"HDU%d",hdunum);
-        //PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
         PyDict_SetItemString(dict, "extname", PyString_FromString(""));
     }
 
@@ -300,46 +295,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     return dict;
 }
 
-// this converts bitpix to a corresponding numpy dtype
-// of the right type
-/*
-static int 
-fits_to_npy_image_type(int bitpix) {
-
-    char mess[255];
-    switch (bitpix) {
-        case BYTE_IMG:
-            return NPY_UINT8;
-        case SBYTE_IMG:
-            return NPY_INT8;
-
-        case USHORT_IMG:
-            return NPY_UINT16;
-        case SHORT_IMG:
-            return NPY_INT16;
-
-        case ULONG_IMG:
-            return NPY_UINT32;
-        case LONG_IMG:
-            return NPY_INT32;
-
-        case LONGLONG_IMG:
-            return NPY_INT64;
-
-        case FLOAT_IMG:
-            return NPY_FLOAT32;
-        case DOUBLE_IMG:
-            return NPY_FLOAT64;
-
-        default:
-            sprintf(mess,"Unsupported fits image type (bitpix) %d", bitpix);
-            PyErr_SetString(PyExc_TypeError, mess);
-            return -9999;
-    }
-
-    return 0;
-}
-*/
 // this is the parameter that goes in the type for fits_write_col
 static int 
 npy_to_fits_table_type(int npy_dtype) {
@@ -824,9 +779,9 @@ int write_string_column(
 
     LONGLONG i=0;
     LONGLONG twidth=0;
-    // need to create a char** representation of the data I think that
-    // multi-dimensional stuff needs to be packed down to 1-d for this, so
-    // let's try that first
+    // need to create a char** representation of the data, just point back
+    // into the data array at string width offsets.  the fits_write_col_str
+    // takes care of skipping between fields.
     char* cdata=NULL;
     char** strdata=NULL;
 
@@ -917,8 +872,6 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args) {
         }
     }
 
-    // now what?  we have an array of a given type, and a declared fits column
-    // of a given type.
     Py_RETURN_NONE;
 }
 
@@ -972,7 +925,6 @@ static int read_column_bytes_strided(fitsfile* fits, int colnum, void* data, npy
     // this is just in case.
     char* ptr;
 
-    // these should be LONGLONG bug arent, arg cfitsio is so inconsistent!
     long gsize=0; // number of bytes in column
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
@@ -1017,7 +969,6 @@ static int read_column_bytes_byrow(
     // this is just in case.
     char* ptr;
 
-    // these should be LONGLONG bug arent, arg cfitsio is so inconsistent!
     long gsize=0; // number of bytes in column
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
@@ -1156,8 +1107,7 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
  
-// read from a column into a contiguous array.  Don't yet
-// support subset of rows.
+// read from a column into a contiguous array.
 //
 // no error checking on the input array is performed!!
 static PyObject *
@@ -1249,7 +1199,6 @@ static int read_rec_column_bytes(fitsfile* fits, npy_intp ncols, npy_int64* coln
     // this is just in case.
     char* ptr;
 
-    // these should be LONGLONG bug aren't, cfitsio is so inconsistent!
     long groupsize=0; // number of bytes in column
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
@@ -1298,7 +1247,6 @@ static int read_rec_column_bytes_byrow(
     // this is just in case.
     char* ptr;
 
-    // these should be LONGLONG bug aren't, cfitsio is so inconsistent!
     long groupsize=0; // number of bytes in column
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
@@ -1410,7 +1358,6 @@ static int read_rec_bytes_byrow(
     // this is just in case.
     char* ptr;
 
-    // these should be LONGLONG bug aren't, cfitsio is so inconsistent!
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
 
@@ -1557,7 +1504,6 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     data = PyArray_DATA(array);
 
     if (read_rec_bytes(self->fits, data, &status)) {
-        //fits_report_error(stderr, status);
         goto recread_cleanup;
     }
 
@@ -1570,101 +1516,6 @@ recread_cleanup:
     Py_RETURN_NONE;
 }
  
-// read an n-dimensional "image" into the input array.  Only minimal checking
-// of the input array is done.
-/*
-static PyObject *
-PyFITSObject_read_image_new(struct PyFITSObject* self, PyObject* args) {
-    int hdunum;
-    int hdutype;
-    int status=0;
-    PyObject* array=NULL;
-    void* data=NULL;
-    //FITSfile* hdu=NULL;
-
-    int maxdim=10;
-    int output_datatype=0;
-    int datatype=0; // type info for axis
-    int ndims=0; // number of axes
-    int i=0;
-    LONGLONG dims[]={0,0,0,0,0,0,0,0,0,0};  // size of each axis
-    npy_intp npy_dims[]={0,0,0,0,0,0,0,0,0,0};
-    LONGLONG firstpixels[]={1,1,1,1,1,1,1,1,1,1};
-    LONGLONG size=0;
-    npy_intp arrsize=0;
-    int fortran=0;
-
-    int anynul=0;
-
-    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
-        return NULL;
-    }
-
-    if (self->fits == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
-        return NULL;
-    }
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        return NULL;
-    }
-
-    //if (npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype)) {
-    //    return NULL;
-    //}
-
-    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &ndims, dims, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-    for (i=0; i<ndims; i++) {
-        npy_dims[ndims-i-1] = dims[i];
-    }
-
-
-    array = PyArray_ZEROS(ndims, npy_dims, NPY_INT32, fortran);
-    if (array==NULL) {
-        PyErr_SetString(PyExc_MemoryError, "failed to create output array");
-    }
-    return array;
-
-
-    // make sure dims match
-    size=0;
-    size = dims[0];
-    for (i=1; i< ndims; i++) {
-        size *= dims[i];
-    }
-    arrsize = PyArray_SIZE(array);
-    data = PyArray_DATA(array);
-
-    if (size != arrsize) {
-        char mess[255];
-        sprintf(mess,"Input array size is %ld but on disk array size is %lld", arrsize, size);
-        PyErr_SetString(PyExc_RuntimeError, mess);
-        return NULL;
-    }
-
-    // need to deal with incorrect types in cfitsio for long types
-    if (output_datatype == TLONG) {
-        if (sizeof(long) == sizeof(npy_int64) && sizeof(int) == sizeof(npy_int32)) {
-            // internally read_pix uses int for TINT, so assuming int is always 32
-            output_datatype = TINT;
-        } else {
-            PyErr_SetString(PyExc_TypeError, "don't know how to deal with TLONG on this system");
-            return NULL;
-        }
-    }
-    if (fits_read_pixll(self->fits, output_datatype, firstpixels, size,
-                        0, data, &anynul, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-
-    Py_RETURN_NONE;
-}
-*/
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
 static PyObject *
@@ -1734,7 +1585,8 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-// read the entire header as a list of strings
+// read the entire header as list of dicts with name,value,comment and full
+// card
 static PyObject *
 PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int status=0;
