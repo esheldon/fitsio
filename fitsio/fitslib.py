@@ -178,6 +178,14 @@ class FITS:
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
+
+        if (self.filename[-3:].lower() == '.gz' 
+                or self.filename[-2:].upper() == '.Z'
+                or self.filename[-4:].lower() == '.zip'):
+            self.is_compressed=True
+        else:
+            self.is_compressed=False
+
     def close(self):
         self._FITS.close()
         self._FITS=None
@@ -455,13 +463,24 @@ class FITSHDU:
         parameters
         ----------
         fits: FITS object
-            An instance of a FITS object
+            An instance of a _fistio_wrap.FITS object.  This is
+            the low-level pytho object, not the FITS object
+            defined above.
         ext: integer
             The extension number.
         """
         self._FITS = fits
         self.ext = ext
         self._update_info()
+        self.filename = self._FITS.filename()
+
+        if (self.filename[-3:].lower() == '.gz' 
+                or self.filename[-2:].upper() == '.Z'
+                or self.filename[-4:].lower() == '.zip'):
+            self.is_compressed=True
+        else:
+            self.is_compressed=False
+
 
     def write_key(self, keyname, value, comment=""):
         """
@@ -654,12 +673,29 @@ class FITSHDU:
                             self.info['colinfo'][colnum]['tzero'])
         return array
 
-    def read_all(self):
-        # read entire thing
+    def read_all(self, slow=False):
+        """
+        Read the entire table.
+
+        parameters
+        ----------
+        slow: bool, optional
+            Read the columns one at a time rather than all at once.
+            This will be done automatically for .gz or .Z files.
+        """
+        if self.is_compressed:
+            slow=True
+
         dtype = self.get_rec_dtype()
         nrows = self.info['numrows']
         array = numpy.zeros(nrows, dtype=dtype)
-        self._FITS.read_as_rec(self.ext+1, array)
+        if not slow:
+            # read entire thing as a single fread.  This won't work for .gz or
+            # .Z files because we have to work with the buffers
+            self._FITS.read_as_rec(self.ext+1, array)
+        else:
+            for i,name in enumerate(array.dtype.names):
+                array[name] = self.read_column(i)
 
         for colnum,name in enumerate(array.dtype.names):
             self._rescale_array(array[name], 

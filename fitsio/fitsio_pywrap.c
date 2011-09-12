@@ -74,6 +74,19 @@ PyFITSObject_repr(struct PyFITSObject* self) {
     }
 }
 
+static PyObject *
+PyFITSObject_filename(struct PyFITSObject* self) {
+
+    if (self->fits != NULL) {
+        PyObject* fnameObj=NULL;
+        fnameObj = PyString_FromString(self->fits->Fptr->filename);
+        return fnameObj;
+    }  else {
+        PyErr_SetString(PyExc_ValueError, "file is not open, cannot determine name");
+        return NULL;
+    }
+}
+
 
 
 static PyObject *
@@ -1441,6 +1454,7 @@ recread_byrow_cleanup:
 
 // Read the entire table into the input rec array.  It is assumed the data
 // match table perfectly.
+// this won't work for .Z or .gz files!
 static int read_rec_bytes(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
@@ -1657,6 +1671,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
 static PyMethodDef PyFITSObject_methods[] = {
     {"moveabs_hdu",          (PyCFunction)PyFITSObject_moveabs_hdu,          METH_VARARGS,  "moveabs_hdu\n\nMove to the specified HDU."},
+    {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
