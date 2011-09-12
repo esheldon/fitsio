@@ -1,7 +1,69 @@
 Read and write data to FITS files using the cfitsio library.
 
+Description
+-----------
+
 This is a python extension written in c and python.  The cfitsio library and
-headers are required to compile the code.
+headers are required to compile the code.  
+
+Features
+--------
+
+    - Read and write numpy arrays to and from image and binary table
+      extensions.  
+    - Read and write keywords.
+    - Read arbitrary subsets of table columns and rows without loading the
+      whole file.
+    - TDIM information is used to return array columns in the correct shape
+    - Correctly writes and reads string table columns, including array columns
+      of arbitrary shape.
+    - Supports unsigned types the way the FITS standard allows, by converting
+      to signed and using zero offsets.  Note the FITS standard does not support
+      unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
+      Be careful of this feature!
+    - Correctly writes 1 byte integers table columns.
+    - data are guaranteed to conform to the FITS standard.
+
+
+TODO
+----
+    - test reading of all types both in read rec mode and read single
+      column mode.  Also with subsets of rows.
+    - append rows to tables
+    - read row *ranges* more optimally
+    - implement bit, logical, and complex types
+    - write images with compression.  Should be straightforward.
+    - error checking when creating, appending python lists in the c code
+    - write TDIM using built in routine
+    - explore separate classes for image and table HDUs?
+
+Note on array ordering
+----------------------
+        
+Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
+and image dimensions in reverse order, but write the data as is.  Then we need
+to also reverse the dims as read from the header when creating the numpy dtype,
+but read as is.
+
+
+
+Installation
+------------
+Either download the tar ball (upper right corner of github page) or
+use 
+
+    git clone git://github.com/esheldon/fitsio.git
+
+Enter the fitsio directory and type
+
+    python setup.py install
+
+optionally with a prefix 
+
+    python setup.py install --prefix=/some/path
+
+You will need the cfitsio library and headers installed on your system and
+visible.
 
 Examples
 --------
@@ -119,44 +181,5 @@ Examples
     with FITS('path/to/file','r') as fits:
         data = fits[ext].read()
 
-
-Features
---------
-
-    - Read and write numpy arrays to and from image and binary table
-      extensions.  
-    - Read and write keywords.
-    - Read arbitrary subsets of table columns and rows without loading the
-      whole file.
-    - TDIM information is used to return array columns in the correct shape
-    - Correctly writes and reads string table columns, including array columns
-      of arbitrary shape.
-    - Supports unsigned types the way the FITS standard allows, by converting
-      to signed and using zero offsets.  Note the FITS standard does not support
-      unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-      Be careful of this feature!
-    - Correctly writes 1 byte integers table columns.
-    - data are guaranteed to conform to the FITS standard.
-
-
-TODO
-----
-    - test reading of all types both in read rec mode and read single
-      column mode.  Also with subsets of rows.
-    - append rows to tables
-    - read row *ranges* more optimally
-    - implement bit, logical, and complex types
-    - write images with compression.  Should be straightforward.
-    - error checking when creating, appending python lists in the c code
-    - write TDIM using built in routine
-    - explore separate classes for image and table HDUs?
-
-NOTES:
-    A principle: 
-        
-        since numpy uses C order, FITS uses fortran order, we have to write the
-        TDIM and image dimensions in reverse order, but write the data as is.
-        Then we need to also reverse the dims as read from the header when
-        creating the numpy dtype, but read as is.
 
 
