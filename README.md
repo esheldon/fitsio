@@ -9,33 +9,33 @@ headers are required to compile the code.
 Features
 --------
 
-    - Read and write numpy arrays to and from image and binary table
-      extensions.  
-    - Read and write keywords.
-    - Read arbitrary subsets of table columns and rows without loading the
-      whole file.
-    - TDIM information is used to return array columns in the correct shape
-    - Correctly writes and reads string table columns, including array columns
-      of arbitrary shape.
-    - Supports unsigned types the way the FITS standard allows, by converting
-      to signed and using zero offsets.  Note the FITS standard does not support
-      unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-      Be careful of this feature!
-    - Correctly writes 1 byte integers table columns.
-    - data are guaranteed to conform to the FITS standard.
+- Read and write numpy arrays to and from image and binary table
+  extensions.  
+- Read and write keywords.
+- Read arbitrary subsets of table columns and rows without loading the
+  whole file.
+- TDIM information is used to return array columns in the correct shape
+- Correctly writes and reads string table columns, including array columns
+  of arbitrary shape.
+- Supports unsigned types the way the FITS standard allows, by converting
+  to signed and using zero offsets.  Note the FITS standard does not support
+  unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
+  Be careful of this feature!
+- Correctly writes 1 byte integers table columns.
+- data are guaranteed to conform to the FITS standard.
 
 
 TODO
 ----
-    - test reading of all types both in read rec mode and read single
-      column mode.  Also with subsets of rows.
-    - append rows to tables
-    - read row *ranges* more optimally
-    - implement bit, logical, and complex types
-    - write images with compression.  Should be straightforward.
-    - error checking when creating, appending python lists in the c code
-    - write TDIM using built in routine
-    - explore separate classes for image and table HDUs?
+- test reading of all types both in read rec mode and read single
+  column mode.  Also with subsets of rows.
+- append rows to tables
+- read row *ranges* more optimally
+- implement bit, logical, and complex types
+- write images with compression.  Should be straightforward.
+- error checking when creating, appending python lists in the c code
+- write TDIM using built in routine
+- explore separate classes for image and table HDUs?
 
 Note on array ordering
 ----------------------
