@@ -167,6 +167,7 @@ TODO
   read single column mode.  Also with subsets of rows.
 - Figure out how to make cfitsio flush write buffers.  Only needed
   because my optimal read hack bypasses the buffers.
+- add lower,upper keywords to read routines.
 - append rows to tables
 - read row *ranges* more optimally
 - write images with rice compression (note .gz files automagically supported)
