@@ -163,7 +163,8 @@ class FITS:
         self.open(filename, mode, clobber=clobber)
     
     def open(self, filename, mode='r', clobber=False):
-        self.filename = extract_filename(filename)
+        filename = extract_filename(filename)
+        self.filename = filename
         self.mode=mode
         self.clobber=clobber
 
@@ -185,13 +186,16 @@ class FITS:
                     create=0
                 else:
                     create=1
+        else:
+            if not os.path.exists(filename):
+                raise ValueError("File not found: %s" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
 
-        if (self.filename[-3:].lower() == '.gz' 
-                or self.filename[-2:].upper() == '.Z'
-                or self.filename[-4:].lower() == '.zip'):
+        if (filename[-3:].lower() == '.gz' 
+                or filename[-2:].upper() == '.Z'
+                or filename[-4:].lower() == '.zip'):
             self.is_compressed=True
         else:
             self.is_compressed=False
@@ -716,18 +720,18 @@ class FITSHDU:
             This will be done automatically for .gz or .Z files.
         """
         if self.is_compressed:
-            slow=True
+            # we need to use the inernal cfitsio buffers in this case;
+            # read_columns always uses buffers
+            colnums = self._extract_colnums(None)
+            return self.read_columns(colnums)
 
         dtype = self.get_rec_dtype()
         nrows = self.info['numrows']
         array = numpy.zeros(nrows, dtype=dtype)
-        if not slow:
-            # read entire thing as a single fread.  This won't work for .gz or
-            # .Z files because we have to work with the buffers
-            self._FITS.read_as_rec(self.ext+1, array)
-        else:
-            for i,name in enumerate(array.dtype.names):
-                array[name] = self.read_column(i)
+
+        # read entire thing as a single fread.  This won't work for .gz or
+        # .Z files because we have to work with the buffers
+        self._FITS.read_as_rec(self.ext+1, array)
 
         for colnum,name in enumerate(array.dtype.names):
             self._rescale_array(array[name], 
@@ -776,9 +780,9 @@ class FITSHDU:
         # by the reader to mean all
         rows = self._extract_rows(rows)
 
-        if colnums.size == self.ncol and rows is None:
-            # we are reading everything
-            return self.read()
+        #if colnums.size == self.ncol and rows is None:
+        #    # we are reading everything
+        #    return self.read()
 
         # this is the full dtype for all columns
         dtype = self.get_rec_dtype(colnums)
