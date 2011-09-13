@@ -135,7 +135,6 @@ def write(filename, data, extname=None, units=None, compress=None, header=None, 
         A list of strings representing units for each column.
 
     """
-    fits = FITS(filename, 'rw', clobber=clobber)
     with FITS(filename, 'rw', clobber=clobber) as fits:
         if data.dtype.fields == None:
             fits.write_image(data, extname=extname, compress=compress, header=header)
@@ -174,7 +173,6 @@ class FITS:
         filename = extract_filename(filename)
         self.filename = filename
         self.mode=mode
-        self.clobber=clobber
 
         if mode not in _int_modemap:
             raise ValueError("mode should be one of 'r','rw',READONLY,READWRITE")
@@ -184,7 +182,7 @@ class FITS:
 
         create=0
         if mode in [READWRITE,'rw']:
-            if self.clobber:
+            if clobber:
                 create=1
                 if os.path.exists(filename):
                     print 'Removing existing file'
@@ -213,7 +211,6 @@ class FITS:
         self._FITS=None
         self.filename=None
         self.mode=None
-        self.clobber=None
         self.charmode=None
         self.intmode=None
         self.hdu_list=None
