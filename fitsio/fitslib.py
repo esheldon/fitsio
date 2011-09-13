@@ -722,7 +722,7 @@ class FITSHDU:
         if self.is_compressed:
             # we need to use the inernal cfitsio buffers in this case;
             # read_columns always uses buffers
-            colnums = self._extract_colnums(None)
+            colnums = self._extract_colnums()
             return self.read_columns(colnums)
 
         dtype = self.get_rec_dtype()
