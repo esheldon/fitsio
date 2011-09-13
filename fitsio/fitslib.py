@@ -18,7 +18,7 @@ from . import _fitsio_wrap
 import copy
 
 
-def read(filename, ext, rows=None, columns=None, header=False):
+def read(filename, ext=None, rows=None, columns=None, header=False):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -33,9 +33,10 @@ def read(filename, ext, rows=None, columns=None, header=False):
     ----------
     filename: string
         A filename. 
-    ext: number or string
+    ext: number or string, optional
         The extension.  Either the numerical extension from zero
-        or a string extension name.
+        or a string extension name. If not sent, data is read from
+        the first HDU that has data.
     columns: list or array, optional
         An optional set of columns to read from table HDUs.  Default is to
         read all.  Can be string or number.
@@ -49,6 +50,13 @@ def read(filename, ext, rows=None, columns=None, header=False):
     """
 
     with FITS(filename, 'r') as fits:
+        if ext is None:
+            for i in xrange(len(fits)):
+                if fits[i].has_data():
+                    ext=i
+            if ext is None:
+                raise ValueError("No extensions have data")
+
         data = fits[ext].read(rows=rows, columns=columns)
         if header:
             h = fits[ext].read_header()
@@ -449,6 +457,11 @@ class FITS:
     def moveabs_ext(self, ext):
         self._FITS.moveabs_hdu(ext+1)
 
+    def __len__(self):
+        if not hasattr(self,'hdu_list'):
+            self.update_hdu_list()
+        return len(self.hdu_list)
+
     def __getitem__(self, ext):
         if not hasattr(self, 'hdu_list'):
             self.update_hdu_list()
@@ -517,6 +530,18 @@ class FITSHDU:
         else:
             self.is_compressed=False
 
+
+    def has_data(self):
+        if self.info['hdutype'] == IMAGE_HDU:
+            if self.info['imgdim'] == 0 and self.info['zndim'] == 0:
+                return False
+            else:
+                return True
+        else:
+            if self.info['numrows'] > 0:
+                return True
+            else:
+                return False
 
     def write_key(self, keyname, value, comment=""):
         """
