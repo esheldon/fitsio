@@ -12,13 +12,41 @@ def test():
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
         
-        dtype=[('i1scalar','i1'),
-               ('f','f4'),
-               ('fvec','f4',2),
-               ('darr','f8',(2,3)),#] 
-               ('s','S5'),
-               ('svec','S6',3),
-               ('sarr','S2',(3,4))]
+        nvec = 2
+        ashape = (2,3)
+        Sdtype = 'S6'
+        dtype=[('u1scalar','u1'),
+               ('i1scalar','i1'),
+               ('u2scalar','u2'),
+               ('i2scalar','i2'),
+               ('u4scalar','u4'),
+               ('i4scalar','i4'),
+               ('i8scalar','i8'),
+               ('f4scalar','f4'),
+               ('f8scalar','f8'),
+
+               ('u1vec','u1',nvec),
+               ('i1vec','i1',nvec),
+               ('u2vec','u2',nvec),
+               ('i2vec','i2',nvec),
+               ('u4vec','u4',nvec),
+               ('i4vec','i4',nvec),
+               ('i8vec','i8',nvec),
+               ('f4vec','f4',nvec),
+               ('f8vec','f8',nvec),
+ 
+               ('u1arr','u1',ashape),
+               ('i1arr','i1',ashape),
+               ('u2arr','u2',ashape),
+               ('i2arr','i2',ashape),
+               ('u4arr','u4',ashape),
+               ('i4arr','i4',ashape),
+               ('i8arr','i8',ashape),
+
+               ('Sscalar',Sdtype),
+               ('Svec',   Sdtype, nvec),
+               ('Sarr',   Sdtype, ashape)]
+
         dtype2=[('index','i4'),
                 ('x','f8'),
                 ('y','f8')]
@@ -26,10 +54,13 @@ class TestReadWrite(unittest.TestCase):
         nrows=4
         data=numpy.zeros(4, dtype=dtype)
 
-        data['i1scalar'] = 1 + numpy.arange(nrows, dtype='i1')
-        data['f'] = 1 + numpy.arange(nrows, dtype='f4')
-        data['fvec'] = 1 + numpy.arange(nrows*2,dtype='f4').reshape(nrows,2)
-        data['darr'] = 1 + numpy.arange(nrows*2*3,dtype='f8').reshape(nrows,2,3)
+        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
+            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
+            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
+            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
+            data[t+'arr'] = arr.reshape(nrows,ashape[0]*ashape[1])
+
+
 
         # strings get padded when written to the fits file.  And the way I do
         # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
@@ -37,14 +68,14 @@ class TestReadWrite(unittest.TestCase):
         # so for comparisons, we need to pad out the strings with blanks so we
         # can compare
 
-        data['s'] = ['%-5s' % s for s in ['hello','world','and','bye']]
-        data['svec'][:,0] = '%-6s' % 'hello'
-        data['svec'][:,1] = '%-6s' % 'there'
-        data['svec'][:,2] = '%-6s' % 'world'
+        data['Sscalar'] = ['%-6s' % s for s in ['hello','world','and','bye']]
+        data['Svec'][:,0] = '%-6s' % 'hello'
+        data['Svec'][:,1] = '%-6s' % 'there'
+        data['Svec'][:,2] = '%-6s' % 'world'
 
-        s = 1 + numpy.arange(nrows*3*4)
-        s = ['%-2s' % el for el in s]
-        data['sarr'] = numpy.array(s).reshape(nrows,3,4)
+        s = 1 + numpy.arange(nrows*nrows*ashape[0]*ashape[1])
+        s = ['%-6s' % el for el in s]
+        data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0]*ashape[1])
 
         self.data = data
 
