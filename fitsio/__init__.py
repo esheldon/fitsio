@@ -156,3 +156,5 @@ from .fitslib import read_header
 from .fitslib import write
 from .fitslib import READONLY
 from .fitslib import READWRITE
+
+from . import test
