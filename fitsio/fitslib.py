@@ -105,12 +105,11 @@ def write(filename, data, extname=None, units=None, compress=None, header=None, 
     compress: string, optional
         A string representing the compression algorithm for images, default None.
         Must be one of
-           'RICE_1'
-           'GZIP_1'
-           'GZIP_2'
-           'PLIO_1'
-           'HCOMPRESS_1'
-        See the cfitsio manual for details.
+           'RICE'
+           'GZIP'
+           'PLIO' (no unsigned or negative integers)
+           'HCOMPRESS'
+        (case-insensitive) See the cfitsio manual for details.
 
     header: FITSHDR, list, dict, optional
         A set of header keys to write. The keys are written before the data
@@ -245,12 +244,11 @@ class FITS:
         compress: string, optional
             A string representing the compression algorithm for images, default None.
             Must be one of
-               'RICE_1'
-               'GZIP_1'
-               'GZIP_2'
-               'PLIO_1'
-               'HCOMPRESS_1'
-            See the cfitsio manual for details.
+                'RICE'
+                'GZIP'
+                'PLIO' (no unsigned or negative integers)
+                'HCOMPRESS'
+            (case-insensitive) See the cfitsio manual for details.
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Must be one of these:
                 - FITSHDR object
@@ -265,10 +263,14 @@ class FITS:
         The File must be opened READWRITE
         """
         self.create_image_hdu(img, extname=extname, compress=compress, header=header)
+        self.update_hdu_list()
+
+        self[-1].write_image(img)
+
         # this is how it should be
         #self.update_hdu_list()
         #self[-1].write_image(img)
-        self._FITS.write_image(img)
+        #self._FITS.write_image(img)
         #self.reopen()
         self.update_hdu_list()
 
@@ -295,12 +297,11 @@ class FITS:
         compress: string, optional
             A string representing the compression algorithm for images, default None.
             Must be one of
-               'RICE_1'
-               'GZIP_1'
-               'GZIP_2'
-               'PLIO_1'
-               'HCOMPRESS_1'
-            See the cfitsio manual for details.
+                'RICE'
+                'GZIP'
+                'PLIO' (no unsigned or negative integers)
+                'HCOMPRESS'
+            (case-insensitive) See the cfitsio manual for details.
 
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Must be one of these:
@@ -319,9 +320,8 @@ class FITS:
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
 
-        if compress not in _compress_map:
-            raise ValueError("compress must be one of %s" % list(_compress_map.keys()))
-        comptype = _compress_map[compress]
+        comptype = get_compress_type(compress)
+        check_comptype_img(comptype, img)
         self._FITS.create_image_hdu(img, extname=extname, comptype=comptype)
 
         # fits seems to have some issues with flushing.
@@ -624,6 +624,10 @@ class FITSHDU:
                 value=r['value']
                 comment = r.get('comment','')
                 self.write_key(name,value,comment)
+
+    def write_image(self, img):
+        self._FITS.write_image(self.ext+1, img)
+        self._update_info()
 
     def write_column(self, column, data):
         """
@@ -1368,6 +1372,26 @@ class FITSHDR:
             rep.append(card)
         return '\n'.join(rep)
 
+def get_compress_type(compress):
+    if compress is not None:
+        compress = str(compress).upper()
+    if compress not in _compress_map:
+        raise ValueError("compress must be one of %s" % list(_compress_map.keys()))
+    return _compress_map[compress]
+def check_comptype_img(comptype, img):
+
+    if comptype == NOCOMPRESS:
+        return
+
+    if img.dtype.descr[0][1][1:] == 'i8':
+        # no i8 allowed for tile-compressed images
+        raise ValueError("8-byte integers not supported when  using tile compression")
+
+    if comptype == PLIO_1:
+        # no unsigned for plio
+        if img.dtype.descr[0][1][1] == 'u':
+            raise ValueError("unsigned integers not allowed when using PLIO tile compression")
+
 READONLY=0
 READWRITE=1
 IMAGE_HDU=0
@@ -1377,15 +1401,20 @@ BINARY_TBL=2
 NOCOMPRESS=0
 RICE_1 = 11
 GZIP_1 = 21
-GZIP_2 = 22
 PLIO_1 = 31
 HCOMPRESS_1 = 41
 
+# this doesn't work
+#GZIP_2 = 22
+
 _compress_map={None:NOCOMPRESS,
+               'RICE': RICE_1,
                'RICE_1': RICE_1,
+               'GZIP': GZIP_1,
                'GZIP_1': GZIP_1,
-               'GZIP_2': GZIP_2,
+               'PLIO': PLIO_1,
                'PLIO_1': PLIO_1,
+               'HCOMPRESS': HCOMPRESS_1,
                'HCOMPRESS_1': HCOMPRESS_1}
 
 _modeprint_map = {'r':'READONLY','rw':'READWRITE', 0:'READONLY',1:'READWRITE'}

@@ -93,7 +93,11 @@ static PyObject *
 PyFITSObject_close(struct PyFITSObject* self)
 {
     int status=0;
-    fits_close_file(self->fits, &status);
+    if (fits_close_file(self->fits, &status)) {
+        self->fits=NULL;
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
     self->fits=NULL;
     Py_RETURN_NONE;
 }
@@ -501,12 +505,17 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int i=0;
     int status=0;
 
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+    }
+
     static char *kwlist[] = {"array","extname", "comptype", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oi", kwlist,
                           &array, &extnameObj, &comptype)) {
         goto create_image_hdu_cleanup;
     }
- 
+
+
     if (!PyArray_Check(array)) {
         PyErr_SetString(PyExc_TypeError, "input must be an array.");
         goto create_image_hdu_cleanup;
@@ -562,6 +571,8 @@ create_image_hdu_cleanup:
 // dims are not checked
 static PyObject *
 PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int hdutype=0;
     LONGLONG nelements=1;
     LONGLONG firstpixel=1;
     int image_datatype=0; // fits type for image, AKA bitpix
@@ -572,7 +583,16 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     int npy_dtype=0;
     int status=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"O", &array)) {
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
         return NULL;
     }
  
@@ -926,7 +946,6 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args) {
     }
 
     // this is a full file close and reopen
-
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
@@ -1458,6 +1477,40 @@ static int read_rec_bytes_byrow(
     return 0;
 }
 
+// read all rows, all columns, but one row at a time rather
+// than all at once.
+static int read_rec_bytes_all_byrow(fitsfile* fits, void* data, int* status) {
+    FITSfile* hdu=NULL;
+    LONGLONG file_pos=0;
+
+    npy_int64 row=0;
+
+    // use char for pointer arith.  It's actually ok to use void as char but
+    // this is just in case.
+    char* ptr;
+
+    long ngroups=1; // number to read, one for row-by-row reading
+    long offset=0; // gap between groups, not stride.  zero since we aren't using it
+
+    hdu = fits->Fptr;
+    ptr = (char*) data;
+
+    for (row=0; row<hdu->numrows; row++) {
+        file_pos = hdu->datastart + row*hdu->rowlength;
+
+        // can just do one status check, since status are inherited.
+        ffmbyt(fits, file_pos, REPORT_EOF, status);
+        if (ffgbytoff(fits, hdu->rowlength, ngroups, offset, (void*) ptr, status)) {
+            return 1;
+        }
+        ptr += hdu->rowlength;
+    }
+
+    return 0;
+}
+
+
+
 
 // python method to read all columns but subset of rows
 static PyObject *
@@ -1533,6 +1586,7 @@ static int read_rec_bytes(fitsfile* fits, void* data, int* status) {
     file_pos = hdu->datastart;
     nbytes = hdu->numrows*hdu->rowlength;
 
+
     if (file_seek(hdu->filehandle, file_pos)) {
         *status = SEEK_ERROR;
         return 1;
@@ -1541,14 +1595,23 @@ static int read_rec_bytes(fitsfile* fits, void* data, int* status) {
     if (ffread(hdu, nbytes, data, status)) {
         return 1;
     }
+
     // we have to return so as not to confuse the buffer system
     if (file_seek(hdu->filehandle, file_pos)) {
         *status = SEEK_ERROR;
         return 1;
     }
 
+    /*
+    if (fits_flush_file(fits, status)) {
+        set_ioerr_string_from_status(*status);
+        return 1;
+    }
+    */
+
     return 0;
 }
+
 
 
 
@@ -1586,6 +1649,12 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     if (read_rec_bytes(self->fits, data, &status)) {
         goto recread_cleanup;
     }
+    /*
+    if (read_rec_bytes_all_byrow(self->fits, data, &status)) {
+        goto recread_cleanup;
+    }
+    */
+
 
 recread_cleanup:
 

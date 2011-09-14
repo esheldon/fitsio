@@ -12,8 +12,8 @@ Features
 - Read and write numpy arrays to and from image and binary table
   extensions.  
 - Read and write keywords.
-- Read and write images in tile-compressed format.  Read/write gzip and zip
-  files.
+- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
+- Read/write gzip files. Read unix compress files (.Z,.zip)
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
 - TDIM information is used to return array columns in the correct shape
@@ -119,7 +119,7 @@ Examples
     >>> fits.write_image(img)
 
     # write the image with rice compression
-    >>> fits.write_image(img, compress='RICE_1')
+    >>> fits.write_image(img, compress='rice')
  
     # create a rec array
     >>> nrows=35
@@ -167,25 +167,31 @@ optionally with a prefix
 You will need the cfitsio library and headers installed on your system and
 visible.  This man mean modifying LD_LIBRARY_PATH and C_INCLUDE_PATH
 environment variables to include the $PREFIX/lib and $PREFIX/include
-directories of your cfitsio install.
+directories of your cfitsio install.  E.g. on OS X, using fink for
+your cfitsio, you may have to put this in your .bashrc
+
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
 TODO
 ----
 
 - Full test sweet writing and reading of all types both in read rec mode and
   read single column mode.  Also with subsets of rows.
+- Figure out why gz files are not flushing to disk.
+- Use internal buffers for a "read_all", in order to not confuse the buffer
+  system. Might be a *huge* performance hit.  Or figure out how to
+  update the buffer system properly.
 - append rows to tables
 - read row *ranges* more optimally
 - More error checking in c code for python lists and dicts.
 - write TDIM using built in routine instead of rolling my own.
-- optimize writing tables when there are no unsigned short or long, no
-  signed bytes.  Can do one big "fwrite" but need to be careful with
-  confusing buffers.
+- optimize writing tables when there are no unsigned short or long, no signed
+  bytes.  Can do one big "fwrite" but need to be careful with confusing
+  buffers.
 - complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?
 - add lower,upper keywords to read routines.
-- variable length columns
--make write_image consistent with write_table.
+- variable length columns -make write_image consistent with write_table.
 
 Note on array ordering
 ----------------------

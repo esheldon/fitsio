@@ -117,7 +117,7 @@ Examples
     >>> fits.write_image(img)
 
     # write the image with rice compression
-    >>> fits.write_image(img, compress='RICE_1')
+    >>> fits.write_image(img, compress='rice')
  
     # create a rec array
     >>> nrows=35
