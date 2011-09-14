@@ -170,6 +170,7 @@ environment variables to include the $PREFIX/lib and $PREFIX/include
 directories of your cfitsio install.  E.g. on OS X, using fink for
 your cfitsio, you may have to put this in your .bashrc
 
+    export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
 TODO
@@ -181,6 +182,7 @@ TODO
 - Use internal buffers for a "read_all", in order to not confuse the buffer
   system. Might be a *huge* performance hit.  Or figure out how to
   update the buffer system properly.
+- Explore faster writes when there are no scaled table columns.
 - append rows to tables
 - read row *ranges* more optimally
 - More error checking in c code for python lists and dicts.

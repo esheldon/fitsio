@@ -1479,22 +1479,33 @@ static int read_rec_bytes_byrow(
 
 // read all rows, all columns, but one row at a time rather
 // than all at once.
-static int read_rec_bytes_all_byrow(fitsfile* fits, void* data, int* status) {
+static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
 
     npy_int64 row=0;
+    long ngroups=0, offset=0;
 
     // use char for pointer arith.  It's actually ok to use void as char but
     // this is just in case.
     char* ptr;
 
-    long ngroups=1; // number to read, one for row-by-row reading
-    long offset=0; // gap between groups, not stride.  zero since we aren't using it
-
     hdu = fits->Fptr;
-    ptr = (char*) data;
 
+    //ngroups=1; // number to read, one for row-by-row reading
+    ngroups=hdu->numrows; // number to read, one for row-by-row reading
+    offset=0; // gap between groups, not stride.  zero since we aren't using it
+
+    // can just do one status check, since status are inherited.
+    file_pos = hdu->datastart;
+    ffmbyt(fits, file_pos, REPORT_EOF, status);
+    if (ffgbytoff(fits, hdu->rowlength, ngroups, offset, data, status)) {
+        return 1;
+    }
+
+    return 0;
+
+    ptr = (char*) data;
     for (row=0; row<hdu->numrows; row++) {
         file_pos = hdu->datastart + row*hdu->rowlength;
 
@@ -1575,7 +1586,7 @@ recread_byrow_cleanup:
 // Read the entire table into the input rec array.  It is assumed the data
 // match table perfectly.
 // this won't work for .Z or .gz files!
-static int read_rec_bytes(fitsfile* fits, void* data, int* status) {
+static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
 
@@ -1646,11 +1657,11 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    if (read_rec_bytes(self->fits, data, &status)) {
+    if (read_all_rec_bytes(self->fits, data, &status)) {
         goto recread_cleanup;
     }
     /*
-    if (read_rec_bytes_all_byrow(self->fits, data, &status)) {
+    if (read_all_rec_bytes_byrow(self->fits, data, &status)) {
         goto recread_cleanup;
     }
     */
