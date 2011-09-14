@@ -358,38 +358,23 @@ class TestBufferProblem(unittest.TestCase):
         data2['y'] = numpy.arange(nrows2,dtype='f8')
         self.data2 = data2
 
-    def testGZWriteRead(self):
+    def testBuffer(self):
         """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
-
-        this code all works, but the file is zere size when done!
         """
 
-        #fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits.gz')
         fname=tempfile.mktemp(prefix='fitsio-GZTableWrite-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #img=numpy.arange(5*5,dtype='f4').reshape(5,5)
-                #fits.write_image(img)
 
                 fits.write_table(self.data, header=self.keys, extname='mytable')
                 rd = fits[-1].read()
-            #with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                #fits.reopen()
-                #return
-                #c = fits[-1].read_column('i4scalar')
 
                 img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
                 fits.write_image(img)
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #fits.write_image(img)
 
                 timg = fits[-1].read()
 
-                """
                 d = fits[1].read()
                 for f in self.data.dtype.names:
                     res=numpy.where(self.data[f] != d[f])
@@ -409,7 +394,6 @@ class TestBufferProblem(unittest.TestCase):
                         self.assertEqual(entry['comment'].strip(),
                                          h.get_comment(name).strip(),
                                          "testing comment for header key '%s'" % name)
-                """
         finally:
             pass
             #if os.path.exists(fname):

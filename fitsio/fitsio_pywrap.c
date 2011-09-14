@@ -1657,15 +1657,16 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    if (read_all_rec_bytes(self->fits, data, &status)) {
-        goto recread_cleanup;
-    }
     /*
-    if (read_all_rec_bytes_byrow(self->fits, data, &status)) {
+    // this is about 18% faster but doesn't play nice with the buffers
+    if (read_all_rec_bytes(self->fits, data, &status)) {
         goto recread_cleanup;
     }
     */
 
+    if (read_all_rec_bytes_byrow(self->fits, data, &status)) {
+        goto recread_cleanup;
+    }
 
 recread_cleanup:
 
