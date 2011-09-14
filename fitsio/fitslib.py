@@ -207,8 +207,10 @@ class FITS:
             self.is_compressed=False
 
     def close(self):
-        self._FITS.close()
-        self._FITS=None
+        if hasattr(self,'_FITS'):
+            if self._FITS is not None:
+                self._FITS.close()
+                self._FITS=None
         self.filename=None
         self.mode=None
         self.charmode=None
@@ -219,9 +221,7 @@ class FITS:
 
     def reopen(self):
         """
-        CFITSIO is unpredictable about flushing it's buffers.  It is sometimes
-        necessary to close and reopen after writing if you want to read the
-        data.
+        close and reopen the file with the same mode
         """
         self._FITS.close()
         del self._FITS
@@ -265,8 +265,12 @@ class FITS:
         The File must be opened READWRITE
         """
         self.create_image_hdu(img, extname=extname, compress=compress, header=header)
+        # this is how it should be
+        #self.update_hdu_list()
+        #self[-1].write_image(img)
         self._FITS.write_image(img)
-        self.reopen()
+        #self.reopen()
+        self.update_hdu_list()
 
     def create_image_hdu(self, img, extname=None, compress=None, header=None):
         """
@@ -321,11 +325,12 @@ class FITS:
         self._FITS.create_image_hdu(img, extname=extname, comptype=comptype)
 
         # fits seems to have some issues with flushing.
-        self.reopen()
+        #self.reopen()
+        self.update_hdu_list()
 
         if header is not None:
             self[-1].write_keys(header)
-
+            self[-1]._update_info()
 
 
     def write_table(self, data, units=None, extname=None, header=None):
@@ -367,7 +372,8 @@ class FITS:
         
         for colnum,name in enumerate(data.dtype.names):
             self[-1].write_column(colnum, data[name])
-        self.reopen()
+        #self.reopen()
+        self.update_hdu_list()
 
     def create_table_hdu(self, names, formats, units=None, dims=None, extname=None, header=None):
         """
@@ -431,10 +437,12 @@ class FITS:
         self._FITS.create_table_hdu(names, formats, tunit=units, tdim=dims, extname=extname)
 
         # fits seems to have some issues with flushing.
-        self.reopen()
+        #self.reopen()
+        self.update_hdu_list()
 
         if header is not None:
             self[-1].write_keys(header)
+            self[-1]._update_info()
 
 
     def update_hdu_list(self):
@@ -529,6 +537,13 @@ class FITSHDU:
 
 
     def has_data(self):
+        """
+        Determine if this HDU has any data
+
+        For images, check that the dimensions are not zero.
+
+        For tables, check that the row count is not zero
+        """
         if self.info['hdutype'] == IMAGE_HDU:
             if self.info['imgdim'] == 0 and self.info['zndim'] == 0:
                 return False
@@ -630,6 +645,7 @@ class FITSHDU:
         # copy.  but we may be able to avoid this with some care.
         data = numpy.array(data, ndmin=1)
         self._FITS.write_column(self.ext+1, colnum+1, data)
+        self._update_info()
 
     def read_header(self):
         """
@@ -857,22 +873,12 @@ class FITSHDU:
         return dtype
 
     def get_rec_column_dtype(self, colnum):
-        """
-        Need to incorporate TDIM information
-        """
         npy_type = self._get_tbl_numpy_dtype(colnum)
         name = self.info['colinfo'][colnum]['ttype']
         tdim = self.info['colinfo'][colnum]['tdim']
 
         shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
 
-        """
-        # need to deal with string array columns
-        if npy_type[0] == 'S':
-            repeat=1
-        else:
-            repeat = self.info['colinfo'][colnum]['trepeat']
-        """
         if shape is not None:
             return (name,npy_type,shape)
         else:
@@ -1479,11 +1485,16 @@ def test_write_table():
                   'dbl': 23.299843,
                   'lng':3423432}
         fits.write_table(data, header=header, extname='mytable')
+        #print fits[1].read()
+        #print fits[1].read_column('f')
         #fits.write_table(data, header=header)
         fits[1].write_key("keysnc", "hello")
         fits[1].write_key("keysc", "hello","a comment for string")
         fits[1].write_key("keydc", numpy.pi,"a comment for pi")
         fits[1].write_key("keylc", 323423432,"a comment for long")
+
+        #print fits[1].read()
+        #return
 
     # add a new extension using the convenience function
     nrows2=10

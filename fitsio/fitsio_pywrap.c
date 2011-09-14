@@ -539,6 +539,13 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         goto create_image_hdu_cleanup;
     }
 
+    // this does a full close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        goto create_image_hdu_cleanup;
+    }
+
+
 create_image_hdu_cleanup:
 
     free(extname);
@@ -583,6 +590,12 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     data = PyArray_DATA(array);
     nelements = PyArray_SIZE(array);
     if (fits_write_img(self->fits, datatype, firstpixel, nelements, data, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this is a full file close and reopen
+    if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -713,6 +726,7 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
         }
     }
 
+
     return 0;
 }
 
@@ -782,12 +796,21 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         status=99;
         goto create_table_cleanup;
     }
+
+    // this does a full close and reopen
+    // it doesn't seem to work
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        goto create_table_cleanup;
+    }
+
 create_table_cleanup:
     ttyp = stringlist_delete(ttyp);
     tform = stringlist_delete(tform);
     tunit = stringlist_delete(tunit);
     //tdim = stringlist_delete(tdim);
     free(extname);
+
 
     if (status != 0) {
         return NULL;
@@ -832,6 +855,7 @@ int write_string_column(
         free(strdata);
         return 1;
     }
+
 
     free(strdata);
 
@@ -900,6 +924,14 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args) {
             return NULL;
         }
     }
+
+    // this is a full file close and reopen
+
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
 
     Py_RETURN_NONE;
 }
@@ -1058,6 +1090,12 @@ PyFITSObject_write_string_key(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
     Py_RETURN_NONE;
 }
  
@@ -1096,6 +1134,13 @@ PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+
     Py_RETURN_NONE;
 }
  
@@ -1128,6 +1173,12 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
     }
 
     if (ffukyj(self->fits, keyname, (LONGLONG) value, comment, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -1693,10 +1744,13 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
+
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
+
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
+
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS,  "write_column\n\nWrite a column into the current table."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},

@@ -174,8 +174,6 @@ TODO
 
 - Full test sweet writing and reading of all types both in read rec mode and
   read single column mode.  Also with subsets of rows.
-- Figure out how to make cfitsio flush write buffers.  Only needed
-  because my optimal read hack bypasses the buffers.
 - append rows to tables
 - read row *ranges* more optimally
 - More error checking in c code for python lists and dicts.
@@ -187,7 +185,7 @@ TODO
 - explore separate classes for image and table HDUs?
 - add lower,upper keywords to read routines.
 - variable length columns
-
+-make write_image consistent with write_table.
 
 Note on array ordering
 ----------------------

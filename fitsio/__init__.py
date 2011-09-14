@@ -146,54 +146,6 @@ Examples
     with FITS('path/to/file','r') as fits:
         data = fits[ext].read()
 
-
-Installation
-------------
-Either download the tar ball (upper right corner "Downloads" on github page) or
-use 
-
-    git clone git://github.com/esheldon/fitsio.git
-
-Enter the fitsio directory and type
-
-    python setup.py install
-
-optionally with a prefix 
-
-    python setup.py install --prefix=/some/path
-
-You will need the cfitsio library and headers installed on your system and
-visible.
-
-TODO
-----
-
-- Full test sweet writing and reading of all types both in read rec mode and
-  read single column mode.  Also with subsets of rows.
-- Figure out how to make cfitsio flush write buffers.  Only needed
-  because my optimal read hack bypasses the buffers.
-- add lower,upper keywords to read routines.
-- append rows to tables
-- read row *ranges* more optimally
-- write images with rice compression (note .gz files automagically supported)
-- More error checking in c code for python lists and dicts.
-- write TDIM using built in routine instead of rolling my own.
-- optimize writing tables when there are no unsigned short or long, no
-  signed bytes.  Can do one big "fwrite" but need to be careful with
-  confusing buffers.
-- complex table columns.  bit? logical?
-- explore separate classes for image and table HDUs?
-- variable length columns
-
-
-Note on array ordering
-----------------------
-        
-Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
-and image dimensions in reverse order, but write the data as is.  Then we need
-to also reverse the dims as read from the header when creating the numpy dtype,
-but read as is.
-
 """
 from . import fitslib
 from .fitslib import FITS
