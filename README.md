@@ -179,7 +179,7 @@ TODO
 - Figure out why gz files are not flushing to disk...at all.
 - Implement EXTVER: fits_movnam_hdu
 - Read subsets of *images*
-- speed up "safe" fast read_all
+- speed up "safe" fast read_all (it's about 18% slower than unsafe version)
 - append rows to tables
 - read row *ranges* more optimally
 - More error checking in c code for python lists and dicts.
@@ -190,7 +190,8 @@ TODO
 - complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?
 - add lower,upper keywords to read routines.
-- variable length columns -make write_image consistent with write_table.
+- variable length columns 
+- make write_image consistent with write_table.
 
 Note on array ordering
 ----------------------

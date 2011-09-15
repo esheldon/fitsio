@@ -1478,23 +1478,21 @@ static int read_rec_bytes_byrow(
 }
 
 // read all rows, all columns, but one row at a time rather
-// than all at once.
+// than all at once.  The choice of a row as the "groupsize"
+// is somewhat arbitrary, it could be we can tune this to
+// get ~20% speedsups. that number comes from comparing to 
+// a single "fread", which we can't use because it confuses
+// the buffer system.
 static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
 
-    npy_int64 row=0;
     long ngroups=0, offset=0;
-
-    // use char for pointer arith.  It's actually ok to use void as char but
-    // this is just in case.
-    char* ptr;
 
     hdu = fits->Fptr;
 
-    //ngroups=1; // number to read, one for row-by-row reading
-    ngroups=hdu->numrows; // number to read, one for row-by-row reading
-    offset=0; // gap between groups, not stride.  zero since we aren't using it
+    ngroups=hdu->numrows;
+    offset=0; // gap between groups
 
     // can just do one status check, since status are inherited.
     file_pos = hdu->datastart;
@@ -1505,19 +1503,6 @@ static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
 
     return 0;
 
-    ptr = (char*) data;
-    for (row=0; row<hdu->numrows; row++) {
-        file_pos = hdu->datastart + row*hdu->rowlength;
-
-        // can just do one status check, since status are inherited.
-        ffmbyt(fits, file_pos, REPORT_EOF, status);
-        if (ffgbytoff(fits, hdu->rowlength, ngroups, offset, (void*) ptr, status)) {
-            return 1;
-        }
-        ptr += hdu->rowlength;
-    }
-
-    return 0;
 }
 
 
@@ -1586,6 +1571,7 @@ recread_byrow_cleanup:
 // Read the entire table into the input rec array.  It is assumed the data
 // match table perfectly.
 // this won't work for .Z or .gz files!
+/*
 static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
@@ -1615,7 +1601,7 @@ static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
 
     return 0;
 }
-
+*/
 
 
 
