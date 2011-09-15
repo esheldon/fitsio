@@ -32,7 +32,7 @@ PLIO_1 = 31
 HCOMPRESS_1 = 41
 
 
-def read(filename, ext=None, rows=None, columns=None, header=False):
+def read(filename, ext=None, extver=None, rows=None, columns=None, header=False):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -51,6 +51,12 @@ def read(filename, ext=None, rows=None, columns=None, header=False):
         The extension.  Either the numerical extension from zero
         or a string extension name. If not sent, data is read from
         the first HDU that has data.
+    extver: integer, optional
+        FITS allows multiple extensions to have the same name.  These
+        extensions can optionally specify an EXTVER version number
+        in the header.  Send extver= to select a particular version.
+        The default is to select the first one.  If ext is an integer,
+        the extver is ignored.
     columns: list or array, optional
         An optional set of columns to read from table HDUs.  Default is to
         read all.  Can be string or number.
@@ -71,9 +77,15 @@ def read(filename, ext=None, rows=None, columns=None, header=False):
             if ext is None:
                 raise ValueError("No extensions have data")
 
-        data = fits[ext].read(rows=rows, columns=columns)
+        if extver is not None:
+            # e
+            item=(ext,extver)
+        else:
+            item=ext
+
+        data = fits[item].read(rows=rows, columns=columns)
         if header:
-            h = fits[ext].read_header()
+            h = fits[item].read_header()
             return data, h
         else:
             return data
@@ -483,7 +495,10 @@ class FITS:
                 if extname == '':
                     extname=hdu.info['hduname']
                 if extname != '':
-                    self.hdu_map[extname] = hdu
+                    # this will guarantee we default to *first* version,
+                    # if version is not requested, using __getitem__
+                    if extname not in self.hdu_map:
+                        self.hdu_map[extname] = hdu
 
                     ver=hdu.info['extver']
                     if ver == 0:
@@ -518,17 +533,13 @@ class FITS:
         return ext,ver,ver_sent
 
     def __getitem__(self, item):
-        print 'type(item)',type(item)
         if not hasattr(self, 'hdu_list'):
             self.update_hdu_list()
 
         ext,ver,ver_sent = self._extract_item(item)
-        print 'ext:',ext
-        print 'ver:',ver
-        print 'ver_sent:',ver_sent
 
-        # first try just hitting the hdu_list, which requires an int
         try:
+            # if it is an int
             hdu = self.hdu_list[ext]
         except:
             # might be a string
@@ -542,17 +553,6 @@ class FITS:
                     raise ValueError("extension not found: %s" % ext)
                 hdu = self.hdu_map[ext]
 
-            """
-            if ext not in self.hdu_map:
-                raise ValueError("extension not found: %s" % ext)
-            if ver != 0:
-                combkey = '%s-%s' % (ext,ver)
-                if combkey not in self.hdu_map:
-                    raise ValueError("extension name,version not found: %s,%s" % (ext,ver))
-                hdu = self.hdu_map[combkey]
-            else:
-                hdu = self.hdu_map[ext]
-            """
         return hdu
 
     def __repr__(self):
@@ -564,16 +564,18 @@ class FITS:
         rep.append("%sfile: %s" % (spacing,self.filename))
         rep.append("%smode: %s" % (spacing,_modeprint_map[self.intmode]))
 
-        rep.append('%sextnum %-15s %s' % (spacing,"hdutype","hduname"))
+        rep.append('%sextnum %-15s %s' % (spacing,"hdutype","hduname[v]"))
         for i,hdu in enumerate(self.hdu_list):
             t = hdu.info['hdutype']
-            name = hdu.info['extname']
-            if name.strip() == '':
-                name = hdu.info['hduname']
-            if name.strip() != '':
-                ver=hdu.info['extver']
-                if ver == 0:
-                    ver=hdu.info['hduver']
+            name = hdu.get_extname()
+            #name = hdu.info['extname']
+            #if name.strip() == '':
+            #    name = hdu.info['hduname']
+            if name != '':
+                ver=hdu.get_extver()
+                #ver=hdu.info['extver']
+                #if ver == 0:
+                #    ver=hdu.info['hduver']
                 if ver != 0:
                     name = '%s[%s]' % (name,ver) 
 
@@ -1092,14 +1094,29 @@ class FITSHDU:
         self.colnames = [i['ttype'] for i in self.info['colinfo']]
         self.ncol = len(self.colnames)
 
+    def get_extname(self):
+        name = self.info['extname']
+        if name.strip() == '':
+            name = self.info['hduname']
+        return name.strip()
+    def get_extver(self):
+        ver=self.info['extver']
+        if ver == 0:
+            ver=self.info['hduver']
+        return ver
+
     def __repr__(self):
         spacing = ' '*2
         text = []
-        #text.append("%sHDU: %d" % (spacing,self.info['hdunum']))
         text.append("%sextension: %d" % (spacing,self.info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[self.info['hdutype']]))
-        if self.info['extname'] != "":
-            text.append("%sextname: %s" % (spacing,self.info['extname']))
+
+        extname=self.get_extname()
+        if extname != "":
+            text.append("%sextname: %s" % (spacing,extname))
+        extver=self.get_extver()
+        if extver != 0:
+            text.append("%sextver: %s" % (spacing,extver))
         if self.info['comptype'] is not None:
             text.append("%scompression: %s" % (spacing,self.info['comptype']))
         
