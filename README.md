@@ -176,13 +176,10 @@ your cfitsio, you may have to put this in your .bashrc
 TODO
 ----
 
-- Full test sweet writing and reading of all types both in read rec mode and
-  read single column mode.  Also with subsets of rows.
-- Figure out why gz files are not flushing to disk.
-- Use internal buffers for a "read_all", in order to not confuse the buffer
-  system. Might be a *huge* performance hit.  Or figure out how to
-  update the buffer system properly.
-- Explore faster writes when there are no scaled table columns.
+- Figure out why gz files are not flushing to disk...at all.
+- Implement EXTVER: fits_movnam_hdu
+- Read subsets of *images*
+- speed up "safe" fast read_all
 - append rows to tables
 - read row *ranges* more optimally
 - More error checking in c code for python lists and dicts.

@@ -63,7 +63,7 @@ class TestReadWrite(unittest.TestCase):
                 ('y','f8')]
 
         nrows=4
-        data=numpy.zeros(4, dtype=dtype)
+        data=numpy.zeros(nrows, dtype=dtype)
 
         for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
             data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
@@ -233,6 +233,45 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableSubsets(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                fits.write_table(self.data, header=self.keys, extname='mytable')
+
+
+                rows = [1,3]
+                d = fits[1].read(rows=rows)
+                for f in self.data.dtype.names:
+                    res=numpy.where(self.data[f][rows] != d[f])
+                    for w in res:
+                        self.assertEqual(w.size,0,"testing row subset, column %s" % f)
+
+                columns = ['i1scalar','f4arr']
+                d = fits[1].read(rows=rows)
+                for f in d.dtype.names:
+                    res=numpy.where(self.data[f][rows] != d[f])
+                    for w in res:
+                        self.assertEqual(w.size,0,"testing row,column subset, column %s" % f)
+
+                for f in self.data.dtype.names:
+                    d = fits[1].read_column(f,rows=rows)
+                    res=numpy.where(self.data[f][rows] != d)
+                    for w in res:
+                        self.assertEqual(w.size,0,"testing individual row,column subset, column %s" % f)
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
 
     def testGZWriteRead(self):
         """
@@ -375,6 +414,10 @@ class TestBufferProblem(unittest.TestCase):
 
                 timg = fits[-1].read()
 
+                res=numpy.where(timg != img)
+                for w in res:
+                    self.assertEqual(w.size,0,"testing image write/read consistent")
+
                 d = fits[1].read()
                 for f in self.data.dtype.names:
                     res=numpy.where(self.data[f] != d[f])
@@ -495,8 +538,7 @@ class TestReadWriteGZOnly(unittest.TestCase):
         this code all works, but the file is zere size when done!
         """
 
-        #fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits.gz')
-        fname=tempfile.mktemp(prefix='fitsio-GZTableWrite-',suffix='.fits')
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits.gz')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
 

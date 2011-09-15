@@ -792,6 +792,12 @@ class FITSHDU:
         dtype = self.get_rec_dtype()
         array = numpy.zeros(rows.size, dtype=dtype)
         self._FITS.read_rows_as_rec(self.ext+1, array, rows)
+
+        for colnum,name in enumerate(array.dtype.names):
+            self._rescale_array(array[name], 
+                                self.info['colinfo'][colnum]['tscale'], 
+                                self.info['colinfo'][colnum]['tzero'])
+
         return array
 
 

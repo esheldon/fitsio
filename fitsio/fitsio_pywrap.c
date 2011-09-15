@@ -1613,13 +1613,6 @@ static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
         return 1;
     }
 
-    /*
-    if (fits_flush_file(fits, status)) {
-        set_ioerr_string_from_status(*status);
-        return 1;
-    }
-    */
-
     return 0;
 }
 
