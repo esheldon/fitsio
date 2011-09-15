@@ -170,6 +170,44 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
  
 
+    def testMoveByName(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-MoveByName-',suffix='.fits')
+        nrows=3
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                data1=numpy.zeros(nrows,dtype=[('ra','f8'),('dec','f8')])
+                data1['ra'] = numpy.random.random(nrows)
+                data1['dec'] = numpy.random.random(nrows)
+                fits.write_table(data1, extname='mytable')
+
+                fits[-1].write_key("EXTVER", 1)
+
+                data2=numpy.zeros(nrows,dtype=[('ra','f8'),('dec','f8')])
+                data2['ra'] = numpy.random.random(nrows)
+                data2['dec'] = numpy.random.random(nrows)
+
+                fits.write_table(data2, extname='mytable')
+                fits[-1].write_key("EXTVER", 2)
+
+                hdunum1=fits.movnam_hdu('mytable',extver=1)
+                self.assertEqual(hdunum1,2)
+                hdunum2=fits.movnam_hdu('mytable',extver=2)
+                self.assertEqual(hdunum2,3)
+
+        finally:
+            pass
+            """
+            if os.path.exists(fname):
+                os.remove(fname)
+            """
+
+
 
     def testTableWriteRead(self):
         """

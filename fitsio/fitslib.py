@@ -17,6 +17,20 @@ import numpy
 from . import _fitsio_wrap
 import copy
 
+ANY_HDU=-1
+
+READONLY=0
+READWRITE=1
+IMAGE_HDU=0
+ASCII_TBL=1
+BINARY_TBL=2
+
+NOCOMPRESS=0
+RICE_1 = 11
+GZIP_1 = 21
+PLIO_1 = 31
+HCOMPRESS_1 = 41
+
 
 def read(filename, ext=None, rows=None, columns=None, header=False):
     """
@@ -217,6 +231,17 @@ class FITS:
         self.hdu_list=None
         self.hdu_map=None
 
+    def movabs_ext(self, ext):
+        self._FITS.movabs_hdu(ext+1)
+    def movabs_hdu(self, hdunum):
+        self._FITS.movabs_hdu(hdunum)
+
+    def movnam_ext(self, extname, hdutype=ANY_HDU, extver=0):
+        hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+        return hdu-1
+    def movnam_hdu(self, extname, hdutype=ANY_HDU, extver=0):
+        hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+        return hdu
 
     def reopen(self):
         """
@@ -453,33 +478,81 @@ class FITS:
                 hdu = FITSHDU(self._FITS, ext)
                 self.hdu_list.append(hdu)
                 self.hdu_map[ext] = hdu
-                if hdu.info['extname'] != '':
-                    self.hdu_map[hdu.info['extname']] = hdu
+
+                extname=hdu.info['extname']
+                if extname == '':
+                    extname=hdu.info['hduname']
+                if extname != '':
+                    self.hdu_map[extname] = hdu
+
+                    ver=hdu.info['extver']
+                    if ver == 0:
+                        ver=hdu.info['hduver']
+                    
+                    if ver > 0:
+                        key='%s-%s' % (extname,ver)
+                        self.hdu_map[key] = hdu
+
             except RuntimeError:
                 break
 
 
-    def moveabs_ext(self, ext):
-        self._FITS.moveabs_hdu(ext+1)
 
     def __len__(self):
         if not hasattr(self,'hdu_list'):
             self.update_hdu_list()
         return len(self.hdu_list)
 
-    def __getitem__(self, ext):
+    def _extract_item(self,item):
+        ver=0
+        if isinstance(item,tuple):
+            ver_sent=True
+            nitem=len(item)
+            if nitem == 1:
+                ext=item[0]
+            elif nitem == 2:
+                ext,ver=item
+        else:
+            ver_sent=False
+            ext=item
+        return ext,ver,ver_sent
+
+    def __getitem__(self, item):
+        print 'type(item)',type(item)
         if not hasattr(self, 'hdu_list'):
             self.update_hdu_list()
 
-        # first try just hitting the hdu_list
+        ext,ver,ver_sent = self._extract_item(item)
+        print 'ext:',ext
+        print 'ver:',ver
+        print 'ver_sent:',ver_sent
+
+        # first try just hitting the hdu_list, which requires an int
         try:
             hdu = self.hdu_list[ext]
         except:
             # might be a string
+            if ver > 0:
+                key = '%s-%s' % (ext,ver)
+                if key not in self.hdu_map:
+                    raise ValueError("extension not found: %s, version %s" % (ext,ver))
+                hdu = self.hdu_map[key]
+            else:
+                if ext not in self.hdu_map:
+                    raise ValueError("extension not found: %s" % ext)
+                hdu = self.hdu_map[ext]
+
+            """
             if ext not in self.hdu_map:
                 raise ValueError("extension not found: %s" % ext)
-            hdu = self.hdu_map[ext]
-
+            if ver != 0:
+                combkey = '%s-%s' % (ext,ver)
+                if combkey not in self.hdu_map:
+                    raise ValueError("extension name,version not found: %s,%s" % (ext,ver))
+                hdu = self.hdu_map[combkey]
+            else:
+                hdu = self.hdu_map[ext]
+            """
         return hdu
 
     def __repr__(self):
@@ -495,6 +568,15 @@ class FITS:
         for i,hdu in enumerate(self.hdu_list):
             t = hdu.info['hdutype']
             name = hdu.info['extname']
+            if name.strip() == '':
+                name = hdu.info['hduname']
+            if name.strip() != '':
+                ver=hdu.info['extver']
+                if ver == 0:
+                    ver=hdu.info['hduver']
+                if ver != 0:
+                    name = '%s[%s]' % (name,ver) 
+
             rep.append("%s%-6d %-15s %s" % (spacing, i, _hdu_type_map[t], name))
 
         rep = '\n'.join(rep)
@@ -1000,7 +1082,7 @@ class FITSHDU:
     def _update_info(self):
         # do this here first so we can catch the error
         try:
-            self._FITS.moveabs_hdu(self.ext+1)
+            self._FITS.movabs_hdu(self.ext+1)
         except IOError:
             raise RuntimeError("no such hdu")
 
@@ -1398,17 +1480,6 @@ def check_comptype_img(comptype, img):
         if img.dtype.descr[0][1][1] == 'u':
             raise ValueError("unsigned integers not allowed when using PLIO tile compression")
 
-READONLY=0
-READWRITE=1
-IMAGE_HDU=0
-ASCII_TBL=1
-BINARY_TBL=2
-
-NOCOMPRESS=0
-RICE_1 = 11
-GZIP_1 = 21
-PLIO_1 = 31
-HCOMPRESS_1 = 41
 
 # this doesn't work
 #GZIP_2 = 22

@@ -173,14 +173,43 @@ npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
     return colnums;
 }
 
+// move hdu by name and possibly version, return the hdu number
+static PyObject *
+PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
+    int   status=0;
+    int   hdutype=ANY_HDU; // means we don't care if its image or table
+    char* extname=NULL;
+    int   extver=0;        // zero means it is ignored
+    int   hdunum=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"isi", &hdutype, &extname, &extver)) {
+        return NULL;
+    }
+
+    if (fits_movnam_hdu(self->fits, hdutype, extname,  extver, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    
+    fits_get_hdu_num(self->fits, &hdunum);
+    return PyInt_FromLong((long)hdunum);
+}
+
+
 
 static PyObject *
-PyFITSObject_moveabs_hdu(struct PyFITSObject* self, PyObject* args) {
+PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0, hdutype=0;
     int status=0;
 
     if (self->fits == NULL) {
-        Py_RETURN_NONE;
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
@@ -204,9 +233,12 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     FITSfile* hdu=NULL;
     char extname[FLEN_VALUE];
+    char hduname[FLEN_VALUE];
+    int extver=0, hduver=0;
 
     if (self->fits == NULL) {
-        Py_RETURN_NONE;
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
@@ -230,11 +262,33 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     PyDict_SetItemString(dict, "hdutype", PyInt_FromLong((long)hdutype));
 
 
+    tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
         PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
     } else {
         PyDict_SetItemString(dict, "extname", PyString_FromString(""));
     }
+    tstatus=0;
+    if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "hduname", PyString_FromString(hduname));
+    } else {
+        PyDict_SetItemString(dict, "hduname", PyString_FromString(""));
+    }
+    tstatus=0;
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)extver));
+    } else {
+        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)0));
+    }
+    tstatus=0;
+    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)hduver));
+    } else {
+        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)0));
+    }
+
+
+
 
 
     PyDict_SetItemString(dict, "imgdim", PyInt_FromLong((long)hdu->imgdim));
@@ -263,6 +317,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         }
         PyDict_SetItemString(dict, "znaxis", znaxis);
 
+        tstatus=0;
         if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
             PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
         } else {
@@ -300,6 +355,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
                 PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
 
+                tstatus=0;
                 if (fits_read_tdim(self->fits, i+1, maxdim, &naxis, naxes, &tstatus)) {
                     Py_XINCREF(Py_None);
                     PyDict_SetItemString(d, "tdim", Py_None);
@@ -507,6 +563,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
     }
 
     static char *kwlist[] = {"array","extname", "comptype", NULL};
@@ -585,6 +642,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
@@ -904,6 +962,7 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args) {
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &array)) {
@@ -1797,7 +1856,8 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
  
 
 static PyMethodDef PyFITSObject_methods[] = {
-    {"moveabs_hdu",          (PyCFunction)PyFITSObject_moveabs_hdu,          METH_VARARGS,  "moveabs_hdu\n\nMove to the specified HDU."},
+    {"movabs_hdu",          (PyCFunction)PyFITSObject_movabs_hdu,          METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
+    {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
     {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},

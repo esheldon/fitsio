@@ -178,6 +178,9 @@ TODO
 
 - Figure out why gz files are not flushing to disk...at all.
 - Implement EXTVER: fits_movnam_hdu
+    can get item as tuple
+    can send extver= in read,write and convenience
+    update examples
 - Read subsets of *images*
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
 - append rows to tables
