@@ -26,6 +26,11 @@ Features
 - Correctly writes 1 byte integers table columns.
 - data are guaranteed to conform to the FITS standard.
 
+Known Bugs
+----------
+- A bug in cfitsio itself, when writing directly to a .gz file sometimes the
+  buffers do not get flushed to disk upon closing, leaving the file empty or
+  incomplete.
 
 
 Examples
@@ -181,7 +186,7 @@ your cfitsio, you may have to put this in your .bashrc
 TODO
 ----
 
-- Figure out why gz files are not flushing to disk...at all.
+- Figure out why gz files are not flushing to disk for tables...at all.
 - Read subsets of *images*
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
 - append rows to tables
