@@ -527,6 +527,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
 
 // get info for the specified HDU
+/*
 static PyObject *
 PyFITSObject_get_hdu_info_old(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0, hdutype=0, ext=0;
@@ -678,6 +679,7 @@ PyFITSObject_get_hdu_info_old(struct PyFITSObject* self, PyObject* args) {
     }
     return dict;
 }
+*/
 
 // this is the parameter that goes in the type for fits_write_col
 static int 
@@ -2108,7 +2110,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
     {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
-    {"get_hdu_info_old",         (PyCFunction)PyFITSObject_get_hdu_info_old,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
+    //{"get_hdu_info_old",         (PyCFunction)PyFITSObject_get_hdu_info_old,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
