@@ -180,12 +180,8 @@ def write(filename, data, extname=None, extver=None, units=None, compress=None, 
 
     """
     with FITS(filename, 'rw', clobber=clobber) as fits:
-        if data.dtype.fields == None:
-            fits.write_image(data, extname=extname, extver=extver, 
-                             compress=compress, header=header)
-        else:
-            fits.write_table(data, units=units, 
-                             extname=extname, extver=extver, header=header)
+        fits.write(data, units=units, extname=extname, extver=extver, 
+                   compress=compress, header=header)
 
 
 class FITS:
