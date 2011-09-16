@@ -264,9 +264,9 @@ class FITS:
         self.hdu_map=None
 
     def movabs_ext(self, ext):
-        self._FITS.movabs_hdu(ext+1)
+        return self._FITS.movabs_hdu(ext+1)
     def movabs_hdu(self, hdunum):
-        self._FITS.movabs_hdu(hdunum)
+        return self._FITS.movabs_hdu(hdunum)
 
     def movnam_ext(self, extname, hdutype=ANY_HDU, extver=0):
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
@@ -620,11 +620,6 @@ class FITS:
                 self.hdu_list.append(hdu)
                 self.hdu_map[ext] = hdu
 
-                """
-                extname=hdu.info['extname']
-                if extname == '':
-                    extname=hdu.info['hduname']
-                """
                 extname=hdu.get_extname()
                 if extname != '':
                     # this will guarantee we default to *first* version,
@@ -632,11 +627,6 @@ class FITS:
                     if extname not in self.hdu_map:
                         self.hdu_map[extname] = hdu
                     
-                    """
-                    ver=hdu.info['extver']
-                    if ver == 0:
-                        ver=hdu.info['hduver']
-                    """
                     ver=hdu.get_extver()
                     if ver > 0:
                         key='%s-%s' % (extname,ver)
@@ -1816,9 +1806,9 @@ class FITS_old:
         self.hdu_map=None
 
     def movabs_ext(self, ext):
-        self._FITS.movabs_hdu(ext+1)
+        return self._FITS.movabs_hdu(ext+1)
     def movabs_hdu(self, hdunum):
-        self._FITS.movabs_hdu(hdunum)
+        return self._FITS.movabs_hdu(hdunum)
 
     def movnam_ext(self, extname, hdutype=ANY_HDU, extver=0):
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)

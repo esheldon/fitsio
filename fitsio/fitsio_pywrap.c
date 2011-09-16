@@ -312,6 +312,7 @@ static PyObject *
 PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0, hdutype=0;
     int status=0;
+    PyObject* hdutypeObj=NULL;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -326,7 +327,8 @@ PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
-    Py_RETURN_NONE;
+    hdutypeObj = PyInt_FromLong((long)hdutype);
+    return hdutypeObj;
 }
 
 // get info for the specified HDU

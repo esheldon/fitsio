@@ -28,9 +28,11 @@ Features
 
 Known CFITSIO Bugs
 ------------------
+These are bugs in the underlying cfitsio library
 - When writing directly to a .gz file sometimes the buffers do not get
   flushed to disk upon closing, leaving the file empty or incomplete.
-- fits_get_compression_type always returns zore.  Use ZCMPTYPE header
+  Seems to be when writing a single binary table.
+- fits_get_compression_type always returns zero.  Use ZCMPTYPE header
   key instead, but this may not be portable between cfitsio versions
 
 Examples
