@@ -74,6 +74,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
             for i in xrange(len(fits)):
                 if fits[i].has_data():
                     ext=i
+                    break
             if ext is None:
                 raise ValueError("No extensions have data")
 
