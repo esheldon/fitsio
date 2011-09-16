@@ -69,7 +69,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
 
     """
 
-    with FITS(filename, 'r') as fits:
+    with FITS(filename) as fits:
         if ext is None:
             for i in xrange(len(fits)):
                 if fits[i].has_data():
@@ -112,7 +112,7 @@ def read_header(filename, ext, extver=None):
         is ignored.
     """
     item=_make_item(ext,extver=extver)
-    with FITS(filename, 'r') as fits:
+    with FITS(filename) as fits:
         return fits[item].read_header()
 
 def _make_item(ext, extver=None):
