@@ -26,12 +26,12 @@ Features
 - Correctly writes 1 byte integers table columns.
 - data are guaranteed to conform to the FITS standard.
 
-Known Bugs
-----------
-- A bug in cfitsio itself, when writing directly to a .gz file sometimes the
-  buffers do not get flushed to disk upon closing, leaving the file empty or
-  incomplete.
-
+Known CFITSIO Bugs
+------------------
+- When writing directly to a .gz file sometimes the buffers do not get
+  flushed to disk upon closing, leaving the file empty or incomplete.
+- fits_get_compression_type always returns zore.  Use ZCMPTYPE header
+  key instead, but this may not be portable between cfitsio versions
 
 Examples
 --------

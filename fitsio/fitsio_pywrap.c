@@ -65,9 +65,18 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
 
 static PyObject *
 PyFITSObject_repr(struct PyFITSObject* self) {
-    char repr[255];
+
     if (self->fits != NULL) {
-        sprintf(repr, "%s", self->fits->Fptr->filename);
+        int status=0;
+        char filename[FLEN_FILENAME];
+        char repr[2056];
+
+        if (fits_file_name(self->fits, filename, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+
+        sprintf(repr, "fits file: %s", filename);
         return PyString_FromString(repr);
     }  else {
         return PyString_FromString("");
@@ -78,8 +87,15 @@ static PyObject *
 PyFITSObject_filename(struct PyFITSObject* self) {
 
     if (self->fits != NULL) {
+        int status=0;
+        char filename[FLEN_FILENAME];
         PyObject* fnameObj=NULL;
-        fnameObj = PyString_FromString(self->fits->Fptr->filename);
+        if (fits_file_name(self->fits, filename, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+
+        fnameObj = PyString_FromString(filename);
         return fnameObj;
     }  else {
         PyErr_SetString(PyExc_ValueError, "file is not open, cannot determine name");
@@ -112,6 +128,94 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
     self->ob_type->tp_free((PyObject*)self);
 }
 
+struct stringlist {
+    size_t size;
+    char** data;
+};
+struct stringlist* stringlist_new(void) {
+    struct stringlist* slist=NULL;
+
+    slist = malloc(sizeof(struct stringlist));
+    slist->size = 0;
+    slist->data=NULL;
+    return slist;
+}
+// push a copy of the string onto the string list
+void stringlist_push(struct stringlist* slist, const char* str) {
+    size_t newsize=0;
+    size_t slen=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+    slen = strlen(str);
+
+    slist->data[i] = malloc(sizeof(char)*(slen+1));
+    strcpy(slist->data[i], str);
+}
+
+void stringlist_push_size(struct stringlist* slist, size_t slen) {
+    size_t newsize=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+
+    slist->data[i] = malloc(sizeof(char)*(slen+1));
+    memset(slist->data[i], 0, slen+1);
+}
+struct stringlist* stringlist_delete(struct stringlist* slist) {
+    if (slist != NULL) {
+        size_t i=0;
+        if (slist->data != NULL) {
+            for (i=0; i < slist->size; i++) {
+                free(slist->data[i]);
+            }
+        }
+        free(slist->data);
+        free(slist);
+    }
+    return NULL;
+}
+
+int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
+    size_t size=0, i=0;
+
+    if (!PyList_Check(listObj)) {
+        PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
+        return 1;
+    }
+    size = PyList_Size(listObj);
+
+    for (i=0; i<size; i++) {
+        PyObject* tmp = PyList_GetItem(listObj, i);
+        const char* tmpstr;
+        if (!PyString_Check(tmp)) {
+            PyErr_Format(PyExc_ValueError, "Expected only strings in %s list.", listname);
+            return 1;
+        }
+        tmpstr = (const char*) PyString_AsString(tmp);
+        stringlist_push(slist, tmpstr);
+    }
+    return 0;
+}
+
+void stringlist_print(struct stringlist* slist) {
+    size_t i=0;
+    if (slist == NULL) {
+        return;
+    }
+    for (i=0; i<slist->size; i++) {
+        printf("  slist[%ld]: %s\n", i, slist->data[i]);
+    }
+}
+
 
 // if input is NULL or None, return NULL
 // if maxlen is 0, the full string is copied, else
@@ -142,6 +246,7 @@ char* copy_py_string(PyObject* obj, int maxlen, int* status) {
 */
 
 // this will need to be updated for array string columns.
+// I'm using a tcolumn* here, could cause problems
 long get_groupsize(tcolumn* colptr) {
     long gsize=0;
     if (colptr->tdatatype == TSTRING) {
@@ -224,10 +329,204 @@ PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-
 // get info for the specified HDU
 static PyObject *
 PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0, hdutype=0, ext=0;
+    int status=0, tstatus=0;
+    PyObject* dict=NULL;
+
+    char extname[FLEN_VALUE];
+    char hduname[FLEN_VALUE];
+    int extver=0, hduver=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+
+
+
+
+    dict = PyDict_New();
+    ext=hdunum-1;
+    PyDict_SetItemString(dict, "hdunum", PyInt_FromLong((long)hdunum));
+    PyDict_SetItemString(dict, "extnum", PyInt_FromLong((long)ext));
+    PyDict_SetItemString(dict, "hdutype", PyInt_FromLong((long)hdutype));
+
+
+    tstatus=0;
+    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
+    } else {
+        PyDict_SetItemString(dict, "extname", PyString_FromString(""));
+    }
+    tstatus=0;
+    if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "hduname", PyString_FromString(hduname));
+    } else {
+        PyDict_SetItemString(dict, "hduname", PyString_FromString(""));
+    }
+    tstatus=0;
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)extver));
+    } else {
+        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)0));
+    }
+    tstatus=0;
+    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)==0) {
+        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)hduver));
+    } else {
+        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)0));
+    }
+
+
+    if (hdutype == IMAGE_HDU) {
+        // move this into it's own func
+        int tstatus=0;
+        int maxdim=10;
+        int ndims=0;
+        int bitpix=0;
+        int bitpix_equiv=0;
+        long* pcount_p=NULL; // ignore currently
+        long* gcount_p=NULL; // ignore currently
+        int* simple_p=NULL;
+        int* extend_p=NULL;
+        LONGLONG dims[] = {0,0,0,0,0,0,0,0,0,0};
+        char comptype[20];
+        //int comptype=0;
+        PyObject* imgnaxis=PyList_New(0);
+        int i=0;
+
+        if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
+                               dims, pcount_p, gcount_p, extend_p, &status)) {
+
+            PyDict_SetItemString(dict, "error", PyString_FromString("could not determine image parameters"));
+        } else {
+            PyDict_SetItemString(dict, "ndims", PyInt_FromLong((long)ndims));
+            PyDict_SetItemString(dict, "img_type", PyInt_FromLong((long)bitpix));
+
+            fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
+            PyDict_SetItemString(dict, "img_equiv_type", PyInt_FromLong((long)bitpix_equiv));
+
+            tstatus=0;
+            // this doesn't work, always get zero
+            /*
+            if (fits_get_compression_type(self->fits, &comptype, &tstatus)==0) {
+                PyDict_SetItemString(dict, "comptype", PyInt_FromLong((long)comptype));
+            } else {
+                Py_XINCREF(Py_None);
+                PyDict_SetItemString(dict, "comptype", Py_None);
+            }
+            */
+            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
+                PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
+            } else {
+                Py_XINCREF(Py_None);
+                PyDict_SetItemString(dict, "comptype", Py_None);
+            }
+
+            for (i=0; i<ndims; i++) {
+                PyList_Append(imgnaxis, PyInt_FromLong( (long)dims[i]));
+            }
+            PyDict_SetItemString(dict, "dims", imgnaxis);
+
+        }
+
+    } else if (hdutype == BINARY_TBL) {
+        int tstatus=0;
+        LONGLONG nrows=0;
+        int ncols=0;
+        PyObject* colinfo = PyList_New(0);
+        int i=0,j=0;
+
+        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        fits_get_num_cols(self->fits, &ncols, &tstatus);
+        PyDict_SetItemString(dict, "nrows", PyLong_FromLongLong( (long long)nrows ));
+        PyDict_SetItemString(dict, "ncols", PyInt_FromLong( (long)ncols));
+
+        {
+            int naxis=0;
+            int maxdim=10;
+            long naxes[10];
+            tcolumn* col=NULL;
+            struct stringlist* names=NULL;
+            names=stringlist_new();
+
+            for (i=0; i<ncols; i++) {
+                stringlist_push_size(names, 70);
+            }
+            // just get the names: no other way to do it!
+            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, NULL, NULL, NULL, NULL, &tstatus);
+
+            for (i=0; i<ncols; i++) {
+                PyObject* d = PyDict_New();
+                int type=0;
+                LONGLONG repeat=0;
+                LONGLONG width=0;
+
+                PyDict_SetItemString(d, "name", PyString_FromString(names->data[i]));
+                PyList_Append(colinfo, d);
+
+                fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
+                PyDict_SetItemString(d, "type", PyInt_FromLong( (long)type));
+                PyDict_SetItemString(d, "repeat", PyLong_FromLongLong( (long long)repeat));
+                PyDict_SetItemString(d, "width", PyLong_FromLongLong( (long long)width));
+
+                fits_get_eqcoltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
+                PyDict_SetItemString(d, "eqtype", PyInt_FromLong( (long)type));
+                /*
+                PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
+                PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
+                */
+
+
+
+                tstatus=0;
+                if (fits_read_tdim(self->fits, i+1, maxdim, &naxis, naxes, &tstatus)) {
+                    Py_XINCREF(Py_None);
+                    PyDict_SetItemString(d, "tdim", Py_None);
+                } else {
+                    PyObject* tdim_list = PyList_New(naxis);
+                    PyObject* tdim;
+                    for (j=0; j<naxis; j++) {
+                        tdim = PyLong_FromLong((long)naxes[j]);
+                        PyList_SetItem(tdim_list, j, tdim);
+                    }
+                    PyDict_SetItemString(d, "tdim", tdim_list);
+                }
+
+                // here we have to go to the struct here, could cause problems
+                col = &self->fits->Fptr->tableptr[i];
+                PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
+                PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
+
+            }
+            names=stringlist_delete(names);
+
+            PyDict_SetItemString(dict, "colinfo", colinfo);
+        }
+    } else {
+        PyErr_SetString(PyExc_ValueError, "don't yet support ascii tables");
+    }
+    return dict;
+}
+
+
+
+// get info for the specified HDU
+static PyObject *
+PyFITSObject_get_hdu_info_old(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0, hdutype=0, ext=0;
     int status=0, tstatus=0;
     PyObject* dict=NULL;
@@ -553,7 +852,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     long dims[] = {0,0,0,0,0,0,0,0,0,0};
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
-    int comptype=NOCOMPRESS;
+    //int comptype=NOCOMPRESS;
+    int comptype=0; // same as NOCOMPRESS in newer cfitsio
 
     PyObject* array;
     int npy_dtype=0;
@@ -591,7 +891,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         dims[ndims-i-1] = PyArray_DIM(array, i);
     }
 
-    // can be NOCOMPRESS
+    // can be NOCOMPRESS (0)
     if (fits_set_compression_type(self->fits, comptype, &status)) {
         set_ioerr_string_from_status(status);
         goto create_image_hdu_cleanup;
@@ -693,79 +993,6 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-struct stringlist {
-    size_t size;
-    char** data;
-};
-struct stringlist* stringlist_new(void) {
-    struct stringlist* slist=NULL;
-
-    slist = malloc(sizeof(struct stringlist));
-    slist->size = 0;
-    slist->data=NULL;
-    return slist;
-}
-// push a copy of the string onto the string list
-void stringlist_push(struct stringlist* slist, const char* str) {
-    size_t newsize=0;
-    size_t slen=0;
-    size_t i=0;
-
-    newsize = slist->size+1;
-    slist->data = realloc(slist->data, sizeof(char*)*newsize);
-    slist->size += 1;
-
-    i = slist->size-1;
-    slen = strlen(str);
-
-    slist->data[i] = malloc(sizeof(char)*(slen+1));
-    strcpy(slist->data[i], str);
-}
-struct stringlist* stringlist_delete(struct stringlist* slist) {
-    if (slist != NULL) {
-        size_t i=0;
-        if (slist->data != NULL) {
-            for (i=0; i < slist->size; i++) {
-                free(slist->data[i]);
-            }
-        }
-        free(slist->data);
-        free(slist);
-    }
-    return NULL;
-}
-
-int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
-    size_t size=0, i=0;
-
-    if (!PyList_Check(listObj)) {
-        PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
-        return 1;
-    }
-    size = PyList_Size(listObj);
-
-    for (i=0; i<size; i++) {
-        PyObject* tmp = PyList_GetItem(listObj, i);
-        const char* tmpstr;
-        if (!PyString_Check(tmp)) {
-            PyErr_Format(PyExc_ValueError, "Expected only strings in %s list.", listname);
-            return 1;
-        }
-        tmpstr = (const char*) PyString_AsString(tmp);
-        stringlist_push(slist, tmpstr);
-    }
-    return 0;
-}
-
-void stringlist_print(struct stringlist* slist) {
-    size_t i=0;
-    if (slist == NULL) {
-        return;
-    }
-    for (i=0; i<slist->size; i++) {
-        printf("  slist[%ld]: %s\n", i, slist->data[i]);
-    }
-}
 
 /*
  * Write tdims from the list.  The list must be the expected length.
@@ -932,6 +1159,7 @@ int write_string_column(
     char* cdata=NULL;
     char** strdata=NULL;
 
+    // using struct def here, could cause problems
     twidth = fits->Fptr->tableptr[colnum-1].twidth;
 
     strdata = malloc(nelem*sizeof(char*));
@@ -1047,6 +1275,7 @@ static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     colptr = hdu->tableptr + (colnum-1);
 
@@ -1084,6 +1313,7 @@ static int read_column_bytes_strided(fitsfile* fits, int colnum, void* data, npy
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     colptr = hdu->tableptr + (colnum-1);
 
@@ -1128,6 +1358,7 @@ static int read_column_bytes_byrow(
     long ngroups=0; // number to read
     long offset=0; // gap between groups, not stride
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     colptr = hdu->tableptr + (colnum-1);
 
@@ -1313,8 +1544,9 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
+    // using struct defs here, could cause problems
     hdu = self->fits->Fptr;
-    if (hdu->hdutype == IMAGE_HDU) {
+    if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot yet read columns from an IMAGE_HDU");
         return NULL;
     }
@@ -1377,6 +1609,7 @@ static int read_rec_column_bytes(fitsfile* fits, npy_intp ncols, npy_int64* coln
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     ptr = (char*) data;
     for (row=0; row<hdu->numrows; row++) {
@@ -1425,6 +1658,7 @@ static int read_rec_column_bytes_byrow(
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     ptr = (char*) data;
     for (irow=0; irow<nrows; irow++) {
@@ -1459,7 +1693,6 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
     npy_intp ncols=0;
     npy_int64* colnums=NULL;
 
-    FITSfile* hdu=NULL;
     int status=0;
 
     PyObject* columnsobj=NULL;
@@ -1480,8 +1713,7 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
         goto recread_columns_cleanup;
     }
 
-    hdu = self->fits->Fptr;
-    if (hdu->hdutype == IMAGE_HDU) {
+    if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
@@ -1535,6 +1767,7 @@ static int read_rec_bytes_byrow(
     long ngroups=1; // number to read, one for row-by-row reading
     long offset=0; // gap between groups, not stride.  zero since we aren't using it
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
     ptr = (char*) data;
 
@@ -1565,6 +1798,7 @@ static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
 
     long ngroups=0, offset=0;
 
+    // using struct defs here, could cause problems
     hdu = fits->Fptr;
 
     ngroups=hdu->numrows;
@@ -1590,7 +1824,6 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
 
-    FITSfile* hdu=NULL;
     int status=0;
     PyObject* array=NULL;
     void* data=NULL;
@@ -1611,8 +1844,7 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
         goto recread_byrow_cleanup;
     }
 
-    hdu = self->fits->Fptr;
-    if (hdu->hdutype == IMAGE_HDU) {
+    if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
@@ -1686,7 +1918,6 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
 
-    FITSfile* hdu=NULL;
     int status=0;
     PyObject* array=NULL;
     void* data=NULL;
@@ -1703,8 +1934,7 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
         goto recread_cleanup;
     }
 
-    hdu = self->fits->Fptr;
-    if (hdu->hdutype == IMAGE_HDU) {
+    if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
@@ -1876,6 +2106,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
     {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
+    {"get_hdu_info_old",         (PyCFunction)PyFITSObject_get_hdu_info_old,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
