@@ -381,12 +381,7 @@ class FITS:
 
         self.create_image_hdu(img, extname=extname, extver=extver, compress=compress, header=header)
         self.update_hdu_list()
-
         self[-1].write_image(img)
-
-        # this is how it should be
-        #self.update_hdu_list()
-        #self[-1].write_image(img)
         self.update_hdu_list()
 
     def create_image_hdu(self, img, extname=None, extver=None ,compress=None, header=None):
@@ -526,7 +521,6 @@ class FITS:
         
         for colnum,name in enumerate(data.dtype.names):
             self[-1].write_column(colnum, data[name])
-        #self.reopen()
         self.update_hdu_list()
 
     def create_table_hdu(self, names, formats, 

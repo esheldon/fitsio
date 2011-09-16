@@ -186,16 +186,16 @@ TODO
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
 - append rows to tables
 - read row *ranges* more optimally
+- don't need to update the hdu list quite so often.
 - More error checking in c code for python lists and dicts.
 - write TDIM using built in routine instead of rolling my own.
 - optimize writing tables when there are no unsigned short or long, no signed
   bytes.  Can do one big "fwrite" but need to be careful with confusing
   buffers.
 - complex table columns.  bit? logical?
-- explore separate classes for image and table HDUs?
+- explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
 - variable length columns 
-- make write_image consistent with write_table.
 
 Note on array ordering
 ----------------------
