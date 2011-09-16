@@ -327,10 +327,10 @@ class FITS:
         The File must be opened READWRITE
         """
         if data.dtype.fields == None:
-            fits.write_image(data, extname=extname, extver=extver, 
+            self.write_image(data, extname=extname, extver=extver, 
                              compress=compress, header=header)
         else:
-            fits.write_table(data, units=units, 
+            self.write_table(data, units=units, 
                              extname=extname, extver=extver, header=header)
 
 
