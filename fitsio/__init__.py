@@ -85,6 +85,10 @@ Examples
       svec                S6  array[3]
       sarr                S2  array[4,3]
 
+    # if there are multiple HDUs with the same name, and an EXTVER
+    # is set, you can use it.  Here extver=2
+    #    fits['mytable',2]
+
     # read the image from extension zero
     >>> img = fits[0].read()
 

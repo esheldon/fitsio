@@ -87,6 +87,11 @@ Examples
       svec                S6  array[3]
       sarr                S2  array[4,3]
 
+    # if there are multiple HDUs with the same name, and an EXTVER
+    # is set, you can use it.  Here extver=2
+    #    fits['mytable',2]
+
+
     # read the image from extension zero
     >>> img = fits[0].read()
 
@@ -177,10 +182,6 @@ TODO
 ----
 
 - Figure out why gz files are not flushing to disk...at all.
-- Implement EXTVER: fits_movnam_hdu
-    can get item as tuple
-    can send extver= in read,write and convenience
-    update examples
 - Read subsets of *images*
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
 - append rows to tables
