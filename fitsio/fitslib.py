@@ -285,6 +285,59 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
+    def write(self, data, units=None, extname=None, extver=None, compress=None, header=None):   
+        """
+        Write the data to a new HDU.
+
+        This method is a wrapper.  If the input is an array with fields,
+        FITS.write_table is called, otherwise FITS.write_image is called.
+
+        parameters
+        ----------
+        data: ndarray
+            An n-dimensional image or a recarray.
+        extname: string, optional
+            An optional extension name.
+        extver: integer, optional
+            FITS allows multiple extensions to have the same name (extname).
+            These extensions can optionally specify an EXTVER version number in
+            the header.  Send extver= to set a particular version, which will
+            be represented in the header with keyname EXTVER.  The extver must
+            be an integer > 0.  If extver is not sent, the first one will be
+            selected.  If ext is an integer, the extver is ignored.
+        header: FITSHDR, list, dict, optional
+            A set of header keys to write. Must be one of these:
+                - FITSHDR object
+                - list of dictionaries containing 'name','value' and optionally
+                  a 'comment' field.
+                - a dictionary of keyword-value pairs; no comments are written
+                  in this case, and the order is arbitrary
+
+        Image-only keywords:
+            compress: string, optional
+                A string representing the compression algorithm for images, default None.
+                Must be one of
+                    'RICE'
+                    'GZIP'
+                    'PLIO' (no unsigned or negative integers)
+                    'HCOMPRESS'
+                (case-insensitive) See the cfitsio manual for details.
+        Table-only keywords:
+            units: list/dec, optional:
+                A list of strings with units for each column.
+
+        restrictions
+        ------------
+        The File must be opened READWRITE
+        """
+        if data.dtype.fields == None:
+            fits.write_image(data, extname=extname, extver=extver, 
+                             compress=compress, header=header)
+        else:
+            fits.write_table(data, units=units, 
+                             extname=extname, extver=extver, header=header)
+
+
 
     def write_image(self, img, extname=None, extver=None, compress=None, header=None):
         """
@@ -446,6 +499,8 @@ class FITS:
             be represented in the header with keyname EXTVER.  The extver must
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
+        units: list/dec, optional:
+            A list of strings with units for each column.
         header: FITSHDR, list, dict, optional
             A set of header keys to write. The keys are written before the data
             is written to the table, preventing a resizing of the table area.
@@ -457,7 +512,9 @@ class FITS:
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
 
-
+        restrictions
+        ------------
+        The File must be opened READWRITE
         """
 
         if data.dtype.fields == None:
@@ -792,6 +849,14 @@ class FITSHDU:
 
 
     def write_image(self, img):
+        """
+        Write the image into this HDU
+
+        parameters
+        ----------
+        img: ndarray
+            A simple numpy ndarray
+        """
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
         if img.size == 0:
@@ -835,9 +900,9 @@ class FITSHDU:
         """
         Read the header as a list of dictionaries.
 
-        You will usually use read_header instead, which just sends this to the
-        constructor of a FITSHDR, which allows access to the values and
-        comments by name and number.
+        You will usually use read_header instead, which just sends the output
+        of this functioin to the constructor of a FITSHDR, which allows access
+        to the values and comments by name and number.
 
         Each dictionary is
             'name': the keyword name
@@ -882,10 +947,6 @@ class FITSHDU:
 
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
-
-        parameters
-        ----------
-        None
         """
         dtype, shape = self._get_image_dtype_and_shape()
         array = numpy.zeros(shape, dtype=dtype)
@@ -923,7 +984,7 @@ class FITSHDU:
 
     def read_all(self, slow=False):
         """
-        Read the entire table.
+        Read an entire table.
 
         parameters
         ----------
