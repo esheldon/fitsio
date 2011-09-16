@@ -116,6 +116,7 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 // if input is NULL or None, return NULL
 // if maxlen is 0, the full string is copied, else
 // it is maxlen+1 for the following null
+/*
 char* copy_py_string(PyObject* obj, int maxlen, int* status) {
     char* buffer=NULL;
     int len=0;
@@ -138,7 +139,7 @@ char* copy_py_string(PyObject* obj, int maxlen, int* status) {
 
     return buffer;
 }
-
+*/
 
 // this will need to be updated for array string columns.
 long get_groupsize(tcolumn* colptr) {
@@ -555,20 +556,21 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int comptype=NOCOMPRESS;
 
     PyObject* array;
-    PyObject* extnameObj;
-    char* extname=NULL;
     int npy_dtype=0;
     int i=0;
     int status=0;
+
+    char* extname=NULL;
+    int extver=0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    static char *kwlist[] = {"array","extname", "comptype", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|Oi", kwlist,
-                          &array, &extnameObj, &comptype)) {
+    static char *kwlist[] = {"array","comptype", "extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|isi", kwlist,
+                          &array, &comptype, &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
 
@@ -580,11 +582,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
     npy_dtype = PyArray_TYPE(array);
     if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
-        goto create_image_hdu_cleanup;
-    }
-
-    extname = copy_py_string(extnameObj, 0, &status);
-    if (status != 0) {
         goto create_image_hdu_cleanup;
     }
 
@@ -605,6 +602,22 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         goto create_image_hdu_cleanup;
     }
 
+    if (extname != NULL) {
+        if (strlen(extname) > 0) {
+
+            // comments are NULL
+            if (ffukys(self->fits, "EXTNAME", extname, NULL, &status)) {
+                set_ioerr_string_from_status(status);
+                goto create_image_hdu_cleanup;
+            }
+            if (extver > 0) {
+                if (ffukyj(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
+                    set_ioerr_string_from_status(status);
+                    goto create_image_hdu_cleanup;
+                }
+            }
+        }
+    }
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
@@ -614,7 +627,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
 create_image_hdu_cleanup:
 
-    free(extname);
     if (status != 0) {
         return NULL;
     }
@@ -817,13 +829,12 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int nfields=0;
     LONGLONG nrows=0; // start empty
 
-    static char *kwlist[] = {"ttyp","tform","tunit", "tdim", "extname", NULL};
+    static char *kwlist[] = {"ttyp","tform","tunit", "tdim", "extname", "extver", NULL};
     // these are all strings
     PyObject* ttypObj=NULL;
     PyObject* tformObj=NULL;
     PyObject* tunitObj=NULL;    // optional
     PyObject* tdimObj=NULL;     // optional
-    PyObject* extnameObj=NULL;  // optional
 
     // these must be freed
     struct stringlist* ttyp=stringlist_new();
@@ -831,41 +842,39 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     struct stringlist* tunit=stringlist_new();
     //struct stringlist* tdim=stringlist_new();
     char* extname=NULL;
+    char* extname_use=NULL;
+    int extver=0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|OOO", kwlist,
-                          &ttypObj, &tformObj, &tunitObj, &tdimObj, &extnameObj)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|OOsi", kwlist,
+                          &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
         return NULL;
     }
-    
 
     if (stringlist_addfrom_listobj(ttyp, ttypObj, "names")) {
         status=99;
         goto create_table_cleanup;
     }
-    //stringlist_print(ttyp);
 
     if (stringlist_addfrom_listobj(tform, tformObj, "formats")) {
         status=99;
         goto create_table_cleanup;
     }
-    //stringlist_print(tform);
 
     if (tunitObj != NULL && tunitObj != Py_None) {
         if (stringlist_addfrom_listobj(tunit, tunitObj,"units")) {
             status=99;
             goto create_table_cleanup;
         }
-        //stringlist_print(tunit);
     }
 
-    extname = copy_py_string(extnameObj, 0, &status);
-    if (status != 0) {
-        goto create_table_cleanup;
+    if (extname != NULL) {
+        if (strlen(extname) > 0) {
+            extname_use = extname;
+        }
     }
-
     nfields = ttyp->size;
     if ( fits_create_tbl(self->fits, table_type, nrows, nfields, 
-                         ttyp->data, tform->data, tunit->data, extname, &status) ) {
+                         ttyp->data, tform->data, tunit->data, extname_use, &status) ) {
         set_ioerr_string_from_status(status);
         goto create_table_cleanup;
     }
@@ -875,8 +884,17 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         goto create_table_cleanup;
     }
 
+    if (extname_use != NULL) {
+        if (extver > 0) {
+
+            if (ffukyj(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
+                set_ioerr_string_from_status(status);
+                goto create_table_cleanup;
+            }
+        }
+    }
+
     // this does a full close and reopen
-    // it doesn't seem to work
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
         goto create_table_cleanup;
@@ -887,7 +905,6 @@ create_table_cleanup:
     tform = stringlist_delete(tform);
     tunit = stringlist_delete(tunit);
     //tdim = stringlist_delete(tdim);
-    free(extname);
 
 
     if (status != 0) {
@@ -1608,7 +1625,6 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     }
  
     if (read_rec_bytes_byrow(self->fits, nrows, rows, data, &status)) {
-        //fits_report_error(stderr, status);
         goto recread_byrow_cleanup;
     }
 

@@ -52,11 +52,11 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
         or a string extension name. If not sent, data is read from
         the first HDU that has data.
     extver: integer, optional
-        FITS allows multiple extensions to have the same name.  These
-        extensions can optionally specify an EXTVER version number
-        in the header.  Send extver= to select a particular version.
-        The default is to select the first one.  If ext is an integer,
-        the extver is ignored.
+        FITS allows multiple extensions to have the same name (extname).  These
+        extensions can optionally specify an EXTVER version number in the
+        header.  Send extver= to select a particular version.  If extver is not
+        sent, the first one will be selected.  If ext is an integer, the extver
+        is ignored.
     columns: list or array, optional
         An optional set of columns to read from table HDUs.  Default is to
         read all.  Can be string or number.
@@ -77,11 +77,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
             if ext is None:
                 raise ValueError("No extensions have data")
 
-        if extver is not None:
-            # e
-            item=(ext,extver)
-        else:
-            item=ext
+        item=_make_item(ext, extver=extver)
 
         data = fits[item].read(rows=rows, columns=columns)
         if header:
@@ -90,7 +86,8 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
         else:
             return data
 
-def read_header(filename, ext):
+
+def read_header(filename, ext, extver=None):
     """
     Convenience function to read the header from the specified FITS HDU
 
@@ -107,13 +104,28 @@ def read_header(filename, ext):
     ext: number or string
         The extension.  Either the numerical extension from zero
         or a string extension name.
+    extver: integer, optional
+        FITS allows multiple extensions to have the same name (extname).  These
+        extensions can optionally specify an EXTVER version number in the
+        header.  Send extver= to select a particular version.  If extver is not
+        sent, the first one will be selected.  If ext is an integer, the extver
+        is ignored.
     """
+    item=_make_item(ext,extver=extver)
     with FITS(filename, 'r') as fits:
-        return fits[ext].read_header()
+        return fits[item].read_header()
+
+def _make_item(ext, extver=None):
+    if extver is not None:
+        # e
+        item=(ext,extver)
+    else:
+        item=ext
+    return item
 
 
 
-def write(filename, data, extname=None, units=None, compress=None, header=None, clobber=False):
+def write(filename, data, extname=None, extver=None, units=None, compress=None, header=None, clobber=False):
     """
     Convenience function to Write data to a FITS file.
 
@@ -128,6 +140,13 @@ def write(filename, data, extname=None, units=None, compress=None, header=None, 
         to a new IMAGE_HDU and recarrays are written to BINARY_TBl hdus.
     extname: string, optional
         An optional name for the new header unit.
+    extver: integer, optional
+        FITS allows multiple extensions to have the same name (extname).
+        These extensions can optionally specify an EXTVER version number in
+        the header.  Send extver= to set a particular version, which will
+        be represented in the header with keyname EXTVER.  The extver must
+        be an integer > 0.  If extver is not sent, the first one will be
+        selected.  If ext is an integer, the extver is ignored.
     compress: string, optional
         A string representing the compression algorithm for images, default None.
         Must be one of
@@ -162,9 +181,11 @@ def write(filename, data, extname=None, units=None, compress=None, header=None, 
     """
     with FITS(filename, 'rw', clobber=clobber) as fits:
         if data.dtype.fields == None:
-            fits.write_image(data, extname=extname, compress=compress, header=header)
+            fits.write_image(data, extname=extname, extver=extver, 
+                             compress=compress, header=header)
         else:
-            fits.write_table(data, units=units, extname=extname, header=header)
+            fits.write_table(data, units=units, 
+                             extname=extname, extver=extver, header=header)
 
 
 class FITS:
@@ -265,7 +286,7 @@ class FITS:
         self.update_hdu_list()
 
 
-    def write_image(self, img, extname=None, compress=None, header=None):
+    def write_image(self, img, extname=None, extver=None, compress=None, header=None):
         """
         Create a new image extension and write the data.  
 
@@ -278,6 +299,13 @@ class FITS:
             An n-dimensional image.
         extname: string, optional
             An optional extension name.
+        extver: integer, optional
+            FITS allows multiple extensions to have the same name (extname).
+            These extensions can optionally specify an EXTVER version number in
+            the header.  Send extver= to set a particular version, which will
+            be represented in the header with keyname EXTVER.  The extver must
+            be an integer > 0.  If extver is not sent, the first one will be
+            selected.  If ext is an integer, the extver is ignored.
         compress: string, optional
             A string representing the compression algorithm for images, default None.
             Must be one of
@@ -299,7 +327,9 @@ class FITS:
         ------------
         The File must be opened READWRITE
         """
-        self.create_image_hdu(img, extname=extname, compress=compress, header=header)
+
+
+        self.create_image_hdu(img, extname=extname, extver=extver, compress=compress, header=header)
         self.update_hdu_list()
 
         self[-1].write_image(img)
@@ -307,11 +337,9 @@ class FITS:
         # this is how it should be
         #self.update_hdu_list()
         #self[-1].write_image(img)
-        #self._FITS.write_image(img)
-        #self.reopen()
         self.update_hdu_list()
 
-    def create_image_hdu(self, img, extname=None, compress=None, header=None):
+    def create_image_hdu(self, img, extname=None, extver=None ,compress=None, header=None):
         """
         Create a new, empty image HDU and reload the hdu list.
 
@@ -331,6 +359,13 @@ class FITS:
             An image with which to determine the properties of the HDU
         extname: string, optional
             An optional extension name.
+        extver: integer, optional
+            FITS allows multiple extensions to have the same name (extname).
+            These extensions can optionally specify an EXTVER version number in
+            the header.  Send extver= to set a particular version, which will
+            be represented in the header with keyname EXTVER.  The extver must
+            be an integer > 0.  If extver is not sent, the first one will be
+            selected.  If ext is an integer, the extver is ignored.
         compress: string, optional
             A string representing the compression algorithm for images, default None.
             Must be one of
@@ -356,21 +391,39 @@ class FITS:
 
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
+        if img.size == 0:
+            raise ValueError("data must have at least 1 row")
+
+        if extname is not None and extver is not None:
+            extver = check_extver(extver)
+        if extver is None:
+            # will be ignored
+            extver = 0
+        if extname is None:
+            # will be ignored
+            extname=""
 
         comptype = get_compress_type(compress)
         check_comptype_img(comptype, img)
-        self._FITS.create_image_hdu(img, extname=extname, comptype=comptype)
-
-        # fits seems to have some issues with flushing.
-        #self.reopen()
+        self._FITS.create_image_hdu(img, comptype=comptype, 
+                                    extname=extname, extver=extver)
         self.update_hdu_list()
 
+        """
+        if extname is not None:
+            self[-1].write_key("EXTNAME",str(extname))
+            if extver is not None:
+                self[-1].write_key('EXTVER',extver)
+        """
         if header is not None:
             self[-1].write_keys(header)
-            self[-1]._update_info()
+
+        if extname is not None or header is not None:
+            self.update_hdu_list()
 
 
-    def write_table(self, data, units=None, extname=None, header=None):
+
+    def write_table(self, data, units=None, extname=None, extver=None, header=None):
         """
         Create a new table extension and write the data.
 
@@ -386,6 +439,13 @@ class FITS:
             determined from this array.
         extname: string, optional
             An optional string for the extension name.
+        extver: integer, optional
+            FITS allows multiple extensions to have the same name (extname).
+            These extensions can optionally specify an EXTVER version number in
+            the header.  Send extver= to set a particular version, which will
+            be represented in the header with keyname EXTVER.  The extver must
+            be an integer > 0.  If extver is not sent, the first one will be
+            selected.  If ext is an integer, the extver is ignored.
         header: FITSHDR, list, dict, optional
             A set of header keys to write. The keys are written before the data
             is written to the table, preventing a resizing of the table area.
@@ -402,9 +462,12 @@ class FITS:
 
         if data.dtype.fields == None:
             raise ValueError("data must have fields")
+        if data.size == 0:
+            raise ValueError("data must have at least 1 row")
+
         names, formats, dims = descr2tabledef(data.dtype.descr)
         self.create_table_hdu(names,formats,
-                              units=units, dims=dims, extname=extname,
+                              units=units, dims=dims, extname=extname,extver=extver,
                               header=header)
         
         for colnum,name in enumerate(data.dtype.names):
@@ -412,7 +475,8 @@ class FITS:
         #self.reopen()
         self.update_hdu_list()
 
-    def create_table_hdu(self, names, formats, units=None, dims=None, extname=None, header=None):
+    def create_table_hdu(self, names, formats, 
+                         units=None, dims=None, extname=None, extver=None, header=None):
         """
         Create a new, empty table extension and reload the hdu list.
 
@@ -440,6 +504,13 @@ class FITS:
             match the repeat count for the formats fields.
         extname: string, optional
             An optional extension name.
+        extver: integer, optional
+            FITS allows multiple extensions to have the same name (extname).
+            These extensions can optionally specify an EXTVER version number in
+            the header.  Send extver= to set a particular version, which will
+            be represented in the header with keyname EXTVER.  The extver must
+            be an integer > 0.  If extver is not sent, the first one will be
+            selected.  If ext is an integer, the extver is ignored.
         header: FITSHDR, list, dict
             A set of header keys to write. Must be one of these:
                 - FITSHDR object
@@ -471,10 +542,19 @@ class FITS:
         if extname is not None:
             if not isinstance(extname,str):
                 raise ValueError("extension name must be a string")
-        self._FITS.create_table_hdu(names, formats, tunit=units, tdim=dims, extname=extname)
 
-        # fits seems to have some issues with flushing.
-        #self.reopen()
+        if extname is not None and extver is not None:
+            extver = check_extver(extver)
+        if extver is None:
+            # will be ignored
+            extver = 0
+        if extname is None:
+            # will be ignored
+            extname=""
+
+        # note we can create extname in the c code for tables, but not images
+        self._FITS.create_table_hdu(names, formats, tunit=units, tdim=dims, 
+                                    extname=extname, extver=extver)
         self.update_hdu_list()
 
         if header is not None:
@@ -709,7 +789,13 @@ class FITSHDU:
                 comment = r.get('comment','')
                 self.write_key(name,value,comment)
 
+
+
     def write_image(self, img):
+        if img.dtype.fields is not None:
+            raise ValueError("got recarray, expected regular ndarray")
+        if img.size == 0:
+            raise ValueError("data must have at least 1 row")
         self._FITS.write_image(self.ext+1, img)
         self._update_info()
 
@@ -1173,6 +1259,13 @@ class FITSHDU:
         text = '\n'.join(text)
         return text
 
+def check_extver(extver):
+    if extver is None:
+        return 0
+    extver=int(extver)
+    if extver <= 0:
+        raise ValueError("extver must be > 0")
+    return extver
 
 def extract_filename(filename):
     if filename[0] == "!":
