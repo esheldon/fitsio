@@ -103,7 +103,7 @@ def read_header(filename, ext, extver=None, case_sensitive=False):
     case_sensitive: bool, optional
         Match extension names with case-sensitivity.  Default is False.
     """
-    item=_make_item(ext,extver=extver, case_sensitive=case_sensitive)
+    item=_make_item(ext,extver=extver)
     with FITS(filename, case_sensitive=case_sensitive) as fits:
         return fits[item].read_header()
 

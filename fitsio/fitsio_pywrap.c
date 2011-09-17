@@ -50,14 +50,16 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     }
 
     if (create) {
+        // create and open
         if (fits_create_file(&self->fits, filename, &status)) {
             set_ioerr_string_from_status(status);
             return -1;
         }
-    }
-    if (fits_open_file(&self->fits, filename, mode, &status)) {
-        set_ioerr_string_from_status(status);
-        return -1;
+    } else {
+        if (fits_open_file(&self->fits, filename, mode, &status)) {
+            set_ioerr_string_from_status(status);
+            return -1;
+        }
     }
 
     return 0;
@@ -1881,7 +1883,6 @@ recread_byrow_cleanup:
 
 // Read the entire table into the input rec array.  It is assumed the data
 // match table perfectly.
-// this won't work for .Z or .gz files!
 static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
     // can also use this for reading row ranges
     LONGLONG firstrow=1;
@@ -1930,15 +1931,15 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    /*
+#if 1
     if (read_all_rec_bytes(self->fits, data, &status)) {
         goto recread_cleanup;
     }
-    */
-
+#else
     if (read_all_rec_bytes_byrow(self->fits, data, &status)) {
         goto recread_cleanup;
     }
+#endif
 
 recread_cleanup:
 

@@ -210,7 +210,6 @@ The unit tests should all pass
 TODO
 ----
 
-- Figure out why gz files are not flushing to disk for tables...at all.
 - implement checksums
 - Read subsets of *images*
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
