@@ -186,6 +186,13 @@ your cfitsio, you may have to put this in your .bashrc
     export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
+test
+----
+The unit tests should all pass
+
+>>> import fitsio
+>>> fitsio.test.test()
+
 TODO
 ----
 
