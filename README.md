@@ -23,7 +23,6 @@ Features
 - Supports unsigned types the way the FITS standard allows, by converting
   to signed and using zero offsets.  Note the FITS standard does not support
   unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-  Be careful of this feature!
 - Correctly writes 1 byte integers table columns.
 - data are guaranteed to conform to the FITS standard.
 
@@ -33,7 +32,7 @@ These are bugs in the underlying cfitsio library
 - When writing directly to a .gz file sometimes the buffers do not get
   flushed to disk upon closing, leaving the file empty or incomplete.
   Seems to be when writing a single binary table.
-- fits_get_compression_type always returns zero.  Use ZCMPTYPE header
+- fits_get_compression_type always returns zero.  fitsio uses ZCMPTYPE header
   key instead, but this may not be portable between cfitsio versions
 
 Examples
@@ -107,7 +106,8 @@ Examples
     >>> data = fits[1].read()
     >>> data = fits['mytable'].read()
 
-    # read a subset of rows and columns
+    # read a subset of rows and columns. By default uses a case-insensitive
+    # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
     # read a single column as a simple array.  This is less

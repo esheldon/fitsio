@@ -96,7 +96,8 @@ Examples
     >>> data = fits[1].read()
     >>> data = fits['mytable'].read()
 
-    # read a subset of rows and columns
+    # read a subset of rows and columns. By default uses a case-insensitive
+    # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
     # read a single column as a simple array.  This is less
