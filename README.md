@@ -218,6 +218,7 @@ TODO
 - append rows to tables
 - read row *ranges* more optimally
 - don't need to update the hdu list quite so often.
+- keyword lists are getting long; implement **keys everywhere?
 - More error checking in c code for python lists and dicts.
 - write TDIM using built in routine instead of rolling my own.
 - optimize writing tables when there are no unsigned short or long, no signed
