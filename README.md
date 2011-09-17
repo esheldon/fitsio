@@ -24,6 +24,7 @@ Features
   to signed and using zero offsets.  Note the FITS standard does not support
   unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
 - Correctly writes 1 byte integers table columns.
+- read rows using slice notation
 - data are guaranteed to conform to the FITS standard.
 
 Known CFITSIO Bugs
@@ -109,6 +110,10 @@ Examples
     # read a subset of rows and columns. By default uses a case-insensitive
     # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
+
+    # read a subset of rows using slice notation (can also use read_slice)
+    >>> data = fits[1][10:20]
+    >>> data = fits[1][10:20:2]
 
     # read a single column as a simple array.  This is less
     # efficient when you plan to read multiple columns.
@@ -212,17 +217,25 @@ TODO
 
 - implement checksums
 - Read subsets of *images*
-- speed up "safe" fast read_all (it's about 18% slower than unsafe version)
-    fits_read_tblbytes?
 - append rows to tables
-- read row *ranges* more optimally
+- We have row slices; also implement this notation, e.g. for extension 1
+    data=fits[1]['colname'][10:30]
+    rows=[3,8,11]
+    data=fits[1]['colname'][rows]
+    data=fits[1]['colname'].read()
+    cols=['x','y']
+    data=fits[1][cols][10:30]
+  That would require a FITSColumnSubset class.
 - don't need to update the hdu list quite so often.
 - keyword lists are getting long; implement **keys everywhere?
 - More error checking in c code for python lists and dicts.
 - write TDIM using built in routine instead of rolling my own.
-- optimize writing tables when there are no unsigned short or long, no signed
-  bytes.  Can do one big "fwrite" but need to be careful with confusing
-  buffers.  fits_write_tblbytes?
+- optimize writing tables. When there are no unsigned short or long, no signed
+  bytes, no strings, this could be simple using fits_write_tblbytes.  If
+  strings are present, it is hard to imagine how to do it: perhaps write
+  the whole thing and then re-write the string columns?  For unsigned
+  stuff we could add the scaling ourselves, but then it is far from
+  atomic.
 - complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.

@@ -100,6 +100,13 @@ Examples
     # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
+    # read a subset of rows using slice notation (can also use read_slice)
+    >>> data = fits[1][10:20]
+    >>> data = fits[1][10:20:2]
+
+    # specify the rows in a similar way
+    >>> data = fits[1][rows]
+
     # read a single column as a simple array.  This is less
     # efficient when you plan to read multiple columns.
     >>> data = fits[1].read_column('x', rows=[1,5])

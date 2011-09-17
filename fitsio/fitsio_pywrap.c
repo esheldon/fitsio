@@ -1881,7 +1881,7 @@ recread_byrow_cleanup:
 
 // Read the range of rows, 1-offset. It is assumed the data match table
 // perfectly.
-static int read_rec_slice(fitsfile* fits, LONGLONG firstrow, LONGLONG lastrow, void* data, int* status) {
+static int read_rec_range(fitsfile* fits, LONGLONG firstrow, LONGLONG lastrow, void* data, int* status) {
     // can also use this for reading row ranges
     LONGLONG firstchar=1;
     LONGLONG nrows=0;
@@ -1970,7 +1970,7 @@ recread_cleanup:
 
 // read entire table at once
 static PyObject *
-PyFITSObject_read_as_rec_slice(struct PyFITSObject* self, PyObject* args) {
+PyFITSObject_read_rec_range(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
 
@@ -2004,7 +2004,7 @@ PyFITSObject_read_as_rec_slice(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    if (read_rec_slice(self->fits, firstrow, lastrow, data, &status)) {
+    if (read_rec_range(self->fits, firstrow, lastrow, data, &status)) {
         goto recread_slice_cleanup;
     }
 
@@ -2168,7 +2168,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
-    {"read_as_rec_slice",          (PyCFunction)PyFITSObject_read_as_rec_slice,          METH_VARARGS,  "read_as_rec_slice\n\nRead the row range.  No checking of array is done."},
+    {"read_rec_range",          (PyCFunction)PyFITSObject_read_rec_range,          METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
 
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},

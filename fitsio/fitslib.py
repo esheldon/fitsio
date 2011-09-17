@@ -1017,14 +1017,26 @@ class FITSHDU:
 
         return array
 
+    def __getitem__(self, arg):
+        res, isrows, isslice = \
+            self.process_args_as_rows_or_columns(arg)
 
-    def read_slice(self, firstrow, lastrow):
+        if isrows:
+            # rows were entered: read all columns
+            if isslice:
+                return self.read_slice(res.start, res.stop, res.step)
+            else:
+                return self.read(rows=res)
+        else:
+            raise ValueError("Currently you must send a row slice")
+        return self.read_slice(firstrow, lastrow)
+
+    def read_slice(self, firstrow, lastrow, step=1):
         """
         Read the specified row slice.
 
         Read all rows between firstrow and lastrow (non-inclusive, as per
-        python slice notation).  Slice steps other than 1 are not yet
-        implemented.
+        python slice notation).
 
         parameters
         ----------
@@ -1033,7 +1045,12 @@ class FITSHDU:
         lastrow: integer
             The last row to read, non-inclusive.  This follows the python list
             slice convention that one does not include the last element.
+        step: integer, optional
+            Step between rows.  If step is 2, skip every other row.
         """
+
+        if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
+            raise ValueError("slices currently only supported for tables")
 
         maxrow = self.info['nrows']
         if firstrow < 0 or lastrow > maxrow:
@@ -1041,19 +1058,23 @@ class FITSHDU:
 
         dtype = self.get_rec_dtype()
 
-        # no +1 because lastrow is non-inclusive
-        nrows=lastrow-firstrow
-        array = numpy.zeros(nrows, dtype=dtype)
+        if step != 1:
+            rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+            return self.read(rows=rows)
+        else:
+            # no +1 because lastrow is non-inclusive
+            nrows=lastrow-firstrow
+            array = numpy.zeros(nrows, dtype=dtype)
 
-        # only first needs to be +1
-        self._FITS.read_as_rec_slice(self.ext+1, firstrow+1, lastrow, array)
+            # only first needs to be +1
+            self._FITS.read_rec_range(self.ext+1, firstrow+1, lastrow, array)
 
-        for colnum,name in enumerate(array.dtype.names):
-            self._rescale_array(array[name], 
-                                self.info['colinfo'][colnum]['tscale'], 
-                                self.info['colinfo'][colnum]['tzero'])
+            for colnum,name in enumerate(array.dtype.names):
+                self._rescale_array(array[name], 
+                                    self.info['colinfo'][colnum]['tscale'], 
+                                    self.info['colinfo'][colnum]['tzero'])
 
-        return array
+            return array
 
 
     def read_rows(self, rows):
@@ -1146,6 +1167,122 @@ class FITSHDU:
             if rows[0] < 0 or rows[-1] > maxrow:
                 raise ValueError("rows must be in [%d,%d]" % (0,maxrow))
         return rows
+
+    def process_args_as_rows_or_columns(self, arg, unpack=False):
+        """
+
+        args must be a tuple.  Only the first one or two args are used.
+
+        We must be able to interpret the args as as either a column name or
+        row number, or sequences thereof.  Numpy arrays and slices are also
+        fine.
+
+        Examples:
+            'field'
+            35
+            [35,55,86]
+            ['f1',f2',...]
+        Can also be tuples or arrays.
+
+        """
+
+        isslice = False
+        isrows = False
+        result=arg
+        if isinstance(arg, (tuple,list,numpy.ndarray)):
+            # a sequence was entered
+            if isstring(arg[0]):
+                pass
+            else:
+                isrows=True
+                result = arg
+        elif isstring(arg):
+            # a single string was entered
+            pass
+        elif isinstance(arg, slice):
+            isrows=True
+            isslice=True
+            if unpack:
+                result = self.slice2rows(arg.start, arg.stop, arg.step)
+            else:
+                result = self.process_slice(arg)
+        else:
+            # a single object was entered.  Probably should apply some more 
+            # checking on this
+            isrows=True
+
+        return result, isrows, isslice
+
+    def process_slice(self, arg):
+        start = arg.start
+        stop = arg.stop
+        step = arg.step
+
+        nrows=self.info['nrows']
+        if step is None:
+            step=1
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = nrows
+
+        if start < 0:
+            start = nrows + start
+            if start < 0:
+                raise IndexError("Index out of bounds")
+
+        if stop < 0:
+            stop = nrows + start + 1
+
+        if stop < start:
+            # will return an empty struct
+            stop = start
+
+        if stop > nrows:
+            stop=nrows
+        return slice(start, stop, step)
+
+    def slice2rows(self, start, stop, step=None):
+        nrows=self.info['nrows']
+        if start is None:
+            start=0
+        if stop is None:
+            stop=nrows
+        if step is None:
+            step=1
+
+        tstart = self._fix_range(start)
+        tstop  = self._fix_range(stop)
+        if tstart == 0 and tstop == nrows:
+            # this is faster: if all fields are also requested, then a 
+            # single fread will be done
+            return None
+        if stop < start:
+            raise ValueError("start is greater than stop in slice")
+        return numpy.arange(tstart, tstop, step, dtype='intp')
+
+    def _fix_range(self, num, isslice=True):
+        """
+        If el=True, then don't treat as a slice element
+        """
+
+        nrows = self.info['nrows']
+        if isslice:
+            # include the end
+            if num < 0:
+                num=nrows + (1+num)
+            elif num > nrows:
+                num=nrows
+        else:
+            # single element
+            if num < 0:
+                num=nrows + num
+            elif num > (nrows-1):
+                num=nrows-1
+
+        return num
+
+
 
     def _rescale_array(self, array, scale, zero):
         if scale != 1.0:
@@ -1724,6 +1861,8 @@ def check_comptype_img(comptype, img):
         if img.dtype.descr[0][1][1] == 'u':
             raise ValueError("unsigned integers not allowed when using PLIO tile compression")
 
+def isstring(arg):
+    return isinstance(arg, (str,unicode))
 
 # this doesn't work
 #GZIP_2 = 22
