@@ -4,7 +4,8 @@ Description
 -----------
 
 This is a python extension written in c and python.  The cfitsio library and
-headers are required to compile the code.  
+headers are required to compile the code.  The package has been tested for
+cfitsio versions >= 3
 
 Features
 --------
