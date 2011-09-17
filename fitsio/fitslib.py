@@ -1046,7 +1046,7 @@ class FITSHDU:
         array = numpy.zeros(nrows, dtype=dtype)
 
         # only first needs to be +1
-        self._FITS.read_as_rec_slice(self.ext+1, array, firstrow+1, lastrow)
+        self._FITS.read_as_rec_slice(self.ext+1, firstrow+1, lastrow, array)
 
         for colnum,name in enumerate(array.dtype.names):
             self._rescale_array(array[name], 
