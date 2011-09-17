@@ -1879,15 +1879,16 @@ recread_byrow_cleanup:
 
 
 
-// Read the range of rows.  It is assumed the data match table perfectly.
-static int read_rec_slice(fitsfile* fits, LONGLONG firstrow, LONGLONG nrows, void* data, int* status) {
+// Read the range of rows, 1-offset. It is assumed the data match table
+// perfectly.
+static int read_rec_slice(fitsfile* fits, LONGLONG firstrow, LONGLONG lastrow, void* data, int* status) {
     // can also use this for reading row ranges
     LONGLONG firstchar=1;
+    LONGLONG nrows=0;
     LONGLONG nchars=0;
-    FITSfile* hdu=NULL;
 
-    hdu = fits->Fptr;
-    nchars = hdu->rowlength*nrows;
+    nrows = lastrow-firstrow+1;
+    nchars = (fits->Fptr)->rowlength*nrows;
 
     if (fits_read_tblbytes(fits, firstrow, firstchar, nchars, (unsigned char*) data, status)) {
         return 1;
@@ -1978,15 +1979,15 @@ PyFITSObject_read_as_rec_slice(struct PyFITSObject* self, PyObject* args) {
     void* data=NULL;
 
     PY_LONG_LONG firstrow_py=0;
-    PY_LONG_LONG nrows_py=0;
+    PY_LONG_LONG lastrow_py=0;
     LONGLONG firstrow=0;
-    LONGLONG nrows=0;
+    LONGLONG lastrow=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow_py, &nrows_py, &array)) {
+    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow_py, &lastrow_py, &array)) {
         return NULL;
     }
     firstrow = (LONGLONG) firstrow_py;
-    nrows    = (LONGLONG) nrows_py;
+    lastrow    = (LONGLONG) lastrow_py;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -2003,7 +2004,7 @@ PyFITSObject_read_as_rec_slice(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    if (read_rec_slice(self->fits, firstrow, nrows, data, &status)) {
+    if (read_rec_slice(self->fits, firstrow, lastrow, data, &status)) {
         goto recread_slice_cleanup;
     }
 

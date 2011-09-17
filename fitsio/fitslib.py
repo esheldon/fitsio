@@ -1017,7 +1017,54 @@ class FITSHDU:
 
         return array
 
+
+    def read_slice(self, firstrow, lastrow):
+        """
+        Read the specified row slice.
+
+        Read all rows between firstrow and lastrow (non-inclusive, as per
+        python slice notation).  Slice steps other than 1 are not yet
+        implemented.
+
+        parameters
+        ----------
+        firstrow: integer
+            The first row to read
+        lastrow: integer
+            The last row to read, non-inclusive.  This follows the python list
+            slice convention that one does not include the last element.
+        """
+
+        maxrow = self.info['nrows']
+        if firstrow < 0 or lastrow > maxrow:
+            raise ValueError("slice must specify a sub-range of [%d,%d]" % (0,maxrow))
+
+        dtype = self.get_rec_dtype()
+
+        # no +1 because lastrow is non-inclusive
+        nrows=lastrow-firstrow
+        array = numpy.zeros(nrows, dtype=dtype)
+
+        # only first needs to be +1
+        self._FITS.read_as_rec_slice(self.ext+1, array, firstrow+1, lastrow)
+
+        for colnum,name in enumerate(array.dtype.names):
+            self._rescale_array(array[name], 
+                                self.info['colinfo'][colnum]['tscale'], 
+                                self.info['colinfo'][colnum]['tzero'])
+
+        return array
+
+
     def read_rows(self, rows):
+        """
+        Read the specified rows.
+
+        parameters
+        ----------
+        rows: list,array
+            A list or array of row indices.
+        """
         if rows is None:
             # we actually want all rows!
             return self.read_all()
