@@ -161,7 +161,6 @@ Examples
     with FITS('path/to/file','r') as fits:
         data = fits[ext].read()
 
-
 Installation
 ------------
 Either download the tar ball (upper right corner "Downloads" on github page) or
@@ -177,14 +176,24 @@ optionally with a prefix
 
     python setup.py install --prefix=/some/path
 
-You will need the cfitsio library and headers installed on your system and
-visible.  This man mean modifying LD_LIBRARY_PATH and C_INCLUDE_PATH
-environment variables to include the $PREFIX/lib and $PREFIX/include
-directories of your cfitsio install.  E.g. on OS X, using fink for
-your cfitsio, you may have to put this in your .bashrc
+Requirements
+------------
+
+You will need the cfitsio library and headers installed on your system.  The
+cfitsio library needs to be compiled as a shared library (libcfits.so), rather
+than a static library (libcfits.a).  If you have both, the shared version
+should be picked up correctly.
+
+If the library is not in the "usual" place, you may have to modify your
+LD_LIBRARY_PATH and C_INCLUDE_PATH environment variables to include the
+$PREFIX/lib and $PREFIX/include directories of your cfitsio install.  E.g. on
+OS X, using fink to install cfitsio, you may have to put this in your .bashrc
 
     export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
+
+Versions of cfitsio >= 3 have been tested on linux and mac OS X 10.6 10.7.
+
 
 test
 ----
