@@ -982,6 +982,7 @@ class FITSHDU:
                             self.info['colinfo'][colnum]['tzero'])
         return array
 
+
     def read_all(self, slow=False):
         """
         Read an entire table.
@@ -992,11 +993,13 @@ class FITSHDU:
             Read the columns one at a time rather than all at once.
             This will be done automatically for .gz or .Z files.
         """
+        """
         if self.is_compressed:
             # we need to use the inernal cfitsio buffers in this case;
             # read_columns always uses buffers
             colnums = self._extract_colnums()
             return self.read_columns(colnums)
+        """
 
         dtype = self.get_rec_dtype()
         nrows = self.info['nrows']

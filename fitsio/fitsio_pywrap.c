@@ -1879,6 +1879,23 @@ recread_byrow_cleanup:
 
 
 
+// Read the range of rows.  It is assumed the data match table perfectly.
+static int read_rec_slice(fitsfile* fits, LONGLONG firstrow, LONGLONG nrows, void* data, int* status) {
+    // can also use this for reading row ranges
+    LONGLONG firstchar=1;
+    LONGLONG nchars=0;
+    FITSfile* hdu=NULL;
+
+    hdu = fits->Fptr;
+    nchars = hdu->rowlength*nrows;
+
+    if (fits_read_tblbytes(fits, firstrow, firstchar, nchars, (unsigned char*) data, status)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 
 
 // Read the entire table into the input rec array.  It is assumed the data
@@ -1949,6 +1966,56 @@ recread_cleanup:
     }
     Py_RETURN_NONE;
 }
+
+// read entire table at once
+static PyObject *
+PyFITSObject_read_as_rec_slice(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int hdutype=0;
+
+    int status=0;
+    PyObject* array=NULL;
+    void* data=NULL;
+
+    PY_LONG_LONG firstrow_py=0;
+    PY_LONG_LONG nrows_py=0;
+    LONGLONG firstrow=0;
+    LONGLONG nrows=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow_py, &nrows_py, &array)) {
+        return NULL;
+    }
+    firstrow = (LONGLONG) firstrow_py;
+    nrows    = (LONGLONG) nrows_py;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto recread_slice_cleanup;
+    }
+
+    if (hdutype == IMAGE_HDU) {
+        PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
+        return NULL;
+    }
+
+    data = PyArray_DATA(array);
+
+    if (read_rec_slice(self->fits, firstrow, nrows, data, &status)) {
+        goto recread_slice_cleanup;
+    }
+
+recread_slice_cleanup:
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+ 
  
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
@@ -2100,6 +2167,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
+    {"read_as_rec_slice",          (PyCFunction)PyFITSObject_read_as_rec_slice,          METH_VARARGS,  "read_as_rec_slice\n\nRead the row range.  No checking of array is done."},
 
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
