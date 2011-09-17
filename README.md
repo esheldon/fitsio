@@ -179,21 +179,26 @@ optionally with a prefix
 Requirements
 ------------
 
-You will need the cfitsio library and headers installed on your system.  The
-cfitsio library needs to be compiled as a shared library (libcfits.so), rather
-than a static library (libcfits.a).  If you have both, the shared version
-should be picked up correctly.
+    - You will need the cfitsio library and headers installed on your system.
+      The cfitsio library needs to be compiled as a shared library
+      (libcfits.so), rather than a static library (libcfits.a).  If you have
+      both, the shared version should be picked up correctly.
 
-If the library is not in the "usual" place, you may have to modify your
-LD_LIBRARY_PATH and C_INCLUDE_PATH environment variables to include the
-$PREFIX/lib and $PREFIX/include directories of your cfitsio install.  E.g. on
-OS X, using fink to install cfitsio, you may have to put this in your .bashrc
+      If the library is not in the "usual" place, you may have to modify your
+      LD_LIBRARY_PATH and C_INCLUDE_PATH environment variables to include the
+      $PREFIX/lib and $PREFIX/include directories of your cfitsio install.
+      E.g. on OS X, using fink to install cfitsio, you may have to put this in
+      your .bashrc
 
-    export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
-Versions of cfitsio >= 3 have been tested on linux and mac OS X 10.6 10.7.
+      Versions of cfitsio >= 3 have been tested on linux and mac OS X 10.6 10.7.
 
+    - You need a recent python, probably >= 2.5, but this has not been
+      extensively tested.
+
+    - You need numerical python (numpy).
 
 test
 ----
@@ -208,6 +213,7 @@ TODO
 - Figure out why gz files are not flushing to disk for tables...at all.
 - Read subsets of *images*
 - speed up "safe" fast read_all (it's about 18% slower than unsafe version)
+    fits_read_tblbytes?
 - append rows to tables
 - read row *ranges* more optimally
 - don't need to update the hdu list quite so often.
@@ -215,7 +221,7 @@ TODO
 - write TDIM using built in routine instead of rolling my own.
 - optimize writing tables when there are no unsigned short or long, no signed
   bytes.  Can do one big "fwrite" but need to be careful with confusing
-  buffers.
+  buffers.  fits_write_tblbytes?
 - complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
