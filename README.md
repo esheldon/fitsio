@@ -5,7 +5,7 @@ Description
 
 This is a python extension written in c and python.  The cfitsio library and
 headers are required to compile the code.  The package has been tested for
-cfitsio versions >= 3
+cfitsio versions >= 3 on linux and mac OS X 10.6 and 10.7
 
 Features
 --------
