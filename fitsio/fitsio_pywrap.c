@@ -1882,37 +1882,22 @@ recread_byrow_cleanup:
 // Read the entire table into the input rec array.  It is assumed the data
 // match table perfectly.
 // this won't work for .Z or .gz files!
-/*
 static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
+    // can also use this for reading row ranges
+    LONGLONG firstrow=1;
+    LONGLONG firstchar=1;
+    LONGLONG nchars=0;
     FITSfile* hdu=NULL;
-    LONGLONG file_pos=0;
-
-    long nbytes=0;
 
     hdu = fits->Fptr;
+    nchars = hdu->rowlength*hdu->numrows;
 
-    file_pos = hdu->datastart;
-    nbytes = hdu->numrows*hdu->rowlength;
-
-
-    if (file_seek(hdu->filehandle, file_pos)) {
-        *status = SEEK_ERROR;
-        return 1;
-    }
-
-    if (ffread(hdu, nbytes, data, status)) {
-        return 1;
-    }
-
-    // we have to return so as not to confuse the buffer system
-    if (file_seek(hdu->filehandle, file_pos)) {
-        *status = SEEK_ERROR;
+    if (fits_read_tblbytes(fits, firstrow, firstchar, nchars, (unsigned char*) data, status)) {
         return 1;
     }
 
     return 0;
 }
-*/
 
 
 
@@ -1946,7 +1931,6 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     data = PyArray_DATA(array);
 
     /*
-    // this is about 18% faster but doesn't play nice with the buffers
     if (read_all_rec_bytes(self->fits, data, &status)) {
         goto recread_cleanup;
     }
