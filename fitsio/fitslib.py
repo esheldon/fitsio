@@ -18,7 +18,7 @@ from . import _fitsio_wrap
 import copy
 
 
-def read(filename, ext=None, extver=None, rows=None, columns=None, header=False):
+def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -52,10 +52,13 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
     header: bool, optional
         If True, read the FITS header and return a tuple (data,header)
         Default is False.
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
 
     """
 
-    with FITS(filename) as fits:
+    with FITS(filename, case_sensitive=case_sensitive) as fits:
         if ext is None:
             for i in xrange(len(fits)):
                 if fits[i].has_data():
@@ -74,7 +77,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False)
             return data
 
 
-def read_header(filename, ext, extver=None):
+def read_header(filename, ext, extver=None, case_sensitive=False):
     """
     Convenience function to read the header from the specified FITS HDU
 
@@ -97,9 +100,11 @@ def read_header(filename, ext, extver=None):
         header.  Send extver= to select a particular version.  If extver is not
         sent, the first one will be selected.  If ext is an integer, the extver
         is ignored.
+    case_sensitive: bool, optional
+        Match extension names with case-sensitivity.  Default is False.
     """
-    item=_make_item(ext,extver=extver)
-    with FITS(filename) as fits:
+    item=_make_item(ext,extver=extver, case_sensitive=case_sensitive)
+    with FITS(filename, case_sensitive=case_sensitive) as fits:
         return fits[item].read_header()
 
 def _make_item(ext, extver=None):
@@ -207,14 +212,15 @@ class FITS:
     clobber: bool, optional
         If the mode is READWRITE, and clobber=True, then remove any existing
         file before opening.
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
     """
-    def __init__(self, filename, mode='r', clobber=False):
-        self.open(filename, mode, clobber=clobber)
-    
-    def open(self, filename, mode='r', clobber=False):
+    def __init__(self, filename, mode='r', clobber=False, case_sensitive=False):
         filename = extract_filename(filename)
         self.filename = filename
         self.mode=mode
+        self.case_sensitive=case_sensitive
 
         if mode not in _int_modemap:
             raise ValueError("mode should be one of 'r','rw',READONLY,READWRITE")
@@ -616,11 +622,14 @@ class FITS:
         self.hdu_map={}
         for ext in xrange(1000):
             try:
-                hdu = FITSHDU(self._FITS, ext)
+                hdu = FITSHDU(self._FITS, ext, 
+                              case_sensitive=self.case_sensitive)
                 self.hdu_list.append(hdu)
                 self.hdu_map[ext] = hdu
 
                 extname=hdu.get_extname()
+                if not self.case_sensitive:
+                    extname=extname.lower()
                 if extname != '':
                     # this will guarantee we default to *first* version,
                     # if version is not requested, using __getitem__
@@ -667,14 +676,21 @@ class FITS:
             hdu = self.hdu_list[ext]
         except:
             # might be a string
+            ext='%s' % ext
+            if not self.case_sensitive:
+                mess='(case insensitive)'
+                ext=ext.lower()
+            else:
+                mess='(case sensitive)'
+
             if ver > 0:
                 key = '%s-%s' % (ext,ver)
                 if key not in self.hdu_map:
-                    raise ValueError("extension not found: %s, version %s" % (ext,ver))
+                    raise ValueError("extension not found: %s, version %s %s" % (ext,ver,mess))
                 hdu = self.hdu_map[key]
             else:
                 if ext not in self.hdu_map:
-                    raise ValueError("extension not found: %s" % ext)
+                    raise ValueError("extension not found: %s %s" % (ext,mess))
                 hdu = self.hdu_map[ext]
 
         return hdu
@@ -712,21 +728,24 @@ class FITS:
 
 
 class FITSHDU:
-    def __init__(self, fits, ext):
-        """
-        A representation of a FITS HDU
+    """
+    A representation of a FITS HDU
 
-        parameters
-        ----------
-        fits: FITS object
-            An instance of a _fistio_wrap.FITS object.  This is
-            the low-level pytho object, not the FITS object
-            defined above.
-        ext: integer
-            The extension number.
-        """
+    construction parameters
+    -----------------------
+    fits: FITS object
+        An instance of a _fistio_wrap.FITS object.  This is the low-level
+        python object, not the FITS object defined above.
+    ext: integer
+        The extension number.
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
+    """
+    def __init__(self, fits, ext, case_sensitive=False):
         self._FITS = fits
         self.ext = ext
+        self.case_sensitive=case_sensitive
         self._update_info()
         self.filename = self._FITS.filename()
 
@@ -1183,7 +1202,7 @@ class FITSHDU:
         if columns is None:
             return numpy.arange(self.ncol, dtype='i8')
         
-        if isinstance(columns,(str,unicode)):
+        if not isinstance(columns,(tuple,list,numpy.ndarray)):
             columns=[columns]
 
         colnums = numpy.zeros(len(columns), dtype='i8')
@@ -1201,10 +1220,16 @@ class FITSHDU:
             if (colnum < 0) or (colnum > (self.ncol-1)):
                 raise ValueError("column number should be in [0,%d]" % (0,self.ncol-1))
         else:
+            colstr='%s' % col
             try:
-                colnum = self.colnames.index(col)
+                if self.case_sensitive:
+                    mess="column name '%s' not found (case sensitive)" % col
+                    colnum = self.colnames.index(colstr)
+                else:
+                    mess="column name '%s' not found (case insensitive)" % col
+                    colnum = self.colnames_lower.index(colstr.lower())
             except ValueError:
-                raise ValueError("column name '%s' not found" % col)
+                raise ValueError(mess)
         return int(colnum)
 
     def _update_info(self):
@@ -1220,6 +1245,7 @@ class FITSHDU:
             self.info['dims'] = list( reversed(self.info['dims']) )
         if 'colinfo' in self.info:
             self.colnames = [i['name'] for i in self.info['colinfo']]
+            self.colnames_lower = [i['name'].lower() for i in self.info['colinfo']]
             self.ncol = len(self.colnames)
 
     def get_extname(self):
