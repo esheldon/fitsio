@@ -294,7 +294,7 @@ class FITS:
         """
         Return the cfitsio version
         """
-        return self._FITS.cfitsio_version()
+        return '%0.3f' % self._FITS.cfitsio_version()
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None):   
         """
