@@ -2203,28 +2203,29 @@ PyFITSObject_cfitsio_version(struct PyFITSObject* self) {
 
 
 static PyMethodDef PyFITSObject_methods[] = {
-    {"cfitsio_version",          (PyCFunction)PyFITSObject_cfitsio_version,          METH_VARARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"cfitsio_version",      (PyCFunction)PyFITSObject_cfitsio_version,      METH_VARARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
 
-    {"movabs_hdu",          (PyCFunction)PyFITSObject_movabs_hdu,          METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
-    {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
-    {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},
+    {"filename",             (PyCFunction)PyFITSObject_filename,             METH_VARARGS,  "filename\n\nReturn the name of the file."},
+
+    {"movabs_hdu",           (PyCFunction)PyFITSObject_movabs_hdu,           METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
+    {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
+
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
-    //{"get_hdu_info_old",         (PyCFunction)PyFITSObject_get_hdu_info_old,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
+
+    {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
-    {"read_rec_range",          (PyCFunction)PyFITSObject_read_rec_range,          METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
-
-    {"write_checksum",          (PyCFunction)PyFITSObject_write_checksum,          METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
-
-    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
-    {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
-    {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
-
+    {"read_rec_range",       (PyCFunction)PyFITSObject_read_rec_range,       METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
+    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
+
+    {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
+
+    {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS,  "write_column\n\nWrite a column into the current table."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
