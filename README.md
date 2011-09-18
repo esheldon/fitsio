@@ -240,6 +240,7 @@ TODO
 - add lower,upper keywords to read routines.
 - variable length columns 
 - row filtering?
+- HDU groups?
 
 Note on array ordering
 ----------------------

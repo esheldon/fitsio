@@ -556,7 +556,9 @@ class FITS:
             An optional list of unit strings for each field.
         dims: list of strings, optional
             An optional list of dimension strings for each field.  Should
-            match the repeat count for the formats fields.
+            match the repeat count for the formats fields. Be careful of
+            the order since FITS is more like fortran. See the descr2tabledef
+            function.
         extname: string, optional
             An optional extension name.
         extver: integer, optional
