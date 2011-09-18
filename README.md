@@ -215,7 +215,6 @@ The unit tests should all pass
 TODO
 ----
 
-- implement checksums
 - Read subsets of *images*
 - append rows to tables
 - We have row slices; also implement this notation, e.g. for extension 1

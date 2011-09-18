@@ -2157,7 +2157,41 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     return list;
 }
  
+static PyObject *
+PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
 
+    unsigned long datasum=0;
+    unsigned long hdusum=0;
+
+    PyObject* dict=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_write_chksum(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    if (fits_get_chksum(self->fits, &datasum, &hdusum, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    dict=PyDict_New();
+    PyDict_SetItemString(dict, "datasum", PyLong_FromLongLong( (long long)datasum ));
+    PyDict_SetItemString(dict, "hdusum", PyLong_FromLongLong( (long long)hdusum ));
+
+    return dict;
+}
 static PyMethodDef PyFITSObject_methods[] = {
     {"movabs_hdu",          (PyCFunction)PyFITSObject_movabs_hdu,          METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
     {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
@@ -2169,6 +2203,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
     {"read_rec_range",          (PyCFunction)PyFITSObject_read_rec_range,          METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
+
+    {"write_checksum",          (PyCFunction)PyFITSObject_write_checksum,          METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
 
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},

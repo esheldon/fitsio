@@ -776,6 +776,19 @@ class FITSHDU:
             else:
                 return False
 
+    def write_checksum(self):
+        """
+        Write the checksum into the header for this HDU.
+
+        Computes the checksum for the HDU, both the data portion alone (DATASUM
+        keyword) and the checksum complement for the entire HDU (CHECKSUM).
+
+        returns
+        -------
+        A dict with keys 'datasum' and 'hdusum'
+        """
+        return self._FITS.write_checksum(self.ext+1)
+
     def write_key(self, keyname, value, comment=""):
         """
         Write the input value to the header
