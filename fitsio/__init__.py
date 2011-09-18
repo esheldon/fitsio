@@ -110,6 +110,11 @@ Examples
     # read a single column as a simple array.  This is less
     # efficient when you plan to read multiple columns.
     >>> data = fits[1].read_column('x', rows=[1,5])
+
+    # get rows that satisfy the input expression.  See "Row Filtering
+    # Specification" in the cfitsio manual
+    >>> w=fits[1].where('x > 0.25 && y < 35.0')
+    >>> data = fits[1][w]
     
     # read the header
     >>> h = fits[0].read_header()
@@ -171,5 +176,6 @@ from .fitslib import read_header
 from .fitslib import write
 from .fitslib import READONLY
 from .fitslib import READWRITE
+from .fitslib import cfitsio_version
 
 from . import test

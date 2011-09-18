@@ -2193,8 +2193,80 @@ PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
     return dict;
 }
 
+
 static PyObject *
-PyFITSObject_cfitsio_version(struct PyFITSObject* self) {
+PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+    char* expression=NULL;
+
+    LONGLONG nrows=0;
+
+    long firstrow=1;
+    long ngood=0;
+    char* row_status=NULL;
+
+
+    // Indices of rows for which expression is true
+    PyObject* indicesObj=NULL;
+    int ndim=1;
+    npy_intp dims[1];
+    npy_intp* data=NULL;
+    long i=0;
+
+
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &expression)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_get_num_rowsll(self->fits, &nrows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    row_status = malloc(nrows*sizeof(char));
+    if (row_status==NULL) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate row_status array");
+        return NULL;
+    }
+
+    if (fits_find_rows(self->fits, expression, firstrow, (long) nrows, &ngood, row_status, &status)) {
+        set_ioerr_string_from_status(status);
+        goto where_function_cleanup;
+    }
+
+    dims[0] = ngood;
+    indicesObj = PyArray_EMPTY(ndim, dims, NPY_INTP, 0);
+    if (indicesObj == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate index array");
+        goto where_function_cleanup;
+    }
+
+    if (ngood > 0) {
+        data = PyArray_DATA(indicesObj);
+
+        for (i=0; i<nrows; i++) {
+            if (row_status[i]) {
+                *data = (npy_intp) i;
+                data++;
+            }
+        }
+    }
+where_function_cleanup:
+    free(row_status);
+    return indicesObj;
+}
+
+// generic functions, not tied to an object
+
+static PyObject *
+PyFITS_cfitsio_version(void) {
     float version=0;
     fits_get_version(&version);
     return PyFloat_FromDouble((double)version);
@@ -2203,9 +2275,9 @@ PyFITSObject_cfitsio_version(struct PyFITSObject* self) {
 
 
 static PyMethodDef PyFITSObject_methods[] = {
-    {"cfitsio_version",      (PyCFunction)PyFITSObject_cfitsio_version,      METH_VARARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
-
     {"filename",             (PyCFunction)PyFITSObject_filename,             METH_VARARGS,  "filename\n\nReturn the name of the file."},
+
+    {"where",           (PyCFunction)PyFITSObject_where,           METH_VARARGS,  "where\n\nReturn an index array where the input expression evaluates to true."},
 
     {"movabs_hdu",           (PyCFunction)PyFITSObject_movabs_hdu,           METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
     {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
@@ -2258,7 +2330,7 @@ static PyTypeObject PyFITSType = {
     0,                         /*tp_setattro*/
     0,                         /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
-    "Cosmology Class",           /* tp_doc */
+    "FITSIO Class",           /* tp_doc */
     0,                     /* tp_traverse */
     0,                     /* tp_clear */
     0,                     /* tp_richcompare */
@@ -2282,6 +2354,7 @@ static PyTypeObject PyFITSType = {
 
 
 static PyMethodDef fitstype_methods[] = {
+    {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
     {NULL}  /* Sentinel */
 };
 

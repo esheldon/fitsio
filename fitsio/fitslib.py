@@ -17,6 +17,12 @@ import numpy
 from . import _fitsio_wrap
 import copy
 
+def cfitsio_version():
+    """
+    Return the cfitsio version as a string.
+    """
+    return '%0.3f' % _fitsio_wrap.cfitsio_version()
+
 
 def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
     """
@@ -290,11 +296,6 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
-    def cfitsio_version(self):
-        """
-        Return the cfitsio version
-        """
-        return '%0.3f' % self._FITS.cfitsio_version()
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None):   
         """
@@ -764,6 +765,18 @@ class FITSHDU:
         else:
             self.is_compressed=False
 
+    def where(self, expression):
+        """
+        Return the indices where the expression evaluates to true.
+
+        parameters
+        ----------
+        expression: string
+            A fits row selection expression.  E.g.
+
+        """
+
+        return self._FITS.where(self.ext+1, expression)
 
     def has_data(self):
         """
