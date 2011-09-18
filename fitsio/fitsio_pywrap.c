@@ -2192,7 +2192,19 @@ PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
 
     return dict;
 }
+
+static PyObject *
+PyFITSObject_cfitsio_version(struct PyFITSObject* self) {
+    float version=0;
+    fits_get_version(&version);
+    return PyFloat_FromDouble((double)version);
+}
+
+
+
 static PyMethodDef PyFITSObject_methods[] = {
+    {"cfitsio_version",          (PyCFunction)PyFITSObject_cfitsio_version,          METH_VARARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+
     {"movabs_hdu",          (PyCFunction)PyFITSObject_movabs_hdu,          METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
     {"movnam_hdu",          (PyCFunction)PyFITSObject_movnam_hdu,          METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
     {"filename",         (PyCFunction)PyFITSObject_filename,         METH_VARARGS,  "filename\n\nReturn the name of the file."},

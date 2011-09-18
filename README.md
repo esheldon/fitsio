@@ -198,6 +198,9 @@ Requirements
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
+      It is planned to add automatic searching for fink, macports, and 
+      homebrew installs on OS X.
+
       Versions of cfitsio >= 3 have been tested on linux and mac OS X 10.6 10.7.
 
     - You need a recent python, probably >= 2.5, but this has not been
@@ -225,10 +228,12 @@ TODO
     cols=['x','y']
     data=fits[1][cols][10:30]
   That would require a FITSColumnSubset class.
+- installer look for fink, macports, homebrew cfitsio installs on OS X?
 - don't need to update the hdu list quite so often.
-- keyword lists are getting long; implement **keys everywhere?
+- keyword lists are getting long; implement **keys everywhere?  It would
+  lengthen the functions because they must extract keywords, but would
+  simplify wrapper code.
 - More error checking in c code for python lists and dicts.
-- write TDIM using built in routine instead of rolling my own.
 - optimize writing tables. When there are no unsigned short or long, no signed
   bytes, no strings, this could be simple using fits_write_tblbytes.  If
   strings are present, it is hard to imagine how to do it: perhaps write

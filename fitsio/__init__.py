@@ -159,6 +159,9 @@ Examples
         data = fits[ext].read()
 
 """
+
+__version__='0.9.0'
+
 from . import fitslib
 from .fitslib import FITS
 from .fitslib import FITSHDU

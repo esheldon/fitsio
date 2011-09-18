@@ -290,6 +290,12 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
+    def cfitsio_version(self):
+        """
+        Return the cfitsio version
+        """
+        return self._FITS.cfitsio_version()
+
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None):   
         """
         Write the data to a new HDU.
