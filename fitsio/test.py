@@ -5,6 +5,10 @@ import fitsio
 
 import unittest
 
+def test():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
 def testsimple():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSimple)
     unittest.TextTestRunner(verbosity=2).run(suite)
@@ -17,9 +21,6 @@ def testbuff():
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
-def test():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
-    unittest.TextTestRunner(verbosity=2).run(suite)
 
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
@@ -315,6 +316,10 @@ class TestReadWrite(unittest.TestCase):
 
                 d = fits[1].read()
                 for f in self.data.dtype.names:
+                    self.assertEqual(self.data[f].shape, d[f].shape,
+                                     "testing field '%s' shapes are equal: "
+                                     "input %s, read: %s" % (f,self.data[f].shape, d[f].shape))
+
                     res=numpy.where(self.data[f] != d[f])
                     for w in res:
                         self.assertEqual(w.size,0,"testing column %s" % f)
@@ -339,6 +344,9 @@ class TestReadWrite(unittest.TestCase):
                          header={'ra':335.2,'dec':-25.2})
             d = fitsio.read(fname, ext='newext')
             for f in self.data2.dtype.names:
+                self.assertEqual(self.data2[f].shape, d[f].shape,
+                                 "testing field '%s' shapes are equal: "
+                                 "input %s, read: %s" % (f,self.data2[f].shape, d[f].shape))
                 res=numpy.where(d[f] != self.data2[f])
                 for w in res:
                     self.assertEqual(w.size,0,"test convenience reading back all")
@@ -348,6 +356,9 @@ class TestReadWrite(unittest.TestCase):
 
                 for f in self.data2.dtype.names:
                     d = fits['newext'].read_column(f)
+                    self.assertEqual(self.data2[f].shape, d.shape,
+                                     "testing field '%s' shapes are equal: "
+                                     "input %s, read: %s" % (f,self.data2[f].shape, d.shape))
                     res=numpy.where(d != self.data2['index'])
                     for w in res:
                         self.assertEqual(w.size,0,"test reading back read_column('%s')" % f)
