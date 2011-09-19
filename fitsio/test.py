@@ -297,18 +297,7 @@ class TestReadWrite(unittest.TestCase):
                 self.compare_rec(self.data, d, "table read/write")
 
                 h = fits[1].read_header()
-                for entry in self.keys:
-                    name=entry['name'].upper()
-                    value=entry['value']
-                    hvalue = h[name]
-                    if isinstance(hvalue,str):
-                        hvalue = hvalue.strip()
-                    self.assertEqual(value,hvalue,"testing header key '%s'" % name)
-
-                    if 'comment' in entry:
-                        self.assertEqual(entry['comment'].strip(),
-                                         h.get_comment(name).strip(),
-                                         "testing comment for header key '%s'" % name)
+                self.compare_headerlist_header(self.keys, h)
 
             # see if our convenience functions are working
             fitsio.write(fname, self.data2, 
@@ -394,7 +383,22 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
     def compare_headerlist_header(self, header_list, header):
-        pass
+        """
+        The first is a list of dicts, second a FITSHDR
+        """
+        for entry in header_list:
+            name=entry['name'].upper()
+            value=entry['value']
+            hvalue = header[name]
+            if isinstance(hvalue,str):
+                hvalue = hvalue.strip()
+            self.assertEqual(value,hvalue,"testing header key '%s'" % name)
+
+            if 'comment' in entry:
+                self.assertEqual(entry['comment'].strip(),
+                                 header.get_comment(name).strip(),
+                                 "testing comment for header key '%s'" % name)
+
     def compare_array(self, arr1, arr2, name):
         self.assertEqual(arr1.shape, arr2.shape,
                          "testing arrays '%s' shapes are equal: "
