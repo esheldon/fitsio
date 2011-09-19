@@ -225,13 +225,15 @@ TODO
 
 - Read subsets of *images*
 - append rows to tables
-- We have row slices; also implement this notation, e.g. for extension 1
-    data=fits[1]['colname'][10:30]
-    rows=[3,8,11]
-    data=fits[1]['colname'][rows]
-    data=fits[1]['colname'].read()
-    cols=['x','y']
-    data=fits[1][cols][10:30]
+- add tests for slice notation and the where function.
+- We have row slices. Want to also implement this notation, e.g. 
+  for extension 1
+        data=fits[1]['colname'][10:30]
+        rows=[3,8,11]
+        data=fits[1]['colname'][rows]
+        data=fits[1]['colname'].read()
+        cols=['x','y']
+        data=fits[1][cols][10:30]
   That would require a FITSColumnSubset class.
 - installer look for fink, macports, homebrew cfitsio installs on OS X?
 - don't need to update the hdu list quite so often.

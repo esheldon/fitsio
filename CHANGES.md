@@ -3,15 +3,25 @@
 New features
 
     - You can now read rows from a table HDU using slice notation. e.g.
-        fits=fitsio.FITS(filename)
-        data=fits[1][:]
-        data=fits[1][10:30]
-        data=fits[1][10:30:2]
+      to read from extension 1
+            fits=fitsio.FITS(filename)
+            data=fits[1][:]
+            data=fits[1][10:30]
+            data=fits[1][10:30:2]
       You can also specify a list of rows
-        rows=[3,8,25]
-        data=fits[1][rows]
-      Under the hood, this just calls
-        data=fits[1].read(rows=rows)
+            rows=[3,8,25]
+            data=fits[1][rows]
+      this is equivalent to
+            data=fits[1].read(rows=rows)
+
+    - added read_slice method, which is used to implement the slice
+      notation introduced above.
+
+    - Using the new "where" method, you can get the set of rows in
+      a table where an input expression evaluates to true.   
+        >>> w=fits[ext].where('x > 3 && y < 25')
+        >>> data=fits[ext].read(rows=w)
+        >>> data=fits[ext][w]
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,
       this allows one to select among HDUs that have the same name. Thanks to
@@ -28,6 +38,9 @@ New features
 
     - Added an extensive test suite.  Use this to run the tests
         fitsio.test.test()
+
+    - Added fitsio.cfitsio_version() function, returns the cfitsio
+      version as a string.
 
 significant code changes
 
