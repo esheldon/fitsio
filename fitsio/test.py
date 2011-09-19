@@ -122,9 +122,8 @@ class TestReadWrite(unittest.TestCase):
                     header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
                     fits.write_image(data, header=header)
                     rdata = fits[-1].read()
-                    res=numpy.where(rdata != data)
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing read/write image '%s'" % dtype)
+
+                    self.compare_array(data, rdata, "images")
 
                     rh = fits[-1].read_header()
                     for k,v in header.iteritems():
@@ -158,10 +157,9 @@ class TestReadWrite(unittest.TestCase):
                         header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
                         fits.write_image(data, header=header, compress=compress)
                         rdata = fits[-1].read()
-                        res=numpy.where(rdata != data)
-                        for w in res:
-                            self.assertEqual(w.size,0,
-                                             "testing %s compressed read/write image '%s'" % (compress,dtype))
+
+                        self.compare_array(data, rdata, "%s compressed images" % compress)
+
 
                         rh = fits[-1].read_header()
                         for k,v in header.iteritems():
@@ -253,39 +251,20 @@ class TestReadWrite(unittest.TestCase):
 
 
                 for f in data1.dtype.names:
-                    res=numpy.where(data1[f] != d1[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing hdu %s column %s" % (1,f))
-
-                    res=numpy.where(data2[f] != d2[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing hdu %s column %s" % (2,f))
-                    res=numpy.where(data2[f] != d2b[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing hdu %s (b) column %s" % (2,f))
-
-                    res=numpy.where(data3[f] != d3[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing hdu %s column %s" % (3,f))
+                    self.compare_rec(data1, d1, "data1")
+                    self.compare_rec(data2, d2, "data2")
+                    self.compare_rec(data2, d2b, "data2b")
+                    self.compare_rec(data3, d3, "data3")
 
                 dimg1  = fits[0].read()
                 dimg1b = fits['myimage',1].read()
                 dimg2  = fits['myimage',2].read()
                 dimg3  = fits[5].read()
 
-                res=numpy.where(dimg1 != img1)
-                for w in res:
-                    self.assertEqual(w.size,0,"testing 'myimage' 1")
-                res=numpy.where(dimg1b != img1)
-                for w in res:
-                    self.assertEqual(w.size,0,"testing 'myimage' 1 by vers")
-                res=numpy.where(dimg2 != img2)
-                for w in res:
-                    self.assertEqual(w.size,0,"testing 'myimage' 2 by vers")
-                res=numpy.where(dimg3 != img3)
-                for w in res:
-                    self.assertEqual(w.size,0,"testing 3")
-
+                self.compare_array(img1, dimg1,"img1")
+                self.compare_array(img1, dimg1b,"img1b")
+                self.compare_array(img2, dimg2,"img2")
+                self.compare_array(img3, dimg3,"img3")
 
 
         finally:
@@ -315,14 +294,7 @@ class TestReadWrite(unittest.TestCase):
                     skipTest("cannot test result if write failed")
 
                 d = fits[1].read()
-                for f in self.data.dtype.names:
-                    self.assertEqual(self.data[f].shape, d[f].shape,
-                                     "testing field '%s' shapes are equal: "
-                                     "input %s, read: %s" % (f,self.data[f].shape, d[f].shape))
-
-                    res=numpy.where(self.data[f] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing column %s" % f)
+                self.compare_rec(self.data, d, "table read/write")
 
                 h = fits[1].read_header()
                 for entry in self.keys:
@@ -343,28 +315,17 @@ class TestReadWrite(unittest.TestCase):
                          extname="newext", 
                          header={'ra':335.2,'dec':-25.2})
             d = fitsio.read(fname, ext='newext')
-            for f in self.data2.dtype.names:
-                self.assertEqual(self.data2[f].shape, d[f].shape,
-                                 "testing field '%s' shapes are equal: "
-                                 "input %s, read: %s" % (f,self.data2[f].shape, d[f].shape))
-                res=numpy.where(d[f] != self.data2[f])
-                for w in res:
-                    self.assertEqual(w.size,0,"test convenience reading back all")
-
+            self.compare_rec(self.data2, d, "table data2")
             # now test read_column
             with fitsio.FITS(fname) as fits:
 
                 for f in self.data2.dtype.names:
                     d = fits['newext'].read_column(f)
-                    self.assertEqual(self.data2[f].shape, d.shape,
-                                     "testing field '%s' shapes are equal: "
-                                     "input %s, read: %s" % (f,self.data2[f].shape, d.shape))
-                    res=numpy.where(d != self.data2['index'])
-                    for w in res:
-                        self.assertEqual(w.size,0,"test reading back read_column('%s')" % f)
+                    self.compare_array(self.data2[f], d, "table field read '%s'" % f)
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
+
 
     def testTableSubsets(self):
         """
@@ -381,24 +342,16 @@ class TestReadWrite(unittest.TestCase):
 
                 rows = [1,3]
                 d = fits[1].read(rows=rows)
-                for f in self.data.dtype.names:
-                    res=numpy.where(self.data[f][rows] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing row subset, column %s" % f)
-
+                self.compare_rec_subrows(self.data, d, rows, "table subset")
                 columns = ['i1scalar','f4arr']
-                d = fits[1].read(rows=rows)
-                for f in d.dtype.names:
-                    res=numpy.where(self.data[f][rows] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing row,column subset, column %s" % f)
+                d = fits[1].read(columns=columns, rows=rows)
 
+                for f in columns:
+                    d = fits[1].read_column(f,rows=rows)
+                    self.compare_array(self.data[f][rows], d, "row subset, multi-column '%s'" % f)
                 for f in self.data.dtype.names:
                     d = fits[1].read_column(f,rows=rows)
-                    res=numpy.where(self.data[f][rows] != d)
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing individual row,column subset, column %s" % f)
-
+                    self.compare_array(self.data[f][rows], d, "row subset, column '%s'" % f)
 
         finally:
             if os.path.exists(fname):
@@ -421,10 +374,7 @@ class TestReadWrite(unittest.TestCase):
                 fits.write_table(self.data, header=self.keys, extname='mytable')
 
                 d = fits[1].read()
-                for f in self.data.dtype.names:
-                    res=numpy.where(self.data[f] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing column %s" % f)
+                self.compare_rec(self.data, d, "gzip write/read")
 
                 h = fits[1].read_header()
                 for entry in self.keys:
@@ -442,6 +392,39 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
+
+    def compare_headerlist_header(self, header_list, header):
+        pass
+    def compare_array(self, arr1, arr2, name):
+        self.assertEqual(arr1.shape, arr2.shape,
+                         "testing arrays '%s' shapes are equal: "
+                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
+
+        res=numpy.where(arr1 != arr2)
+        for i,w in enumerate(res):
+            self.assertEqual(w.size,0,"testing array '%s' dim %d are equal" % (name,i))
+
+    def compare_rec(self, rec1, rec2, name):
+        for f in rec1.dtype.names:
+            self.assertEqual(rec1[f].shape, rec2[f].shape,
+                             "testing '%s' field '%s' shapes are equal: "
+                             "input %s, read: %s" % (name, f,rec1[f].shape, rec2[f].shape))
+
+            res=numpy.where(rec1[f] != rec2[f])
+            for w in res:
+                self.assertEqual(w.size,0,"testing column %s" % f)
+    def compare_rec_subrows(self, rec1, rec2, rows, name):
+        for f in rec1.dtype.names:
+            self.assertEqual(rec1[f][rows].shape, rec2[f].shape,
+                             "testing '%s' field '%s' shapes are equal: "
+                             "input %s, read: %s" % (name, f,rec1[f].shape, rec2[f].shape))
+
+            res=numpy.where(rec1[f][rows] != rec2[f])
+            for w in res:
+                self.assertEqual(w.size,0,"testing column %s" % f)
+
+            #self.assertEqual(2,3,"on purpose error")
+
 
 class TestBufferProblem(unittest.TestCase):
     def setUp(self):
