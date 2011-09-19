@@ -3,9 +3,11 @@ Read and write data to FITS files using the cfitsio library.
 Description
 -----------
 
-This is a python extension written in c and python.  The cfitsio library and
-headers are required to compile the code.  The package has been tested for
-cfitsio versions >= 3 on linux and mac OS X 10.6 and 10.7
+This is a python extension written in c and python.  
+
+The cfitsio library and headers are required to compile the code.  The package
+works well for cfitsio versions >= 3.09, and 3.08 except for certain
+tile-compressed image types.  See the requirements section for more details.
 
 Features
 --------
@@ -190,6 +192,15 @@ Requirements
 ------------
 
     - You will need the cfitsio library and headers installed on your system.
+      The version should be at least version 3.09 for full support.  3.08 will
+      also work for most tasks *except* certain tile compressed images.
+
+      tile-compressed images supported in 3.08
+            rice: u1,i2,u4,i4,f4
+            gzip: u1,i2,u4,i4,f4
+            hcompress: u1,i1,u2,i2,u4,i4,f4
+            plio: u1,i2,u4,i4,f4
+
       The cfitsio library needs to be compiled as a shared library
       (libcfits.so), rather than a static library (libcfits.a).  If you have
       both, the shared version should be picked up correctly.
@@ -203,10 +214,8 @@ Requirements
         export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
 
-      It is planned to add automatic searching for fink, macports, and 
-      homebrew installs on OS X.
-
-      Versions of cfitsio >= 3 have been tested on linux and mac OS X 10.6 10.7.
+      It is planned to add automatic searching for fink and macports installs
+      on OS X.
 
     - You need a recent python, probably >= 2.5, but this has not been
       extensively tested.
@@ -215,7 +224,7 @@ Requirements
 
 test
 ----
-The unit tests should all pass
+The unit tests should all pass for full support.
 
 >>> import fitsio
 >>> fitsio.test.test()

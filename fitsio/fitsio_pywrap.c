@@ -775,10 +775,16 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
             break;
 
         case NPY_UINT32:
-            *fits_img_type = ULONG_IMG;
-            if (sizeof(unsigned int) == sizeof(npy_uint32)) {
+            //*fits_img_type = ULONG_IMG;
+            if (sizeof(unsigned short) == sizeof(npy_uint32)) {
+                *fits_img_type = USHORT_IMG;
+                *fits_datatype = TUSHORT;
+            } else if (sizeof(unsigned int) == sizeof(npy_uint32)) {
+                // there is no UINT_IMG, so use ULONG_IMG
+                *fits_img_type = ULONG_IMG;
                 *fits_datatype = TUINT;
             } else if (sizeof(unsigned long) == sizeof(npy_uint32)) {
+                *fits_img_type = ULONG_IMG;
                 *fits_datatype = TULONG;
             } else {
                 PyErr_SetString(PyExc_TypeError, "could not determine 4 byte unsigned integer type");
@@ -788,10 +794,16 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
             break;
 
         case NPY_INT32:
-            *fits_img_type = LONG_IMG;
-            if (sizeof(int) == sizeof(npy_int32)) {
+            //*fits_img_type = LONG_IMG;
+            if (sizeof(unsigned short) == sizeof(npy_uint32)) {
+                *fits_img_type = SHORT_IMG;
+                *fits_datatype = TINT;
+            } else if (sizeof(int) == sizeof(npy_int32)) {
+                // there is no UINT_IMG, so use ULONG_IMG
+                *fits_img_type = LONG_IMG;
                 *fits_datatype = TINT;
             } else if (sizeof(long) == sizeof(npy_int32)) {
+                *fits_img_type = LONG_IMG;
                 *fits_datatype = TLONG;
             } else {
                 PyErr_SetString(PyExc_TypeError, "could not determine 4 byte integer type");
@@ -801,12 +813,16 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
             break;
 
         case NPY_INT64:
-            *fits_img_type = LONGLONG_IMG;
+            //*fits_img_type = LONGLONG_IMG;
             if (sizeof(int) == sizeof(npy_int64)) {
+                // there is no UINT_IMG, so use ULONG_IMG
+                *fits_img_type = LONG_IMG;
                 *fits_datatype = TINT;
             } else if (sizeof(long) == sizeof(npy_int64)) {
+                *fits_img_type = LONG_IMG;
                 *fits_datatype = TLONG;
             } else if (sizeof(long long) == sizeof(npy_int64)) {
+                *fits_img_type = LONGLONG_IMG;
                 *fits_datatype = TLONGLONG;
             } else {
                 PyErr_SetString(PyExc_TypeError, "could not determine 8 byte integer type");

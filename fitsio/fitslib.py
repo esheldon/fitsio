@@ -17,11 +17,16 @@ import numpy
 from . import _fitsio_wrap
 import copy
 
-def cfitsio_version():
+def cfitsio_version(asfloat=False):
     """
     Return the cfitsio version as a string.
     """
-    return '%0.3f' % _fitsio_wrap.cfitsio_version()
+    # use string version to avoid roundoffs
+    ver= '%0.3f' % _fitsio_wrap.cfitsio_version()
+    if asfloat:
+        return float(ver)
+    else:
+        return ver
 
 
 def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
