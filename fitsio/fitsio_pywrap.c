@@ -435,14 +435,14 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             if (fits_get_compression_type(self->fits, &comptype, &tstatus)==0) {
                 PyDict_SetItemString(dict, "comptype", PyLong_FromLong((long)comptype));
             } else {
-                Py_XINCREF(Py_None);
+                Py_INCREF(Py_None);
                 PyDict_SetItemString(dict, "comptype", Py_None);
             }
             */
             if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
                 PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
             } else {
-                Py_XINCREF(Py_None);
+                Py_INCREF(Py_None);
                 PyDict_SetItemString(dict, "comptype", Py_None);
             }
 
@@ -504,7 +504,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
                 tstatus=0;
                 if (fits_read_tdim(self->fits, i+1, maxdim, &naxis, naxes, &tstatus)) {
-                    Py_XINCREF(Py_None);
+                    Py_INCREF(Py_None);
                     PyDict_SetItemString(d, "tdim", Py_None);
                 } else {
                     PyObject* tdim_list = PyList_New(naxis);
