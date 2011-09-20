@@ -2171,9 +2171,12 @@ static PyMethodDef PyFITSObject_methods[] = {
     {NULL}  /* Sentinel */
 };
 
-
 static PyTypeObject PyFITSType = {
+#if PY_MAJOR_VERSION >= 3
+    PyVarObject_HEAD_INIT(NULL, 0)
+#else
     PyObject_HEAD_INIT(NULL)
+#endif
     0,                         /*ob_size*/
     "_fitsio.FITS",             /*tp_name*/
     sizeof(struct PyFITSObject), /*tp_basicsize*/
