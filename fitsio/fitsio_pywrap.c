@@ -1662,6 +1662,7 @@ static int read_rec_bytes_byrow(
 // get ~20% speedsups. that number comes from comparing to 
 // a single "fread", which we can't use because it confuses
 // the buffer system.
+/*
 static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
     FITSfile* hdu=NULL;
     LONGLONG file_pos=0;
@@ -1684,7 +1685,7 @@ static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
     return 0;
 
 }
-
+*/
 
 
 
