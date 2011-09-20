@@ -2176,8 +2176,8 @@ static PyTypeObject PyFITSType = {
     PyVarObject_HEAD_INIT(NULL, 0)
 #else
     PyObject_HEAD_INIT(NULL)
-#endif
     0,                         /*ob_size*/
+#endif
     "_fitsio.FITS",             /*tp_name*/
     sizeof(struct PyFITSObject), /*tp_basicsize*/
     0,                         /*tp_itemsize*/
@@ -2226,6 +2226,20 @@ static PyMethodDef fitstype_methods[] = {
     {NULL}  /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_fitsio_wrap",      /* m_name */
+        "Defines the FITS class and some methods",  /* m_doc */
+        -1,                  /* m_size */
+        fitstype_methods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
+
 
 #ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
@@ -2235,11 +2249,27 @@ init_fitsio_wrap(void)
 {
     PyObject* m;
 
-    PyFITSType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&PyFITSType) < 0)
-        return;
 
+    PyFITSType.tp_new = PyType_GenericNew;
+
+#if PY_MAJOR_VERSION >= 3
+    if (PyType_Ready(&PyFITSType) < 0) {
+        return NULL;
+    }
+    m = PyModule_Create(&moduledef);
+    if (m==NULL) {
+        return NULL;
+    }
+
+#else
+    if (PyType_Ready(&PyFITSType) < 0) {
+        return;
+    }
     m = Py_InitModule3("_fitsio_wrap", fitstype_methods, "Define FITS type and methods.");
+    if (m==NULL) {
+        return;
+    }
+#endif
 
     Py_INCREF(&PyFITSType);
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
