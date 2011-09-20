@@ -127,7 +127,13 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 {
     int status=0;
     fits_close_file(self->fits, &status);
+#if PY_MAJOR_VERSION >= 3
+    // introduced in python 2.6
+    Py_TYPE(self)->tp_free((PyObject*)self);
+#else
+    // old way, removed in python 3
     self->ob_type->tp_free((PyObject*)self);
+#endif
 }
 
 struct stringlist {
