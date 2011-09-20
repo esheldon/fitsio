@@ -305,7 +305,7 @@ PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
     }
     
     fits_get_hdu_num(self->fits, &hdunum);
-    return PyInt_FromLong((long)hdunum);
+    return PyLong_FromLong((long)hdunum);
 }
 
 
@@ -329,7 +329,7 @@ PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
-    hdutypeObj = PyInt_FromLong((long)hdutype);
+    hdutypeObj = PyLong_FromLong((long)hdutype);
     return hdutypeObj;
 }
 
@@ -364,9 +364,9 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     dict = PyDict_New();
     ext=hdunum-1;
-    PyDict_SetItemString(dict, "hdunum", PyInt_FromLong((long)hdunum));
-    PyDict_SetItemString(dict, "extnum", PyInt_FromLong((long)ext));
-    PyDict_SetItemString(dict, "hdutype", PyInt_FromLong((long)hdutype));
+    PyDict_SetItemString(dict, "hdunum", PyLong_FromLong((long)hdunum));
+    PyDict_SetItemString(dict, "extnum", PyLong_FromLong((long)ext));
+    PyDict_SetItemString(dict, "hdutype", PyLong_FromLong((long)hdutype));
 
 
     tstatus=0;
@@ -383,15 +383,15 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     }
     tstatus=0;
     if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)extver));
+        PyDict_SetItemString(dict, "extver", PyLong_FromLong((long)extver));
     } else {
-        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)0));
+        PyDict_SetItemString(dict, "extver", PyLong_FromLong((long)0));
     }
     tstatus=0;
     if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)hduver));
+        PyDict_SetItemString(dict, "hduver", PyLong_FromLong((long)hduver));
     } else {
-        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)0));
+        PyDict_SetItemString(dict, "hduver", PyLong_FromLong((long)0));
     }
 
 
@@ -417,17 +417,17 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
             PyDict_SetItemString(dict, "error", PyString_FromString("could not determine image parameters"));
         } else {
-            PyDict_SetItemString(dict, "ndims", PyInt_FromLong((long)ndims));
-            PyDict_SetItemString(dict, "img_type", PyInt_FromLong((long)bitpix));
+            PyDict_SetItemString(dict, "ndims", PyLong_FromLong((long)ndims));
+            PyDict_SetItemString(dict, "img_type", PyLong_FromLong((long)bitpix));
 
             fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
-            PyDict_SetItemString(dict, "img_equiv_type", PyInt_FromLong((long)bitpix_equiv));
+            PyDict_SetItemString(dict, "img_equiv_type", PyLong_FromLong((long)bitpix_equiv));
 
             tstatus=0;
             // this doesn't work, always get zero
             /*
             if (fits_get_compression_type(self->fits, &comptype, &tstatus)==0) {
-                PyDict_SetItemString(dict, "comptype", PyInt_FromLong((long)comptype));
+                PyDict_SetItemString(dict, "comptype", PyLong_FromLong((long)comptype));
             } else {
                 Py_XINCREF(Py_None);
                 PyDict_SetItemString(dict, "comptype", Py_None);
@@ -441,7 +441,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             }
 
             for (i=0; i<ndims; i++) {
-                PyList_Append(imgnaxis, PyInt_FromLong( (long)dims[i]));
+                PyList_Append(imgnaxis, PyLong_FromLong( (long)dims[i]));
             }
             PyDict_SetItemString(dict, "dims", imgnaxis);
 
@@ -457,7 +457,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         fits_get_num_cols(self->fits, &ncols, &tstatus);
         PyDict_SetItemString(dict, "nrows", PyLong_FromLongLong( (long long)nrows ));
-        PyDict_SetItemString(dict, "ncols", PyInt_FromLong( (long)ncols));
+        PyDict_SetItemString(dict, "ncols", PyLong_FromLong( (long)ncols));
 
         {
             int naxis=0;
@@ -483,12 +483,12 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 PyList_Append(colinfo, d);
 
                 fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "type", PyInt_FromLong( (long)type));
+                PyDict_SetItemString(d, "type", PyLong_FromLong( (long)type));
                 PyDict_SetItemString(d, "repeat", PyLong_FromLongLong( (long long)repeat));
                 PyDict_SetItemString(d, "width", PyLong_FromLongLong( (long long)width));
 
                 fits_get_eqcoltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "eqtype", PyInt_FromLong( (long)type));
+                PyDict_SetItemString(d, "eqtype", PyLong_FromLong( (long)type));
                 /*
                 PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
                 PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
@@ -526,162 +526,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     return dict;
 }
 
-
-
-// get info for the specified HDU
-/*
-static PyObject *
-PyFITSObject_get_hdu_info_old(struct PyFITSObject* self, PyObject* args) {
-    int hdunum=0, hdutype=0, ext=0;
-    int status=0, tstatus=0;
-    PyObject* dict=NULL;
-
-    FITSfile* hdu=NULL;
-    char extname[FLEN_VALUE];
-    char hduname[FLEN_VALUE];
-    int extver=0, hduver=0;
-
-    if (self->fits == NULL) {
-        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
-        return NULL;
-    }
-
-    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
-        return NULL;
-    }
-
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-
-
-
-    hdu = self->fits->Fptr;
-
-    dict = PyDict_New();
-    ext=hdunum-1;
-    PyDict_SetItemString(dict, "hdunum", PyInt_FromLong((long)hdunum));
-    PyDict_SetItemString(dict, "extnum", PyInt_FromLong((long)ext));
-    PyDict_SetItemString(dict, "hdutype", PyInt_FromLong((long)hdutype));
-
-
-    tstatus=0;
-    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
-    } else {
-        PyDict_SetItemString(dict, "extname", PyString_FromString(""));
-    }
-    tstatus=0;
-    if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "hduname", PyString_FromString(hduname));
-    } else {
-        PyDict_SetItemString(dict, "hduname", PyString_FromString(""));
-    }
-    tstatus=0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)extver));
-    } else {
-        PyDict_SetItemString(dict, "extver", PyInt_FromLong((long)0));
-    }
-    tstatus=0;
-    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)hduver));
-    } else {
-        PyDict_SetItemString(dict, "hduver", PyInt_FromLong((long)0));
-    }
-
-
-
-
-
-    PyDict_SetItemString(dict, "imgdim", PyInt_FromLong((long)hdu->imgdim));
-    PyDict_SetItemString(dict, "zndim", PyInt_FromLong((long)hdu->zndim));
-
-    {
-        int i=0;
-        int imgtype=0;
-        char comptype[20];
-        int tstatus=0;
-        PyObject* imgnaxis=PyList_New(0);
-        PyObject* znaxis=PyList_New(0);
-
-        fits_get_img_type(self->fits, &imgtype, &status);
-        PyDict_SetItemString(dict, "img_type", PyInt_FromLong((long)imgtype));
-        fits_get_img_equivtype(self->fits, &imgtype, &status);
-        PyDict_SetItemString(dict, "img_equiv_type", PyInt_FromLong((long)imgtype));
-
-        for (i=0; i<hdu->imgdim; i++) {
-            PyList_Append(imgnaxis, PyInt_FromLong( (long)hdu->imgnaxis[i]));
-        }
-        PyDict_SetItemString(dict, "imgnaxis", imgnaxis);
-
-        for (i=0; i<hdu->zndim; i++) {
-            PyList_Append(znaxis, PyInt_FromLong( (long)hdu->znaxis[i]));
-        }
-        PyDict_SetItemString(dict, "znaxis", znaxis);
-
-        tstatus=0;
-        if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
-            PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
-        } else {
-            Py_XINCREF(Py_None);
-            PyDict_SetItemString(dict, "comptype", Py_None);
-        }
-
-    }
-
-    PyDict_SetItemString(dict, "numrows", PyLong_FromLongLong( (long long)hdu->numrows));
-    PyDict_SetItemString(dict, "tfield", PyInt_FromLong( (long)hdu->tfield));
-
-    {
-        PyObject* colinfo = PyList_New(0);
-        if (hdutype != IMAGE_HDU) {
-            int i=0, j=0;
-            tcolumn* col;
-            int maxdim=10;
-            int naxis=0;
-            long naxes[10];
-            int tstatus=0;
-            for (i=0; i<hdu->tfield; i++) {
-                PyObject* d = PyDict_New();
-
-                col = &hdu->tableptr[i];
-
-                PyDict_SetItemString(d, "ttype", PyString_FromString(col->ttype));
-                PyDict_SetItemString(d, "tdatatype", PyInt_FromLong((long)col->tdatatype));
-
-                PyDict_SetItemString(d, "tbcol", PyLong_FromLongLong((long long)col->tbcol));
-                PyDict_SetItemString(d, "trepeat", PyLong_FromLongLong((long long)col->trepeat));
-
-                PyDict_SetItemString(d, "twidth", PyLong_FromLong((long)col->twidth));
-
-                PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
-                PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
-
-                tstatus=0;
-                if (fits_read_tdim(self->fits, i+1, maxdim, &naxis, naxes, &tstatus)) {
-                    Py_XINCREF(Py_None);
-                    PyDict_SetItemString(d, "tdim", Py_None);
-                } else {
-                    PyObject* tdim_list = PyList_New(naxis);
-                    PyObject* tdim;
-                    for (j=0; j<naxis; j++) {
-                        tdim = PyLong_FromLong((long)naxes[j]);
-                        PyList_SetItem(tdim_list, j, tdim);
-                    }
-                    PyDict_SetItemString(d, "tdim", tdim_list);
-                }
-
-                PyList_Append(colinfo, d);
-            }
-        }
-        PyDict_SetItemString(dict, "colinfo", colinfo);
-    }
-    return dict;
-}
-*/
 
 // this is the parameter that goes in the type for fits_write_col
 static int 
@@ -1544,7 +1388,6 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     int colnum=0;
 
     FITSfile* hdu=NULL;
-    tcolumn* col=NULL;
     int status=0;
 
     PyObject* array=NULL;
@@ -1577,7 +1420,6 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    col = hdu->tableptr + (colnum-1);
     data = PyArray_DATA(array);
     
     if (rowsobj == Py_None) {
