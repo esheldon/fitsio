@@ -160,13 +160,17 @@ class TestReadWrite(unittest.TestCase):
                 # note i8 not supported for compressed!
                 if float(cfitsio_ver) <= 3.08:
                     dtypes = ['u1','i2','u4','i4','f4']
+                elif float(cfitsio_ver) >= 3.28:
+                    # u1,i1 no longer supported
+                    # floating types no longer work, get segfault
+                    dtypes = ['u2','i2','u4','i4']
                 else:
                     dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     fits.write_image(data, compress=compress)
-                    fits.reopen()
+                    #fits.reopen()
                     rdata = fits[-1].read()
 
                     self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
@@ -188,13 +192,17 @@ class TestReadWrite(unittest.TestCase):
                 # note i8 not supported for compressed!
                 if float(cfitsio_ver) <= 3.08:
                     dtypes = ['i1','i2','i4','f4']
+                elif float(cfitsio_ver) >= 3.28:
+                    # u1,i1 no longer supported
+                    # floating types no longer work, get segfault
+                    dtypes = ['i2','i4']
                 else:
                     dtypes = ['i1','i2','i4','f4','f8']
 
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     fits.write_image(data, compress=compress)
-                    fits.reopen()
+                    #fits.reopen()
                     rdata = fits[-1].read()
 
                     self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
@@ -218,6 +226,10 @@ class TestReadWrite(unittest.TestCase):
                     # note 'i1','u2' causes glibc errors
                     # f8 just fails for some reason
                     dtypes = ['u1','i2','u4','i4','f4']
+                elif float(cfitsio_ver) >= 3.28:
+                    # u1,i1 no longer supported
+                    # floating types no longer work, get segfault
+                    dtypes = ['u2','i2','u4','i4']
                 else:
                     dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
                 #dtypes = ['u1']
@@ -225,7 +237,7 @@ class TestReadWrite(unittest.TestCase):
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     fits.write_image(data, compress=compress)
-                    fits.reopen()
+                    #fits.reopen()
                     rdata = fits[-1].read()
 
                     self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
@@ -248,13 +260,17 @@ class TestReadWrite(unittest.TestCase):
                 # f8 for some reason does not work
                 if float(cfitsio_ver) <= 3.08:
                     dtypes = ['u1','i1','u2','i2','u4','i4','f4']
+                elif float(cfitsio_ver) >= 3.28:
+                    # u1,i1 no longer supported
+                    # floating types no longer work, get segfault
+                    dtypes = ['u2','i2','u4','i4']
                 else:
                     dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     fits.write_image(data, compress=compress)
-                    fits.reopen()
+                    #fits.reopen()
                     rdata = fits[-1].read()
 
                     self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
