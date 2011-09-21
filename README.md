@@ -5,9 +5,12 @@ Description
 
 This is a python extension written in c and python.  
 
-The cfitsio library and headers are required to compile the code.  The package
-works well for cfitsio versions >= 3.09, and 3.08 except for certain
-tile-compressed image types.  See the requirements section for more details.
+A version of cfitsio is bundled with this package.  This is because most
+deployed versions of cfitsio in the wild don't have support for interesting
+features like tiled image compression.  Also sometimes very new versions of
+cfitsio have bugs, e.g. 3.28 (the latest as of september 2011) cannot read
+float and double from tile compressed images.  This is a safe alternative.
+
 
 Features
 --------
@@ -31,12 +34,12 @@ Features
 
 Known CFITSIO Bugs
 ------------------
-These are bugs in the underlying cfitsio library
+These are bugs in the underlying cfitsio library (version 3.24)
 - When writing directly to a .gz file sometimes the buffers do not get
   flushed to disk upon closing, leaving the file empty or incomplete.
   Seems to be when writing a single binary table.
 - fits_get_compression_type always returns zero.  fitsio uses ZCMPTYPE header
-  key instead, but this may not be portable between cfitsio versions
+  key instead, which seems to work for this version.
 
 Examples
 --------
@@ -191,35 +194,9 @@ optionally with a prefix
 Requirements
 ------------
 
-    - You will need the cfitsio library and headers installed on your system.
-      The version should be at least version 3.09 for full support.  3.08 will
-      also work for most tasks *except* certain tile compressed images.
-
-      tile-compressed images supported in 3.08
-            rice: u1,i2,u4,i4,f4
-            gzip: u1,i2,u4,i4,f4
-            hcompress: u1,i1,u2,i2,u4,i4,f4
-            plio: u1,i2,u4,i4,f4
-
-      The cfitsio library needs to be compiled as a shared library
-      (libcfits.so), rather than a static library (libcfits.a).  If you have
-      both, the shared version should be picked up correctly.
-
-      If the library is not in the "usual" place, you may have to modify your
-      LD_LIBRARY_PATH and C_INCLUDE_PATH environment variables to include the
-      $PREFIX/lib and $PREFIX/include directories of your cfitsio install.
-      E.g. on OS X, using fink to install cfitsio, you may have to put this in
-      your .bashrc
-
-        export C_INCLUDE_PATH=$C_INCLUDE_PATH:/sw/lib
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/sw/lib
-
-      It is planned to add automatic searching for fink and macports installs
-      on OS X.
-
+    - you need a c compiler and build tools like Make
     - You need a recent python, probably >= 2.5, but this has not been
       extensively tested.
-
     - You need numerical python (numpy).
 
 test
@@ -244,7 +221,6 @@ TODO
         cols=['x','y']
         data=fits[1][cols][10:30]
   That would require a FITSColumnSubset class.
-- installer look for fink, macports, homebrew cfitsio installs on OS X?
 - don't need to update the hdu list quite so often.
 - keyword lists are getting long; implement **keys everywhere?  It would
   lengthen the functions because they must extract keywords, but would
