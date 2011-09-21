@@ -5,15 +5,6 @@ import fitsio
 
 import unittest
 
-cfitsio_ver = fitsio.cfitsio_version()
-
-if float(cfitsio_ver) < 3.08:
-    print '\nVersions of cfitsio < 3.08 will probably fail many tests\n'
-if cfitsio_ver == '3.080':
-    print ('\nVersion 3.08 of cfitsio should pass all tests, but note a\n'
-           'limited number of data types are supported in image tile compression\n'
-           'see the README/Requirements section\n')
-
 
 def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
