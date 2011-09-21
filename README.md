@@ -226,8 +226,8 @@ test
 ----
 The unit tests should all pass for full support.
 
->>> import fitsio
->>> fitsio.test.test()
+    import fitsio
+    fitsio.test.test()
 
 TODO
 ----
