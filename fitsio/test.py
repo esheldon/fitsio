@@ -446,6 +446,8 @@ class TestReadWrite(unittest.TestCase):
                         self.assertEqual(entry['comment'].strip(),
                                          h.get_comment(name).strip(),
                                          "testing comment for header key '%s'" % name)
+            stat=os.stat(fname)
+            self.assertNotEqual(stat.st_size, 0, "Making sure the data was flushed to disk")
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
