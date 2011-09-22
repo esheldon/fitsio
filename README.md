@@ -36,7 +36,7 @@ Features
 
 Known CFITSIO Bugs
 ------------------
-These are bugs in the underlying cfitsio library (version 3.28)
+These are bugs in the underlying cfitsio library (in at least versions 3.24-3.28)
 - fits_get_compression_type always returns zero.  fitsio uses ZCMPTYPE header
   key instead, which seems to work for this version.
 
