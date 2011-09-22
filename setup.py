@@ -14,7 +14,6 @@ cfitsio_build_dir = os.path.join('build',cfitsio_dir)
 makefile = os.path.join(cfitsio_build_dir, 'Makefile')
 
 def copy_update(dir1,dir2):
-    f1=glob.glob(os.path.join(dir1,'*'))
     f1 = os.listdir(dir1)
     for f in f1:
         path1 = os.path.join(dir1,f)
