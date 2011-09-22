@@ -6,7 +6,7 @@ import glob
 
 package_basedir = os.path.abspath(os.curdir)
 
-cfitsio_version = '3280'
+cfitsio_version = '3280patch'
 cfitsio_dir = 'cfitsio%s' % cfitsio_version
 cfitsio_build_dir = os.path.join('build',cfitsio_dir)
 
