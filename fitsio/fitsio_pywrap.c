@@ -436,7 +436,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         int* extend_p=NULL;
         LONGLONG dims[] = {0,0,0,0,0,0,0,0,0,0};
         char comptype[20];
-        int comptype_int=0;
         PyObject* imgnaxis=PyList_New(0);
         int i=0;
 
@@ -452,15 +451,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             PyDict_SetItemString(dict, "img_equiv_type", PyLong_FromLong((long)bitpix_equiv));
 
             tstatus=0;
-            // this still doesn't work in 3280
-            /*
-            if (fits_get_compression_type(self->fits, &comptype_int, &tstatus)==0) {
-                PyDict_SetItemString(dict, "comptype_int", PyLong_FromLong((long)comptype_int));
-            } else {
-                Py_INCREF(Py_None);
-                PyDict_SetItemString(dict, "comptype_int", Py_None);
-            }
-            */
             if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
                 PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
             } else {

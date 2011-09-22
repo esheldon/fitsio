@@ -1491,9 +1491,11 @@ int imcomp_compress_tile (fitsfile *outfptr,
        imcomp_convert_tile_tdouble(outfptr, row, tiledata, tilelen, tilenx, tileny, nullcheck,
        nullflagval, nullval, zbitpix, scale, zero, &intlength, &flag, bscale, bzero, status);
     } else if (datatype == TBYTE) {
+        /* ESS */
         imcomp_convert_tile_tbyte(outfptr, tiledata, tilelen, nullcheck, nullflagval,
                 nullval, zbitpix, scale, zero,  &intlength, status);
     } else if (datatype == TSBYTE) {
+        /* ESS */
         imcomp_convert_tile_tsbyte(outfptr, tiledata, tilelen, nullcheck, nullflagval,
                 nullval, zbitpix, scale, zero,  &intlength, status);
     } else {
@@ -5457,6 +5459,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
 
             /* do byte swapping and null value substitution for the tile of pixels */
             if (tilebytesize == 4 * tilelen) {  /* float pixels */
+                /* ESS */
                 float fnulval=0;
                 if (nulval) {
                     fnulval = *(float *)nulval;
@@ -5470,6 +5473,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
                         (float *) buffer, status);
 
             } else if (tilebytesize == 8 * tilelen) { /* double pixels */
+                /* ESS */
                 double dnulval=0;
                 if (nulval) {
                     dnulval = *(double *)nulval;

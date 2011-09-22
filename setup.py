@@ -3,6 +3,7 @@ from distutils.core import setup, Extension, Command
 import os
 import numpy
 import glob
+import shutil
 
 package_basedir = os.path.abspath(os.curdir)
 
@@ -11,6 +12,20 @@ cfitsio_dir = 'cfitsio%s' % cfitsio_version
 cfitsio_build_dir = os.path.join('build',cfitsio_dir)
 
 makefile = os.path.join(cfitsio_build_dir, 'Makefile')
+
+def copy_update(dir1,dir2):
+    f1=glob.glob(os.path.join(dir1,'*'))
+    f1 = os.listdir(dir1)
+    for f in f1:
+        path1 = os.path.join(dir1,f)
+        path2 = os.path.join(dir2,f)
+        if not os.path.exists(path2):
+            shutil.copy(path1,path2)
+        else:
+            stat1 = os.stat(path1)
+            stat2 = os.stat(path2)
+            if (stat1.st_mtime > stat2.st_mtime):
+                shutil.copy(path1,path2)
 
 def configure_cfitsio():
     os.chdir(cfitsio_build_dir)
@@ -29,12 +44,11 @@ def compile_cfitsio():
 
 if not os.path.exists('build'):
     ret=os.makedirs('build')
+
 if not os.path.exists(cfitsio_build_dir):
     ret=os.makedirs(cfitsio_build_dir)
 
-ret=os.system('cp -u %s/* %s/' % (cfitsio_dir, cfitsio_build_dir))
-if ret != 0:
-    raise ValueError("could not copy %s to %s" % (cfitsio_dir, cfitsio_build_dir))
+copy_update(cfitsio_dir, cfitsio_build_dir)
 
 if not os.path.exists(makefile):
     configure_cfitsio()
@@ -44,10 +58,11 @@ compile_cfitsio()
 data_files=[]
 
 
-# when using "extra_objects", changes in the objects do
-# *not* cause a re-link!  The only way I know is to force
-# a recompile by removing the directory
-os.system('rm -r build/lib*')
+# when using "extra_objects" in Extension, changes in the objects do *not*
+# cause a re-link!  The only way I know is to force a recompile by removing the
+# directory
+build_libdir=glob.glob(os.path.join('build','lib*'))
+shutil.rmtree(build_libdir[0])
 
 sources = ["fitsio/fitsio_pywrap.c"]
 
