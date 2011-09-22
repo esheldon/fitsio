@@ -3,8 +3,11 @@
 New features
 
     - cfitsio 3.28 is bundled.  This should make a consistent code
-      code base with which to develop.
-    - On OS X, link properly with universal binarys on intel.
+      code base with which to develop.  Thanks to Eli Rykoff for
+      suggesting a bundle.  Thanks to Eli and Martin white for helping
+      test this.
+    - On OS X, link properly with universal binarys on intel. Thanks
+      to Eli Rykoff for help with OS X testing and bug fixes.
     - You can now read rows from a table HDU using slice notation. e.g.
       to read from extension 1
             fits=fitsio.FITS(filename)
