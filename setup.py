@@ -61,7 +61,8 @@ data_files=[]
 # cause a re-link!  The only way I know is to force a recompile by removing the
 # directory
 build_libdir=glob.glob(os.path.join('build','lib*'))
-shutil.rmtree(build_libdir[0])
+if len(build_libdir) > 0:
+    shutil.rmtree(build_libdir[0])
 
 sources = ["fitsio/fitsio_pywrap.c"]
 
