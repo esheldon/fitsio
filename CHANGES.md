@@ -6,8 +6,9 @@ New features
       code base with which to develop.  Thanks to Eli Rykoff for
       suggesting a bundle.  Thanks to Eli and Martin white for helping
       test this.
-    - On OS X, link properly with universal binarys on intel. Thanks
+    - On OS X, link properly with universal binaries on intel. Thanks
       to Eli Rykoff for help with OS X testing and bug fixes.
+
     - You can now read rows from a table HDU using slice notation. e.g.
       to read from extension 1
             fits=fitsio.FITS(filename)
@@ -20,14 +21,12 @@ New features
       this is equivalent to
             data=fits[1].read(rows=rows)
 
-    - added read_slice method, which is used to implement the slice
-      notation introduced above.
+    - Using the new "where" method, you can select rows in a table where an
+      input expression evaluates to true.   
 
-    - Using the new "where" method, you can get the set of rows in
-      a table where an input expression evaluates to true.   
-        >>> w=fits[ext].where('x > 3 && y < 25')
-        >>> data=fits[ext].read(rows=w)
-        >>> data=fits[ext][w]
+            >>> w=fits[ext].where('x > 3 && y < 25')
+            >>> data=fits[ext].read(rows=w)
+            >>> data=fits[ext][w]
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,
       this allows one to select among HDUs that have the same name. Thanks to
@@ -47,6 +46,9 @@ New features
 
     - Added fitsio.cfitsio_version() function, returns the cfitsio
       version as a string.
+
+    - added read_slice method, which is used to implement the slice
+      notation introduced above.
 
 significant code changes
 
