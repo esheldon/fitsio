@@ -1,29 +1,28 @@
 """
-Read and write data to FITS files using the cfitsio library.
+A python library to read and write data to FITS files using cfitsio.
 
-This is a python extension written in c and python.  The cfitsio library and
-headers are required to compile the code.
+This is a python extension written in c and python.
 
 Features
 --------
 
 - Read and write numpy arrays to and from image and binary table
   extensions.  
-- Read and write keywords.
-- Read and write images in tile-compressed format.  Read/write gzip and zip
-  files.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
+- Read and write keywords.
+- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
+- Read/write gzip files. Read unix compress files (.Z,.zip)
 - TDIM information is used to return array columns in the correct shape
 - Correctly writes and reads string table columns, including array columns
   of arbitrary shape.
 - Supports unsigned types the way the FITS standard allows, by converting
   to signed and using zero offsets.  Note the FITS standard does not support
   unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-  Be careful of this feature!
 - Correctly writes 1 byte integers table columns.
+- read rows using slice notation
+- Select rows from tables using arbitrary expressions.
 - data are guaranteed to conform to the FITS standard.
-
 
 
 Examples
