@@ -2,11 +2,9 @@
 
 New features
 
-    - cfitsio 3.24 is bundled.  This should make a consistent code
-      code base to develop with.  The drawback is this version of
-      cfitsio does not seem to want to write tables in gz format.
-      I may try a few newer versions, but I already know 3.28 has
-      bugs.
+    - cfitsio 3.28 is bundled.  This should make a consistent code
+      code base with which to develop.
+    - On OS X, link properly with universal binarys on intel.
     - You can now read rows from a table HDU using slice notation. e.g.
       to read from extension 1
             fits=fitsio.FITS(filename)
