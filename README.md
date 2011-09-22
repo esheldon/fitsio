@@ -5,11 +5,13 @@ Description
 
 This is a python extension written in c and python.  
 
-A version of cfitsio is bundled with this package.  This is because most
-deployed versions of cfitsio in the wild don't have support for interesting
-features like tiled image compression.  Also sometimes very new versions of
-cfitsio have bugs, e.g. 3.28 (the latest as of september 2011) cannot read
-float and double from tile compressed images.  This is a safe alternative.
+A patched version of cfitsio 3.28 is bundled with this package.  This is
+because most deployed versions of cfitsio in the wild don't have support for
+interesting features like tiled image compression.  Also sometimes very new
+versions of cfitsio have bugs, e.g. the unpatched 3.28 (the latest as of
+september 2011) cannot read float and double from, or write signed or unsigned
+byte images to tile compressed images.  Bundling a version that meets our needs
+is a safe alternative.
 
 
 Features

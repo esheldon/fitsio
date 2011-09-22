@@ -5470,11 +5470,10 @@ int imcomp_decompress_tile (fitsfile *infptr,
                         (float *) buffer, status);
 
             } else if (tilebytesize == 8 * tilelen) { /* double pixels */
-                float dnulval=0;
+                double dnulval=0;
                 if (nulval) {
                     dnulval = *(double *)nulval;
                 }
-
 
 #if BYTESWAPPED
                 ffswap8((double *) buffer, tilelen);
@@ -5852,9 +5851,13 @@ int imcomp_decompress_tile (fitsfile *infptr,
 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
 	 /* the floating point pixels were losselessly compressed with GZIP */
 	 /* Just have to copy the values to the output array */
+        float fnulval=0;
+        if (nulval) {
+            fnulval = *(float *)nulval;
+        }
 	 
           fffr4r4((float *) idata, tilelen, bscale, bzero, nullcheck,   
-           *(float *) nulval, bnullarray, anynul,
+           fnulval, bnullarray, anynul,
             (float *) buffer, status);
 	
         } else if ((infptr->Fptr)->quantize_dither == SUBTRACTIVE_DITHER_1) {
@@ -5899,9 +5902,13 @@ int imcomp_decompress_tile (fitsfile *infptr,
 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
 	 /* the floating point pixels were losselessly compressed with GZIP */
 	 /* Just have to copy the values to the output array */
+        double dnulval=0;
+        if (nulval) {
+            dnulval = *(double *)nulval;
+        }
 	 
           fffr8r8((double *) idata, tilelen, bscale, bzero, nullcheck,   
-           *(double *) nulval, bnullarray, anynul,
+           dnulval, bnullarray, anynul,
             (double *) buffer, status);
 	
         } else if ((infptr->Fptr)->quantize_dither == SUBTRACTIVE_DITHER_1) {
