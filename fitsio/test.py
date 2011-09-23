@@ -37,10 +37,10 @@ class TestReadWrite(unittest.TestCase):
                ('u2scalar','u2'),
                ('i2scalar','i2'),
                ('u4scalar','u4'),
-               ('i4scalar','i4'),
+               ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
                ('i8scalar','i8'),
                ('f4scalar','f4'),
-               ('f8scalar','f8'),
+               ('f8scalar','>f8'),
 
                ('u1vec','u1',nvec),
                ('i1vec','i1',nvec),
@@ -120,7 +120,8 @@ class TestReadWrite(unittest.TestCase):
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                for dtype in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
+                # note mixing up byte orders a bit
+                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
                     fits.write_image(data, header=header)

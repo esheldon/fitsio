@@ -1,4 +1,7 @@
+version 0.90
 -----------------------
+
+This is the first "official" release.
 
 New features
 
