@@ -53,7 +53,8 @@ Examples
     >>> h = fitsio.read_header(filename, extension)
     >>> data,h = fitsio.read_header(filename, extension, header=True)
 
-    # open the file and write a binary table. By default a new extension is
+    # open the file, write a new binary table extension, and then write  the
+    # data from "recarray" into the table. By default a new extension is
     # appended to the file.  use clobber=True to overwrite an existing file
     # instead
     >>> fitsio.write(filename, recarray)
@@ -62,8 +63,8 @@ Examples
     # the FITS class gives the you the ability to explore the data, and gives
     # more control
 
-    # open a FITS file and explore
-    >>> fits=fitsio.FITS('data.fits','r')
+    # open a FITS file for reading and explore
+    >>> fits=fitsio.FITS('data.fits')
 
     # see what is in here
     >>> fits
@@ -157,6 +158,14 @@ Examples
     # create a new table extension and write the data
     >>> fits.write_table(data)
 
+    # note under the hood the above does the following
+    >>> fits.create_table_hdu(dtype=data.dtype)
+    >>> fits[-1].write(data)
+
+    # append more rows.  The fields in data2 should match column in the table.
+    # missing columns will be filled with zeros
+    >>> fits.append(data2)
+
     # you can also write a header at the same time.  The header
     # can be a simple dict, or a list of dicts with 'name','value','comment'
     # fields, or a FITSHDR object
@@ -208,10 +217,8 @@ TODO
 ----
 
 - Read subsets of *images*
-- append rows to tables
 - add tests for slice notation and the where function.
-- We have row slices. Want to also implement this notation, e.g. 
-  for extension 1
+- Want to also implement the following notation, e.g.  for extension 1
         data=fits[1]['colname'][10:30]
         rows=[3,8,11]
         data=fits[1]['colname'][rows]

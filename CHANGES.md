@@ -25,7 +25,8 @@ New features
             data=fits[1].read(rows=rows)
 
     - Using the new "where" method, you can select rows in a table where an
-      input expression evaluates to true.   
+      input expression evaluates to true.  This only requires enough memory
+      to hold the rows.
 
             >>> w=fits[ext].where('x > 3 && y < 25')
             >>> data=fits[ext].read(rows=w)
