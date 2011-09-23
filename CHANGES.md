@@ -31,6 +31,10 @@ New features
             >>> data=fits[ext].read(rows=w)
             >>> data=fits[ext][w]
 
+    - Append rows to an existing table using the append method.
+            >>> fits.write_table(data1)
+            >>> fits[-1].append(data2)
+
     - Added support for EXTVER header keywords.  When choosing an HDU by name,
       this allows one to select among HDUs that have the same name. Thanks to
       Eli Rykoff for suggesting this feature and helping with testing.

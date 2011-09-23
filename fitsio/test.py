@@ -385,6 +385,37 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
 
+    def testTableAppend(self):
+        """
+        Test creating a table and appending new rows.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableAppend-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                # initial write
+                fits.write_table(self.data, header=self.keys, extname='mytable')
+                # now append
+                data2 = self.data.copy()
+                data2['f4scalar'] = 3
+                fits[1].append(data2)
+
+                d = fits[1].read()
+                self.assertEqual(d.size, self.data.size*2)
+
+                self.compare_rec(self.data, d[0:self.data.size], "Comparing initial write")
+                self.compare_rec(data2, d[self.data.size:], "Comparing appended data")
+
+                h = fits[1].read_header()
+                self.compare_headerlist_header(self.keys, h)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
     def testTableSubsets(self):
         """
         Test a basic table write, data and a header, then reading back in to

@@ -559,12 +559,17 @@ class FITS:
             self[-1].write_column(colnum, data[name])
         self.update_hdu_list()
 
-    def create_table_hdu(self, names, formats, 
+    def create_table_hdu(self, names=None, formats=None, dtype=None,
                          units=None, dims=None, extname=None, extver=None, header=None):
         """
         Create a new, empty table extension and reload the hdu list.
 
-        You can write data into the new extension using
+        There are two ways to do it:
+            1) send a numpy dtype, from which the formats in the fits file will
+               be determined.
+            2) send the names,formats yourself
+
+        You can then write data into the new extension using
             fits[extension].write(array)
             fits[extension].write_column(array)
 
@@ -577,6 +582,10 @@ class FITS:
 
         parameters
         ----------
+        dtype: numpy dtype or descr
+            If you have an array with fields, you can just send arr.dtype.
+            You can also use a list of tuples, e.g. [('x','f8'),('index','i4')]
+            or the dict method.
         names: list of strings
             The list of field names
         formats: list of strings
@@ -610,6 +619,10 @@ class FITS:
         ------------
         The File must be opened READWRITE
         """
+
+        if dtype is not None:
+            dtype=numpy.dtype(dtype)
+            names, formats, dims = descr2tabledef(dtype.descr)
 
         if not isinstance(names,list) or not isinstance(formats,list):
             raise ValueError("names and formats should be lists")
@@ -903,6 +916,52 @@ class FITSHDU:
                 self.write_key(name,value,comment)
 
 
+    def write(self, data, firstrow=0):
+        """
+        Write data into this HDU
+
+        parameters
+        ----------
+        data: ndarray
+            A numerical python array.  Should be an ordinary array for image
+            HDUs, should have fields for tables.
+        firstrow: integer, optional
+            At which row you should begin writing to tables.  Be sure you know
+            what you are doing!  For appending see the append() method.
+            Default 0.
+        """
+        if data.dtype.fields is None:
+            self.write_image(data)
+        else:
+            for name in data.dtype.names:
+                self.write_column(name, data[name], firstrow=firstrow)
+
+    def append(self, data):
+        """
+        Append new rows to a table HDU
+
+        parameters
+        ----------
+        data: ndarray
+            A numerical python array with fields (recarray).  Should have the
+            same fields as the existing table. If only a subset of the table
+            columns are present, the other columns are filled with zeros.
+        """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannot append to an image HDU")
+
+        firstrow=self.info['nrows']
+
+        if data.dtype.fields is None:
+            raise ValueError("got an ordinary array, can only append recarrays.  "
+                             "using this method")
+
+        # make sure these columns exist
+        for n in data.dtype.names:
+            colnum = self._extract_colnum(n)
+        self.write(data, firstrow=firstrow)
+
 
     def write_image(self, img):
         """
@@ -928,7 +987,8 @@ class FITSHDU:
         self._FITS.write_image(self.ext+1, img_send)
         self._update_info()
 
-    def write_column(self, column, data):
+
+    def write_column(self, column, data, firstrow=0):
         """
         Write data to a column in this HDU
 
@@ -940,7 +1000,13 @@ class FITSHDU:
             Numerical python array to write.  This should match the
             shape of the column.  You are probably better using fits.write_table()
             to be sure.
+        firstrow: integer, optional
+            At which row you should begin writing.  Be sure you know what you
+            are doing!  For appending see the append() method.  Default 0.
         """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannote write a column for images")
 
         colnum = self._extract_colnum(column)
 
@@ -958,8 +1024,7 @@ class FITSHDU:
             # some logic
             data_send = array_to_native(data, inplace=False)
 
-
-        self._FITS.write_column(self.ext+1, colnum+1, data_send)
+        self._FITS.write_column(self.ext+1, colnum+1, data_send, firstrow=firstrow+1)
         self._update_info()
 
     def read_header(self):
