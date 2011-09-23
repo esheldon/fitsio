@@ -1070,79 +1070,6 @@ int write_string_column(
 }
 
 
-// write a column.  This should be called immediately after calling
-// create_table.  The array must be contiguous.
-//
-// I hope to bypass this sort of thing eventually.
-static PyObject *
-PyFITSObject_write_column_old(struct PyFITSObject* self, PyObject* args) {
-    int status=0;
-    int hdunum=0;
-    int hdutype=0;
-    int colnum=0;
-    PyObject* array=NULL;
-
-    void* data=NULL;
-    LONGLONG firstrow=1;
-    LONGLONG firstelem=1;
-    LONGLONG nelem=0;
-    int npy_dtype=0;
-    int fits_dtype=0;
-
-    if (self->fits == NULL) {
-        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
-        return NULL;
-    }
-
-    if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &array)) {
-        return NULL;
-    }
-
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-
-    if (!PyArray_Check(array)) {
-        PyErr_SetString(PyExc_ValueError,"only arrays can be written to columns");
-        return NULL;
-    }
-
-    npy_dtype = PyArray_TYPE(array);
-    fits_dtype = npy_to_fits_table_type(npy_dtype);
-    if (fits_dtype == -9999) {
-        return NULL;
-    }
-
-    data = PyArray_DATA(array);
-    nelem = PyArray_SIZE(array);
-
-    if (fits_dtype == TSTRING) {
-
-        // this is my wrapper for strings
-        if (write_string_column(self->fits, colnum, firstrow, firstelem, nelem, data, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-        
-    } else {
-        if( fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-    }
-
-    // this is a full file close and reopen
-    if (fits_flush_file(self->fits, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-
-    Py_RETURN_NONE;
-}
-
 // write a column, starting at firstrow.  On the python side, the firstrow kwd
 // should default to 1.
 // You can append rows using firstrow = nrows+1
@@ -2253,8 +2180,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
-    {"write_column_old",         (PyCFunction)PyFITSObject_write_column_old,         METH_VARARGS,  "write_column\n\nWrite a column into the specified hdu."},
-    {"write_column",    (PyCFunction)PyFITSObject_write_column,    METH_KEYWORDS, "write_column_frow\n\nWrite a column into the specifed hdu."},
+    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},
