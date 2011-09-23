@@ -14,8 +14,8 @@ safe alternative.  The patches to 3.28 fix the ability to read float and double
 images from tile-compressed HDUs and add back support for tile-compressed byte
 and unsigned byte images.
 
-Features
---------
+Some Features
+-------------
 
 - Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
@@ -30,6 +30,7 @@ Features
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write unsigned integer types and signed bytes.
+- Write checksums into the header.
 - data are guaranteed to conform to the FITS standard.
 
 Known CFITSIO Bugs
@@ -169,6 +170,9 @@ Examples
     # append more rows.  The fields in data2 should match columns in the table.
     # missing columns will be filled with zeros
     >>> fits.append(data2)
+
+    # add checksums for the data
+    >>> fits[-1].write_checksum()
 
     # you can also write a header at the same time.  The header
     # can be a simple dict, or a list of dicts with 'name','value','comment'
