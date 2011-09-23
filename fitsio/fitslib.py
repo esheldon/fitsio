@@ -921,11 +921,9 @@ class FITSHDU:
         if not img.flags['C_CONTIGUOUS']:
             # this always makes a copy
             img_send = numpy.ascontiguousarray(img)
+            array_to_native(img_send, inplace=True)
         else:
-            img_send=img
-        
-        # a copy will be made if needed
-        img_send = array_to_native(img_send, inplace=False)
+            img_send = array_to_native(img, inplace=False)
 
         self._FITS.write_image(self.ext+1, img_send)
         self._update_info()
@@ -948,9 +946,20 @@ class FITSHDU:
 
         # need it to be contiguous and native byte order.  For now, make a
         # copy.  but we may be able to avoid this with some care.
-        data = numpy.ascontiguousarray(data)
-        array_to_native(data, inplace=True)
-        self._FITS.write_column(self.ext+1, colnum+1, data)
+
+        if not data.flags['C_CONTIGUOUS']:
+            # this always makes a copy
+            data_send = numpy.ascontiguousarray(data)
+            # this is a copy, we can make sure it is native
+            # and modify in place if needed
+            array_to_native(data_send, inplace=True)
+        else:
+            # we can avoid the copy with a try-finally block and
+            # some logic
+            data_send = array_to_native(data, inplace=False)
+
+
+        self._FITS.write_column(self.ext+1, colnum+1, data_send)
         self._update_info()
 
     def read_header(self):
