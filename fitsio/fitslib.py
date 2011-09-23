@@ -927,7 +927,7 @@ class FITSHDU:
         # a copy will be made if needed
         img_send = array_to_native(img_send, inplace=False)
 
-        self._FITS.write_image(self.ext+1, img)
+        self._FITS.write_image(self.ext+1, img_send)
         self._update_info()
 
     def write_column(self, column, data):
