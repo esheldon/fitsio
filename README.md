@@ -231,6 +231,7 @@ TODO
         data=fits[1][cols][10:30]
 
   That would require a FITSColumnSubset class.
+
 - don't need to update the hdu list quite so often.
 - keyword lists are getting long; implement **keys everywhere?  It would
   lengthen the functions because they must extract keywords, but would
