@@ -918,7 +918,7 @@ class FITSHDU:
         if img.size == 0:
             raise ValueError("data must have at least 1 row")
         # data must be c-contiguous and native byte order
-        if not flags['C_CONTIGUOUS']:
+        if not img.flags['C_CONTIGUOUS']:
             # this always makes a copy
             img_send = numpy.ascontiguousarray(img)
         else:
