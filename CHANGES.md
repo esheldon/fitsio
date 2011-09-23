@@ -1,16 +1,29 @@
 version 0.90
 -----------------------
 
-This is the first "official" release.
+This is a beta for the first "official" release. Note cfitsio 3.28 is now
+bundled.  This should make it easier for folks to install, and a consistent
+code base with which to develop.  Thanks to Eli Rykoff for suggesting a bundle.
+Thanks to Eli and Martin white for helping test this.
+
+On OS X, we now link properly with universal binaries on intel. Thanks to Eli Rykoff
+for help with OS X testing and bug fixes.
 
 New features
 
-    - cfitsio 3.28 is bundled.  This should make a consistent code
-      code base with which to develop.  Thanks to Eli Rykoff for
-      suggesting a bundle.  Thanks to Eli and Martin white for helping
-      test this.
-    - On OS X, link properly with universal binaries on intel. Thanks
-      to Eli Rykoff for help with OS X testing and bug fixes.
+    - Append rows to an existing table using the append method.
+            >>> fits.write_table(data1)
+            >>> fits[-1].append(data2)
+
+    - Using the new "where" method, you can select rows in a table where an
+      input expression evaluates to true.  The table is scanned row by row
+      without a large read.  This is surprisingly fast, and useful for figuring
+      out what sections of a large file you want to extract. only requires
+      enough memory to hold the row indices.
+
+            >>> w=fits[ext].where('x > 3 && y < 25')
+            >>> data=fits[ext].read(rows=w)
+            >>> data=fits[ext][w]
 
     - You can now read rows from a table HDU using slice notation. e.g.
       to read from extension 1
@@ -23,18 +36,6 @@ New features
             data=fits[1][rows]
       this is equivalent to
             data=fits[1].read(rows=rows)
-
-    - Using the new "where" method, you can select rows in a table where an
-      input expression evaluates to true.  This only requires enough memory
-      to hold the rows.
-
-            >>> w=fits[ext].where('x > 3 && y < 25')
-            >>> data=fits[ext].read(rows=w)
-            >>> data=fits[ext][w]
-
-    - Append rows to an existing table using the append method.
-            >>> fits.write_table(data1)
-            >>> fits[-1].append(data2)
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,
       this allows one to select among HDUs that have the same name. Thanks to
