@@ -938,7 +938,8 @@ class FITSHDU:
 
         # need it to be contiguous and native byte order.  For now, make a
         # copy.  but we may be able to avoid this with some care.
-        data = numpy.array(data, ndmin=1)
+        data = numpy.ascontiguousarray(data)
+        array_to_native_inplace(data)
         self._FITS.write_column(self.ext+1, colnum+1, data)
         self._update_info()
 
@@ -1919,6 +1920,63 @@ def check_comptype_img(comptype, img):
 
 def isstring(arg):
     return isinstance(arg, (str,unicode))
+
+
+
+def array_to_native_inplace(array):
+    if numpy.little_endian:
+        machine_little=True
+    else:
+        machine_little=False
+
+    data_little=False
+    if array.dtype.names is None:
+        data_little = is_little_endian(array)
+    else:
+        # assume all are same byte order: we only need to find one with
+        # little endian
+        for fname in array.dtype.names:
+            if is_little_endian(array[fname]):
+                data_little=True
+                break
+
+    if ( (machine_little and not data_little) 
+            or (not machine_little and data_little) ):
+        array.byteswap(True)
+
+
+
+def is_little_endian(array):
+    """
+    Return True if array is little endian, False otherwise. 
+
+    Parameters
+    ----------
+    array: numpy array
+        A numerical python array.
+
+    Returns
+    -------
+    Truth value:
+        True for little-endian
+
+    Notes
+    -----
+    Strings are neither big or little endian.  The input must be a simple numpy
+    array, not an array with fields.
+
+    """
+
+    if numpy.little_endian:
+        machine_little=True
+    else:
+        machine_little=False
+
+    byteorder = array.dtype.base.byteorder
+    return (byteorder == '<') or (machine_little and byteorder == '=')
+
+
+
 
 # this doesn't work
 #GZIP_2 = 22
