@@ -917,6 +917,16 @@ class FITSHDU:
             raise ValueError("got recarray, expected regular ndarray")
         if img.size == 0:
             raise ValueError("data must have at least 1 row")
+        # data must be c-contiguous and native byte order
+        if not flags['C_CONTIGUOUS']:
+            # this always makes a copy
+            img_send = numpy.ascontiguousarray(img)
+        else:
+            img_send=img
+        
+        # a copy will be made if needed
+        img_send = array_to_native(img_send, inplace=False)
+
         self._FITS.write_image(self.ext+1, img)
         self._update_info()
 
@@ -939,7 +949,7 @@ class FITSHDU:
         # need it to be contiguous and native byte order.  For now, make a
         # copy.  but we may be able to avoid this with some care.
         data = numpy.ascontiguousarray(data)
-        array_to_native_inplace(data)
+        array_to_native(data, inplace=True)
         self._FITS.write_column(self.ext+1, colnum+1, data)
         self._update_info()
 
@@ -1923,7 +1933,7 @@ def isstring(arg):
 
 
 
-def array_to_native_inplace(array):
+def array_to_native(array, inplace=False):
     if numpy.little_endian:
         machine_little=True
     else:
@@ -1942,7 +1952,11 @@ def array_to_native_inplace(array):
 
     if ( (machine_little and not data_little) 
             or (not machine_little and data_little) ):
-        array.byteswap(True)
+        output = array.byteswap(inplace)
+    else:
+        output = array
+
+    return output
 
 
 
