@@ -3,8 +3,8 @@ A python library to read and write data to FITS files using cfitsio.
 Description
 -----------
 
-This is a python extension written in c and python.  Numerical
-python arrays are used for both reading and writing the data.
+This is a python extension written in c and python.  Data are read into
+numerical python arrays.
 
 A patched version of cfitsio 3.28 is bundled with this package.  This is
 because most deployed versions of cfitsio in the wild don't have support for
