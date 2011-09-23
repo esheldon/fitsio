@@ -3,36 +3,40 @@ A python library to read and write data to FITS files using cfitsio.
 Description
 -----------
 
-This is a python extension written in c and python.  
+This is a python extension written in c and python.  Numerical
+python arrays are used for both reading and writing the data.
 
 A patched version of cfitsio 3.28 is bundled with this package.  This is
 because most deployed versions of cfitsio in the wild don't have support for
-interesting features like tiled image compression.  Also sometimes very new
-versions of cfitsio have bugs, e.g. the unpatched 3.28 (the latest as of
-september 2011) cannot read float and double from, or write signed or unsigned
-byte images to tile compressed images.  Bundling a version that meets our needs
-is a safe alternative.
-
+interesting features like tiled image compression.  Also sometimes newer
+versions of cfitsio have bugs. Bundling a version that meets our needs is a
+safe alternative.  The patches to 3.28 fix the ability to read float and double
+images from tile-compressed HDUs and add back support for tile-compressed byte
+and unsigned byte images.
 
 Features
 --------
 
-- Read and write numpy arrays to and from image and binary table
-  extensions.  
+- Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
-  whole file.
-- Read and write keywords.
+  whole file.  e.g. for extension 1
+        >>> fits=fitsio.FITS(filename)
+        >>> data=fits[1].read(rows=rows, columns=columns)
+- Append rows to an existing table.
+- Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
-- Read/write gzip files. Read unix compress files (.Z,.zip)
-- TDIM information is used to return array columns in the correct shape
-- Correctly writes and reads string table columns, including array columns
-  of arbitrary shape.
-- Supports unsigned types the way the FITS standard allows, by converting
-  to signed and using zero offsets.  Note the FITS standard does not support
-  unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-- Correctly writes 1 byte integers table columns.
-- read rows using slice notation
-- Select rows from tables using arbitrary expressions.
+- Read/write gzip files directly.  Read unix compress files (.Z,.zip).
+- TDIM information is used to return array columns in the correct shape.
+- Write and read string table columns, including array columns of arbitrary
+  shape.
+- Supports unsigned integer types and signed bytes.
+- Query the columns and rows in a table.
+        >>> fits=fitsio.FITS(filename)
+        >>> rows=fits[1].where('x > 3 && y < 25')
+        >>> data=fits[1].read(rows=rows, columns=['x','y','index'])
+- read rows using slice notation similar to numpy arrays
+        >>> data = fits[1][2:25]
+        >>> data = fits[1][rowlist]
 - data are guaranteed to conform to the FITS standard.
 
 Known CFITSIO Bugs
