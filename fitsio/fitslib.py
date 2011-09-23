@@ -555,8 +555,7 @@ class FITS:
                               units=units, dims=dims, extname=extname,extver=extver,
                               header=header)
         
-        for colnum,name in enumerate(data.dtype.names):
-            self[-1].write_column(colnum, data[name])
+        self[-1].write(data)
         self.update_hdu_list()
 
     def create_table_hdu(self, names=None, formats=None, dtype=None,
