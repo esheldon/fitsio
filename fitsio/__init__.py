@@ -155,7 +155,7 @@ Examples
     >>> fits.create_table_hdu(dtype=data.dtype)
     >>> fits[-1].write(data)
 
-    # append more rows.  The fields in data2 should match column in the table.
+    # append more rows.  The fields in data2 should match columns in the table.
     # missing columns will be filled with zeros
     >>> fits.append(data2)
 

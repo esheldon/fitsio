@@ -166,7 +166,7 @@ Examples
     >>> fits.create_table_hdu(dtype=data.dtype)
     >>> fits[-1].write(data)
 
-    # append more rows.  The fields in data2 should match column in the table.
+    # append more rows.  The fields in data2 should match columns in the table.
     # missing columns will be filled with zeros
     >>> fits.append(data2)
 
@@ -222,12 +222,14 @@ TODO
 - Read subsets of *images*
 - add tests for slice notation and the where function.
 - Want to also implement the following notation, e.g.  for extension 1
+
         data=fits[1]['colname'][10:30]
         rows=[3,8,11]
         data=fits[1]['colname'][rows]
         data=fits[1]['colname'].read()
         cols=['x','y']
         data=fits[1][cols][10:30]
+
   That would require a FITSColumnSubset class.
 - don't need to update the hdu list quite so often.
 - keyword lists are getting long; implement **keys everywhere?  It would
