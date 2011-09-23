@@ -39,7 +39,8 @@ Examples
     >>> h = fitsio.read_header(filename, extension)
     >>> data,h = fitsio.read_header(filename, extension, header=True)
 
-    # open the file and write a new binary table by default a new extension is
+    # open the file, write a new binary table extension, and then write  the
+    # data from "recarray" into the table. By default a new extension is
     # appended to the file.  use clobber=True to overwrite an existing file
     # instead
     >>> fitsio.write(filename, recarray)
@@ -48,8 +49,8 @@ Examples
     # the FITS class gives the you the ability to explore the data, and gives
     # more control
 
-    # open a FITS file and explore
-    >>> fits=fitsio.FITS('data.fits','r')
+    # open a FITS file for reading and explore
+    >>> fits=fitsio.FITS('data.fits')
 
     # see what is in here
     >>> fits
@@ -88,6 +89,7 @@ Examples
     # is set, you can use it.  Here extver=2
     #    fits['mytable',2]
 
+
     # read the image from extension zero
     >>> img = fits[0].read()
 
@@ -99,22 +101,20 @@ Examples
     # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
-    # read a subset of rows using slice notation (can also use read_slice)
+    # read a subset of rows using slice notation, ala numpy arrays
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
-
-    # specify the rows in a similar way
-    >>> data = fits[1][rows]
+    >>> data = fits[1][rowlist]
 
     # read a single column as a simple array.  This is less
     # efficient when you plan to read multiple columns.
     >>> data = fits[1].read_column('x', rows=[1,5])
-
+    
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
-    >>> w=fits[1].where('x > 0.25 && y < 35.0')
+    >>> w=fits[1].where("x > 0.25 && y < 35.0")
     >>> data = fits[1][w]
-    
+
     # read the header
     >>> h = fits[0].read_header()
     >>> h['BITPIX']
@@ -127,7 +127,7 @@ Examples
     >>> fits = FITS('test.fits','rw')
 
     # create an image
-    >>> img=numpy.arange(20,30)
+    >>> img=numpy.arange(20,30,dtype='i4')
 
     # write the data to the primary HDU
     >>> fits.write_image(img)
@@ -144,6 +144,14 @@ Examples
 
     # create a new table extension and write the data
     >>> fits.write_table(data)
+
+    # note under the hood the above does the following
+    >>> fits.create_table_hdu(dtype=data.dtype)
+    >>> fits[-1].write(data)
+
+    # append more rows.  The fields in data2 should match column in the table.
+    # missing columns will be filled with zeros
+    >>> fits.append(data2)
 
     # you can also write a header at the same time.  The header
     # can be a simple dict, or a list of dicts with 'name','value','comment'

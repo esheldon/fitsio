@@ -32,7 +32,7 @@ Features
 - Supports unsigned integer types and signed bytes.
 - Query the columns and rows in a table.
         >>> fits=fitsio.FITS(filename)
-        >>> rows=fits[1].where('x > 3 && y < 25')
+        >>> rows=fits[1].where("x > 3 && y < 25")
         >>> data=fits[1].read(rows=rows, columns=['x','y','index'])
 - read rows using slice notation similar to numpy arrays
         >>> data = fits[1][2:25]
@@ -119,9 +119,10 @@ Examples
     # match but returned array leaves the names with original case
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
-    # read a subset of rows using slice notation (can also use read_slice)
+    # read a subset of rows using slice notation, ala numpy arrays
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
+    >>> data = fits[1][rowlist]
 
     # read a single column as a simple array.  This is less
     # efficient when you plan to read multiple columns.
@@ -129,7 +130,7 @@ Examples
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
-    >>> w=fits[1].where('x > 0.25 && y < 35.0')
+    >>> w=fits[1].where("x > 0.25 && y < 35.0")
     >>> data = fits[1][w]
 
     # read the header
