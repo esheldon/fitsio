@@ -34,25 +34,31 @@ Examples
     # create a FITS object.  In that case, you can use the read and write
     # convienience functions.
 
-    # read all data from the specified extension
-    >>> data = fitsio.read(filename, extension)
+    # read all data from the first hdu with data
+    >>> data = fitsio.read(filename)
+    # read a subset of rows and columns from the specified extension
+    >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+    # read the header, or both at once
     >>> h = fitsio.read_header(filename, extension)
-    >>> data,h = fitsio.read_header(filename, extension, header=True)
+    >>> data,h = fitsio.read_header(filename, ext=ext, header=True)
 
     # open the file, write a new binary table extension, and then write  the
     # data from "recarray" into the table. By default a new extension is
     # appended to the file.  use clobber=True to overwrite an existing file
     # instead
     >>> fitsio.write(filename, recarray)
+    # write an image
+    >>> fitsio.write(filename, image)
 
-
+    #
     # the FITS class gives the you the ability to explore the data, and gives
     # more control
+    #
 
     # open a FITS file for reading and explore
     >>> fits=fitsio.FITS('data.fits')
 
-    # see what is in here
+    # see what is in here; the FITS object prints itself
     >>> fits
 
     file: data.fits
@@ -165,10 +171,10 @@ Examples
 
     >>> fits.close()
 
-    # using a context, the file is closed automatically
-    # after leaving the block
-    with FITS('path/to/file','r') as fits:
+    # using a context, the file is closed automatically after leaving the block
+    with FITS('path/to/file') as fits:
         data = fits[ext].read()
+
 
 """
 

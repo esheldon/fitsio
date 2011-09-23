@@ -19,24 +19,17 @@ Features
 
 - Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
-  whole file.  e.g. for extension 1
-        >>> fits=fitsio.FITS(filename)
-        >>> data=fits[1].read(rows=rows, columns=columns)
+  whole file.
 - Append rows to an existing table.
+- Query the columns and rows in a table.
+- read rows using slice notation similar to numpy arrays
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
 - Read/write gzip files directly.  Read unix compress files (.Z,.zip).
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
-- Supports unsigned integer types and signed bytes.
-- Query the columns and rows in a table.
-        >>> fits=fitsio.FITS(filename)
-        >>> rows=fits[1].where("x > 3 && y < 25")
-        >>> data=fits[1].read(rows=rows, columns=['x','y','index'])
-- read rows using slice notation similar to numpy arrays
-        >>> data = fits[1][2:25]
-        >>> data = fits[1][rowlist]
+- Read and write unsigned integer types and signed bytes.
 - data are guaranteed to conform to the FITS standard.
 
 Known CFITSIO Bugs
@@ -52,25 +45,31 @@ Examples
     # create a FITS object.  In that case, you can use the read and write
     # convienience functions.
 
-    # read all data from the specified extension
-    >>> data = fitsio.read(filename, extension)
+    # read all data from the first hdu with data
+    >>> data = fitsio.read(filename)
+    # read a subset of rows and columns from the specified extension
+    >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+    # read the header, or both at once
     >>> h = fitsio.read_header(filename, extension)
-    >>> data,h = fitsio.read_header(filename, extension, header=True)
+    >>> data,h = fitsio.read_header(filename, ext=ext, header=True)
 
     # open the file, write a new binary table extension, and then write  the
     # data from "recarray" into the table. By default a new extension is
     # appended to the file.  use clobber=True to overwrite an existing file
     # instead
     >>> fitsio.write(filename, recarray)
+    # write an image
+    >>> fitsio.write(filename, image)
 
-
+    #
     # the FITS class gives the you the ability to explore the data, and gives
     # more control
+    #
 
     # open a FITS file for reading and explore
     >>> fits=fitsio.FITS('data.fits')
 
-    # see what is in here
+    # see what is in here; the FITS object prints itself
     >>> fits
 
     file: data.fits
@@ -183,9 +182,8 @@ Examples
 
     >>> fits.close()
 
-    # using a context, the file is closed automatically
-    # after leaving the block
-    with FITS('path/to/file','r') as fits:
+    # using a context, the file is closed automatically after leaving the block
+    with FITS('path/to/file') as fits:
         data = fits[ext].read()
 
 Installation
