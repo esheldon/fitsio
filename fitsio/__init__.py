@@ -3,8 +3,8 @@ A python library to read and write data to FITS files using cfitsio.
 
 This is a python extension written in c and python.
 
-Features
---------
+Some Features
+-------------
 
 - Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the

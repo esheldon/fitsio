@@ -20,9 +20,10 @@ Some Features
 - Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
+- Read columns and rows using slice notation similar to numpy arrays
+  This is like a more powerful memmap, since it is column-aware.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
-- read columns and rows using slice notation similar to numpy arrays
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
 - Read/write gzip files directly.  Read unix compress files (.Z,.zip).
