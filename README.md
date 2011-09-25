@@ -240,19 +240,6 @@ TODO
 ----
 
 - Read subsets of *images*
-- add tests for slice notation and the where function.
-- Want to also implement the following notation, e.g.  for extension 1
-
-        data=fits[1]['colname'][10:30]
-        rows=[3,8,11]
-        data=fits[1]['colname'][rows]
-        data=fits[1]['colname'].read()
-        cols=['x','y']
-        data=fits[1][cols][10:30]
-
-  That would require a FITSColumnSubset class.
-
-- don't need to update the hdu list quite so often.
 - keyword lists are getting long; implement **keys everywhere?  It would
   lengthen the functions because they must extract keywords, but would
   simplify wrapper code.
