@@ -22,7 +22,7 @@ Some Features
   whole file.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
-- read rows using slice notation similar to numpy arrays
+- read columns and rows using slice notation similar to numpy arrays
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
 - Read/write gzip files directly.  Read unix compress files (.Z,.zip).
@@ -118,16 +118,22 @@ Examples
 
     # read a subset of rows and columns. By default uses a case-insensitive
     # match but returned array leaves the names with original case
+    # if columns is a sequence, a recarray is returned
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
-    # read a subset of rows using slice notation, ala numpy arrays
+    # Similar but using slice notation
+    # row subsets
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
     >>> data = fits[1][rowlist]
 
-    # read a single column as a simple array.  This is less
-    # efficient when you plan to read multiple columns.
-    >>> data = fits[1].read_column('x', rows=[1,5])
+    # all rows of column 'x'
+    >>> data = fits[1]['x'][:]
+    # Read few columns, more efficient than single read for each.
+    >>> data = fits[1]['x','y'][:]
+    # General column and row subsets as row list or slice
+    >>> data = fits[1][columns][rows]
+
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual

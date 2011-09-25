@@ -6,24 +6,26 @@ This is a python extension written in c and python.
 Features
 --------
 
-- Read and write numpy arrays to and from image and binary table
-  extensions.  
+- Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
-- Read and write keywords.
+- Read columns and rows using slice notation similar to numpy arrays
+  This is like a more powerful memmap, since it is column-aware.
+- Append rows to an existing table.
+- Query the columns and rows in a table.
+- Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
-- Read/write gzip files. Read unix compress files (.Z,.zip)
-- TDIM information is used to return array columns in the correct shape
-- Correctly writes and reads string table columns, including array columns
-  of arbitrary shape.
-- Supports unsigned types the way the FITS standard allows, by converting
-  to signed and using zero offsets.  Note the FITS standard does not support
-  unsigned 64-bit at all.  Similarly, signed byte are converted to unsigned.
-- Correctly writes 1 byte integers table columns.
-- read rows using slice notation
-- Select rows from tables using arbitrary expressions.
+- Read/write gzip files directly.  Read unix compress files (.Z,.zip).
+- TDIM information is used to return array columns in the correct shape.
+- Write and read string table columns, including array columns of arbitrary
+  shape.
+- Read and write unsigned integer types and signed bytes.
+- Write checksums into the header.
 - data are guaranteed to conform to the FITS standard.
 
+Known CFITSIO Bugs
+------------------
+None known in the patched version 3280 included in this package.
 
 Examples
 --------
@@ -82,6 +84,7 @@ Examples
     extension: 1
     type: BINARY_TBL
     extname: mytable
+    rows: 4328342
     column info:
       i1scalar            u1
       f                   f4
@@ -105,16 +108,23 @@ Examples
 
     # read a subset of rows and columns. By default uses a case-insensitive
     # match but returned array leaves the names with original case
+    # if columns is a sequence, a recarray is returned
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
-    # read a subset of rows using slice notation, ala numpy arrays
+    # Similar but using slice notation
+
+    # row subsets
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
     >>> data = fits[1][rowlist]
 
-    # read a single column as a simple array.  This is less
-    # efficient when you plan to read multiple columns.
-    >>> data = fits[1].read_column('x', rows=[1,5])
+    # all rows of column 's'.  Data are read when the rows are specified.
+    >>> data = fits[1]['s'][:]
+    # Read few columns, more efficient than repeating single read for each.
+    >>> data = fits[1]['s','f'][:]
+    # General column and row subsets as row list or slice
+    >>> data = fits[1][columns][rows]
+
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
@@ -158,6 +168,9 @@ Examples
     # append more rows.  The fields in data2 should match columns in the table.
     # missing columns will be filled with zeros
     >>> fits.append(data2)
+
+    # add checksums for the data
+    >>> fits[-1].write_checksum()
 
     # you can also write a header at the same time.  The header
     # can be a simple dict, or a list of dicts with 'name','value','comment'

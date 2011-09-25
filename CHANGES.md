@@ -25,8 +25,8 @@ New features
             >>> data=fits[ext].read(rows=w)
             >>> data=fits[ext][w]
 
-    - You can now read rows from a table HDU using slice notation. e.g.
-      to read from extension 1
+    - You can now read rows and columns from a table HDU using slice notation. e.g.
+      to read row subsets from extension 1
             fits=fitsio.FITS(filename)
             data=fits[1][:]
             data=fits[1][10:30]
@@ -36,6 +36,13 @@ New features
             data=fits[1][rows]
       this is equivalent to
             data=fits[1].read(rows=rows)
+      To get columns subsets, the notation is similar.  The data are read
+      when the rows are specified.  If a sequence of columns is entered, 
+      a recarray is returned, otherwise a simple array.
+            data=fits[1]['x'][:]
+            data=fits[1]['x','y'][3:20]
+            data=fits[1][column_list][row_list]
+
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,
       this allows one to select among HDUs that have the same name. Thanks to
