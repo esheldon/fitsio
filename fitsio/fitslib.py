@@ -417,7 +417,6 @@ class FITS:
         """
 
         self.create_image_hdu(img, extname=extname, extver=extver, compress=compress, header=header)
-        self.update_hdu_list()
         self[-1].write_image(img)
         self.update_hdu_list()
 
@@ -491,12 +490,6 @@ class FITS:
                                     extname=extname, extver=extver)
         self.update_hdu_list()
 
-        """
-        if extname is not None:
-            self[-1].write_key("EXTNAME",str(extname))
-            if extver is not None:
-                self[-1].write_key('EXTVER',extver)
-        """
         if header is not None:
             self[-1].write_keys(header)
 

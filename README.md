@@ -152,14 +152,6 @@ Examples
     # now write some data
     >>> fits = FITS('test.fits','rw')
 
-    # create an image
-    >>> img=numpy.arange(20,30,dtype='i4')
-
-    # write an image in a new HDU (here the primary HDU)
-    >>> fits.write(img)
-
-    # write the image with rice compression
-    >>> fits.write(img, compress='rice')
  
     # create a rec array
     >>> nrows=35
@@ -174,10 +166,22 @@ Examples
     # note under the hood the above does the following
     >>> fits.create_table_hdu(dtype=data.dtype)
     >>> fits[-1].write(data)
+    >>> fits.update_hdu_list()
 
-    # append more rows.  The fields in data2 should match columns in the table.
-    # missing columns will be filled with zeros
+    # append more rows to the table.  The fields in data2 should match columns
+    # in the table.  missing columns will be filled with zeros
     >>> fits[-1].append(data2)
+
+
+    # create an image
+    >>> img=numpy.arange(20,30,dtype='i4')
+
+    # write an image in a new HDU (here the primary HDU)
+    >>> fits.write(img)
+
+    # write an image with rice compression
+    >>> fits.write(img, compress='rice')
+
 
     # add checksums for the data
     >>> fits[-1].write_checksum()
