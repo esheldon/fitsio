@@ -135,6 +135,10 @@ Examples
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
 
+    # you can grab a FITSHDU object to simplify notation
+    >>> hdu1 = fits[1]
+    >>> data = hdu1['x','y'][35:50]
+
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
@@ -186,8 +190,8 @@ Examples
     # add checksums for the data
     >>> fits[-1].write_checksum()
 
-    # you can also write a header at the same time.  The header
-    # can be a simple dict, or a list of dicts with 'name','value','comment'
+    # you can also write a header at the same time.  The header can be a simple
+    # dict (no comments), or a list of dicts with 'name','value','comment'
     # fields, or a FITSHDR object
 
     >>> header = {'somekey': 35, 'location': 'kitt peak'}
