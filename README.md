@@ -94,6 +94,7 @@ Examples
     extension: 1
     type: BINARY_TBL
     extname: mytable
+    rows: 4328342
     column info:
       i1scalar            u1
       f                   f4
