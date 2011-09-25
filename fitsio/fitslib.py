@@ -33,6 +33,7 @@ import os
 import numpy
 from . import _fitsio_wrap
 import copy
+import pprint
 
 def cfitsio_version(asfloat=False):
     """
@@ -1063,7 +1064,8 @@ class FITSHDU:
         ----------
         columns: optional
             An optional set of columns to read from table HDUs.  Default is to
-            read all.  Can be string or number.
+            read all.  Can be string or number.  If a sequence, a recarray
+            is always returned.  If a scalar, an ordinary array is returned.
         rows: optional
             An optional list of rows to read from table HDUS.  Default is to
             read all.
@@ -1158,6 +1160,9 @@ class FITSHDU:
         return array
 
     def __getitem__(self, arg):
+        """
+        FITSHDU __getitem__
+        """
         res, isrows, isslice = \
             self.process_args_as_rows_or_columns(arg)
 
@@ -1168,8 +1173,7 @@ class FITSHDU:
             else:
                 return self.read(rows=res)
         else:
-            raise ValueError("Currently you must send a row slice")
-        return self.read_slice(firstrow, lastrow)
+            return FITSHDUColumnSubset(self, res)
 
     def read_slice(self, firstrow, lastrow, step=1):
         """
@@ -1255,7 +1259,8 @@ class FITSHDU:
         ----------
         columns: list/array
             An optional set of columns to read from table HDUs.  Can be string
-            or number.
+            or number. If a sequence, a recarray is always returned.  If a
+            scalar, an ordinary array is returned.
         rows: list/array, optional
             An optional list of rows to read from table HDUS.  Default is to
             read all.
@@ -1266,6 +1271,10 @@ class FITSHDU:
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
+        if isinstance(colnums,int):
+            # scalar sent, don't read as a recarray
+            return self.read_column(columns, rows=rows)
+
         # if rows is None still returns None, and is correctly interpreted
         # by the reader to mean all
         rows = self._extract_rows(rows)
@@ -1530,7 +1539,8 @@ class FITSHDU:
             return numpy.arange(self.ncol, dtype='i8')
         
         if not isinstance(columns,(tuple,list,numpy.ndarray)):
-            columns=[columns]
+            # is a scalar
+            return self._extract_colnum(columns)
 
         colnums = numpy.zeros(len(columns), dtype='i8')
         for i in xrange(colnums.size):
@@ -1589,6 +1599,7 @@ class FITSHDU:
     def __repr__(self):
         spacing = ' '*2
         text = []
+        text.append("%sfile: %s" % (spacing,self.filename))
         text.append("%sextension: %d" % (spacing,self.info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[self.info['hdutype']]))
 
@@ -1656,6 +1667,92 @@ class FITSHDU:
 
 
 
+
+class FITSHDUColumnSubset(object):
+    """
+
+    A class representing a subset of the the columns on disk.  When called
+    with .read() or [ rows ]  the data are read from disk.
+
+    Useful because subsets can be passed around to functions, or chained
+    with a row selection.
+    
+    This class is returned when using [ ] notation to specify fields in the
+    FITSHDU class
+
+        fits = fitsio.FITS(fname)
+        colsub = fits[field_list]
+
+    returns a FITSHDUColumnSubset object.  To read rows:
+
+        data = fits[field_list][row_list] 
+
+        colsub = fits[field_list]
+        data = colsub[row_list]
+        data = colsub.read(rows=row_list)
+
+    to read all, use .read() with no args or [:]
+    """
+
+    def __init__(self, fitshdu, columns):
+        """
+        Input is the SFile instance and a list of column names.
+        """
+
+        if columns is None:
+            columns=fields
+
+        self.fitshdu = fitshdu 
+        self.columns = columns
+
+
+    def read(self, rows=None):
+        """
+        Read the data from disk and return as a numpy array
+        """
+
+        return self.fitshdu.read(rows=rows, columns=self.columns)
+
+    def __getitem__(self, arg):
+        """
+        If columns are sent, then the columns will just get reset and
+        we'll return a new object
+
+        If rows are sent, they are read and the result returned.
+        """
+
+        # we have to unpack the rows if we are reading a subset
+        # of the columns because our slice operator only works
+        # on whole rows.  We could allow rows= keyword to
+        # be a slice...
+
+        res, isrows, isslice = \
+            self.fitshdu.process_args_as_rows_or_columns(arg, unpack=True)
+        if isrows:
+            # rows was entered: read all current column subset
+            return self.read(rows=res)
+
+        # columns was entered.  Return a subset objects
+        return FITSHDUColumnSubset(self.fitshdu, columns=res)
+
+
+    def __repr__(self):
+        spacing = ' '*2
+        cspacing = ' '*4
+
+        text = []
+        text.append("%sfile: %s" % (spacing,self.fitshdu.filename))
+        text.append("%sextension: %d" % (spacing,self.fitshdu.info['hdunum']-1))
+        text.append("%stype: %s" % (spacing,_hdu_type_map[self.fitshdu.info['hdutype']]))
+        text.append("%scolumn subset:" %  spacing)
+
+        c=pprint.pformat(self.columns, indent=4)
+        c = c.split('\n')
+        for r in c:
+            text.append('%s%s' % (cspacing, r))
+
+        s = "\n".join(text)
+        return s
 
 
 

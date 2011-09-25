@@ -384,6 +384,58 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testSlice(self):
+        """
+        Test reading by slice
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableAppend-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                # initial write
+                fits.write_table(self.data)
+
+                # test reading single columns
+                for f in self.data.dtype.names:
+                    d = fits[1][f][:]
+                    self.compare_array(self.data[f], d, "test read all rows %s column subset" % f)
+
+                # test reading row subsets
+                rows = [1,3]
+                for f in self.data.dtype.names:
+                    d = fits[1][f][rows]
+                    self.compare_array(self.data[f][rows], d, "test %s row subset" % f)
+                for f in self.data.dtype.names:
+                    d = fits[1][f][1:3]
+                    self.compare_array(self.data[f][1:3], d, "test %s row slice" % f)
+
+                # now list of columns
+                cols=['u2scalar','f4vec','Sarr']
+                d = fits[1][cols][:]
+                for f in d.dtype.names: 
+                    self.compare_array(self.data[f][:], d[f], "test column list %s row subset" % f)
+
+
+                cols=['u2scalar','f4vec','Sarr']
+                d = fits[1][cols][rows]
+                for f in d.dtype.names: 
+                    self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
+
+                cols=['u2scalar','f4vec','Sarr']
+                d = fits[1][cols][1:3]
+                for f in d.dtype.names: 
+                    self.compare_array(self.data[f][1:3], d[f], "test column list %s row slice" % f)
+
+
+
+        finally:
+            if os.path.exists(fname):
+                pass
+                #os.remove(fname)
+
+
+
 
     def testTableAppend(self):
         """
