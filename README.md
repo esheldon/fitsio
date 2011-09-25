@@ -132,7 +132,7 @@ Examples
     >>> data = fits[1]['x'][:]
     # Read few columns, more efficient than single read for each.
     >>> data = fits[1]['x','y'][:]
-    # General column and row subsets as row list or slice
+    # General column and row subsets.
     >>> data = fits[1][columns][rows]
 
     
