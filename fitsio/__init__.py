@@ -112,16 +112,15 @@ Examples
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
     # Similar but using slice notation
-
     # row subsets
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
     >>> data = fits[1][rowlist]
 
-    # all rows of column 's'.  Data are read when the rows are specified.
-    >>> data = fits[1]['s'][:]
-    # Read few columns, more efficient than repeating single read for each.
-    >>> data = fits[1]['s','f'][:]
+    # all rows of column 'x'
+    >>> data = fits[1]['x'][:]
+    # Read few columns, more efficient than single read for each.
+    >>> data = fits[1]['x','y'][:]
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
 
@@ -145,11 +144,11 @@ Examples
     # create an image
     >>> img=numpy.arange(20,30,dtype='i4')
 
-    # write the data to the primary HDU
-    >>> fits.write_image(img)
+    # write an image in a new HDU (here the primary HDU)
+    >>> fits.write(img)
 
     # write the image with rice compression
-    >>> fits.write_image(img, compress='rice')
+    >>> fits.write(img, compress='rice')
  
     # create a rec array
     >>> nrows=35
@@ -159,7 +158,7 @@ Examples
     >>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
     # create a new table extension and write the data
-    >>> fits.write_table(data)
+    >>> fits.write(data)
 
     # note under the hood the above does the following
     >>> fits.create_table_hdu(dtype=data.dtype)
@@ -167,7 +166,7 @@ Examples
 
     # append more rows.  The fields in data2 should match columns in the table.
     # missing columns will be filled with zeros
-    >>> fits.append(data2)
+    >>> fits[-1].append(data2)
 
     # add checksums for the data
     >>> fits[-1].write_checksum()
