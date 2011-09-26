@@ -812,6 +812,8 @@ class FITSHDU:
 
         """
 
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("where() only works on tables")
         return self._FITS.where(self.ext+1, expression)
 
     def has_data(self):
