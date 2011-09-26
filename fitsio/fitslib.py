@@ -1188,7 +1188,6 @@ class FITSHDU:
 
     def __getitem__(self, arg):
         """
-
         Get data from an extension using [] notation.  
         
         You can use [] to extract column and row subsets, or read everything.
@@ -1235,7 +1234,7 @@ class FITSHDU:
             Step between rows.  If step is 2, skip every other row.
         """
 
-        if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
+        if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
 
         maxrow = self.info['nrows']
@@ -1308,7 +1307,7 @@ class FITSHDU:
             read all.
         """
 
-        if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
+        if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot yet read columns from an image HDU")
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
@@ -1361,9 +1360,6 @@ class FITSHDU:
 
     def process_args_as_rows_or_columns(self, arg, unpack=False):
         """
-
-        args must be a tuple.  Only the first one or two args are used.
-
         We must be able to interpret the args as as either a column name or
         row number, or sequences thereof.  Numpy arrays and slices are also
         fine.
@@ -1374,7 +1370,6 @@ class FITSHDU:
             [35,55,86]
             ['f1',f2',...]
         Can also be tuples or arrays.
-
         """
 
         isslice = False
