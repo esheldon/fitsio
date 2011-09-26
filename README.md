@@ -254,7 +254,6 @@ TODO
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
 - variable length columns 
-- row filtering?
 - HDU groups?
 
 Note on array ordering
