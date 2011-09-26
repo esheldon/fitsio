@@ -1077,9 +1077,17 @@ class FITSHDU:
         """
         read data from this HDU
 
-        By default, all data are read.  For tables, send columns= and rows= to
-        select subsets of the data.  Table data are read into a recarray; use
-        read_column() to get a single column as an ordinary array.
+        By default, all data are read.  
+        
+        For tables, send columns= and rows= to select subsets of the data.
+        Table data are read into a recarray; use read_column() to get a single
+        column as an ordinary array.  You can alternatively use slice notation
+            fits=fitsio.FITS(filename)
+            fits[ext][:]
+            fits[ext][2:5]
+            fits[ext][200:235:2]
+            fits[ext][rows]
+            fits[ext][cols][rows]
 
         parameters
         ----------
@@ -1120,6 +1128,16 @@ class FITSHDU:
         """
         Read the specified column
 
+        Alternatively, you can use slice notation
+            fits=fitsio.FITS(filename)
+            fits[ext][colname][:]
+            fits[ext][colname][2:5]
+            fits[ext][colname][200:235:2]
+            fits[ext][colname][rows]
+
+        Note, if reading multiple columns, it is more efficient to use
+        read(columns=) or slice notation with a list of column names.
+
         parameters
         ----------
         col: string/int,  required
@@ -1146,30 +1164,18 @@ class FITSHDU:
         return array
 
 
-    def read_all(self, slow=False):
+    def read_all(self):
         """
-        Read an entire table.
+        Read all data in the HDU.
+        """
 
-        parameters
-        ----------
-        slow: bool, optional
-            Read the columns one at a time rather than all at once.
-            This will be done automatically for .gz or .Z files.
-        """
-        """
-        if self.is_compressed:
-            # we need to use the inernal cfitsio buffers in this case;
-            # read_columns always uses buffers
-            colnums = self._extract_colnums()
-            return self.read_columns(colnums)
-        """
+        if self.info['hdutype'] == IMAGE_HDU:
+            return self.read_image()
 
         dtype = self.get_rec_dtype()
         nrows = self.info['nrows']
         array = numpy.zeros(nrows, dtype=dtype)
 
-        # read entire thing as a single fread.  This won't work for .gz or
-        # .Z files because we have to work with the buffers
         self._FITS.read_as_rec(self.ext+1, array)
 
         for colnum,name in enumerate(array.dtype.names):
@@ -1182,7 +1188,22 @@ class FITSHDU:
 
     def __getitem__(self, arg):
         """
-        FITSHDU __getitem__
+
+        Get data from an extension using [] notation.  
+        
+        You can use [] to extract column and row subsets, or read everything.
+        The notation is essentially the same as numpy [] notation, except that
+        a sequence of column names may also be given.  Examples reading from
+        "filename", extension "ext"
+
+            fits=fitsio.FITS(filename)
+            fits[ext][:]
+            fits[ext][2:5]
+            fits[ext][200:235:2]
+            fits[ext][rows]
+            fits[ext][cols][rows]
+
+        Note data are only read once the rows are specified.
         """
         res, isrows, isslice = \
             self.process_args_as_rows_or_columns(arg)
