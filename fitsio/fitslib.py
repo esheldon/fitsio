@@ -380,9 +380,6 @@ class FITS:
         """
         Create a new image extension and write the data.  
 
-        Unlike tables, the only way to create image extensions and write the
-        data is atomically using this function.
-
         parameters
         ----------
         img: ndarray
@@ -504,10 +501,11 @@ class FITS:
         """
         Create a new table extension and write the data.
 
-        The table definition is taken from the input rec array.  If you
-        want to append new rows to the table, access the HDU directly
-        and use the write() function, e.g.
-            fits[extension].write(data, append_rows=True)
+        The table definition is taken from the fields in the input array.  If
+        you want to append new rows to the table, access the HDU directly and
+        use the write() function, e.g.
+
+            fits[extension].append(data)
 
         parameters
         ----------
