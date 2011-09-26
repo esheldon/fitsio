@@ -148,9 +148,11 @@ def _make_item(ext, extver=None):
 
 def write(filename, data, extname=None, extver=None, units=None, compress=None, header=None, clobber=False):
     """
-    Convenience function to Write data to a FITS file.
+    Convenience function to create a new HDU and write the data.
 
-    Under the hood, a FITS object is constructed.
+    Under the hood, a FITS object is constructed.  If you want to append rows
+    to an existing HDU, or modify data in an HDU, please construct a FITS
+    object.
 
     parameters
     ----------
@@ -917,7 +919,10 @@ class FITSHDU:
         ----------
         data: ndarray
             A numerical python array.  Should be an ordinary array for image
-            HDUs, should have fields for tables.
+            HDUs, should have fields for tables.  To write an ordinary array to
+            a column in a table HDU, use write_column.  If data already exists
+            in this HDU, it will be overwritten.  See the append(() method to
+            append new rows to a table HDU.
         firstrow: integer, optional
             At which row you should begin writing to tables.  Be sure you know
             what you are doing!  For appending see the append() method.
@@ -969,6 +974,8 @@ class FITSHDU:
         """
         Write the image into this HDU
 
+        If data already exist in this HDU, they will be overwritten.
+
         parameters
         ----------
         img: ndarray
@@ -995,6 +1002,8 @@ class FITSHDU:
     def write_column(self, column, data, firstrow=0):
         """
         Write data to a column in this HDU
+
+        This HDU must be a table HDU.
 
         parameters
         ----------
