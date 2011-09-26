@@ -326,8 +326,9 @@ class FITS:
         """
         Write the data to a new HDU.
 
-        This method is a wrapper.  If the input is an array with fields,
-        FITS.write_table is called, otherwise FITS.write_image is called.
+        This method is a wrapper.  If this is an IMAGE_HDU, write_image is
+        called, otherwise the array must have fields and these are written to
+        the corresponding columns in the table.
 
         parameters
         ----------
