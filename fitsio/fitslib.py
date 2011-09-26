@@ -327,13 +327,12 @@ class FITS:
         Write the data to a new HDU.
 
         This method is a wrapper.  If this is an IMAGE_HDU, write_image is
-        called, otherwise the array must have fields and these are written to
-        the corresponding columns in the table.
+        called, otherwise write_table is called.
 
         parameters
         ----------
         data: ndarray
-            An n-dimensional image or a recarray.
+            An n-dimensional image or an array with fields.
         extname: string, optional
             An optional extension name.
         extver: integer, optional
