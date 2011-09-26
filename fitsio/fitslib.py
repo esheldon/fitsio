@@ -923,9 +923,18 @@ class FITSHDU:
             what you are doing!  For appending see the append() method.
             Default 0.
         """
-        if data.dtype.fields is None:
+
+        if self.info['hdutype'] == IMAGE_HDU:
             self.write_image(data)
         else:
+            if data.dtype.fields is None:
+
+                raise ValueError("You are writing to a table, so I expected "
+                                 "an array with fields as input. If you want "
+                                 "to write a simple array, you should use "
+                                 "write_column to write to a single column, "
+                                 "or instead write to an image hdu")
+
             for name in data.dtype.names:
                 self.write_column(name, data[name], firstrow=firstrow)
 
@@ -965,10 +974,12 @@ class FITSHDU:
         img: ndarray
             A simple numpy ndarray
         """
+
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
         if img.size == 0:
             raise ValueError("data must have at least 1 row")
+
         # data must be c-contiguous and native byte order
         if not img.flags['C_CONTIGUOUS']:
             # this always makes a copy
