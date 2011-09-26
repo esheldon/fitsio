@@ -543,12 +543,10 @@ class FITS:
             raise ValueError("data must have fields")
         if data.size == 0:
             raise ValueError("data must have at least 1 row")
-
-        names, formats, dims = descr2tabledef(data.dtype.descr)
-        self.create_table_hdu(names,formats,
-                              units=units, dims=dims, extname=extname,extver=extver,
-                              header=header)
         
+        self.create_table_hdu(dtype=data.dtype, 
+                              units=units, extname=extname,extver=extver,
+                              header=header)
         self[-1].write(data)
         self.update_hdu_list()
 
@@ -954,7 +952,7 @@ class FITSHDU:
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Cannot append to an image HDU")
+            raise ValueError("Cannot append rows to an image HDU")
 
         firstrow=self.info['nrows']
 
