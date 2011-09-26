@@ -558,36 +558,41 @@ class FITS:
         There are two ways to do it:
             1) send a numpy dtype, from which the formats in the fits file will
                be determined.
-            2) send the names,formats yourself
+            2) send the names,formats and dims yourself
 
         You can then write data into the new extension using
             fits[extension].write(array)
+        If you want to write to a single column
             fits[extension].write_column(array)
+        But be careful as the other columns will be left zeroed.
 
-        typically you will instead just use 
+        Often you will instead just use write_table to do this all
+        atomically.
 
             fits.write_table(recarray)
 
-        which will create the new table extension for you with the appropriate
-        fields.
+        write_table will create the new table extension for you with the
+        appropriate fields.
 
         parameters
         ----------
-        dtype: numpy dtype or descr
-            If you have an array with fields, you can just send arr.dtype.
-            You can also use a list of tuples, e.g. [('x','f8'),('index','i4')]
-            or the dict method.
-        names: list of strings
+        dtype: numpy dtype or descriptor, optional
+            If you have an array with fields, you can just send arr.dtype.  You
+            can also use a list of tuples, e.g. [('x','f8'),('index','i4')] or
+            a dictionary representation.
+
+        names: list of strings, optional
             The list of field names
-        formats: list of strings
+        formats: list of strings, optional
             The TFORM format strings for each field.
-        units: list of strings, optional
-            An optional list of unit strings for each field.
         dims: list of strings, optional
             An optional list of dimension strings for each field.  Should
             match the repeat count for the formats fields. Be careful of
             the order since FITS is more like fortran. See the descr2tabledef
             function.
+
+        units: list of strings, optional
+            An optional list of unit strings for each field.
         extname: string, optional
             An optional extension name.
         extver: integer, optional
@@ -614,21 +619,26 @@ class FITS:
         if dtype is not None:
             dtype=numpy.dtype(dtype)
             names, formats, dims = descr2tabledef(dtype.descr)
+        else:
+            if names is None or formats is None:
+                raise ValueError("send either dtype= or names= and formats=")
 
-        if not isinstance(names,list) or not isinstance(formats,list):
-            raise ValueError("names and formats should be lists")
-        if len(names) != len(formats):
-            raise ValueError("names and formats must be same length")
+            if not isinstance(names,list) or not isinstance(formats,list):
+                raise ValueError("names and formats should be lists")
+            if len(names) != len(formats):
+                raise ValueError("names and formats must be same length")
+
+            if dims is not None:
+                if not isinstance(dims,list):
+                    raise ValueError("dims should be a list")
+                if len(dims) != len(names):
+                    raise ValueError("names and dims must be same length")
+
         if units is not None:
             if not isinstance(units,list):
                 raise ValueError("units should be a list")
             if len(units) != len(names):
                 raise ValueError("names and units must be same length")
-        if dims is not None:
-            if not isinstance(dims,list):
-                raise ValueError("dims should be a list")
-            if len(dims) != len(names):
-                raise ValueError("names and dims must be same length")
         if extname is not None:
             if not isinstance(extname,str):
                 raise ValueError("extension name must be a string")
@@ -1832,6 +1842,9 @@ def descr2tabledef(descr):
             name, form, dim = npy_string2fits(d)
         else:
             name, form, dim = npy_num2fits(d)
+
+        if name == '':
+            raise ValueError("field name is an empty string")
 
         names.append(name)
         formats.append(form)
