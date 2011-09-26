@@ -46,8 +46,8 @@ Examples
 
     # open the file, write a new binary table extension, and then write  the
     # data from "recarray" into the table. By default a new extension is
-    # appended to the file.  use clobber=True to overwrite an existing file
-    # instead
+    # added to the file.  use clobber=True to overwrite an existing file
+    # instead.  To append rows to an existing table, see below.
     >>> fitsio.write(filename, recarray)
     # write an image
     >>> fitsio.write(filename, image)
@@ -94,6 +94,10 @@ Examples
       svec                S6  array[3]
       sarr                S2  array[4,3]
 
+    # [-1] to refers the last HDU
+    >>> fits[-1]
+    ...
+
     # if there are multiple HDUs with the same name, and an EXTVER
     # is set, you can use it.  Here extver=2
     #    fits['mytable',2]
@@ -119,7 +123,7 @@ Examples
 
     # all rows of column 'x'
     >>> data = fits[1]['x'][:]
-    # Read few columns, more efficient than single read for each.
+    # Read a few columns, more efficient than single read for each.
     >>> data = fits[1]['x','y'][:]
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
@@ -169,7 +173,7 @@ Examples
     # create an image
     >>> img=numpy.arange(20,30,dtype='i4')
 
-    # write an image in a new HDU (here the primary HDU)
+    # write an image in a new HDU (if this is a new file, the primary HDU)
     >>> fits.write(img)
 
     # write an image with rice compression
@@ -193,7 +197,7 @@ Examples
 
     # using a context, the file is closed automatically after leaving the block
     with FITS('path/to/file') as fits:
-        data = fits[ext].read()
+        data = fits[ext][:]
 
 
 """
