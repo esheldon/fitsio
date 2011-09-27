@@ -31,7 +31,8 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
-void set_ioerr_string_from_status(int status) {
+static void 
+set_ioerr_string_from_status(int status) {
     char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
     char message[1024];
 
@@ -171,7 +172,7 @@ struct stringlist* stringlist_new(void) {
     return slist;
 }
 // push a copy of the string onto the string list
-void stringlist_push(struct stringlist* slist, const char* str) {
+static void stringlist_push(struct stringlist* slist, const char* str) {
     size_t newsize=0;
     size_t slen=0;
     size_t i=0;
@@ -187,7 +188,7 @@ void stringlist_push(struct stringlist* slist, const char* str) {
     strcpy(slist->data[i], str);
 }
 
-void stringlist_push_size(struct stringlist* slist, size_t slen) {
+static void stringlist_push_size(struct stringlist* slist, size_t slen) {
     size_t newsize=0;
     size_t i=0;
 
@@ -200,7 +201,7 @@ void stringlist_push_size(struct stringlist* slist, size_t slen) {
     slist->data[i] = malloc(sizeof(char)*(slen+1));
     memset(slist->data[i], 0, slen+1);
 }
-struct stringlist* stringlist_delete(struct stringlist* slist) {
+static struct stringlist* stringlist_delete(struct stringlist* slist) {
     if (slist != NULL) {
         size_t i=0;
         if (slist->data != NULL) {
@@ -214,7 +215,7 @@ struct stringlist* stringlist_delete(struct stringlist* slist) {
     return NULL;
 }
 
-int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
+static int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
     size_t size=0, i=0;
 
     if (!PyList_Check(listObj)) {
@@ -236,7 +237,7 @@ int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, cons
     return 0;
 }
 
-void stringlist_print(struct stringlist* slist) {
+static void stringlist_print(struct stringlist* slist) {
     size_t i=0;
     if (slist == NULL) {
         return;
@@ -251,7 +252,7 @@ void stringlist_print(struct stringlist* slist) {
 // if maxlen is 0, the full string is copied, else
 // it is maxlen+1 for the following null
 /*
-char* copy_py_string(PyObject* obj, int maxlen, int* status) {
+static char* copy_py_string(PyObject* obj, int maxlen, int* status) {
     char* buffer=NULL;
     int len=0;
     if (obj != NULL && obj != Py_None) {
@@ -277,7 +278,7 @@ char* copy_py_string(PyObject* obj, int maxlen, int* status) {
 
 // this will need to be updated for array string columns.
 // I'm using a tcolumn* here, could cause problems
-long get_groupsize(tcolumn* colptr) {
+static long get_groupsize(tcolumn* colptr) {
     long gsize=0;
     if (colptr->tdatatype == TSTRING) {
         //gsize = colptr->twidth;
@@ -287,7 +288,7 @@ long get_groupsize(tcolumn* colptr) {
     }
     return gsize;
 }
-npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
+static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
 
     npy_int64* colnums;
     int npy_type=0;
@@ -720,7 +721,7 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
     return 0;
 }
 
-int pyarray_get_ndim(PyObject* obj) {
+static int pyarray_get_ndim(PyObject* obj) {
     PyArrayObject* arr;
     arr = (PyArrayObject*) obj;
     return arr->nd;
