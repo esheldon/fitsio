@@ -237,7 +237,6 @@ The unit tests should all pass for full support.
 TODO
 ----
 
-- Make python 2.5 compatible (import with statement from __future__)
 - Read subsets of *images*
 - keyword lists are getting long; implement **keys everywhere?  It would
   lengthen the functions because they must extract keywords, but would
