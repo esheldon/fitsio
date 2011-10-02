@@ -1686,21 +1686,20 @@ class FITSHDU:
 
                 dt = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
                 if self.info['colinfo'][colnum]['eqtype'] < 0:
-                    isvariable=True
+                    tform = self.info['colinfo'][colnum]['tform']
+                    dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
-                    isvariable=False
-
-                tdim = c['tdim']
-                dimstr=''
-                if dt[0] == 'S':
-                    if len(tdim) > 1:
-                        dimstr = [str(d) for d in tdim[1:]]
-                else:
-                    if len(tdim) > 1 or tdim[0] > 1:
-                        dimstr = [str(d) for d in tdim]
-                if dimstr != '':
-                    dimstr = ','.join(dimstr)
-                    dimstr = 'array[%s]' % dimstr
+                    tdim = c['tdim']
+                    dimstr=''
+                    if dt[0] == 'S':
+                        if len(tdim) > 1:
+                            dimstr = [str(d) for d in tdim[1:]]
+                    else:
+                        if len(tdim) > 1 or tdim[0] > 1:
+                            dimstr = [str(d) for d in tdim]
+                    if dimstr != '':
+                        dimstr = ','.join(dimstr)
+                        dimstr = 'array[%s]' % dimstr
 
                 s = f % (c['name'],dt,dimstr)
                 text.append(s)
@@ -1808,8 +1807,19 @@ class FITSHDUColumnSubset(object):
 
 
 
+def extract_vararray_max(tform):
+    """
+    Extract number from PX(number)
+    """
 
+    first=tform.find('(')
+    last=tform.rfind(')')
+    
+    if first == -1 or last == -1:
+        raise ValueError("No maximum len specified in tform: %s" % tform)
 
+    maxnum=int(tform[first+1:last])
+    return maxnum
 
 def check_extver(extver):
     if extver is None:
