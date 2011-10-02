@@ -1152,16 +1152,19 @@ class FITSHDU:
         colnum = self._extract_colnum(col)
         rows = self._extract_rows(rows)
 
-        npy_type, shape = self._get_simple_dtype_and_shape(colnum, rows=rows)
+        if self.info['colinfo'][colnum]['eqtype'] < 0:
+            return self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+        else:
+            npy_type, shape = self._get_simple_dtype_and_shape(colnum, rows=rows)
 
-        array = numpy.zeros(shape, dtype=npy_type)
+            array = numpy.zeros(shape, dtype=npy_type)
 
-        self._FITS.read_column(self.ext+1,colnum+1, array, rows)
-        
-        self._rescale_array(array, 
-                            self.info['colinfo'][colnum]['tscale'], 
-                            self.info['colinfo'][colnum]['tzero'])
-        return array
+            self._FITS.read_column(self.ext+1,colnum+1, array, rows)
+            
+            self._rescale_array(array, 
+                                self.info['colinfo'][colnum]['tscale'], 
+                                self.info['colinfo'][colnum]['tzero'])
+            return array
 
 
     def read_all(self):
@@ -1559,7 +1562,7 @@ class FITSHDU:
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
         try:
             ftype = self.info['colinfo'][colnum]['eqtype']
-            npy_type = _table_fits2npy[ftype]
+            npy_type = _table_fits2npy[abs(ftype)]
         except KeyError:
             raise KeyError("unsupported fits data type: %d" % ftype)
 
@@ -1682,6 +1685,10 @@ class FITSHDU:
                     f = format
 
                 dt = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
+                if self.info['colinfo'][colnum]['eqtype'] < 0:
+                    isvariable=True
+                else:
+                    isvariable=False
 
                 tdim = c['tdim']
                 dimstr=''
@@ -2238,10 +2245,10 @@ _table_fits2npy = {11:'u1',
                    16: 'S',
                    20: 'u2',
                    21: 'i2',
-                   30: 'u4',
-                   31: 'i4',
-                   40: 'u4',
-                   41: 'i4',
+                   30: 'u4', # 30=TUINT
+                   31: 'i4', # 31=TINT
+                   40: 'u4', # 40=TULONG
+                   41: 'i4', # 41=TLONG
                    42: 'f4',
                    81: 'i8',
                    82: 'f8'}

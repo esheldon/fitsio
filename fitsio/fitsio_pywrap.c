@@ -484,13 +484,17 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             long naxes[10];
             tcolumn* col=NULL;
             struct stringlist* names=NULL;
+            struct stringlist* tforms=NULL;
             names=stringlist_new();
+            tforms=stringlist_new();
 
             for (i=0; i<ncols; i++) {
                 stringlist_push_size(names, 70);
+                stringlist_push_size(tforms, 70);
             }
             // just get the names: no other way to do it!
-            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, NULL, NULL, NULL, NULL, &tstatus);
+            //fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, NULL, NULL, NULL, NULL, &tstatus);
+            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, tforms->data, NULL, NULL, NULL, &tstatus);
 
             for (i=0; i<ncols; i++) {
                 PyObject* d = PyDict_New();
@@ -499,7 +503,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 LONGLONG width=0;
 
                 PyDict_SetItemString(d, "name", PyString_FromString(names->data[i]));
-                PyList_Append(colinfo, d);
+                PyDict_SetItemString(d, "tform", PyString_FromString(tforms->data[i]));
 
                 fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
                 PyDict_SetItemString(d, "type", PyLong_FromLong( (long)type));
@@ -529,13 +533,17 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                     PyDict_SetItemString(d, "tdim", tdim_list);
                 }
 
-                // here we have to go to the struct here, could cause problems
+                // using the struct, could cause problems
+                // actually, we can use ffgcprll to get this info, but will
+                // be redundant with some others above
                 col = &self->fits->Fptr->tableptr[i];
                 PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
                 PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
 
+                PyList_Append(colinfo, d);
             }
             names=stringlist_delete(names);
+            tforms=stringlist_delete(tforms);
 
             PyDict_SetItemString(dict, "colinfo", colinfo);
         }
@@ -720,6 +728,129 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
 
     return 0;
 }
+
+
+/* 
+ * this is really only for reading variable length columns since we should be
+ * able to just read the bytes for normal columns
+ */
+static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
+
+    if (fits_dtype < 0) {
+        *isvariable=1;
+    } else {
+        *isvariable=0;
+    }
+
+    switch (abs(fits_dtype)) {
+        case TBIT:
+            return NPY_INT8;
+        case TLOGICAL: // literal T or F stored as char
+            return NPY_INT8;
+        case TBYTE:
+            return NPY_UINT8;
+        case TSBYTE:
+            return NPY_INT8;
+
+        case TUSHORT:
+            if (sizeof(unsigned short) == sizeof(npy_uint16)) {
+                return NPY_UINT16;
+            } else if (sizeof(unsigned short) == sizeof(npy_uint8)) {
+                return NPY_UINT8;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TUSHORT");
+                return -9999;
+            }
+        case TSHORT:
+            if (sizeof(short) == sizeof(npy_int16)) {
+                return NPY_INT16;
+            } else if (sizeof(short) == sizeof(npy_int8)) {
+                return NPY_INT8;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TSHORT");
+                return -9999;
+            }
+
+        case TUINT:
+            if (sizeof(unsigned int) == sizeof(npy_uint32)) {
+                return NPY_UINT32;
+            } else if (sizeof(unsigned int) == sizeof(npy_uint64)) {
+                return NPY_UINT64;
+            } else if (sizeof(unsigned int) == sizeof(npy_uint16)) {
+                return NPY_UINT16;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TUINT");
+                return -9999;
+            }
+        case TINT:
+            if (sizeof(int) == sizeof(npy_int32)) {
+                return NPY_INT32;
+            } else if (sizeof(int) == sizeof(npy_int64)) {
+                return NPY_INT64;
+            } else if (sizeof(int) == sizeof(npy_int16)) {
+                return NPY_INT16;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TINT");
+                return -9999;
+            }
+
+        case TULONG:
+            if (sizeof(unsigned long) == sizeof(npy_uint32)) {
+                return NPY_UINT32;
+            } else if (sizeof(unsigned long) == sizeof(npy_uint64)) {
+                return NPY_UINT64;
+            } else if (sizeof(unsigned long) == sizeof(npy_uint16)) {
+                return NPY_UINT16;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TULONG");
+                return -9999;
+            }
+        case TLONG:
+            if (sizeof(unsigned long) == sizeof(npy_int32)) {
+                return NPY_INT32;
+            } else if (sizeof(unsigned long) == sizeof(npy_int64)) {
+                return NPY_INT64;
+            } else if (sizeof(long) == sizeof(npy_int16)) {
+                return NPY_INT16;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TLONG");
+                return -9999;
+            }
+
+
+        case TLONGLONG:
+            if (sizeof(LONGLONG) == sizeof(npy_int64)) {
+                return NPY_INT64;
+            } else if (sizeof(LONGLONG) == sizeof(npy_int32)) {
+                return NPY_INT32;
+            } else if (sizeof(LONGLONG) == sizeof(npy_int16)) {
+                return NPY_INT16;
+            } else {
+                PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TLONGLONG");
+                return -9999;
+            }
+
+
+
+        case TFLOAT:
+            return NPY_FLOAT32;
+        case TDOUBLE:
+            return NPY_FLOAT64;
+
+        case TSTRING:
+            return NPY_STRING;
+
+        default:
+            PyErr_Format(PyExc_TypeError,"Unsupported FITS table datatype %d", fits_dtype); 
+            return -9999;
+    }
+
+    return 0;
+}
+
+
+
+
 
 static int pyarray_get_ndim(PyObject* obj) {
     PyArrayObject* arr;
@@ -1476,8 +1607,147 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     }
     Py_RETURN_NONE;
 }
- 
 
+/*
+ * Free all the elements in the python list as well as the list itself
+ */
+void free_all_python_list(PyObject* list) {
+    if (PyList_Check(list)) {
+        Py_ssize_t i=0;
+        for (i=0; i<PyList_Size(list); i++) {
+            Py_XDECREF(PyList_GetItem(list,i));
+        }
+    }
+    Py_XDECREF(list);
+}
+
+
+/*
+ * read a variable length column as a list of arrays
+ * what about strings?
+ */
+static PyObject *
+PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int colnum=0;
+    PyObject* rowsobj;
+
+    int hdutype=0;
+    int ncols=0;
+    LONGLONG nrows=0;
+
+    int status=0, tstatus=0;
+
+    void* data=NULL;
+
+    int fits_dtype=0;
+    int npy_dtype=0;
+    int isvariable=0;
+    int fortran=0;
+    LONGLONG repeat=0;
+    LONGLONG width=0;
+
+    PyObject* listObj=NULL;
+    PyObject* tempArray=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &rowsobj)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (hdutype == IMAGE_HDU) {
+        PyErr_SetString(PyExc_RuntimeError, "Cannot yet read columns from an IMAGE_HDU");
+        return NULL;
+    }
+    // using struct defs here, could cause problems
+    fits_get_num_cols(self->fits, &ncols, &status);
+    if (colnum < 1 || colnum > ncols) {
+        PyErr_SetString(PyExc_RuntimeError, "requested column is out of bounds");
+        return NULL;
+    }
+
+    if (fits_get_coltypell(self->fits, colnum, &fits_dtype, &repeat, &width, &status) > 0) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    npy_dtype = fits_to_npy_table_type(fits_dtype, &isvariable);
+    if (npy_dtype < 0) {
+        return NULL;
+    }
+    if (!isvariable) {
+        PyErr_Format(PyExc_TypeError,"Column %d not a variable length %d", colnum, fits_dtype); 
+        return NULL;
+    }
+    
+    listObj = PyList_New(0);
+    fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+    if (rowsobj == Py_None) {
+        LONGLONG offset=0;
+        LONGLONG i=0;
+        npy_intp dims[1];
+        void* nulval=0;
+        int* anynul=NULL;
+        for (i=0; i<nrows; i++) {
+            // repeat holds how many elements are in this row
+            if (fits_read_descriptll(self->fits, colnum, i+1, &repeat, &offset, &status) > 0) {
+                goto read_var_column_cleanup;
+            }
+            dims[0] = repeat;
+            tempArray=PyArray_ZEROS(1, dims, npy_dtype, fortran);
+            if (tempArray==NULL) {
+                tstatus=1;
+                PyErr_Format(PyExc_MemoryError, 
+                             "Could not allocate array type %d size %lld",npy_dtype,repeat);
+                goto read_var_column_cleanup;
+            }
+            data = PyArray_DATA(tempArray);
+            if (fits_read_col(self->fits,abs(fits_dtype),colnum,i+1,1,repeat,nulval,data,anynul,&status) > 0) {
+                goto read_var_column_cleanup;
+            }
+            PyList_Append(listObj, tempArray);
+        }
+    } else {
+        // port this
+        /*
+        npy_intp nrows=0;
+        npy_int64* rows=NULL;
+        npy_intp stride=0;
+        rows = get_int64_from_array(rowsobj, &nrows);
+        if (rows == NULL) {
+            return NULL;
+        }
+        stride = PyArray_STRIDE(array,0);
+        if (read_column_bytes_byrow(self->fits, colnum, nrows, rows,
+                                    data, stride, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+        */
+    }
+
+read_var_column_cleanup:
+
+    if (status != 0 || tstatus != 0) {
+        Py_XDECREF(tempArray);
+        free_all_python_list(listObj);
+        if (status != 0) {
+            set_ioerr_string_from_status(status);
+        }
+        return NULL;
+    }
+
+    return listObj;
+}
+ 
 // read the specified columns, and all rows, into the data array.  It is
 // assumed the data match the requested columns perfectly, and that the column
 // list is sorted
@@ -2169,6 +2439,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
+    {"read_var_column_as_list",          (PyCFunction)PyFITSObject_read_var_column_as_list,          METH_VARARGS,  "read_var_column_as_list\n\nRead the variable length column as a list of arrays."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
