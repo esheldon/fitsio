@@ -2247,8 +2247,6 @@ _table_fits2npy = {11:'u1',
                    82: 'f8'}
 
 # for TFORM
-# note actually there are no unsigned, they get scaled
-# and converted to signed.  When reading, can only do signed.
 _table_npy2fits_form = {'u1':'B',
                         'i1':'S', # gets converted to unsigned
                         'S' :'A',
