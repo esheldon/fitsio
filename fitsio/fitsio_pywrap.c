@@ -22,8 +22,9 @@
 
 #include <string.h>
 #include <Python.h>
-#include <fitsio.h>
-#include <fitsio2.h>
+#include "fitsio.h"
+#include "fitsio2.h"
+#include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h> 
 
 struct PyFITSObject {
@@ -159,93 +160,6 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 #endif
 }
 
-struct stringlist {
-    size_t size;
-    char** data;
-};
-struct stringlist* stringlist_new(void) {
-    struct stringlist* slist=NULL;
-
-    slist = malloc(sizeof(struct stringlist));
-    slist->size = 0;
-    slist->data=NULL;
-    return slist;
-}
-// push a copy of the string onto the string list
-static void stringlist_push(struct stringlist* slist, const char* str) {
-    size_t newsize=0;
-    size_t slen=0;
-    size_t i=0;
-
-    newsize = slist->size+1;
-    slist->data = realloc(slist->data, sizeof(char*)*newsize);
-    slist->size += 1;
-
-    i = slist->size-1;
-    slen = strlen(str);
-
-    slist->data[i] = malloc(sizeof(char)*(slen+1));
-    strcpy(slist->data[i], str);
-}
-
-static void stringlist_push_size(struct stringlist* slist, size_t slen) {
-    size_t newsize=0;
-    size_t i=0;
-
-    newsize = slist->size+1;
-    slist->data = realloc(slist->data, sizeof(char*)*newsize);
-    slist->size += 1;
-
-    i = slist->size-1;
-
-    slist->data[i] = malloc(sizeof(char)*(slen+1));
-    memset(slist->data[i], 0, slen+1);
-}
-static struct stringlist* stringlist_delete(struct stringlist* slist) {
-    if (slist != NULL) {
-        size_t i=0;
-        if (slist->data != NULL) {
-            for (i=0; i < slist->size; i++) {
-                free(slist->data[i]);
-            }
-        }
-        free(slist->data);
-        free(slist);
-    }
-    return NULL;
-}
-
-static int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
-    size_t size=0, i=0;
-
-    if (!PyList_Check(listObj)) {
-        PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
-        return 1;
-    }
-    size = PyList_Size(listObj);
-
-    for (i=0; i<size; i++) {
-        PyObject* tmp = PyList_GetItem(listObj, i);
-        const char* tmpstr;
-        if (!PyString_Check(tmp)) {
-            PyErr_Format(PyExc_ValueError, "Expected only strings in %s list.", listname);
-            return 1;
-        }
-        tmpstr = (const char*) PyString_AsString(tmp);
-        stringlist_push(slist, tmpstr);
-    }
-    return 0;
-}
-
-static void stringlist_print(struct stringlist* slist) {
-    size_t i=0;
-    if (slist == NULL) {
-        return;
-    }
-    for (i=0; i<slist->size; i++) {
-        printf("  slist[%ld]: %s\n", i, slist->data[i]);
-    }
-}
 
 
 // if input is NULL or None, return NULL
@@ -294,13 +208,17 @@ static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
     int npy_type=0;
 
     if (!PyArray_Check(arr)) {
-        PyErr_SetString(PyExc_TypeError, "colnums must be an int64 array.");
+        PyErr_SetString(PyExc_TypeError, "int64 array must be an array.");
         return NULL;
     }
 
     npy_type = PyArray_TYPE(arr);
 	if (npy_type != NPY_INT64) {
-        PyErr_SetString(PyExc_TypeError, "colnums must be an int64 array.");
+        PyErr_SetString(PyExc_TypeError, "array must be an int64 array.");
+        return NULL;
+    }
+    if (!PyArray_ISCONTIGUOUS(arr)) {
+        PyErr_SetString(PyExc_TypeError, "int64 array must be a contiguous.");
         return NULL;
     }
 
@@ -1843,6 +1761,81 @@ static int read_rec_column_bytes_byrow(
 }
 
 
+/* 
+ * read specified columns and rows
+ *
+ * Move by offset instead of just groupsize; this allows use to read into a
+ * recarray while skipping some fields, e.g. variable length array fields.
+ *
+ * If rows is NULL, then every row is read.
+ */
+
+static int read_columns_as_rec_byoffset(
+        fitsfile* fits, 
+        npy_intp ncols, 
+        npy_int64* colnums,         // columns to read from file
+        //npy_int64* fieldnums,       // corresponding fields in recarray
+        npy_int64* field_offsets,   // offsets of corresponding fields within array
+        npy_intp nrows, 
+        npy_int64* rows,
+        char* data, 
+        npy_intp stride, 
+        int* status) {
+
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0;
+    npy_intp col=0;
+    npy_int64 colnum=0;
+
+    char* ptr=NULL;
+
+    int get_all_rows=1;
+    npy_intp irow=0;
+    npy_int64 row=0;
+
+    long groupsize=0; // number of bytes in column
+    long ngroups=1; // number to read, one for row-by-row reading
+    long column_offset=0; // gap between groups, not stride.  zero since we aren't using it
+
+    if (rows != NULL) {
+        get_all_rows=0;
+    }
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    for (irow=0; irow<nrows; irow++) {
+        if (get_all_rows) {
+            row=irow;
+        } else {
+            row = rows[irow];
+        }
+        for (col=0; col < ncols; col++) {
+
+            // point to this fieldin the array
+            ptr = data + irow*stride + field_offsets[col];
+
+            colnum = colnums[col];
+            colptr = hdu->tableptr + (colnum-1);
+
+            groupsize = get_groupsize(colptr);
+
+            file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+
+            // can just do one status check, since status are inherited.
+            ffmbyt(fits, file_pos, REPORT_EOF, status);
+            if (ffgbytoff(fits, groupsize, ngroups, column_offset, (void*) ptr, status)) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+
+
 // python method for reading specified columns and rows
 static PyObject *
 PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
@@ -1906,6 +1899,90 @@ recread_columns_cleanup:
     }
     Py_RETURN_NONE;
 }
+
+/* python method for reading specified columns and rows, moving by offset in
+ * the array to allow some fields not read.
+ *
+ * columnsObj is the columns in the fits file to read.
+ * offsetsObj is the offsets of the corresponding fields into the array.
+ */
+static PyObject *
+PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int hdutype=0;
+    npy_intp ncols=0;
+    npy_int64* colnums=NULL;
+    npy_int64* offsets=NULL;
+
+    int status=0;
+
+    PyObject* columnsObj=NULL;
+    PyObject* offsetsObj=NULL;
+
+    PyObject* array=NULL;
+    void* data=NULL;
+
+    PyObject* rowsObj=NULL;
+    npy_intp nrows=0;
+    npy_int64* rows=NULL;
+    npy_intp stride=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"iOOOO", &hdunum, &columnsObj, &offsetsObj, &array, &rowsObj)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto recread_columns_byoffset_cleanup;
+    }
+
+    if (hdutype == IMAGE_HDU) {
+        PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
+        return NULL;
+    }
+    
+    colnums = get_int64_from_array(columnsObj, &ncols);
+    if (colnums == NULL) {
+        return NULL;
+    }
+    offsets = get_int64_from_array(columnsObj, &ncols);
+    if (offsets == NULL) {
+        return NULL;
+    }
+
+    if (rowsObj != Py_None) {
+        rows = get_int64_from_array(rowsObj, &nrows);
+    } else {
+        nrows = PyArray_SIZE(array);
+    }
+
+    data = PyArray_DATA(array);
+    stride = PyArray_ITEMSIZE(array);
+    if (read_columns_as_rec_byoffset(
+                self->fits, 
+                ncols, 
+                colnums, 
+                offsets,
+                nrows, 
+                rows, 
+                data, 
+                stride,
+                &status) > 0) {
+        goto recread_columns_byoffset_cleanup;
+    }
+
+recread_columns_byoffset_cleanup:
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+ 
  
 // read specified rows, all columns
 static int read_rec_bytes_byrow(
