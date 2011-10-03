@@ -1773,13 +1773,12 @@ static int read_rec_column_bytes_byrow(
 static int read_columns_as_rec_byoffset(
         fitsfile* fits, 
         npy_intp ncols, 
-        npy_int64* colnums,         // columns to read from file
-        //npy_int64* fieldnums,       // corresponding fields in recarray
-        npy_int64* field_offsets,   // offsets of corresponding fields within array
+        const npy_int64* colnums,         // columns to read from file
+        const npy_int64* field_offsets,   // offsets of corresponding fields within array
         npy_intp nrows, 
-        npy_int64* rows,
+        const npy_int64* rows,
         char* data, 
-        npy_intp stride, 
+        npy_intp recsize, 
         int* status) {
 
     FITSfile* hdu=NULL;
@@ -1796,7 +1795,7 @@ static int read_columns_as_rec_byoffset(
 
     long groupsize=0; // number of bytes in column
     long ngroups=1; // number to read, one for row-by-row reading
-    long column_offset=0; // gap between groups, not stride.  zero since we aren't using it
+    long group_gap=0; // gap between groups, zero since we aren't using it
 
     if (rows != NULL) {
         get_all_rows=0;
@@ -1813,7 +1812,7 @@ static int read_columns_as_rec_byoffset(
         for (col=0; col < ncols; col++) {
 
             // point to this fieldin the array
-            ptr = data + irow*stride + field_offsets[col];
+            ptr = data + irow*recsize + field_offsets[col];
 
             colnum = colnums[col];
             colptr = hdu->tableptr + (colnum-1);
@@ -1824,7 +1823,7 @@ static int read_columns_as_rec_byoffset(
 
             // can just do one status check, since status are inherited.
             ffmbyt(fits, file_pos, REPORT_EOF, status);
-            if (ffgbytoff(fits, groupsize, ngroups, column_offset, (void*) ptr, status)) {
+            if (ffgbytoff(fits, groupsize, ngroups, group_gap, (void*) ptr, status)) {
                 return 1;
             }
         }
@@ -1908,24 +1907,24 @@ recread_columns_cleanup:
  */
 static PyObject *
 PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
     int hdunum=0;
     int hdutype=0;
-    npy_intp ncols=0;
-    npy_int64* colnums=NULL;
-    npy_int64* offsets=NULL;
 
-    int status=0;
+    npy_intp ncols=0;
+    npy_intp noffsets=0;
+    npy_intp nrows=0;
+    const npy_int64* colnums=NULL;
+    const npy_int64* offsets=NULL;
+    const npy_int64* rows=NULL;
 
     PyObject* columnsObj=NULL;
     PyObject* offsetsObj=NULL;
+    PyObject* rowsObj=NULL;
 
     PyObject* array=NULL;
     void* data=NULL;
-
-    PyObject* rowsObj=NULL;
-    npy_intp nrows=0;
-    npy_int64* rows=NULL;
-    npy_intp stride=0;
+    npy_intp recsize=0;
 
     if (!PyArg_ParseTuple(args, (char*)"iOOOO", &hdunum, &columnsObj, &offsetsObj, &array, &rowsObj)) {
         return NULL;
@@ -1944,23 +1943,29 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
         return NULL;
     }
     
-    colnums = get_int64_from_array(columnsObj, &ncols);
+    colnums = (const npy_int64*) get_int64_from_array(columnsObj, &ncols);
     if (colnums == NULL) {
         return NULL;
     }
-    offsets = get_int64_from_array(columnsObj, &ncols);
+    offsets = (const npy_int64*) get_int64_from_array(columnsObj, &noffsets);
     if (offsets == NULL) {
+        return NULL;
+    }
+    if (noffsets != ncols) {
+        PyErr_Format(PyExc_ValueError, 
+                     "%ld columns requested but got only %ld offsets", 
+                     ncols, noffsets);
         return NULL;
     }
 
     if (rowsObj != Py_None) {
-        rows = get_int64_from_array(rowsObj, &nrows);
+        rows = (const npy_intp*) get_int64_from_array(rowsObj, &nrows);
     } else {
         nrows = PyArray_SIZE(array);
     }
 
     data = PyArray_DATA(array);
-    stride = PyArray_ITEMSIZE(array);
+    recsize = PyArray_ITEMSIZE(array);
     if (read_columns_as_rec_byoffset(
                 self->fits, 
                 ncols, 
@@ -1968,8 +1973,8 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
                 offsets,
                 nrows, 
                 rows, 
-                data, 
-                stride,
+                (char*) data, 
+                recsize,
                 &status) > 0) {
         goto recread_columns_byoffset_cleanup;
     }
@@ -2518,6 +2523,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_var_column_as_list",          (PyCFunction)PyFITSObject_read_var_column_as_list,          METH_VARARGS,  "read_var_column_as_list\n\nRead the variable length column as a list of arrays."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
+    {"read_columns_as_rec_byoffset",  (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset,  METH_VARARGS,  "read_columns_as_rec_byoffset\n\nRead the specified columns into the input rec array at the specified offsets.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
     {"read_rec_range",       (PyCFunction)PyFITSObject_read_rec_range,       METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
