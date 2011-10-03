@@ -1323,10 +1323,6 @@ class FITSHDU:
         # by the reader to mean all
         rows = self._extract_rows(rows)
 
-        #if colnums.size == self.ncol and rows is None:
-        #    # we are reading everything
-        #    return self.read()
-
         # this is the full dtype for all columns
         dtype = self.get_rec_dtype(colnums)
 
