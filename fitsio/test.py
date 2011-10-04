@@ -381,6 +381,21 @@ class TestReadWrite(unittest.TestCase):
                 for f in self.data2.dtype.names:
                     d = fits['newext'].read_column(f)
                     self.compare_array(self.data2[f], d, "table field read '%s'" % f)
+
+                # now list of columns
+                cols=['u2scalar','f4vec','Sarr']
+                d = fits[1].read(columns=cols)
+                for f in d.dtype.names: 
+                    self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
+
+
+                cols=['u2scalar','f4vec','Sarr']
+                rows = [1,3]
+                d = fits[1].read(columns=cols, rows=rows)
+                for f in d.dtype.names: 
+                    self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
+
+
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
@@ -415,7 +430,7 @@ class TestReadWrite(unittest.TestCase):
                 cols=['u2scalar','f4vec','Sarr']
                 d = fits[1][cols][:]
                 for f in d.dtype.names: 
-                    self.compare_array(self.data[f][:], d[f], "test column list %s row subset" % f)
+                    self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
 
 
                 cols=['u2scalar','f4vec','Sarr']

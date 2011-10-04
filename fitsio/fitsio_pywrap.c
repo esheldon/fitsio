@@ -1199,11 +1199,12 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
 
 
  
-// read a single, entire column from the current HDU into an unstrided array.
-// Because of the internal fits buffering, and since we will read multiple at a
-// time, this should be more efficient.  No error checking is done. No 
-// scaling is performed here, that is done in python.  Byte swapping
-// *is* done here.
+/*
+ * read a single, entire column from the current HDU into a normal unstrided
+ * array.  Because of the internal fits buffering, and since we will read
+ * multiple at a time, this should be more efficient.  No error checking is
+ * done. No scaling is performed here, that is done in python.
+ */
 
 static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status) {
     FITSfile* hdu=NULL;
@@ -1237,8 +1238,10 @@ static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status
     return 0;
 }
 
-// there is not huge overhead reading one by one
-// should convert this to the strided one
+/*
+ * Do we ever use this in practice? How much slower is this than above?
+ */
+
 static int read_column_bytes_strided(fitsfile* fits, int colnum, void* data, npy_intp stride, int* status) {
     FITSfile* hdu=NULL;
     tcolumn* colptr=NULL;
@@ -1451,9 +1454,9 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
  
-// read from a column into a contiguous array.
-//
-// no error checking on the input array is performed!!
+/* 
+ * read from a column into an input array
+ */
 static PyObject *
 PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
@@ -1761,79 +1764,6 @@ static int read_rec_column_bytes_byrow(
 }
 
 
-/* 
- * read specified columns and rows
- *
- * Move by offset instead of just groupsize; this allows use to read into a
- * recarray while skipping some fields, e.g. variable length array fields.
- *
- * If rows is NULL, then every row is read.
- */
-
-static int read_columns_as_rec_byoffset(
-        fitsfile* fits, 
-        npy_intp ncols, 
-        const npy_int64* colnums,         // columns to read from file
-        const npy_int64* field_offsets,   // offsets of corresponding fields within array
-        npy_intp nrows, 
-        const npy_int64* rows,
-        char* data, 
-        npy_intp recsize, 
-        int* status) {
-
-    FITSfile* hdu=NULL;
-    tcolumn* colptr=NULL;
-    LONGLONG file_pos=0;
-    npy_intp col=0;
-    npy_int64 colnum=0;
-
-    char* ptr=NULL;
-
-    int get_all_rows=1;
-    npy_intp irow=0;
-    npy_int64 row=0;
-
-    long groupsize=0; // number of bytes in column
-    long ngroups=1; // number to read, one for row-by-row reading
-    long group_gap=0; // gap between groups, zero since we aren't using it
-
-    if (rows != NULL) {
-        get_all_rows=0;
-    }
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-    for (irow=0; irow<nrows; irow++) {
-        if (get_all_rows) {
-            row=irow;
-        } else {
-            row = rows[irow];
-        }
-        for (col=0; col < ncols; col++) {
-
-            // point to this fieldin the array
-            ptr = data + irow*recsize + field_offsets[col];
-
-            colnum = colnums[col];
-            colptr = hdu->tableptr + (colnum-1);
-
-            groupsize = get_groupsize(colptr);
-
-            file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
-
-            // can just do one status check, since status are inherited.
-            ffmbyt(fits, file_pos, REPORT_EOF, status);
-            if (ffgbytoff(fits, groupsize, ngroups, group_gap, (void*) ptr, status)) {
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-
-
 
 // python method for reading specified columns and rows
 static PyObject *
@@ -1899,6 +1829,87 @@ recread_columns_cleanup:
     Py_RETURN_NONE;
 }
 
+
+
+/* 
+ * read specified columns and rows
+ *
+ * Move by offset instead of just groupsize; this allows us to read into a
+ * recarray while skipping some fields, e.g. variable length array fields, to
+ * be read separately.
+ *
+ * If rows is NULL, then nrows are read consecutively.
+ */
+
+static int read_columns_as_rec_byoffset(
+        fitsfile* fits, 
+        npy_intp ncols, 
+        const npy_int64* colnums,         // columns to read from file
+        const npy_int64* field_offsets,   // offsets of corresponding fields within array
+        npy_intp nrows, 
+        const npy_int64* rows,
+        char* data, 
+        npy_intp recsize, 
+        int* status) {
+
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0;
+    npy_intp col=0;
+    npy_int64 colnum=0;
+
+    char* ptr=NULL;
+
+    int get_all_rows=1;
+    npy_intp irow=0;
+    npy_int64 row=0;
+
+    long groupsize=0; // number of bytes in column
+    long ngroups=1; // number to read, one for row-by-row reading
+    long group_gap=0; // gap between groups, zero since we aren't using it
+
+    if (rows != NULL) {
+        get_all_rows=0;
+    }
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    fprintf(stderr,"\nReading %ld rows\n", nrows);
+    for (irow=0; irow<nrows; irow++) {
+        if (get_all_rows) {
+            row=irow;
+        } else {
+            row = rows[irow];
+        }
+        for (col=0; col < ncols; col++) {
+
+            // point to this field in the array, allows for skipping
+            ptr = data + irow*recsize + field_offsets[col];
+
+            colnum = colnums[col];
+            colptr = hdu->tableptr + (colnum-1);
+
+            groupsize = get_groupsize(colptr);
+
+            file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+
+            // can just do one status check, since status are inherited.
+            ffmbyt(fits, file_pos, REPORT_EOF, status);
+            if (ffgbytoff(fits, groupsize, ngroups, group_gap, (void*) ptr, status)) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
 /* python method for reading specified columns and rows, moving by offset in
  * the array to allow some fields not read.
  *
@@ -1947,13 +1958,13 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
     if (colnums == NULL) {
         return NULL;
     }
-    offsets = (const npy_int64*) get_int64_from_array(columnsObj, &noffsets);
+    offsets = (const npy_int64*) get_int64_from_array(offsetsObj, &noffsets);
     if (offsets == NULL) {
         return NULL;
     }
     if (noffsets != ncols) {
         PyErr_Format(PyExc_ValueError, 
-                     "%ld columns requested but got only %ld offsets", 
+                     "%ld columns requested but got %ld offsets", 
                      ncols, noffsets);
         return NULL;
     }
@@ -1968,9 +1979,7 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
     recsize = PyArray_ITEMSIZE(array);
     if (read_columns_as_rec_byoffset(
                 self->fits, 
-                ncols, 
-                colnums, 
-                offsets,
+                ncols, colnums, offsets,
                 nrows, 
                 rows, 
                 (char*) data, 
@@ -2025,39 +2034,6 @@ static int read_rec_bytes_byrow(
 
     return 0;
 }
-
-// read all rows, all columns, but one row at a time rather
-// than all at once.  The choice of a row as the "groupsize"
-// is somewhat arbitrary, it could be we can tune this to
-// get ~20% speedsups. that number comes from comparing to 
-// a single "fread", which we can't use because it confuses
-// the buffer system.
-/*
-static int read_all_rec_bytes_byrow(fitsfile* fits, void* data, int* status) {
-    FITSfile* hdu=NULL;
-    LONGLONG file_pos=0;
-
-    long ngroups=0, offset=0;
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-
-    ngroups=hdu->numrows;
-    offset=0; // gap between groups
-
-    // can just do one status check, since status are inherited.
-    file_pos = hdu->datastart;
-    ffmbyt(fits, file_pos, REPORT_EOF, status);
-    if (ffgbytoff(fits, hdu->rowlength, ngroups, offset, data, status)) {
-        return 1;
-    }
-
-    return 0;
-
-}
-*/
-
-
 
 // python method to read all columns but subset of rows
 static PyObject *
@@ -2114,15 +2090,15 @@ recread_byrow_cleanup:
 
 
 
-// Read the range of rows, 1-offset. It is assumed the data match table
-// perfectly.
-static int read_rec_range(fitsfile* fits, LONGLONG firstrow, LONGLONG lastrow, void* data, int* status) {
+/* Read the range of rows, 1-offset. It is assumed the data match the table
+ * perfectly.
+ */
+
+static int read_rec_range(fitsfile* fits, LONGLONG firstrow, LONGLONG nrows, void* data, int* status) {
     // can also use this for reading row ranges
     LONGLONG firstchar=1;
-    LONGLONG nrows=0;
     LONGLONG nchars=0;
 
-    nrows = lastrow-firstrow+1;
     nchars = (fits->Fptr)->rowlength*nrows;
 
     if (fits_read_tblbytes(fits, firstrow, firstchar, nchars, (unsigned char*) data, status)) {
@@ -2134,28 +2110,7 @@ static int read_rec_range(fitsfile* fits, LONGLONG firstrow, LONGLONG lastrow, v
 
 
 
-// Read the entire table into the input rec array.  It is assumed the data
-// match table perfectly.
-static int read_all_rec_bytes(fitsfile* fits, void* data, int* status) {
-    // can also use this for reading row ranges
-    LONGLONG firstrow=1;
-    LONGLONG firstchar=1;
-    LONGLONG nchars=0;
-    FITSfile* hdu=NULL;
 
-    hdu = fits->Fptr;
-    nchars = hdu->rowlength*hdu->numrows;
-
-    if (fits_read_tblbytes(fits, firstrow, firstchar, nchars, (unsigned char*) data, status)) {
-        return 1;
-    }
-
-    return 0;
-}
-
-
-
-// read entire table at once
 static PyObject *
 PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
@@ -2165,64 +2120,13 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     PyObject* array=NULL;
     void* data=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
+    PY_LONG_LONG firstrow=0;
+    PY_LONG_LONG lastrow=0;
+    PY_LONG_LONG nrows=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow, &lastrow, &array)) {
         return NULL;
     }
-
-    if (self->fits == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
-        return NULL;
-    }
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        goto recread_cleanup;
-    }
-
-    if (hdutype == IMAGE_HDU) {
-        PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
-        return NULL;
-    }
-
-    data = PyArray_DATA(array);
-
-#if 1
-    if (read_all_rec_bytes(self->fits, data, &status)) {
-        goto recread_cleanup;
-    }
-#else
-    if (read_all_rec_bytes_byrow(self->fits, data, &status)) {
-        goto recread_cleanup;
-    }
-#endif
-
-recread_cleanup:
-
-    if (status != 0) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-    Py_RETURN_NONE;
-}
-
-// read entire table at once
-static PyObject *
-PyFITSObject_read_rec_range(struct PyFITSObject* self, PyObject* args) {
-    int hdunum=0;
-    int hdutype=0;
-
-    int status=0;
-    PyObject* array=NULL;
-    void* data=NULL;
-
-    PY_LONG_LONG firstrow_py=0;
-    PY_LONG_LONG lastrow_py=0;
-    LONGLONG firstrow=0;
-    LONGLONG lastrow=0;
-
-    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow_py, &lastrow_py, &array)) {
-        return NULL;
-    }
-    firstrow = (LONGLONG) firstrow_py;
-    lastrow    = (LONGLONG) lastrow_py;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -2239,7 +2143,8 @@ PyFITSObject_read_rec_range(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    if (read_rec_range(self->fits, firstrow, lastrow, data, &status)) {
+    nrows=lastrow-firstrow+1;
+    if (read_rec_range(self->fits, (LONGLONG)firstrow, (LONGLONG)nrows, data, &status)) {
         goto recread_slice_cleanup;
     }
 
@@ -2525,8 +2430,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_columns_as_rec_byoffset",  (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset,  METH_VARARGS,  "read_columns_as_rec_byoffset\n\nRead the specified columns into the input rec array at the specified offsets.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
-    {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead the entire data set into the input rec array.  No checking of array is done."},
-    {"read_rec_range",       (PyCFunction)PyFITSObject_read_rec_range,       METH_VARARGS,  "read_rec_range\n\nRead the row range.  No checking of array is done."},
+    {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},

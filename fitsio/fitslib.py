@@ -246,12 +246,27 @@ class FITS:
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    vstorage: string, optional
+        A string describing how, by default, to store variable length columns
+        in the output array.  This can be over-ridden when reading by using the
+        using vstorage keyword to the individual read methods.  The options are
+
+            'fixed': Use a fixed length field in the array, with
+                dimensions equal to the max possible size for column.
+                Arrays are padded with zeros.
+            'object': Use an object for the field in the array.
+                Each element will then be an array of the right type,
+                but only using the memory needed to hold that element.
+
+        Default is 'fixed'.  The rationale is that this is the option
+            of 'least surprise'
     """
-    def __init__(self, filename, mode='r', clobber=False, case_sensitive=False):
+    def __init__(self, filename, mode='r', clobber=False, case_sensitive=False, vstorage='fixed'):
         filename = extract_filename(filename)
         self.filename = filename
         self.mode=mode
         self.case_sensitive=case_sensitive
+        self.vstorage=vstorage
 
         if mode not in _int_modemap:
             raise ValueError("mode should be one of 'r','rw',READONLY,READWRITE")
@@ -668,7 +683,8 @@ class FITS:
         for ext in xrange(1000):
             try:
                 hdu = FITSHDU(self._FITS, ext, 
-                              case_sensitive=self.case_sensitive)
+                              case_sensitive=self.case_sensitive,
+                              vstorage=self.vstorage)
                 self.hdu_list.append(hdu)
                 self.hdu_map[ext] = hdu
 
@@ -786,11 +802,15 @@ class FITSHDU:
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    vstorage: string, optional
+        Set the default method to store variable length columns.  Can be
+        'fixed' or 'object'.  See docs on fitsio.FITS for details.
     """
-    def __init__(self, fits, ext, case_sensitive=False):
+    def __init__(self, fits, ext, case_sensitive=False, vstorage='fixed'):
         self._FITS = fits
         self.ext = ext
         self.case_sensitive=case_sensitive
+        self.vstorage=vstorage
         self._update_info()
         self.filename = self._FITS.filename()
 
@@ -1073,7 +1093,7 @@ class FITSHDU:
         """
         return self._FITS.read_header(self.ext+1)
 
-    def read(self, columns=None, rows=None):
+    def read(self, **keys):
         """
         read data from this HDU
 
@@ -1098,18 +1118,28 @@ class FITSHDU:
         rows: optional
             An optional list of rows to read from table HDUS.  Default is to
             read all.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
+
+
         if self.info['hdutype'] == IMAGE_HDU:
             return self.read_image()
 
-        if columns is not None and rows is not None:
-            return self.read_columns(columns, rows)
-        elif columns is not None:
-            return self.read_columns(columns)
+        columns = keys.get('columns',None)
+        rows    = keys.get('rows',None)
+
+        if columns is not None:
+            if 'columns' in keys: 
+                del keys['columns']
+            return self.read_columns(columns, **keys)
         elif rows is not None:
-            return self.read_rows(rows)
+            if 'rows' in keys: 
+                del keys['rows']
+            return self.read_rows(rows, **keys)
         else:
-            return self.read_all()
+            return self.read_all(**keys)
 
 
     def read_image(self):
@@ -1124,7 +1154,7 @@ class FITSHDU:
         self._FITS.read_image(self.ext+1, array)
         return array
 
-    def read_column(self, col, rows=None):
+    def read_column(self, col, **keys):
         """
         Read the specified column
 
@@ -1144,11 +1174,14 @@ class FITSHDU:
             The column name or number.
         rows: optional
             An optional set of row numbers to read.
-
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
         if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             raise ValueError("Cannot yet read columns from an image HDU")
 
+        rows=keys.get('rows',None)
         colnum = self._extract_colnum(col)
         rows = self._extract_rows(rows)
 
@@ -1167,19 +1200,27 @@ class FITSHDU:
             return array
 
 
-    def read_all(self):
+    def read_all(self, **keys):
         """
         Read all data in the HDU.
+
+        parameters
+        ----------
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
             return self.read_image()
 
-        dtype = self.get_rec_dtype()
+        dtype, offsets, isvar = self.get_rec_dtype(**keys)
+
+        firstrow=1
         nrows = self.info['nrows']
         array = numpy.zeros(nrows, dtype=dtype)
 
-        self._FITS.read_as_rec(self.ext+1, array)
+        self._FITS.read_as_rec(self.ext+1, 1, nrows, array)
 
         for colnum,name in enumerate(array.dtype.names):
             self._rescale_array(array[name], 
@@ -1206,6 +1247,9 @@ class FITSHDU:
             fits[ext][cols][rows]
 
         Note data are only read once the rows are specified.
+
+        Note you can only read variable length arrays the default way,
+        using this function, so set it as you want on construction.
         """
         res, isrows, isslice = \
             self.process_args_as_rows_or_columns(arg)
@@ -1219,7 +1263,7 @@ class FITSHDU:
         else:
             return FITSHDUColumnSubset(self, res)
 
-    def read_slice(self, firstrow, lastrow, step=1):
+    def read_slice(self, firstrow, lastrow, step=1, **keys):
         """
         Read the specified row slice.
 
@@ -1234,9 +1278,13 @@ class FITSHDU:
             The last row to read, non-inclusive.  This follows the python list
             slice convention that one does not include the last element.
         step: integer, optional
-            Step between rows.  If step is 2, skip every other row.
+            Step between rows, default 1. e.g., if step is 2, skip every other row.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
+        step=keys.get('step',1)
         if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
 
@@ -1244,7 +1292,15 @@ class FITSHDU:
         if firstrow < 0 or lastrow > maxrow:
             raise ValueError("slice must specify a sub-range of [%d,%d]" % (0,maxrow))
 
-        dtype = self.get_rec_dtype()
+        dtype, offsets, isvar = self.get_rec_dtype(**keys)
+
+        w,=numpy.where(isvar == True)
+        if w.size > 0:
+            vstorage = keys.get('vstorage',self.vstorage)
+            # can save memory here...
+            rows=numpy.arange(firstrow,lastrow,dtype='i8')
+            colnums=numpy.arange(len(offsets))
+            return self._read_withvar(colnums, rows, dtype, offsets, isvar, vstorage)
 
         if step != 1:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -1254,8 +1310,8 @@ class FITSHDU:
             nrows=lastrow-firstrow
             array = numpy.zeros(nrows, dtype=dtype)
 
-            # only first needs to be +1
-            self._FITS.read_rec_range(self.ext+1, firstrow+1, lastrow, array)
+            # only first needs to be +1.  This is becuase the c code is inclusive
+            self._FITS.read_as_rec(self.ext+1, firstrow+1, lastrow, array)
 
             for colnum,name in enumerate(array.dtype.names):
                 self._rescale_array(array[name], 
@@ -1265,7 +1321,7 @@ class FITSHDU:
             return array
 
 
-    def read_rows(self, rows):
+    def read_rows(self, rows, **keys):
         """
         Read the specified rows.
 
@@ -1273,13 +1329,16 @@ class FITSHDU:
         ----------
         rows: list,array
             A list or array of row indices.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
         if rows is None:
             # we actually want all rows!
             return self.read_all()
 
         rows = self._extract_rows(rows)
-        dtype = self.get_rec_dtype()
+        dtype, offsets, isvar = self.get_rec_dtype(**keys)
         array = numpy.zeros(rows.size, dtype=dtype)
         self._FITS.read_rows_as_rec(self.ext+1, array, rows)
 
@@ -1291,7 +1350,7 @@ class FITSHDU:
         return array
 
 
-    def read_columns(self, columns, rows=None):
+    def read_columns(self, columns, **keys):
         """
         read a subset of columns from this binary table HDU
 
@@ -1308,7 +1367,12 @@ class FITSHDU:
         rows: list/array, optional
             An optional list of rows to read from table HDUS.  Default is to
             read all.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
+
+        rows = keys.get('rows',None)
 
         if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot yet read columns from an image HDU")
@@ -1324,7 +1388,12 @@ class FITSHDU:
         rows = self._extract_rows(rows)
 
         # this is the full dtype for all columns
-        dtype = self.get_rec_dtype(colnums)
+        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
+
+        w,=numpy.where(isvar == True)
+        if w.size > 0:
+            vstorage = keys.get('vstorage',self.vstorage)
+            return self._read_withvar(colnums, rows, dtype, offsets, isvar, vstorage)
 
         if rows is None:
             nrows = self.info['nrows']
@@ -1344,7 +1413,46 @@ class FITSHDU:
                                 self.info['colinfo'][colnum]['tzero'])
         return array
 
+    def _read_withvar(self, colnums, rows, dtype, offsets, isvar, vstorage):
+        """
 
+        Read columns from a table into a rec array, including variable length
+        columns.  This is special because, for efficiency, it involves reading
+        from the main table as normal but skipping the columns in the array
+        that are variable.  Then reading the variable length columns, with
+        accounting for strides appropriately.
+
+        """
+
+        colnumsp=colnums+1
+        if rows is None:
+            nrows = self.info['nrows']
+        else:
+            nrows = rows.size
+        array = numpy.zeros(nrows, dtype=dtype)
+
+        wnotvar,=numpy.where(isvar == False)
+        if wnotvar.size > 0:
+            thesecol=colnumsp[wnotvar] # this will be contiguous (not true for slices)
+            theseoff=offsets[wnotvar]
+            self._FITS.read_columns_as_rec_byoffset(self.ext+1,
+                                                    thesecol,
+                                                    theseoff,
+                                                    array,
+                                                    rows)
+            for i in xrange(thesecol.size):
+                colnum = int(colnums[i])
+                name = array.dtype.names[i]
+                self._rescale_array(array[name], 
+                                    self.info['colinfo'][colnum]['tscale'], 
+                                    self.info['colinfo'][colnum]['tzero'])
+
+                                                    
+        wvar,=numpy.where(isvar == True)
+        if wvar.size > 0:
+            pass
+
+        return array
 
     def _extract_rows(self, rows):
         if rows is not None:
@@ -1475,27 +1583,72 @@ class FITSHDU:
         if zero != 0.0:
             array += zero
 
-    def get_rec_dtype(self, colnums=None):
+    def get_rec_dtype(self, **keys):
+        """
+        Get the dtype for the specified columns
+
+        parameters
+        ----------
+        colnums: integer array
+            The column numbers, 0 offset
+        vstorage: string, optional
+            See docs in read_columns
+        """
+        colnums=keys.get('colnums',None)
+        vstorage = keys.get('vstorage',self.vstorage)
+
         if colnums is None:
             colnums = self._extract_colnums()
 
-        dtype = []
-        for colnum in colnums:
-            dt = self.get_rec_column_dtype(colnum) 
-            dtype.append(dt)
-        return dtype
 
-    def get_rec_column_dtype(self, colnum):
-        npy_type = self._get_tbl_numpy_dtype(colnum)
+        descr = []
+        isvararray = numpy.zeros(len(colnums),dtype=numpy.bool)
+        for i,colnum in enumerate(colnums):
+            dt,isvar = self.get_rec_column_descr(colnum, vstorage)
+            descr.append(dt)
+            isvararray[i] = isvar
+        dtype=numpy.dtype(descr)
+
+        offsets = numpy.zeros(len(colnums),dtype='i8')
+        for i,n in enumerate(dtype.names):
+            offsets[i] = dtype.fields[n][1]
+        return dtype, offsets, isvararray
+
+    def get_rec_column_descr(self, colnum, vstorage):
+        """
+        Get a descriptor entry for the specified column.
+
+        parameters
+        ----------
+        colnum: integer
+            The column number, 0 offset
+        vstorage: string
+            See docs in read_columns
+        """
+        npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
         name = self.info['colinfo'][colnum]['name']
-        tdim = self.info['colinfo'][colnum]['tdim']
 
-        shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
-
-        if shape is not None:
-            return (name,npy_type,shape)
+        if isvar:
+            if vstorage == 'object':
+                descr=(name,'O')
+            else:
+                tform = self.info['colinfo'][colnum]['tform']
+                max_size = extract_vararray_max(tform)
+                if npy_type[0] == 'S':
+                    # variable length string columns cannot
+                    # themselves be arrays I don't think
+                    npy_type = 'S%d' % max_size
+                    descr=(name,npy_type)
+                else:
+                    descr=(name,npy_type,max_size)
         else:
-            return (name,npy_type)
+            tdim = self.info['colinfo'][colnum]['tdim']
+            shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
+            if shape is not None:
+                descr=(name,npy_type,shape)
+            else:
+                descr=(name,npy_type)
+        return descr,isvar
 
     def _get_image_dtype_and_shape(self):
 
@@ -1522,7 +1675,7 @@ class FITSHDU:
         """
 
         # basic datatype
-        npy_type = self._get_tbl_numpy_dtype(colnum)
+        npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
         info = self.info['colinfo'][colnum]
 
         if rows is None:
@@ -1562,13 +1715,16 @@ class FITSHDU:
         except KeyError:
             raise KeyError("unsupported fits data type: %d" % ftype)
 
+        isvar=False
+        if ftype < 0:
+            isvar=True
         if include_endianness:
             if npy_type not in ['u1','i1','S']:
                 npy_type = '>'+npy_type
         if npy_type == 'S':
             width = self.info['colinfo'][colnum]['width']
             npy_type = 'S%d' % width
-        return npy_type
+        return npy_type, isvar
 
     def _extract_colnums(self, columns=None):
         if columns is None:
@@ -1680,8 +1836,8 @@ class FITSHDU:
                 else:
                     f = format
 
-                dt = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
-                if self.info['colinfo'][colnum]['eqtype'] < 0:
+                dt,isvar = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
+                if isvar:
                     tform = self.info['colinfo'][colnum]['tform']
                     dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
@@ -1738,19 +1894,19 @@ class FITSHDUColumnSubset(object):
         Input is the SFile instance and a list of column names.
         """
 
-        if columns is None:
-            columns=fields
-
         self.fitshdu = fitshdu 
         self.columns = columns
 
 
-    def read(self, rows=None):
+    def read(self, **keys):
         """
         Read the data from disk and return as a numpy array
         """
 
-        return self.fitshdu.read(rows=rows, columns=self.columns)
+        c=keys.get('columns',None)
+        if c is None:
+            keys['columns'] = self.columns
+        return self.fitshdu.read(**keys)
 
     def __getitem__(self, arg):
         """
