@@ -29,6 +29,7 @@ In ipython:
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
+from __future__ import with_statement
 import os
 import numpy
 from . import _fitsio_wrap
