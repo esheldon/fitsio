@@ -571,13 +571,14 @@ class FITS:
         if data.size == 0:
             raise ValueError("data must have at least 1 row")
         
-        self.create_table_hdu(dtype=data.dtype, 
+        self.create_table_hdu(data=data, 
                               units=units, extname=extname,extver=extver,
                               header=header)
         self[-1].write(data)
         self.update_hdu_list()
 
-    def create_table_hdu(self, names=None, formats=None, dtype=None,
+    def create_table_hdu(self, data=None, dtype=None, 
+                         names=None, formats=None,
                          units=None, dims=None, extname=None, extver=None, header=None):
         """
         Create a new, empty table extension and reload the hdu list.
@@ -607,6 +608,11 @@ class FITS:
             If you have an array with fields, you can just send arr.dtype.  You
             can also use a list of tuples, e.g. [('x','f8'),('index','i4')] or
             a dictionary representation.
+        data: a numpy array with fields, optional
+            An array from which to determine the table definition.
+            You must use this instead of sending a descriptor if
+            you have object array fields, as this is the only way
+            to determine the type and max size.
 
         names: list of strings, optional
             The list of field names
@@ -643,7 +649,9 @@ class FITS:
         The File must be opened READWRITE
         """
 
-        if dtype is not None:
+        if data is not None:
+            names, formats, dims = array2tabledef(data)
+        elif dtype is not None:
             dtype=numpy.dtype(dtype)
             names, formats, dims = descr2tabledef(dtype.descr)
         else:
@@ -2077,6 +2085,38 @@ def tdim2shape(tdim, is_string=False):
 
     return shape
 
+def array2tabledef(data):
+    """
+    Similar to descr2tabledef but if there are object columns a type
+    and max length will be extracted and used for the tabledef
+    """
+    names=[]
+    formats=[]
+    dims=[]
+
+    descr=data.dtype.descr
+    for d in descr:
+        # these have the form '<f4' or '|S25', etc.  Extract the pure type
+        npy_dtype = d[1][1:]
+        if npy_dtype[0] == 'O':
+            # this will be a variable length column 1Pt(len) where t is the
+            # type and len is max length.  Each element must be convertible to
+            # the same type as the first
+            name=d[0]
+            form, dim = npy_obj2fits(data,name)
+        else:
+            name, form, dim = npy2fits(d)
+
+        if name == '':
+            raise ValueError("field name is an empty string")
+
+        names.append(name)
+        formats.append(form)
+        dims.append(dim)
+
+    return names, formats, dims
+
+
 def descr2tabledef(descr):
     """
     Create a FITS table def from the input numpy descriptor.
@@ -2097,12 +2137,7 @@ def descr2tabledef(descr):
     dims=[]
 
     for d in descr:
-        # these have the form '<f4' or '|S25', etc.  Extract the pure type
-        npy_dtype = d[1][1:]
-        if npy_dtype[0] == 'S':
-            name, form, dim = npy_string2fits(d)
-        else:
-            name, form, dim = npy_num2fits(d)
+        name, form, dim = npy2fits(d)
 
         if name == '':
             raise ValueError("field name is an empty string")
@@ -2112,6 +2147,66 @@ def descr2tabledef(descr):
         dims.append(dim)
 
     return names, formats, dims
+
+def npy_obj2fits(data, name):
+    # this will be a variable length column 1Pt(len) where t is the
+    # type and len is max length.  Each element must be convertible to
+    # the same type as the first
+
+    d = data[name].dtype.descr
+    maxlen=0
+
+    # note numpy._string is an instance of str, so str is good enough
+    if isinstance(data[name][0], numpy.ndarray):
+        dtype0 = data[name][0].dtype
+        npy_dtype = dtype0.descr[0][1][1:]
+        if npy_dtype[0] == 'S':
+            raise ValueError("Field '%s' is an arrays of strings, this is "
+                             "not allowed in variable length columns" % name)
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError("Field '%s' has unsupported type '%s'" % (name,npy_dtype))
+        fits_dtype = _table_npy2fits_form[npy_dtype]
+
+        for el in data[name]:
+            if not isinstance(el,numpy.ndarray):
+                raise ValueError("Not all elements in object field '%s' are the "
+                                 "the same type" % name)
+            if el.dtype != dtype0:
+                raise ValueError("Not all elements in object field '%s' are the "
+                                 "the same type" % name)
+            maxlen=max(maxlen, el.size)
+
+    elif isinstance(data[name][0], str):
+        fits_dtype = _table_npy2fits_form['S']
+        for el in data[name]:
+            if not isinstance(el,str):
+                raise ValueError("Not all elements in object field '%s' are "
+                                 "strings, found " % (name,type(el)))
+            maxlen=max(maxlen, len(el))
+    else:
+        raise ValueError("Object fields must contain numpy "
+                         "arrays, strings, or numpy strings, "
+                         "got %s for 'field' %s" % (type(data[name][0]),name))
+
+    # Q uses 64-bit addressing, should try at some point but the cfitsio manual
+    # says it is experimental
+    #form = '1Q%s(%d)' % (fits_dtype, maxlen)
+    form = '1P%s(%d)' % (fits_dtype, maxlen)
+    dim=None
+
+    return form, dim
+
+def npy2fits(d):
+    """
+    d is the full element from the descr
+    """
+    npy_dtype = d[1][1:]
+    if npy_dtype[0] == 'S':
+        name, form, dim = npy_string2fits(d)
+    else:
+        name, form, dim = npy_num2fits(d)
+
+    return name, form, dim
 
 def npy_num2fits(d):
     """
