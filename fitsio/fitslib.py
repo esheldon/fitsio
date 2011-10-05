@@ -1186,7 +1186,8 @@ class FITSHDU:
         rows = self._extract_rows(rows)
 
         if self.info['colinfo'][colnum]['eqtype'] < 0:
-            return self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+            vstorage=keys.get('vstorage',self.vstorage)
+            return self._read_var_column(colnum, rows, vstorage)
         else:
             npy_type, shape = self._get_simple_dtype_and_shape(colnum, rows=rows)
 
@@ -1197,8 +1198,39 @@ class FITSHDU:
             self._rescale_array(array, 
                                 self.info['colinfo'][colnum]['tscale'], 
                                 self.info['colinfo'][colnum]['tzero'])
-            return array
 
+        return array
+
+    def _read_var_column(self, colnum, rows, vstorage):
+        """
+
+        first read as a list of arrays, then copy into either a fixed length
+        array or an array of objects, depending on vstorage.
+
+        """
+
+        dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+
+        if vstorage == 'fixed':
+            descr=dlist[0].dtype.str
+            tform = self.info['colinfo'][colnum]['tform']
+            max_size = extract_vararray_max(tform)
+            if descr[1] == 'S':
+                # variable length string columns cannot themselves be arrays I
+                # don't think. Just generate directly from the list
+                descr = 'S%d' % max_size
+                array = numpy.fromiter(dlist, descr)
+            else:
+                array = numpy.zeros( (len(dlist), max_size), dtype=descr)
+
+                for irow,item in enumerate(dlist):
+                    ncopy = len(item)
+                    array[irow,0:ncopy] = item[:]
+        else:
+            array=numpy.zeros(len(dlist), dtype='O')
+            array[:] = dlist
+
+        return array
 
     def read_all(self, **keys):
         """
@@ -1216,17 +1248,24 @@ class FITSHDU:
 
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
 
-        firstrow=1
-        nrows = self.info['nrows']
-        array = numpy.zeros(nrows, dtype=dtype)
+        w,=numpy.where(isvar == True)
+        if w.size > 0:
+            vstorage = keys.get('vstorage',self.vstorage)
+            colnums = self._extract_colnums()
+            rows=None
+            array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
+        else:
 
-        self._FITS.read_as_rec(self.ext+1, 1, nrows, array)
+            firstrow=1
+            nrows = self.info['nrows']
+            array = numpy.zeros(nrows, dtype=dtype)
 
-        for colnum,name in enumerate(array.dtype.names):
-            self._rescale_array(array[name], 
-                                self.info['colinfo'][colnum]['tscale'], 
-                                self.info['colinfo'][colnum]['tzero'])
+            self._FITS.read_as_rec(self.ext+1, 1, nrows, array)
 
+            for colnum,name in enumerate(array.dtype.names):
+                self._rescale_array(array[name], 
+                                    self.info['colinfo'][colnum]['tscale'], 
+                                    self.info['colinfo'][colnum]['tzero'])
 
         return array
 
@@ -1297,28 +1336,27 @@ class FITSHDU:
         w,=numpy.where(isvar == True)
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
-            # can save memory here...
-            rows=numpy.arange(firstrow,lastrow,dtype='i8')
+            rows=numpy.arange(firstrow,lastrow,step,dtype='i8')
             colnums=numpy.arange(len(offsets))
-            return self._read_withvar(colnums, rows, dtype, offsets, isvar, vstorage)
-
-        if step != 1:
-            rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
-            return self.read(rows=rows)
+            array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
-            # no +1 because lastrow is non-inclusive
-            nrows=lastrow-firstrow
-            array = numpy.zeros(nrows, dtype=dtype)
+            if step != 1:
+                rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+                array = self.read(rows=rows)
+            else:
+                # no +1 because lastrow is non-inclusive
+                nrows=lastrow-firstrow
+                array = numpy.zeros(nrows, dtype=dtype)
 
-            # only first needs to be +1.  This is becuase the c code is inclusive
-            self._FITS.read_as_rec(self.ext+1, firstrow+1, lastrow, array)
+                # only first needs to be +1.  This is becuase the c code is inclusive
+                self._FITS.read_as_rec(self.ext+1, firstrow+1, lastrow, array)
 
-            for colnum,name in enumerate(array.dtype.names):
-                self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+                for colnum,name in enumerate(array.dtype.names):
+                    self._rescale_array(array[name], 
+                                        self.info['colinfo'][colnum]['tscale'], 
+                                        self.info['colinfo'][colnum]['tzero'])
 
-            return array
+        return array
 
 
     def read_rows(self, rows, **keys):
@@ -1339,13 +1377,20 @@ class FITSHDU:
 
         rows = self._extract_rows(rows)
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
-        array = numpy.zeros(rows.size, dtype=dtype)
-        self._FITS.read_rows_as_rec(self.ext+1, array, rows)
 
-        for colnum,name in enumerate(array.dtype.names):
-            self._rescale_array(array[name], 
-                                self.info['colinfo'][colnum]['tscale'], 
-                                self.info['colinfo'][colnum]['tzero'])
+        w,=numpy.where(isvar == True)
+        if w.size > 0:
+            vstorage = keys.get('vstorage',self.vstorage)
+            colnums=numpy.arange(len(offsets))
+            return self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
+        else:
+            array = numpy.zeros(rows.size, dtype=dtype)
+            self._FITS.read_rows_as_rec(self.ext+1, array, rows)
+
+            for colnum,name in enumerate(array.dtype.names):
+                self._rescale_array(array[name], 
+                                    self.info['colinfo'][colnum]['tscale'], 
+                                    self.info['colinfo'][colnum]['tzero'])
 
         return array
 
@@ -1381,7 +1426,7 @@ class FITSHDU:
         colnums = self._extract_colnums(columns)
         if isinstance(colnums,int):
             # scalar sent, don't read as a recarray
-            return self.read_column(columns, rows=rows)
+            return self.read_column(columns, **keys)
 
         # if rows is None still returns None, and is correctly interpreted
         # by the reader to mean all
@@ -1393,27 +1438,29 @@ class FITSHDU:
         w,=numpy.where(isvar == True)
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
-            return self._read_withvar(colnums, rows, dtype, offsets, isvar, vstorage)
-
-        if rows is None:
-            nrows = self.info['nrows']
+            array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
-            nrows = rows.size
-        array = numpy.zeros(nrows, dtype=dtype)
 
-        colnumsp = colnums[:].copy()
-        colnumsp[:] += 1
-        self._FITS.read_columns_as_rec(self.ext+1, colnumsp, array, rows)
-        
-        for i in xrange(colnums.size):
-            colnum = int(colnums[i])
-            name = array.dtype.names[i]
-            self._rescale_array(array[name], 
-                                self.info['colinfo'][colnum]['tscale'], 
-                                self.info['colinfo'][colnum]['tzero'])
+            if rows is None:
+                nrows = self.info['nrows']
+            else:
+                nrows = rows.size
+            array = numpy.zeros(nrows, dtype=dtype)
+
+            colnumsp = colnums[:].copy()
+            colnumsp[:] += 1
+            self._FITS.read_columns_as_rec(self.ext+1, colnumsp, array, rows)
+            
+            for i in xrange(colnums.size):
+                colnum = int(colnums[i])
+                name = array.dtype.names[i]
+                self._rescale_array(array[name], 
+                                    self.info['colinfo'][colnum]['tscale'], 
+                                    self.info['colinfo'][colnum]['tzero'])
+
         return array
 
-    def _read_withvar(self, colnums, rows, dtype, offsets, isvar, vstorage):
+    def _read_rec_with_var(self, colnums, rows, dtype, offsets, isvar, vstorage):
         """
 
         Read columns from a table into a rec array, including variable length
@@ -1421,6 +1468,8 @@ class FITSHDU:
         from the main table as normal but skipping the columns in the array
         that are variable.  Then reading the variable length columns, with
         accounting for strides appropriately.
+
+        row and column numbers should be checked before calling this function
 
         """
 
@@ -1431,6 +1480,7 @@ class FITSHDU:
             nrows = rows.size
         array = numpy.zeros(nrows, dtype=dtype)
 
+        # read from the main table first
         wnotvar,=numpy.where(isvar == False)
         if wnotvar.size > 0:
             thesecol=colnumsp[wnotvar] # this will be contiguous (not true for slices)
@@ -1442,15 +1492,27 @@ class FITSHDU:
                                                     rows)
             for i in xrange(thesecol.size):
                 colnum = int(colnums[i])
-                name = array.dtype.names[i]
+                name = array.dtype.names[colnum]
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
 
-                                                    
+        # now read the variable length arrays we may be able to speed this up
+        # by storing directly instead of reading first into a list
         wvar,=numpy.where(isvar == True)
         if wvar.size > 0:
-            pass
+            thesecol=colnumsp[wvar] # this will be contiguous (not true for slices)
+            for i in xrange(thesecol.size):
+                colnump = thesecol[i]
+                name = array.dtype.names[colnump-1]
+                dlist = self._FITS.read_var_column_as_list(self.ext+1,colnump,rows)
+                if vstorage == 'fixed':
+                    for irow,item in enumerate(dlist):
+                        ncopy = len(item)
+                        array[name][irow][0:ncopy] = item[:]
+                else:
+                    # get references to each, no copy made
+                    array[name] = dlist
 
         return array
 

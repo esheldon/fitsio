@@ -1551,11 +1551,13 @@ static PyObject *
 PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int colnum=0;
-    PyObject* rowsobj;
+    PyObject* rowsObj=NULL;
 
     int hdutype=0;
     int ncols=0;
+    const npy_int64* rows=NULL;
     LONGLONG nrows=0;
+    int get_all_rows=0;
 
     int status=0, tstatus=0;
 
@@ -1567,11 +1569,17 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
     int fortran=0;
     LONGLONG repeat=0;
     LONGLONG width=0;
+    LONGLONG offset=0;
+    LONGLONG i=0;
+    LONGLONG row=0;
+    npy_intp dims[1];
+    void* nulval=0;
+    int* anynul=NULL;
 
     PyObject* listObj=NULL;
     PyObject* tempArray=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &rowsobj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &rowsObj)) {
         return NULL;
     }
 
@@ -1609,9 +1617,49 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
         return NULL;
     }
     
+    if (rowsObj == Py_None) {
+        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        get_all_rows=1;
+    } else {
+        npy_intp tnrows=0;
+        rows = (const npy_int64*) get_int64_from_array(rowsObj, &tnrows);
+        nrows=(LONGLONG) tnrows;
+        get_all_rows=0;
+    }
+
     listObj = PyList_New(0);
+
+    for (i=0; i<nrows; i++) {
+        if (get_all_rows) {
+            row = i+1;
+        } else {
+            row = (LONGLONG) (rows[i]+1);
+        }
+
+        // repeat holds how many elements are in this row
+        if (fits_read_descriptll(self->fits, colnum, row, &repeat, &offset, &status) > 0) {
+            goto read_var_column_cleanup;
+        }
+
+        dims[0] = repeat;
+        tempArray=PyArray_ZEROS(1, dims, npy_dtype, fortran);
+        if (tempArray==NULL) {
+            tstatus=1;
+            PyErr_Format(PyExc_MemoryError, 
+                    "Could not allocate array type %d size %lld",npy_dtype,repeat);
+            goto read_var_column_cleanup;
+        }
+        data = PyArray_DATA(tempArray);
+        if (fits_read_col(self->fits,abs(fits_dtype),colnum,row,1,repeat,nulval,data,anynul,&status) > 0) {
+            goto read_var_column_cleanup;
+        }
+        PyList_Append(listObj, tempArray);
+    }
+
+    
+    /*
     fits_get_num_rowsll(self->fits, &nrows, &tstatus);
-    if (rowsobj == Py_None) {
+    if (rowsObj == Py_None) {
         LONGLONG offset=0;
         LONGLONG i=0;
         npy_intp dims[1];
@@ -1638,11 +1686,10 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
         }
     } else {
         // port this
-        /*
         npy_intp nrows=0;
         npy_int64* rows=NULL;
         npy_intp stride=0;
-        rows = get_int64_from_array(rowsobj, &nrows);
+        rows = get_int64_from_array(rowsObj, &nrows);
         if (rows == NULL) {
             return NULL;
         }
@@ -1652,8 +1699,8 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
             set_ioerr_string_from_status(status);
             return NULL;
         }
-        */
     }
+        */
 
 read_var_column_cleanup:
 
@@ -1874,7 +1921,6 @@ static int read_columns_as_rec_byoffset(
 
     // using struct defs here, could cause problems
     hdu = fits->Fptr;
-    fprintf(stderr,"\nReading %ld rows\n", nrows);
     for (irow=0; irow<nrows; irow++) {
         if (get_all_rows) {
             row=irow;
@@ -1970,7 +2016,7 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
     }
 
     if (rowsObj != Py_None) {
-        rows = (const npy_intp*) get_int64_from_array(rowsObj, &nrows);
+        rows = (const npy_int64*) get_int64_from_array(rowsObj, &nrows);
     } else {
         nrows = PyArray_SIZE(array);
     }
