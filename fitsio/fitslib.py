@@ -47,7 +47,8 @@ def cfitsio_version(asfloat=False):
         return ver
 
 
-def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
+#def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
+def read(filename, ext=None, extver=None, **keys):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -84,10 +85,16 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False,
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    vstorage: string, optional
+        Set the default method to store variable length columns.  Can be
+        'fixed' or 'object'.  See docs on fitsio.FITS for details.
 
     """
 
-    with FITS(filename, case_sensitive=case_sensitive) as fits:
+    with FITS(filename, **keys) as fits:
+
+        header=keys.get('header',False)
+
         if ext is None:
             for i in xrange(len(fits)):
                 if fits[i].has_data():
@@ -98,7 +105,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False,
 
         item=_make_item(ext, extver=extver)
 
-        data = fits[item].read(rows=rows, columns=columns)
+        data = fits[item].read(**keys)
         if header:
             h = fits[item].read_header()
             return data, h
@@ -106,7 +113,7 @@ def read(filename, ext=None, extver=None, rows=None, columns=None, header=False,
             return data
 
 
-def read_header(filename, ext, extver=None, case_sensitive=False):
+def read_header(filename, ext=0, extver=None, case_sensitive=False):
     """
     Convenience function to read the header from the specified FITS HDU
 
@@ -120,9 +127,9 @@ def read_header(filename, ext, extver=None, case_sensitive=False):
     ----------
     filename: string
         A filename. 
-    ext: number or string
+    ext: number or string, optional
         The extension.  Either the numerical extension from zero
-        or a string extension name.
+        or a string extension name. Default read primary header.
     extver: integer, optional
         FITS allows multiple extensions to have the same name (extname).  These
         extensions can optionally specify an EXTVER version number in the
@@ -261,21 +268,25 @@ class FITS:
         Default is 'fixed'.  The rationale is that this is the option
             of 'least surprise'
     """
-    def __init__(self, filename, mode='r', clobber=False, case_sensitive=False, vstorage='fixed'):
+    #def __init__(self, filename, mode='r', clobber=False, case_sensitive=False, vstorage='fixed'):
+    def __init__(self, filename, mode='r', **keys):
         filename = extract_filename(filename)
         self.filename = filename
-        self.mode=mode
-        self.case_sensitive=case_sensitive
-        self.vstorage=vstorage
 
-        if mode not in _int_modemap:
+        #self.mode=keys.get('mode','r')
+        self.mode=mode
+        self.case_sensitive=keys.get('case_sensitive',False)
+        self.vstorage=keys.get('vstorage','fixed')
+        clobber = keys.get('clobber',False)
+
+        if self.mode not in _int_modemap:
             raise ValueError("mode should be one of 'r','rw',READONLY,READWRITE")
 
-        self.charmode = _char_modemap[mode]
-        self.intmode = _int_modemap[mode]
+        self.charmode = _char_modemap[self.mode]
+        self.intmode = _int_modemap[self.mode]
 
         create=0
-        if mode in [READWRITE,'rw']:
+        if self.mode in [READWRITE,'rw']:
             if clobber:
                 create=1
                 if os.path.exists(filename):
@@ -1504,7 +1515,7 @@ class FITSHDU:
             thesecol=colnumsp[wvar] # this will be contiguous (not true for slices)
             for i in xrange(thesecol.size):
                 colnump = thesecol[i]
-                name = array.dtype.names[colnump-1]
+                name = array.dtype.names[wvar[i]]
                 dlist = self._FITS.read_var_column_as_list(self.ext+1,colnump,rows)
                 if vstorage == 'fixed':
                     for irow,item in enumerate(dlist):
