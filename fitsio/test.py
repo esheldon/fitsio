@@ -2,6 +2,7 @@ from __future__ import with_statement
 import os
 import tempfile
 import numpy
+from numpy import arange, array
 import fitsio
 
 import unittest
@@ -111,7 +112,28 @@ class TestReadWrite(unittest.TestCase):
         data2['x'] = numpy.arange(nrows2,dtype='f8')
         data2['y'] = numpy.arange(nrows2,dtype='f8')
         self.data2 = data2
- 
+
+        # for variable length columns
+        cd=numpy.zeros(3,dtype=[('index','i8'),('obj1','O'),('ra','f8'),
+                                ('strobj','O'),('npstrobj','O'),('obj2','O')])
+        cd['index'] = arange(3)
+        cd['ra'] = numpy.random.random(3)
+
+        # for now, all same type
+        cd['obj1'] = [array([3,4,5]), array([-234,325],dtype='i4'), arange(5)]
+
+        # regular strings
+        cd['strobj'] = ['hey','man','stuff and or things']
+        # numpy string_
+        cd['npstrobj'] = numpy.array(['nananana','hey hey hey','goodbye'])
+
+        # for now, all same type
+        cd['obj2'] = [array([10,11,12],dtype='f8'), 
+                      array([100,110,120],dtype='f4'), 
+                      100+arange(5,dtype='f4')]
+
+        self.vardata=cd
+
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -340,6 +362,99 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
+
+    def testVariableLengthColumns(self):
+        """
+        Write and read variable length columns
+        """
+
+        for vstorage in ['fixed','object']:
+            fname=tempfile.mktemp(prefix='fitsio-VarCol-',suffix='.fits')
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True,vstorage=vstorage) as fits:
+                    fits.write(self.vardata)
+
+
+                    # reading multiple columns
+                    d = fits[1].read()
+                    self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage)
+
+                    cols=['ra','strobj']
+                    d = fits[1].read(columns=cols)
+                    self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage)
+
+                    # one at a time
+                    for f in self.vardata.dtype.names:
+                        d = fits[1].read_column(f)
+                        if fitsio.fitslib.is_object(self.vardata[f]):
+                            self.compare_object_array(self.vardata[f], d, 
+                                                      "read all field '%s'" % f)
+
+                    # same as above with slices
+                    # reading multiple columns
+                    d = fits[1][:]
+                    self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage)
+
+                    cols=['ra','strobj']
+                    d = fits[1][cols][:]
+                    self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage)
+
+                    # one at a time
+                    for f in self.vardata.dtype.names:
+                        d = fits[1][f][:]
+                        if fitsio.fitslib.is_object(self.vardata[f]):
+                            self.compare_object_array(self.vardata[f], d, 
+                                                      "read all field '%s'" % f)
+
+ 
+
+                    #
+                    # now same with sub rows
+                    #
+
+                    # reading multiple columns
+                    rows = numpy.array([0,2])
+                    d = fits[1].read(rows=rows)
+                    self.compare_rec_with_var(self.vardata,d,"read subrows test '%s'" % vstorage, 
+                                              rows=rows)
+
+                    cols=['ra','strobj']
+                    d = fits[1].read(columns=cols, rows=rows)
+                    self.compare_rec_with_var(self.vardata,d,"read subrows test subcols '%s'" % vstorage, 
+                                              rows=rows)
+
+                    # one at a time
+                    for f in self.vardata.dtype.names:
+                        d = fits[1].read_column(f,rows=rows)
+                        if fitsio.fitslib.is_object(self.vardata[f]):
+                            self.compare_object_array(self.vardata[f], d, 
+                                                      "read subrows field '%s'" % f,
+                                                      rows=rows)
+
+                    # same as above with slices
+                    # reading multiple columns
+                    d = fits[1][rows]
+                    self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage, 
+                                              rows=rows)
+
+                    cols=['ra','strobj']
+                    d = fits[1][cols][rows]
+                    self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage, 
+                                              rows=rows)
+
+                    # one at a time
+                    for f in self.vardata.dtype.names:
+                        d = fits[1][f][rows]
+                        if fitsio.fitslib.is_object(self.vardata[f]):
+                            self.compare_object_array(self.vardata[f], d, 
+                                                      "read all field '%s'" % f,
+                                                      rows=rows)
+
+
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
 
 
@@ -587,6 +702,7 @@ class TestReadWrite(unittest.TestCase):
             res=numpy.where(rec1[f] != rec2[f])
             for w in res:
                 self.assertEqual(w.size,0,"testing column %s" % f)
+
     def compare_rec_subrows(self, rec1, rec2, rows, name):
         for f in rec1.dtype.names:
             self.assertEqual(rec1[f][rows].shape, rec2[f].shape,
@@ -598,6 +714,77 @@ class TestReadWrite(unittest.TestCase):
                 self.assertEqual(w.size,0,"testing column %s" % f)
 
             #self.assertEqual(2,3,"on purpose error")
+
+    def compare_rec_with_var(self, rec1, rec2, name, rows=None):
+        """
+
+        First one *must* be the one with object arrays
+
+        Second can have fixed length
+
+        both should be same number of rows
+
+        """
+
+        if rows is None:
+            rows = arange(rec2.size)
+            self.assertEqual(rec1.size,rec2.size,
+                             "testing '%s' same number of rows" % name)
+
+        # rec2 may have fewer fields
+        for f in rec2.dtype.names:
+
+            # f1 will have the objects
+            if fitsio.fitslib.is_object(rec1[f]):
+                self.compare_object_array(rec1[f], rec2[f], 
+                                          "testing '%s' field '%s'" % (name,f),
+                                          rows=rows)
+            else:                    
+                self.compare_array(rec1[f][rows], rec2[f], 
+                                   "testing '%s' num field '%s' equal" % (name,f))
+
+    def compare_object_array(self, arr1, arr2, name, rows=None): 
+        """
+        The first must be object, the second might be
+        """
+        if rows is None:
+            rows = arange(arr1.size)
+
+        for i,row in enumerate(rows):
+            if isinstance(arr2[i],str):
+                self.assertEqual(arr1[row],arr2[i],
+                                "%s str el %d equal" % (name,i))
+            else:
+                delement = arr2[i]
+                orig = arr1[row]
+                s=orig.size
+                self.compare_array(orig, delement[0:s], 
+                                   "%s num el %d equal" % (name,i))
+
+    def compare_rec_with_var_subrows(self, rec1, rec2, name, rows):
+        """
+
+        Second one must be the one with object arrays
+
+        """
+        for f in rec1.dtype.names:
+            if fitsio.fitslib.is_object(rec2[f]):
+
+                for i in xrange(rec2.size):
+                    if isinstance(rec2[f][i],str):
+                        self.assertEqual(rec1[f][i],rec2[f][i],
+                                        "testing '%s' str field '%s' el %d equal" % (name,f,i))
+                    else:
+                        delement = rec1[f][i]
+                        orig = rec2[f][i]
+                        s=orig.size
+                        self.compare_array(orig, delement[0:s], 
+                                           "testing '%s' num field '%s' el %d equal" % (name,f,i))
+            else:                    
+                self.compare_array(rec1[f], rec2[f], 
+                                   "testing '%s' num field '%s' equal" % (name,f))
+
+
 
 
 class TestBufferProblem(unittest.TestCase):

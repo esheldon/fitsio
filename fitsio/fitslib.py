@@ -583,10 +583,12 @@ class FITS:
         """
         Create a new, empty table extension and reload the hdu list.
 
-        There are two ways to do it:
+        There are three ways to do it:
             1) send a numpy dtype, from which the formats in the fits file will
                be determined.
-            2) send the names,formats and dims yourself
+            2) Send an array in data= keyword.  this is required if you have
+                object fields for writing to variable length columns.
+            3) send the names,formats and dims yourself
 
         You can then write data into the new extension using
             fits[extension].write(array)
@@ -656,7 +658,7 @@ class FITS:
             names, formats, dims = descr2tabledef(dtype.descr)
         else:
             if names is None or formats is None:
-                raise ValueError("send either dtype= or names= and formats=")
+                raise ValueError("send either dtype=, data=, or names= and formats=")
 
             if not isinstance(names,list) or not isinstance(formats,list):
                 raise ValueError("names and formats should be lists")
@@ -981,15 +983,23 @@ class FITSHDU:
             self.write_image(data)
         else:
             if data.dtype.fields is None:
-
                 raise ValueError("You are writing to a table, so I expected "
                                  "an array with fields as input. If you want "
                                  "to write a simple array, you should use "
                                  "write_column to write to a single column, "
                                  "or instead write to an image hdu")
 
-            for name in data.dtype.names:
-                self.write_column(name, data[name], firstrow=firstrow)
+            # only write object types (variable-length columns) after
+            # writing the main table
+            isobj = fields_are_object(data)
+            for i,name in enumerate(data.dtype.names):
+                if not isobj[i]:
+                    self.write_column(name, data[name], firstrow=firstrow)
+            for i,name in enumerate(data.dtype.names):
+                if isobj[i]:
+                    self.write_var_column(name, data[name], firstrow=firstrow)
+
+
 
     def append(self, data):
         """
@@ -1067,7 +1077,7 @@ class FITSHDU:
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Cannote write a column for images")
+            raise ValueError("Cannot write a column to an IMAGE_HDU")
 
         colnum = self._extract_colnum(column)
 
@@ -1086,6 +1096,34 @@ class FITSHDU:
             data_send = array_to_native(data, inplace=False)
 
         self._FITS.write_column(self.ext+1, colnum+1, data_send, firstrow=firstrow+1)
+        self._update_info()
+
+    def write_var_column(self, column, data, firstrow=0):
+        """
+        Write data to a variable-length column in this HDU
+
+        This HDU must be a table HDU.
+
+        parameters
+        ----------
+        column: scalar string/integer
+            The column in which to write.  Can be the name or number (0 offset)
+        column: ndarray
+            Numerical python array to write.  This must be an object array.
+        firstrow: integer, optional
+            At which row you should begin writing.  Be sure you know what you
+            are doing!  For appending see the append() method.  Default 0.
+        """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannot write a column to an IMAGE_HDU")
+
+        if not is_object(data):
+            raise ValueError("Only object fields can be written to "
+                             "variable-length arrays")
+        colnum = self._extract_colnum(column)
+
+        self._FITS.write_var_column(self.ext+1, colnum+1, data, firstrow=firstrow+1)
         self._update_info()
 
     def read_header(self):
@@ -1232,15 +1270,13 @@ class FITSHDU:
         dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
-            descr=dlist[0].dtype.str
             tform = self.info['colinfo'][colnum]['tform']
             max_size = extract_vararray_max(tform)
-            if descr[1] == 'S':
-                # variable length string columns cannot themselves be arrays I
-                # don't think. Just generate directly from the list
+            if isinstance(dlist[0],str):
                 descr = 'S%d' % max_size
                 array = numpy.fromiter(dlist, descr)
             else:
+                descr=dlist[0].dtype.str
                 array = numpy.zeros( (len(dlist), max_size), dtype=descr)
 
                 for irow,item in enumerate(dlist):
@@ -1511,8 +1547,10 @@ class FITSHDU:
                                                     array,
                                                     rows)
             for i in xrange(thesecol.size):
+
+                name = array.dtype.names[wnotvar[i]]
+
                 colnum = int(colnums[i])
-                name = array.dtype.names[colnum]
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
@@ -1526,10 +1564,17 @@ class FITSHDU:
                 colnump = thesecol[i]
                 name = array.dtype.names[wvar[i]]
                 dlist = self._FITS.read_var_column_as_list(self.ext+1,colnump,rows)
+                if isinstance(dlist[0],str):
+                    is_string=True
+                else:
+                    is_string=False
                 if vstorage == 'fixed':
                     for irow,item in enumerate(dlist):
-                        ncopy = len(item)
-                        array[name][irow][0:ncopy] = item[:]
+                        if is_string:
+                            array[name][irow]= item
+                        else:
+                            ncopy = len(item)
+                            array[name][irow][0:ncopy] = item[:]
                 else:
                     # get references to each, no copy made
                     array[name] = dlist
@@ -2090,6 +2135,8 @@ def array2tabledef(data):
     Similar to descr2tabledef but if there are object columns a type
     and max length will be extracted and used for the tabledef
     """
+    if data.dtype.fields is None:
+        raise ValueError("data must have fields")
     names=[]
     formats=[]
     dims=[]
@@ -2149,6 +2196,38 @@ def descr2tabledef(descr):
     return names, formats, dims
 
 def npy_obj2fits(data, name):
+    # this will be a variable length column 1Pt(len) where t is the
+    # type and len is max length.  Each element must be convertible to
+    # the same type as the first
+
+    d = data[name].dtype.descr
+
+    # note numpy._string is an instance of str, so str is good enough
+    first = data[name][0]
+    if isinstance(first, str):
+        fits_dtype = _table_npy2fits_form['S']
+    else:
+        arr0 = numpy.array(first,copy=False)
+        dtype0 = arr0.dtype
+        npy_dtype = dtype0.descr[0][1][1:]
+        if npy_dtype[0] == 'S':
+            raise ValueError("Field '%s' is an arrays of strings, this is "
+                             "not allowed in variable length columns" % name)
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError("Field '%s' has unsupported type '%s'" % (name,npy_dtype))
+        fits_dtype = _table_npy2fits_form[npy_dtype]
+
+    # Q uses 64-bit addressing, should try at some point but the cfitsio manual
+    # says it is experimental
+    #form = '1Q%s' % fits_dtype
+    form = '1P%s' % fits_dtype
+    dim=None
+
+    return form, dim
+
+
+
+def npy_obj2fits_old(data, name):
     # this will be a variable length column 1Pt(len) where t is the
     # type and len is max length.  Each element must be convertible to
     # the same type as the first
@@ -2480,6 +2559,17 @@ def isstring(arg):
     return isinstance(arg, (str,unicode))
 
 
+def fields_are_object(arr):
+    isobj=numpy.zeros(len(arr.dtype.names),dtype=numpy.bool)
+    for i,name in enumerate(arr.dtype.names):
+        if is_object(arr[name]):
+            isobj[i] = True
+    return isobj
+def is_object(arr):
+    if arr.dtype.descr[0][1][1] == 'O':
+        return True
+    else:
+        return False
 
 def array_to_native(array, inplace=False):
     if numpy.little_endian:

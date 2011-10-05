@@ -252,6 +252,8 @@ TODO
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
 - variable length columns 
+    - doc that type is taken from *first element* in object array, and
+      others are converted to corresponding FITS type.
 - HDU groups?
 
 Notes on cfitsio bundling

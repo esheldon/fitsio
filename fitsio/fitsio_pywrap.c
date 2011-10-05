@@ -1197,6 +1197,226 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
     Py_RETURN_NONE;
 }
 
+// No error checking performed here
+static
+int write_var_string_column( 
+        fitsfile *fits,  /* I - FITS file pointer                       */
+        int  colnum,     /* I - number of column to write (1 = 1st col) */
+        LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
+        PyObject* array,
+        int  *status) {   /* IO - error status                           */
+
+    LONGLONG firstelem=1; // ignored
+    LONGLONG nelem=1; // ignored
+    npy_intp nrows=0;
+    npy_intp i=0;
+    char* ptr=NULL;
+    int res=0;
+
+    PyObject* format=NULL;
+    PyObject* el=NULL;
+    PyObject* el_string=NULL;
+    char* strdata=NULL;
+    char* strarr[1];
+    int is_converted=0;
+
+    format = PyString_FromString("%s");
+
+    nrows = PyArray_SIZE(array);
+    for (i=0; i<nrows; i++) {
+        ptr = PyArray_GetPtr((PyArrayObject*) array, &i);
+        el = PyArray_GETITEM(array, ptr);
+
+        // convert to a string if needed
+        if (PyString_Check(el)) {
+            is_converted=0;
+            // Don't free!
+            strdata = PyString_AsString(el);
+        } else {
+            PyObject* args=PyTuple_New(1);
+
+            PyTuple_SetItem(args,0,el);
+            el_string = PyString_Format(format, args);
+
+            Py_XDECREF(args);
+
+            is_converted=1;
+            // Don't free!
+            strdata = PyString_AsString(el_string);
+        }
+
+        strarr[0] = strdata;
+        res=fits_write_col_str(fits, colnum, 
+                               firstrow+i, firstelem, nelem, 
+                               strarr, status);
+        if (is_converted) {
+            Py_XDECREF(el_string);
+        }
+
+        if(res > 0) {
+            goto write_var_string_column_cleanup;
+        }
+    }
+
+write_var_string_column_cleanup:
+    Py_XDECREF(format);
+    if (*status > 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/* 
+ * No error checking performed here
+ */
+static
+int write_var_num_column( 
+        fitsfile *fits,  /* I - FITS file pointer                       */
+        int  colnum,     /* I - number of column to write (1 = 1st col) */
+        LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
+        int fits_dtype, 
+        PyObject* array,
+        int  *status) {   /* IO - error status                           */
+
+    LONGLONG firstelem=1;
+    npy_intp nelem=0;
+    npy_intp nrows=0;
+    npy_intp i=0;
+    PyObject* el=NULL;
+    PyObject* el_array=NULL;
+    void* data=NULL;
+    void* ptr=NULL;
+
+    int npy_dtype=0, isvariable=0;
+
+    int mindepth=1, maxdepth=0;
+    PyObject* context=NULL;
+    int requirements = 
+        NPY_C_CONTIGUOUS 
+        | NPY_ALIGNED 
+        | NPY_NOTSWAPPED 
+        | NPY_ELEMENTSTRIDES;
+
+    int res=0;
+
+    npy_dtype = fits_to_npy_table_type(fits_dtype, &isvariable);
+
+    nrows = PyArray_SIZE(array);
+    for (i=0; i<nrows; i++) {
+        ptr = PyArray_GetPtr((PyArrayObject*) array, &i);
+        el = PyArray_GETITEM(array, ptr);
+
+        // a copy is only made if needed
+        el_array = PyArray_CheckFromAny(el, PyArray_DescrFromType(npy_dtype), 
+                                        mindepth, maxdepth, 
+                                        requirements, context);
+        if (el_array == NULL) {
+            // error message will already be set
+            return 1;
+        }
+
+        nelem=PyArray_SIZE(el);
+        data=PyArray_DATA(el_array);
+        res=fits_write_col(fits, abs(fits_dtype), colnum, 
+                           firstrow+i, firstelem, (LONGLONG) nelem, data, status);
+        Py_XDECREF(el_array);
+
+        if(res > 0) {
+            set_ioerr_string_from_status(*status);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+
+
+/* 
+ * write a variable length column, starting at firstrow.  On the python side,
+ * the firstrow kwd should default to 1.  You can append rows using firstrow =
+ * nrows+1
+ *
+ * The input array should be of type NPY_OBJECT, and the elements
+ * should be either all strings or numpy arrays of the same type
+ */
+
+static PyObject *
+PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+    int colnum=0;
+    PyObject* array=NULL;
+
+    PY_LONG_LONG firstrow_py=0;
+    LONGLONG firstrow=1;
+    int npy_dtype=0;
+    int fits_dtype=0;
+
+    static char *kwlist[] = {"hdunum","colnum","array","firstrow", NULL};
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL", 
+                  kwlist, &hdunum, &colnum, &array, &firstrow_py)) {
+        return NULL;
+    }
+    firstrow = (LONGLONG) firstrow_py;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+
+    if (!PyArray_Check(array)) {
+        PyErr_SetString(PyExc_ValueError,"only arrays can be written to columns");
+        return NULL;
+    }
+
+    npy_dtype = PyArray_TYPE(array);
+    if (npy_dtype != NPY_OBJECT) {
+        PyErr_SetString(PyExc_TypeError,"only object arrays can be written to variable length columns");
+        return NULL;
+    }
+
+    // determine the fits dtype for this column.  We will use this to get data
+    // from the array for writing
+    if (fits_get_eqcoltypell(self->fits, colnum, &fits_dtype, NULL, NULL, &status) > 0) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_dtype == -TSTRING) {
+        if (write_var_string_column(self->fits, colnum, firstrow, array, &status)) {
+            if (status != 0) {
+                set_ioerr_string_from_status(status);
+            }
+            return NULL;
+        }
+    } else {
+        if (write_var_num_column(self->fits, colnum, firstrow, fits_dtype, array, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+    }
+
+    // this is a full file close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+
+    Py_RETURN_NONE;
+}
+
 
  
 /*
@@ -1542,7 +1762,63 @@ void free_all_python_list(PyObject* list) {
     Py_XDECREF(list);
 }
 
+PyObject* read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* status) {
+    LONGLONG firstelem=1;
+    char* str=NULL;
+    char* strarr[1];
+    PyObject* stringObj=NULL;
+    void* nulval=0;
+    int* anynul=NULL;
 
+    str=calloc(nchar,sizeof(char));
+    if (str == NULL) {
+        PyErr_Format(PyExc_MemoryError, 
+                     "Could not allocate string of size %lld", nchar);
+        return NULL;
+    }
+
+    strarr[0] = str;
+    if (fits_read_col(fits,TSTRING,colnum,row,firstelem,nchar,nulval,strarr,anynul,status) > 0) {
+        goto read_var_string_cleanup;
+    }
+    stringObj = PyString_FromString(str);
+    if (NULL == stringObj) {
+        PyErr_Format(PyExc_MemoryError, 
+                     "Could not allocate py string of size %lld", nchar);
+        goto read_var_string_cleanup;
+    }
+
+read_var_string_cleanup:
+    free(str);
+
+    return stringObj;
+}
+PyObject* read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
+                        int fits_dtype, int npy_dtype, int* status) {
+    LONGLONG firstelem=1;
+    PyObject* arrayObj=NULL;
+    void* nulval=0;
+    int* anynul=NULL;
+    npy_intp dims[1];
+    int fortran=0;
+    void* data=NULL;
+
+
+    dims[0] = nelem;
+    arrayObj=PyArray_ZEROS(1, dims, npy_dtype, fortran);
+    if (arrayObj==NULL) {
+        PyErr_Format(PyExc_MemoryError, 
+                     "Could not allocate array type %d size %lld",npy_dtype,nelem);
+        return NULL;
+    }
+    data = PyArray_DATA(arrayObj);
+    if (fits_read_col(fits,abs(fits_dtype),colnum,row,firstelem,nelem,nulval,data,anynul,status) > 0) {
+        Py_XDECREF(arrayObj);
+        return NULL;
+    }
+
+    return arrayObj;
+}
 /*
  * read a variable length column as a list of arrays
  * what about strings?
@@ -1561,23 +1837,17 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
 
     int status=0, tstatus=0;
 
-    void* data=NULL;
-
     int fits_dtype=0;
     int npy_dtype=0;
     int isvariable=0;
-    int fortran=0;
     LONGLONG repeat=0;
     LONGLONG width=0;
     LONGLONG offset=0;
     LONGLONG i=0;
     LONGLONG row=0;
-    npy_intp dims[1];
-    void* nulval=0;
-    int* anynul=NULL;
 
     PyObject* listObj=NULL;
-    PyObject* tempArray=NULL;
+    PyObject* tempObj=NULL;
 
     if (!PyArg_ParseTuple(args, (char*)"iiO", &hdunum, &colnum, &rowsObj)) {
         return NULL;
@@ -1641,71 +1911,24 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
             goto read_var_column_cleanup;
         }
 
-        dims[0] = repeat;
-        tempArray=PyArray_ZEROS(1, dims, npy_dtype, fortran);
-        if (tempArray==NULL) {
+        if (fits_dtype == -TSTRING) {
+            tempObj = read_var_string(self->fits,colnum,row,repeat,&status);
+        } else {
+            tempObj = read_var_nums(self->fits,colnum,row,repeat,
+                                    fits_dtype,npy_dtype,&status);
+        }
+        if (tempObj == NULL) {
             tstatus=1;
-            PyErr_Format(PyExc_MemoryError, 
-                    "Could not allocate array type %d size %lld",npy_dtype,repeat);
             goto read_var_column_cleanup;
         }
-        data = PyArray_DATA(tempArray);
-        if (fits_read_col(self->fits,abs(fits_dtype),colnum,row,1,repeat,nulval,data,anynul,&status) > 0) {
-            goto read_var_column_cleanup;
-        }
-        PyList_Append(listObj, tempArray);
+        PyList_Append(listObj, tempObj);
     }
 
-    
-    /*
-    fits_get_num_rowsll(self->fits, &nrows, &tstatus);
-    if (rowsObj == Py_None) {
-        LONGLONG offset=0;
-        LONGLONG i=0;
-        npy_intp dims[1];
-        void* nulval=0;
-        int* anynul=NULL;
-        for (i=0; i<nrows; i++) {
-            // repeat holds how many elements are in this row
-            if (fits_read_descriptll(self->fits, colnum, i+1, &repeat, &offset, &status) > 0) {
-                goto read_var_column_cleanup;
-            }
-            dims[0] = repeat;
-            tempArray=PyArray_ZEROS(1, dims, npy_dtype, fortran);
-            if (tempArray==NULL) {
-                tstatus=1;
-                PyErr_Format(PyExc_MemoryError, 
-                             "Could not allocate array type %d size %lld",npy_dtype,repeat);
-                goto read_var_column_cleanup;
-            }
-            data = PyArray_DATA(tempArray);
-            if (fits_read_col(self->fits,abs(fits_dtype),colnum,i+1,1,repeat,nulval,data,anynul,&status) > 0) {
-                goto read_var_column_cleanup;
-            }
-            PyList_Append(listObj, tempArray);
-        }
-    } else {
-        // port this
-        npy_intp nrows=0;
-        npy_int64* rows=NULL;
-        npy_intp stride=0;
-        rows = get_int64_from_array(rowsObj, &nrows);
-        if (rows == NULL) {
-            return NULL;
-        }
-        stride = PyArray_STRIDE(array,0);
-        if (read_column_bytes_byrow(self->fits, colnum, nrows, rows,
-                                    data, stride, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-    }
-        */
 
 read_var_column_cleanup:
 
     if (status != 0 || tstatus != 0) {
-        Py_XDECREF(tempArray);
+        Py_XDECREF(tempObj);
         free_all_python_list(listObj);
         if (status != 0) {
             set_ioerr_string_from_status(status);
@@ -2486,6 +2709,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
+    {"write_var_column",         (PyCFunction)PyFITSObject_write_var_column,         METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},
