@@ -1284,7 +1284,8 @@ class FITSHDU:
                     array[irow,0:ncopy] = item[:]
         else:
             array=numpy.zeros(len(dlist), dtype='O')
-            array[:] = dlist
+            for irow,item in enumerate(dlist):
+                array[irow] = item
 
         return array
 
@@ -1576,7 +1577,8 @@ class FITSHDU:
                             array[name][irow][0:ncopy] = item[:]
                 else:
                     # get references to each, no copy made
-                    array[name] = dlist
+                    for irow,item in enumerate(dlist):
+                        array[name][irow] = item
 
         return array
 
