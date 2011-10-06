@@ -142,9 +142,9 @@ Examples
     # By default they are read into fixed-length fields in the output array.
     # You can over-ride this by constructing the FITS object with the vstorage
     # keyword or specifying vstorage when reading.  Sending vstorage='object'
-    # will read int object fields in the array to save memory; the default is
-    # vstorage='fixed'.  Object fields can also be written out to a new FITS
-    # file as variable length to save disk space.
+    # will store the data in variable size object fields to save memory; the
+    # default is vstorage='fixed'.  Object fields can also be written out to a
+    # new FITS file as variable length to save disk space.
 
     >>> fits = fitsio.FITS(filename,vstorage='object')
     # OR
