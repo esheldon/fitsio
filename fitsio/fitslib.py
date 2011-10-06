@@ -1270,8 +1270,21 @@ class FITSHDU:
         dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
+
             tform = self.info['colinfo'][colnum]['tform']
             max_size = extract_vararray_max(tform)
+
+            if max_size <= 0:
+                name=self.info['colinfo'][colnum]['name']
+                mess='Will read as an object field'
+                if max_size < 0:
+                    print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
+                else:
+                    print "Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess)
+
+                # we are forced to read this as an object array
+                return self._read_var_column(colnum, rows, 'object')
+
             if isinstance(dlist[0],str):
                 descr = 'S%d' % max_size
                 array = numpy.fromiter(dlist, descr)
@@ -1568,17 +1581,19 @@ class FITSHDU:
                     is_string=True
                 else:
                     is_string=False
-                if vstorage == 'fixed':
+
+                if array[name].dtype.descr[0][1][1] == 'O':
+                    # storing in object array
+                    # get references to each, no copy made
+                    for irow,item in enumerate(dlist):
+                        array[name][irow] = item
+                else: 
                     for irow,item in enumerate(dlist):
                         if is_string:
                             array[name][irow]= item
                         else:
                             ncopy = len(item)
                             array[name][irow][0:ncopy] = item[:]
-                else:
-                    # get references to each, no copy made
-                    for irow,item in enumerate(dlist):
-                        array[name][irow] = item
 
         return array
 
@@ -1762,6 +1777,19 @@ class FITSHDU:
             else:
                 tform = self.info['colinfo'][colnum]['tform']
                 max_size = extract_vararray_max(tform)
+
+                if max_size == 0:
+                    if max_size <= 0:
+                        name=self.info['colinfo'][colnum]['name']
+                        mess='Will read as an object field'
+                        if max_size < 0:
+                            print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
+                        else:
+                            print "Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess)
+
+                    # we are forced to read this as an object array
+                    return self.get_rec_column_descr(colnum, 'object')
+
                 if npy_type[0] == 'S':
                     # variable length string columns cannot
                     # themselves be arrays I don't think
@@ -2100,7 +2128,8 @@ def extract_vararray_max(tform):
     last=tform.rfind(')')
     
     if first == -1 or last == -1:
-        raise ValueError("No maximum len specified in tform: %s" % tform)
+        # no max length specified
+        return -1
 
     maxnum=int(tform[first+1:last])
     return maxnum
