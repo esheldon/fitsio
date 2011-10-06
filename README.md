@@ -259,7 +259,6 @@ TODO
 ----
 
 - Read subsets of *images*
-- Test appending to a table when variable-length columns are present.
 - More error checking in c code for python lists and dicts.
 - optimize writing tables. When there are no unsigned short or long, no signed
   bytes, no strings, this could be simple using fits_write_tblbytes.  If
