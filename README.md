@@ -269,6 +269,7 @@ TODO
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
 - HDU groups?
+- Clean up the code
 
 Notes on cfitsio bundling
 -------------------------
