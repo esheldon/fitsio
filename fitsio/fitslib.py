@@ -1549,8 +1549,7 @@ class FITSHDU:
             for i in xrange(thesecol.size):
 
                 name = array.dtype.names[wnotvar[i]]
-
-                colnum = int(colnums[i])
+                colnum = thesecol[i]-1
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
@@ -1965,8 +1964,12 @@ class FITSHDU:
 
                 dt,isvar = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
                 if isvar:
-                    tform = self.info['colinfo'][colnum]['tform']
-                    dimstr = 'varray[%s]' % extract_vararray_max(tform)
+                    if dt[0] == 'S':
+                        dt = 'S0'
+                        dimstr='vstring[%d]' % extract_vararray_max(tform)
+                    else:
+                        tform = self.info['colinfo'][colnum]['tform']
+                        dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
                     tdim = c['tdim']
                     dimstr=''

@@ -17,6 +17,8 @@ Some Features
 - Read from and write to image and binary table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
+- Write and read variable length table columns.  Can read into
+  fixed length arrays of max size or object arrays to save memory.
 - Read columns and rows using slice notation similar to numpy arrays
   This is like a more powerful memmap, since it is column-aware.
 - Append rows to an existing table.
@@ -95,8 +97,10 @@ Examples
       f                   f4
       fvec                f4  array[2]
       darr                f8  array[3,2]
+      dvarr               f8  varray[10]
       s                   S5
       svec                S6  array[3]
+      svar                S0  vstring[8]
       sarr                S2  array[4,3]
 
     # [-1] to refers the last HDU
@@ -133,10 +137,25 @@ Examples
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
 
+    # Note dvarr shows type varray[10] and svar shows type vstring[8]. These
+    # are variable length columns and the number specified is the maximum size.
+    # By default they are read into fixed-length fields in the output array.
+    # You can over-ride this by constructing the FITS object with the vstorage
+    # keyword or specifying vstorage when reading.  Sending vstorage='object'
+    # will read int object fields in the array to save memory; the default is
+    # vstorage='fixed'.  Object fields can also be written out to a new FITS
+    # file as variable length to save disk space.
+
+    >>> fits = fitsio.FITS(filename,vstorage='object')
+    # OR
+    >>> data = fits[1].read(vstorage='object')
+    >>> print data['dvarr'].dtype
+        dtype('object')
+
+
     # you can grab a FITSHDU object to simplify notation
     >>> hdu1 = fits[1]
     >>> data = hdu1['x','y'][35:50]
-
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
@@ -238,9 +257,7 @@ TODO
 ----
 
 - Read subsets of *images*
-- keyword lists are getting long; implement **keys everywhere?  It would
-  lengthen the functions because they must extract keywords, but would
-  simplify wrapper code.
+- Test appending to a table when variable-length columns are present.
 - More error checking in c code for python lists and dicts.
 - optimize writing tables. When there are no unsigned short or long, no signed
   bytes, no strings, this could be simple using fits_write_tblbytes.  If
@@ -251,9 +268,6 @@ TODO
 - complex table columns.  bit? logical?
 - explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
-- variable length columns 
-    - doc that type is taken from *first element* in object array, and
-      others are converted to corresponding FITS type.
 - HDU groups?
 
 Notes on cfitsio bundling

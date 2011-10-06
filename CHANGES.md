@@ -1,16 +1,30 @@
 version 0.90
 -----------------------
 
-This is a beta for the first "official" release. Note cfitsio 3.28 is now
-bundled.  This should make it easier for folks to install, and a consistent
-code base with which to develop.  Thanks to Eli Rykoff for suggesting a bundle.
-Thanks to Eli and Martin white for helping test this.
+This is a beta for the first "official" release. cfitsio 3.28 is now bundled.
+This should make it easier for folks to install, and a consistent code base
+with which to develop.  Thanks to Eli Rykoff for suggesting a bundle.  Thanks
+to Eli and Martin white for helping test this.
 
 On OS X, we now link properly with universal binaries on intel. Thanks to Eli Rykoff
 for help with OS X testing and bug fixes.
 
 New features
 
+    - Write and read variable length columns.  When writing a table, any fields
+      declared "object" ("O" type char) in the input array will be written to a
+      variable length column.  For numbers, this means vectors of varying
+      length.  For strings, it means varying length strings.
+
+      When reading, there are two options.  1) By default the data are read
+      into fixed length fields with padding to the maximum size in the table
+      column.  This is a "least surprise" approach, since fancy indexing and
+      other array ops will work as expectd.  2) To save memory, construct the
+      FITS object with vstorage='object' to store the data as objects.  This
+      storage can also be written back out to a new FITS file with variable
+      length columns. You can also over-ride the default vstorage when calling
+      read functions.
+      
     - Append rows to an existing table using the append method.
             >>> fits.write_table(data1)
             >>> fits[-1].append(data2)

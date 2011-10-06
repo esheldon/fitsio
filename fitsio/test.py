@@ -113,9 +113,104 @@ class TestReadWrite(unittest.TestCase):
         data2['y'] = numpy.arange(nrows2,dtype='f8')
         self.data2 = data2
 
+
+
+
+        #
         # for variable length columns
-        cd=numpy.zeros(3,dtype=[('index','i8'),('obj1','O'),('ra','f8'),
-                                ('strobj','O'),('npstrobj','O'),('obj2','O')])
+        #
+
+        # all currently available types, scalar, 1-d and 2-d array columns
+        dtype=[('u1scalar','u1'),
+               ('u1obj','O'),
+               ('i1scalar','i1'),
+               ('i1obj','O'),
+               ('u2scalar','u2'),
+               ('u2obj','O'),
+               ('i2scalar','i2'),
+               ('i2obj','O'),
+               ('u4scalar','u4'),
+               ('u4obj','O'),
+               ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
+               ('i4obj','O'),
+               ('i8scalar','i8'),
+               ('i8obj','O'),
+               ('f4scalar','f4'),
+               ('f4obj','O'),
+               ('f8scalar','>f8'),
+               ('f8obj','O'),
+
+               ('u1vec','u1',nvec),
+               ('i1vec','i1',nvec),
+               ('u2vec','u2',nvec),
+               ('i2vec','i2',nvec),
+               ('u4vec','u4',nvec),
+               ('i4vec','i4',nvec),
+               ('i8vec','i8',nvec),
+               ('f4vec','f4',nvec),
+               ('f8vec','f8',nvec),
+ 
+               ('u1arr','u1',ashape),
+               ('i1arr','i1',ashape),
+               ('u2arr','u2',ashape),
+               ('i2arr','i2',ashape),
+               ('u4arr','u4',ashape),
+               ('i4arr','i4',ashape),
+               ('i8arr','i8',ashape),
+               ('f4arr','f4',ashape),
+               ('f8arr','f8',ashape),
+
+               ('Sscalar',Sdtype),
+               ('Sobj','O'),
+               ('Svec',   Sdtype, nvec),
+               ('Sarr',   Sdtype, ashape)]
+
+        dtype2=[('index','i4'),
+                ('x','f8'),
+                ('y','f8')]
+
+        nrows=4
+        data=numpy.zeros(nrows, dtype=dtype)
+
+        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
+            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
+            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
+            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
+            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
+
+            for i in xrange(nrows):
+                data[t+'obj'][i] = data[t+'vec'][i]
+
+
+        # strings get padded when written to the fits file.  And the way I do
+        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
+        # 
+        # so for comparisons, we need to pad out the strings with blanks so we
+        # can compare
+
+        data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
+        data['Svec'][:,0] = '%-6s' % 'hello'
+        data['Svec'][:,1] = '%-6s' % 'world'
+
+        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+        s = ['%-6s' % el for el in s]
+        data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+
+        for i in xrange(nrows):
+            data['Sobj'][i] = data['Sscalar'][i].rstrip()
+
+        self.vardata = data
+
+
+
+        """
+
+        cd=numpy.zeros(3,dtype=[('index','i8'),
+                                ('obj1','O'),
+                                ('ra','f8'),
+                                ('strobj','O'),
+                                ('npstrobj','O'),
+                                ('obj2','O')])
         cd['index'] = arange(3)
         cd['ra'] = numpy.random.random(3)
 
@@ -133,7 +228,7 @@ class TestReadWrite(unittest.TestCase):
                       100+arange(5,dtype='f4')]
 
         self.vardata=cd
-
+        """
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -379,7 +474,7 @@ class TestReadWrite(unittest.TestCase):
                     d = fits[1].read()
                     self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage)
 
-                    cols=['ra','strobj']
+                    cols=['u2scalar','Sobj']
                     d = fits[1].read(columns=cols)
                     self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage)
 
@@ -395,7 +490,6 @@ class TestReadWrite(unittest.TestCase):
                     d = fits[1][:]
                     self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage)
 
-                    cols=['ra','strobj']
                     d = fits[1][cols][:]
                     self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage)
 
@@ -418,7 +512,6 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_rec_with_var(self.vardata,d,"read subrows test '%s'" % vstorage, 
                                               rows=rows)
 
-                    cols=['ra','strobj']
                     d = fits[1].read(columns=cols, rows=rows)
                     self.compare_rec_with_var(self.vardata,d,"read subrows test subcols '%s'" % vstorage, 
                                               rows=rows)
@@ -437,7 +530,6 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage, 
                                               rows=rows)
 
-                    cols=['ra','strobj']
                     d = fits[1][cols][rows]
                     self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage, 
                                               rows=rows)
@@ -454,7 +546,8 @@ class TestReadWrite(unittest.TestCase):
 
             finally:
                 if os.path.exists(fname):
-                    os.remove(fname)
+                    pass
+                    #os.remove(fname)
 
 
 
@@ -562,8 +655,7 @@ class TestReadWrite(unittest.TestCase):
 
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
 
 
