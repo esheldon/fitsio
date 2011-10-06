@@ -180,7 +180,7 @@ Examples
     >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
     >>> data['index'] = numpy.arange(nrows,dtype='i4')
     >>> data['x'] = numpy.random.random(nrows)
-    >>> data['vstr'] = [str(i) for i in numpy.arange(nrows)]
+    >>> data['vstr'] = [str(i) for i in xrange(nrows)]
     >>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
     # create a new table extension and write the data
