@@ -546,8 +546,7 @@ class TestReadWrite(unittest.TestCase):
 
             finally:
                 if os.path.exists(fname):
-                    pass
-                    #os.remove(fname)
+                    os.remove(fname)
 
 
 
