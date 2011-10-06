@@ -1394,7 +1394,7 @@ class FITSHDU:
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
             rows=numpy.arange(firstrow,lastrow,step,dtype='i8')
-            colnums=numpy.arange(len(offsets))
+            colnums=self._extract_colnums()#numpy.arange(len(offsets),dtype='i8')
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             if step != 1:
@@ -1438,7 +1438,7 @@ class FITSHDU:
         w,=numpy.where(isvar == True)
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
-            colnums=numpy.arange(len(offsets))
+            colnums=self._extract_colnums()#numpy.arange(len(offsets),dtype='i8')
             return self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             array = numpy.zeros(rows.size, dtype=dtype)

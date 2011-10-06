@@ -202,33 +202,6 @@ class TestReadWrite(unittest.TestCase):
         self.vardata = data
 
 
-
-        """
-
-        cd=numpy.zeros(3,dtype=[('index','i8'),
-                                ('obj1','O'),
-                                ('ra','f8'),
-                                ('strobj','O'),
-                                ('npstrobj','O'),
-                                ('obj2','O')])
-        cd['index'] = arange(3)
-        cd['ra'] = numpy.random.random(3)
-
-        # for now, all same type
-        cd['obj1'] = [array([3,4,5]), array([-234,325],dtype='i4'), arange(5)]
-
-        # regular strings
-        cd['strobj'] = ['hey','man','stuff and or things']
-        # numpy string_
-        cd['npstrobj'] = numpy.array(['nananana','hey hey hey','goodbye'])
-
-        # for now, all same type
-        cd['obj2'] = [array([10,11,12],dtype='f8'), 
-                      array([100,110,120],dtype='f4'), 
-                      100+arange(5,dtype='f4')]
-
-        self.vardata=cd
-        """
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -527,20 +500,32 @@ class TestReadWrite(unittest.TestCase):
                     # same as above with slices
                     # reading multiple columns
                     d = fits[1][rows]
-                    self.compare_rec_with_var(self.vardata,d,"read all test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subrows slice test '%s'" % vstorage, 
                                               rows=rows)
+                    d = fits[1][2:4]
+                    self.compare_rec_with_var(self.vardata,d,"read slice test '%s'" % vstorage, 
+                                              rows=numpy.array([2,3]))
 
                     d = fits[1][cols][rows]
-                    self.compare_rec_with_var(self.vardata,d,"read all test subcols '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subcols subrows slice test '%s'" % vstorage, 
                                               rows=rows)
+                    d = fits[1][cols][2:4]
+                    self.compare_rec_with_var(self.vardata,d,"read subcols slice test '%s'" % vstorage, 
+                                              rows=numpy.array([2,3]))
 
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1][f][rows]
                         if fitsio.fitslib.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d, 
-                                                      "read all field '%s'" % f,
+                                                      "read subrows field '%s'" % f,
                                                       rows=rows)
+                        d = fits[1][f][2:4]
+                        if fitsio.fitslib.is_object(self.vardata[f]):
+                            self.compare_object_array(self.vardata[f], d, 
+                                                      "read slice field '%s'" % f,
+                                                      rows=numpy.array([2,3]))
+
 
 
 
