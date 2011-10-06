@@ -1690,9 +1690,9 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     void* data=NULL;
     npy_intp stride=0;
 
-    PyObject* rowsobj;
+    PyObject* rowsObj;
 
-    if (!PyArg_ParseTuple(args, (char*)"iiOO", &hdunum, &colnum, &array, &rowsobj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iiOO", &hdunum, &colnum, &array, &rowsObj)) {
         return NULL;
     }
 
@@ -1718,7 +1718,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
     
-    if (rowsobj == Py_None) {
+    if (rowsObj == Py_None) {
         if (PyArray_ISCONTIGUOUS(array)) {
             if (read_column_bytes(self->fits, colnum, data, &status)) {
                 set_ioerr_string_from_status(status);
@@ -1734,7 +1734,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     } else {
         npy_intp nrows=0;
         npy_int64* rows=NULL;
-        rows = get_int64_from_array(rowsobj, &nrows);
+        rows = get_int64_from_array(rowsObj, &nrows);
         if (rows == NULL) {
             return NULL;
         }
@@ -2314,11 +2314,11 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     PyObject* array=NULL;
     void* data=NULL;
 
-    PyObject* rowsobj=NULL;
+    PyObject* rowsObj=NULL;
     npy_intp nrows=0;
     npy_int64* rows=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iOO", &hdunum, &array, &rowsobj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOO", &hdunum, &array, &rowsObj)) {
         return NULL;
     }
 
@@ -2337,7 +2337,7 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
 
-    rows = get_int64_from_array(rowsobj, &nrows);
+    rows = get_int64_from_array(rowsObj, &nrows);
     if (rows == NULL) {
         return NULL;
     }
