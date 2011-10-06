@@ -48,7 +48,6 @@ def cfitsio_version(asfloat=False):
         return ver
 
 
-#def read(filename, ext=None, extver=None, rows=None, columns=None, header=False, case_sensitive=False):
 def read(filename, ext=None, extver=None, **keys):
     """
     Convenience function to read data from the specified FITS HDU
@@ -1241,6 +1240,7 @@ class FITSHDU:
 
         rows=keys.get('rows',None)
         colnum = self._extract_colnum(col)
+        # ensures unique, contiguous
         rows = self._extract_rows(rows)
 
         if self.info['colinfo'][colnum]['eqtype'] < 0:
@@ -1394,7 +1394,7 @@ class FITSHDU:
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
             rows=numpy.arange(firstrow,lastrow,step,dtype='i8')
-            colnums=self._extract_colnums()#numpy.arange(len(offsets),dtype='i8')
+            colnums=self._extract_colnums()
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             if step != 1:
@@ -1438,7 +1438,7 @@ class FITSHDU:
         w,=numpy.where(isvar == True)
         if w.size > 0:
             vstorage = keys.get('vstorage',self.vstorage)
-            colnums=self._extract_colnums()#numpy.arange(len(offsets),dtype='i8')
+            colnums=self._extract_colnums()
             return self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             array = numpy.zeros(rows.size, dtype=dtype)
@@ -1680,7 +1680,7 @@ class FITSHDU:
             return None
         if stop < start:
             raise ValueError("start is greater than stop in slice")
-        return numpy.arange(tstart, tstop, step, dtype='intp')
+        return numpy.arange(tstart, tstop, step, dtype='i8')
 
     def _fix_range(self, num, isslice=True):
         """
