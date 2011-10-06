@@ -174,18 +174,20 @@ Examples
     >>> fits = FITS('test.fits','rw')
 
  
-    # create a rec array
+    # create a rec array.  Note vstr
+    # is a variable length string
     >>> nrows=35
-    >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('x','f8'),('arr','f4',(3,4))])
+    >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
     >>> data['index'] = numpy.arange(nrows,dtype='i4')
     >>> data['x'] = numpy.random.random(nrows)
+    >>> data['vstr'] = [str(i) for i in numpy.arange(nrows)]
     >>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
     # create a new table extension and write the data
     >>> fits.write(data)
 
     # note under the hood the above does the following
-    >>> fits.create_table_hdu(dtype=data.dtype)
+    >>> fits.create_table_hdu(data=data)
     >>> fits[-1].write(data)
     >>> fits.update_hdu_list()
 

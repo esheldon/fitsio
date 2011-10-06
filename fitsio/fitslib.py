@@ -1966,11 +1966,11 @@ class FITSHDU:
 
                 dt,isvar = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
                 if isvar:
+                    tform = self.info['colinfo'][colnum]['tform']
                     if dt[0] == 'S':
                         dt = 'S0'
                         dimstr='vstring[%d]' % extract_vararray_max(tform)
                     else:
-                        tform = self.info['colinfo'][colnum]['tform']
                         dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
                     tdim = c['tdim']
