@@ -1,7 +1,7 @@
 /*
  * fitsio_pywrap.c
  *
- * This is a python wrapper for the cfitsio library.
+ * This is a CPython wrapper for the cfitsio library.
 
   Copyright (C) 2011  Erin Sheldon, BNL.  erin dot sheldon at gmail dot com
 
@@ -26,6 +26,10 @@
 #include "fitsio2.h"
 #include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h> 
+
+// this is not defined anywhere in cfitsio except in
+// the fits file structure
+#define CFITSIO_MAX_ARRAY_DIMS 99
 
 struct PyFITSObject {
     PyObject_HEAD
@@ -342,25 +346,21 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     }
 
 
+    int ndims=0;
+    int maxdim=CFITSIO_MAX_ARRAY_DIMS;
+    LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS];
     if (hdutype == IMAGE_HDU) {
         // move this into it's own func
         int tstatus=0;
-        int maxdim=10;
-        int ndims=0;
         int bitpix=0;
         int bitpix_equiv=0;
-        long* pcount_p=NULL; // ignore currently
-        long* gcount_p=NULL; // ignore currently
-        int* simple_p=NULL;
-        int* extend_p=NULL;
-        LONGLONG dims[] = {0,0,0,0,0,0,0,0,0,0};
         char comptype[20];
-        PyObject* imgnaxis=PyList_New(0);
+        PyObject* dimsObj=PyList_New(0);
         int i=0;
 
-        if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
-                               dims, pcount_p, gcount_p, extend_p, &status)) {
-
+        //if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
+        //                       dims, pcount_p, gcount_p, extend_p, &status)) {
+        if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims, &tstatus)) {
             PyDict_SetItemString(dict, "error", PyString_FromString("could not determine image parameters"));
         } else {
             PyDict_SetItemString(dict, "ndims", PyLong_FromLong((long)ndims));
@@ -378,9 +378,10 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             }
 
             for (i=0; i<ndims; i++) {
-                PyList_Append(imgnaxis, PyLong_FromLong( (long)dims[i]));
+                PY_LONG_LONG d=dims[i];
+                PyList_Append(dimsObj, PyLong_FromLongLong(d));
             }
-            PyDict_SetItemString(dict, "dims", imgnaxis);
+            PyDict_SetItemString(dict, "dims", dimsObj);
 
         }
 
@@ -397,9 +398,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         PyDict_SetItemString(dict, "ncols", PyLong_FromLong( (long)ncols));
 
         {
-            int naxis=0;
-            int maxdim=10;
-            long naxes[10];
             tcolumn* col=NULL;
             struct stringlist* names=NULL;
             struct stringlist* tforms=NULL;
@@ -411,8 +409,8 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 stringlist_push_size(tforms, 70);
             }
             // just get the names: no other way to do it!
-            //fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, NULL, NULL, NULL, NULL, &tstatus);
-            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, tforms->data, NULL, NULL, NULL, &tstatus);
+            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, tforms->data, 
+                                NULL, NULL, NULL, &tstatus);
 
             for (i=0; i<ncols; i++) {
                 PyObject* d = PyDict_New();
@@ -435,20 +433,18 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
                 */
 
-
-
                 tstatus=0;
-                if (fits_read_tdim(self->fits, i+1, maxdim, &naxis, naxes, &tstatus)) {
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, &tstatus)) {
                     Py_INCREF(Py_None);
                     PyDict_SetItemString(d, "tdim", Py_None);
                 } else {
-                    PyObject* tdim_list = PyList_New(naxis);
-                    PyObject* tdim;
-                    for (j=0; j<naxis; j++) {
-                        tdim = PyLong_FromLong((long)naxes[j]);
-                        PyList_SetItem(tdim_list, j, tdim);
+                    PyObject* dimsObj=PyList_New(0);
+                    for (j=0; j<ndims; j++) {
+                        PY_LONG_LONG d=dims[j];
+                        PyList_Append(dimsObj, PyLong_FromLongLong(d));
                     }
-                    PyDict_SetItemString(d, "tdim", tdim_list);
+
+                    PyDict_SetItemString(d, "tdim", dimsObj);
                 }
 
                 // using the struct, could cause problems
