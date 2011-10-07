@@ -70,10 +70,6 @@ void stringlist_push(struct stringlist* slist, const char* str) {
     slen = strlen(str);
 
     slist->data[i] = strdup(str);
-    /*
-    slist->data[i] = malloc(sizeof(char)*(slen+1));
-    strcpy(slist->data[i], str);
-    */
 }
 
 void stringlist_push_size(struct stringlist* slist, size_t slen) {
