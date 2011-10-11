@@ -101,9 +101,9 @@ class TestReadWrite(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string column'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double columm"},
-                     {'name':'lng','value':3423432,'comment':'this is a long column'}]
+                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
+                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
+                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
 
         # a second extension using the convenience function
         nrows2=10
@@ -112,6 +112,75 @@ class TestReadWrite(unittest.TestCase):
         data2['x'] = numpy.arange(nrows2,dtype='f8')
         data2['y'] = numpy.arange(nrows2,dtype='f8')
         self.data2 = data2
+
+
+
+        #
+        # ascii table
+        #
+
+        nvec = 2
+        ashape = (2,3)
+        Sdtype = 'S6'
+        # all currently available types, scalar, 1-d and 2-d array columns
+        adtype=[('f4scalar','f4')]
+
+        """
+                ('u2vec','u2',nvec),
+                ('i2vec','i2',nvec),
+                ('u4vec','u4',nvec),
+                ('i4vec','i4',nvec),
+                ('i8vec','i8',nvec),
+                ('f4vec','f4',nvec),
+                ('f8vec','f8',nvec),
+
+                ('u2arr','u2',ashape),
+                ('i2arr','i2',ashape),
+                ('u4arr','u4',ashape),
+                ('i4arr','i4',ashape),
+                ('i8arr','i8',ashape),
+                ('f4arr','f4',ashape),
+                ('f8arr','f8',ashape),
+                ('Sscalar',Sdtype),
+                ('Svec',   Sdtype, nvec),
+                ('Sarr',   Sdtype, ashape)]
+                """
+
+        nrows=4
+        adata=numpy.zeros(nrows, dtype=adtype)
+
+        for t in ['u2','i2','u4','i4','i8','f4','f8']:
+            sname = t+'scalar'
+            vname = t+'vec'
+            aname = t+'arr'
+            if sname in adata.dtype.names:
+                adata[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
+                adata[t+'scalar'][2] = -353423423.
+            if vname in adata.dtype.names:
+                adata[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
+            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
+            if aname in adata.dtype.names:
+                adata[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
+
+
+
+        # strings get padded when written to the fits file.  And the way I do
+        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
+        # 
+        # so for comparisons, we need to pad out the strings with blanks so we
+        # can compare
+
+        """
+        adata['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
+        adata['Svec'][:,0] = '%-6s' % 'hello'
+        adata['Svec'][:,1] = '%-6s' % 'world'
+
+        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+        s = ['%-6s' % el for el in s]
+        adata['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+        """
+
+        self.ascii_data = adata
 
 
 
@@ -592,6 +661,51 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+
+    def testAsciiTableWriteRead(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        pass
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                #fits.write_table(self.ascii_data, table_type='ascii', header=self.keys, extname='mytable')
+
+                #d=fits[1].read_column('f4scalar')
+                #print d
+                #d = fits[1].read()
+                #print 'read f4scalar:',d['f4scalar']
+                """
+                self.compare_rec(self.ascii_data, d, "table read/write")
+
+                for f in self.ascii_data.dtype.names:
+                    d = fits[1].read_column(f)
+                    self.compare_array(self.ascii_data[f], d, "table field read '%s'" % f)
+
+                # now list of columns
+                cols=['u2scalar','f4vec','Sarr']
+                d = fits[1].read(columns=cols)
+                for f in d.dtype.names: 
+                    self.compare_array(self.asciii_data[f][:], d[f], "test column list %s" % f)
+
+
+                cols=['u2scalar','f4vec','Sarr']
+                rows = [1,3]
+                d = fits[1].read(columns=cols, rows=rows)
+                for f in d.dtype.names: 
+                    self.compare_array(self.ascii_data[f][rows], d[f], "test column list %s row subset" % f)
+
+                """
+        finally:
+            if os.path.exists(fname):
+                pass
+                #os.remove(fname)
+
+
     def testSlice(self):
         """
         Test reading by slice
@@ -937,9 +1051,9 @@ class TestBufferProblem(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string column'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double columm"},
-                     {'name':'lng','value':3423432,'comment':'this is a long column'}]
+                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
+                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
+                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
 
         # a second extension using the convenience function
         nrows2=10
@@ -1069,9 +1183,9 @@ class TestReadWriteGZOnly(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string column'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double columm"},
-                     {'name':'lng','value':3423432,'comment':'this is a long column'}]
+                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
+                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
+                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
 
         # a second extension using the convenience function
         nrows2=10
@@ -1213,9 +1327,9 @@ class TestReadWriteGZOnly(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string column'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double columm"},
-                     {'name':'lng','value':3423432,'comment':'this is a long column'}]
+                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
+                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
+                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
 
         # a second extension using the convenience function
         nrows2=10

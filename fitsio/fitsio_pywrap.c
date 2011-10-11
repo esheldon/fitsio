@@ -141,8 +141,10 @@ PyFITSObject_close(struct PyFITSObject* self)
     int status=0;
     if (fits_close_file(self->fits, &status)) {
         self->fits=NULL;
+        /*
         set_ioerr_string_from_status(status);
         return NULL;
+        */
     }
     self->fits=NULL;
     Py_RETURN_NONE;
@@ -462,7 +464,89 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             PyDict_SetItemString(dict, "colinfo", colinfo);
         }
     } else {
-        PyErr_SetString(PyExc_ValueError, "don't yet support ascii tables");
+        int tstatus=0;
+        LONGLONG nrows=0;
+        int ncols=0;
+        PyObject* colinfo = PyList_New(0);
+        int i=0,j=0;
+
+        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        fits_get_num_cols(self->fits, &ncols, &tstatus);
+        PyDict_SetItemString(dict, "nrows", PyLong_FromLongLong( (long long)nrows ));
+        PyDict_SetItemString(dict, "ncols", PyLong_FromLong( (long)ncols));
+
+        {
+            tcolumn* col=NULL;
+            struct stringlist* names=NULL;
+            struct stringlist* tforms=NULL;
+            names=stringlist_new();
+            tforms=stringlist_new();
+
+            for (i=0; i<ncols; i++) {
+                stringlist_push_size(names, 70);
+                stringlist_push_size(tforms, 70);
+            }
+            // just get the names: no other way to do it!
+
+            //                                        rowlen nrows
+            fits_read_atblhdrll(self->fits, ncols, NULL, NULL,
+            //          tfields             tbcol                units
+                        NULL,   names->data, NULL, tforms->data, NULL,
+            //          extname
+                        NULL, &tstatus);
+
+
+
+            for (i=0; i<ncols; i++) {
+                PyObject* d = PyDict_New();
+                int type=0;
+                LONGLONG repeat=0;
+                LONGLONG width=0;
+
+                PyDict_SetItemString(d, "name", PyString_FromString(names->data[i]));
+                PyDict_SetItemString(d, "tform", PyString_FromString(tforms->data[i]));
+
+                fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
+                PyDict_SetItemString(d, "type", PyLong_FromLong( (long)type));
+                PyDict_SetItemString(d, "repeat", PyLong_FromLongLong( (long long)repeat));
+                PyDict_SetItemString(d, "width", PyLong_FromLongLong( (long long)width));
+
+                fits_get_eqcoltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
+                PyDict_SetItemString(d, "eqtype", PyLong_FromLong( (long)type));
+                /*
+                PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
+                PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
+                */
+
+                tstatus=0;
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, &tstatus)) {
+                    Py_INCREF(Py_None);
+                    PyDict_SetItemString(d, "tdim", Py_None);
+                } else {
+                    PyObject* dimsObj=PyList_New(0);
+                    for (j=0; j<ndims; j++) {
+                        PY_LONG_LONG d=dims[j];
+                        PyList_Append(dimsObj, PyLong_FromLongLong(d));
+                    }
+
+                    PyDict_SetItemString(d, "tdim", dimsObj);
+                }
+
+                // using the struct, could cause problems
+                // actually, we can use ffgcprll to get this info, but will
+                // be redundant with some others above
+                col = &self->fits->Fptr->tableptr[i];
+                PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
+                PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
+
+                PyList_Append(colinfo, d);
+            }
+            names=stringlist_delete(names);
+            tforms=stringlist_delete(tforms);
+
+            PyDict_SetItemString(dict, "colinfo", colinfo);
+        }
+
     }
     return dict;
 }
@@ -982,11 +1066,11 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
 static PyObject *
 PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
     int status=0;
-    int table_type=BINARY_TBL;
+    int table_type=0;
     int nfields=0;
     LONGLONG nrows=0; // start empty
 
-    static char *kwlist[] = {"ttyp","tform","tunit", "tdim", "extname", "extver", NULL};
+    static char *kwlist[] = {"table_type","ttyp","tform","tunit", "tdim", "extname", "extver", NULL};
     // these are all strings
     PyObject* ttypObj=NULL;
     PyObject* tformObj=NULL;
@@ -1002,8 +1086,8 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     char* extname_use=NULL;
     int extver=0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|OOsi", kwlist,
-                          &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOO|OOsi", kwlist,
+                          &table_type, &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
         return NULL;
     }
 
@@ -1415,130 +1499,6 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
 
 
  
-/*
- * read a single, entire column from the current HDU into a normal unstrided
- * array.  Because of the internal fits buffering, and since we will read
- * multiple at a time, this should be more efficient.  No error checking is
- * done. No scaling is performed here, that is done in python.
- */
-
-static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status) {
-    FITSfile* hdu=NULL;
-    tcolumn* colptr=NULL;
-    LONGLONG file_pos=0, row=0;
-
-    long gsize=0; // number of bytes in column
-    long ngroups=0; // number to read
-    long offset=0; // gap between groups, not stride
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-    colptr = hdu->tableptr + (colnum-1);
-
-    // need to deal with array string columns
-    gsize = get_groupsize(colptr);
-    ngroups = hdu->numrows;
-    offset = hdu->rowlength-gsize;
-
-    file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
-
-    // need to use internal file-move code because of bookkeeping
-    if (ffmbyt(fits, file_pos, REPORT_EOF, status)) {
-        return 1;
-    }
-
-    // Here we use the function to read everything at once
-    if (ffgbytoff(fits, gsize, ngroups, offset, data, status)) {
-        return 1;
-    }
-    return 0;
-}
-
-/*
- * Do we ever use this in practice? How much slower is this than above?
- */
-
-static int read_column_bytes_strided(fitsfile* fits, int colnum, void* data, npy_intp stride, int* status) {
-    FITSfile* hdu=NULL;
-    tcolumn* colptr=NULL;
-    LONGLONG file_pos=0, row=0;
-
-    // use char for pointer arith.  It's actually ok to use void as char but
-    // this is just in case.
-    char* ptr;
-
-    long gsize=0; // number of bytes in column
-    long ngroups=0; // number to read
-    long offset=0; // gap between groups, not stride
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-    colptr = hdu->tableptr + (colnum-1);
-
-    gsize = get_groupsize(colptr);
-    ngroups = 1; // read one at a time
-    offset = hdu->rowlength-gsize;
-
-    ptr = (char*) data;
-    for (row=0; row<hdu->numrows; row++) {
-        file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
-        ffmbyt(fits, file_pos, REPORT_EOF, status);
-        if (ffgbytoff(fits, gsize, ngroups, offset, (void*) ptr, status)) {
-            return 1;
-        }
-        ptr += stride;
-    }
-
-    return 0;
-}
-
-// read a subset of rows for the input column
-// the row array is assumed to be unique and sorted.
-static int read_column_bytes_byrow(
-        fitsfile* fits, 
-        int colnum, 
-        npy_intp nrows, 
-        npy_int64* rows, 
-        void* data, 
-        npy_intp stride, 
-        int* status) {
-
-    FITSfile* hdu=NULL;
-    tcolumn* colptr=NULL;
-    LONGLONG file_pos=0, irow=0;
-    npy_int64 row;
-
-    // use char for pointer arith.  It's actually ok to use void as char but
-    // this is just in case.
-    char* ptr;
-
-    long gsize=0; // number of bytes in column
-    long ngroups=0; // number to read
-    long offset=0; // gap between groups, not stride
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-    colptr = hdu->tableptr + (colnum-1);
-
-    // need to deal with array string columns
-    gsize = get_groupsize(colptr);
-
-    ngroups = 1; // read one at a time
-    offset = hdu->rowlength-gsize;
-
-    ptr = (char*) data;
-    for (irow=0; irow<nrows; irow++) {
-        row = rows[irow];
-        file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
-        ffmbyt(fits, file_pos, REPORT_EOF, status);
-        if (ffgbytoff(fits, gsize, ngroups, offset, (void*) ptr, status)) {
-            return 1;
-        }
-        ptr += stride;
-    }
-
-    return 0;
-}
 
 // let python do the conversions
 static PyObject *
@@ -1670,6 +1630,198 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
  
+/*
+ * read a single, entire column from the current HDU, which must be a binary
+ * table, into a normal unstrided array.  Because of the internal fits
+ * buffering, and since we will read multiple at a time, this should be more
+ * efficient.  No error checking is done. No scaling is performed here, that is
+ * done in python.
+ */
+
+static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status) {
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0, row=0;
+
+    long gsize=0; // number of bytes in column
+    long ngroups=0; // number to read
+    long offset=0; // gap between groups, not stride
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    colptr = hdu->tableptr + (colnum-1);
+
+    // need to deal with array string columns
+    gsize = get_groupsize(colptr);
+    ngroups = hdu->numrows;
+    offset = hdu->rowlength-gsize;
+
+    file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+
+    // need to use internal file-move code because of bookkeeping
+    if (ffmbyt(fits, file_pos, REPORT_EOF, status)) {
+        return 1;
+    }
+
+    // Here we use the function to read everything at once
+    if (ffgbytoff(fits, gsize, ngroups, offset, data, status)) {
+        return 1;
+    }
+    return 0;
+}
+
+/*
+ * read a single, entire column from the current HDU, which can be a binary
+ * table or an ascii table, into a normal unstrided array.  This version uses
+ * the standard read column and requires a contiguous array.
+ *
+ */
+
+static int read_column_bytype(fitsfile* fits, int colnum, PyObject* array, int* status) {
+    int npy_dtype=0;
+    int fits_dtype=0;
+
+    npy_intp nelem=0;
+    LONGLONG firstelem=1;
+    LONGLONG firstrow=1;
+    int* anynul=NULL;
+
+    npy_dtype = PyArray_TYPE(array);
+    fits_dtype = npy_to_fits_table_type(npy_dtype);
+
+    nelem = PyArray_SIZE(array);
+
+    if (fits_dtype == TSTRING) {
+        npy_intp i=0;
+        LONGLONG twidth=0;
+        char* cdata = (char*) PyArray_DATA(array);
+        char** strdata=NULL;
+        char* nulstr=" ";
+
+        strdata=malloc(nelem*sizeof(char*));
+        if (NULL==strdata) {
+            PyErr_SetString(PyExc_MemoryError, "could not allocate temporary string pointers");
+            *status = 99;
+            return 1;
+
+        }
+
+        twidth=fits->Fptr->tableptr[colnum-1].twidth;
+        for (i=0; i<nelem; i++) {
+            strdata[i] = &cdata[twidth*i];
+        }
+
+        if (fits_read_col_str(fits,colnum,firstrow,firstelem,nelem,nulstr,strdata,anynul,status) > 0) {
+            free(strdata);
+            return 1;
+        }
+
+        free(strdata);
+
+    } else {
+        void* data=NULL;
+        void* nulval=0;
+        data=PyArray_DATA(array);
+        if (fits_read_col(fits,fits_dtype,colnum,firstrow,firstelem,nelem,nulval,data,anynul,status) > 0) {
+            return 1;
+        }
+    }
+
+
+    return 0;
+}
+
+
+
+
+/*
+ * Do we ever use this in practice? How much slower is this than above?
+ */
+
+static int read_column_bytes_strided(fitsfile* fits, int colnum, void* data, npy_intp stride, int* status) {
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0, row=0;
+
+    // use char for pointer arith.  It's actually ok to use void as char but
+    // this is just in case.
+    char* ptr;
+
+    long gsize=0; // number of bytes in column
+    long ngroups=0; // number to read
+    long offset=0; // gap between groups, not stride
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    colptr = hdu->tableptr + (colnum-1);
+
+    gsize = get_groupsize(colptr);
+    ngroups = 1; // read one at a time
+    offset = hdu->rowlength-gsize;
+
+    ptr = (char*) data;
+    for (row=0; row<hdu->numrows; row++) {
+        file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+        ffmbyt(fits, file_pos, REPORT_EOF, status);
+        if (ffgbytoff(fits, gsize, ngroups, offset, (void*) ptr, status)) {
+            return 1;
+        }
+        ptr += stride;
+    }
+
+    return 0;
+}
+
+// read a subset of rows for the input column
+// the row array is assumed to be unique and sorted.
+static int read_column_bytes_byrow(
+        fitsfile* fits, 
+        int colnum, 
+        npy_intp nrows, 
+        npy_int64* rows, 
+        void* data, 
+        npy_intp stride, 
+        int* status) {
+
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0, irow=0;
+    npy_int64 row;
+
+    // use char for pointer arith.  It's actually ok to use void as char but
+    // this is just in case.
+    char* ptr;
+
+    long gsize=0; // number of bytes in column
+    long ngroups=0; // number to read
+    long offset=0; // gap between groups, not stride
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    colptr = hdu->tableptr + (colnum-1);
+
+    // need to deal with array string columns
+    gsize = get_groupsize(colptr);
+
+    ngroups = 1; // read one at a time
+    offset = hdu->rowlength-gsize;
+
+    ptr = (char*) data;
+    for (irow=0; irow<nrows; irow++) {
+        row = rows[irow];
+        file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+        ffmbyt(fits, file_pos, REPORT_EOF, status);
+        if (ffgbytoff(fits, gsize, ngroups, offset, (void*) ptr, status)) {
+            return 1;
+        }
+        ptr += stride;
+    }
+
+    return 0;
+}
+
+
+
 /* 
  * read from a column into an input array
  */
@@ -1716,7 +1868,13 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     
     if (rowsObj == Py_None) {
         if (PyArray_ISCONTIGUOUS(array)) {
+            /*
             if (read_column_bytes(self->fits, colnum, data, &status)) {
+                set_ioerr_string_from_status(status);
+                return NULL;
+            }
+            */
+            if (read_column_bytype(self->fits, colnum, array, &status)) {
                 set_ioerr_string_from_status(status);
                 return NULL;
             }
@@ -1744,6 +1902,9 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     }
     Py_RETURN_NONE;
 }
+
+
+
 
 /*
  * Free all the elements in the python list as well as the list itself

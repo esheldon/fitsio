@@ -153,7 +153,7 @@ def _make_item(ext, extver=None):
 
 
 
-def write(filename, data, extname=None, extver=None, units=None, compress=None, header=None, clobber=False):
+def write(filename, data, extname=None, extver=None, units=None, compress=None, table_type='binary', header=None, clobber=False):
     """
     Convenience function to create a new HDU and write the data.
 
@@ -167,7 +167,8 @@ def write(filename, data, extname=None, extver=None, units=None, compress=None, 
         A filename. 
     data:
         Either a normal n-dimensional array or a recarray.  Images are written
-        to a new IMAGE_HDU and recarrays are written to BINARY_TBl hdus.
+        to a new IMAGE_HDU and recarrays are written to BINARY_TBl or
+        ASCII_TBL hdus.
     extname: string, optional
         An optional name for the new header unit.
     extver: integer, optional
@@ -207,10 +208,14 @@ def write(filename, data, extname=None, extver=None, units=None, compress=None, 
 
     units: list
         A list of strings representing units for each column.
+    table_type: string, optional
+        Either 'binary' or 'ascii', default 'binary'
+        Matching is case-insensitive
+
 
     """
     with FITS(filename, 'rw', clobber=clobber) as fits:
-        fits.write(data, units=units, extname=extname, extver=extver, 
+        fits.write(data, table_type=table_type, units=units, extname=extname, extver=extver, 
                    compress=compress, header=header)
 
 
@@ -348,7 +353,8 @@ class FITS:
         self.update_hdu_list()
 
 
-    def write(self, data, units=None, extname=None, extver=None, compress=None, header=None):   
+    def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
+              table_type='binary'):   
         """
         Write the data to a new HDU.
 
@@ -388,6 +394,9 @@ class FITS:
         Table-only keywords:
             units: list/dec, optional:
                 A list of strings with units for each column.
+            table_type: string, optional
+                Either 'binary' or 'ascii', default 'binary'
+                Matching is case-insensitive
 
         restrictions
         ------------
@@ -398,7 +407,8 @@ class FITS:
                              compress=compress, header=header)
         else:
             self.write_table(data, units=units, 
-                             extname=extname, extver=extver, header=header)
+                             extname=extname, extver=extver, header=header,
+                             table_type=table_type)
 
 
 
@@ -523,7 +533,7 @@ class FITS:
 
 
 
-    def write_table(self, data, units=None, extname=None, extver=None, header=None):
+    def write_table(self, data, table_type='binary', units=None, extname=None, extver=None, header=None):
         """
         Create a new table extension and write the data.
 
@@ -538,6 +548,9 @@ class FITS:
         data: recarray
             A numpy array with fields.  The table definition will be
             determined from this array.
+        table_type: string, optional
+            Either 'binary' or 'ascii', default 'binary'
+            Matching is case-insensitive
         extname: string, optional
             An optional string for the extension name.
         extver: integer, optional
@@ -572,13 +585,16 @@ class FITS:
         
         self.create_table_hdu(data=data, 
                               units=units, extname=extname,extver=extver,
+                              table_type=table_type,
                               header=header)
         self[-1].write(data)
         self.update_hdu_list()
 
     def create_table_hdu(self, data=None, dtype=None, 
                          names=None, formats=None,
-                         units=None, dims=None, extname=None, extver=None, header=None):
+                         units=None, dims=None, extname=None, extver=None, 
+                         table_type='binary',
+                         header=None):
         """
         Create a new, empty table extension and reload the hdu list.
 
@@ -625,6 +641,9 @@ class FITS:
             the order since FITS is more like fortran. See the descr2tabledef
             function.
 
+        table_type: string, optional
+            Either 'binary' or 'ascii', default 'binary'
+            Matching is case-insensitive
         units: list of strings, optional
             An optional list of unit strings for each field.
         extname: string, optional
@@ -650,8 +669,10 @@ class FITS:
         The File must be opened READWRITE
         """
 
+        table_type=_extract_table_type(table_type)
+
         if data is not None:
-            names, formats, dims = array2tabledef(data)
+            names, formats, dims = array2tabledef(data, table_type=table_type)
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
             names, formats, dims = descr2tabledef(dtype.descr)
@@ -689,7 +710,8 @@ class FITS:
             extname=""
 
         # note we can create extname in the c code for tables, but not images
-        self._FITS.create_table_hdu(names, formats, tunit=units, tdim=dims, 
+        self._FITS.create_table_hdu(table_type,
+                                    names, formats, tunit=units, tdim=dims, 
                                     extname=extname, extver=extver)
         self.update_hdu_list()
 
@@ -1871,12 +1893,20 @@ class FITSHDU:
         except KeyError:
             raise KeyError("unsupported fits data type: %d" % ftype)
 
+
         isvar=False
         if ftype < 0:
             isvar=True
         if include_endianness:
+            # if binary we will read the big endian bytes directly,
+            # if ascii we read into native byte order
+            if self.info['hdutype'] == ASCII_TBL:
+                addstr=''
+            else:
+                addstr='>'
             if npy_type not in ['u1','i1','S']:
-                npy_type = '>'+npy_type
+                npy_type = addstr+npy_type
+
         if npy_type == 'S':
             width = self.info['colinfo'][colnum]['width']
             npy_type = 'S%d' % width
@@ -2164,11 +2194,13 @@ def tdim2shape(tdim, is_string=False):
 
     return shape
 
-def array2tabledef(data):
+def array2tabledef(data, table_type='binary'):
     """
     Similar to descr2tabledef but if there are object columns a type
     and max length will be extracted and used for the tabledef
     """
+    is_ascii = (table_type==ASCII_TBL)
+
     if data.dtype.fields is None:
         raise ValueError("data must have fields")
     names=[]
@@ -2179,6 +2211,12 @@ def array2tabledef(data):
     for d in descr:
         # these have the form '<f4' or '|S25', etc.  Extract the pure type
         npy_dtype = d[1][1:]
+        if is_ascii:
+            if npy_dtype in ['u1','i1']:
+                raise ValueError("1-byte integers are not supported for ascii tables: '%s'" % npy_dtype)
+            if npy_dtype in ['u2']:
+                raise ValueError("unsigned 2-byte integers are not supported for ascii tables: '%s'" % npy_dtype)
+
         if npy_dtype[0] == 'O':
             # this will be a variable length column 1Pt(len) where t is the
             # type and len is max length.  Each element must be convertible to
@@ -2186,11 +2224,16 @@ def array2tabledef(data):
             name=d[0]
             form, dim = npy_obj2fits(data,name)
         else:
-            name, form, dim = npy2fits(d)
+            name, form, dim = npy2fits(d,table_type=table_type)
 
         if name == '':
             raise ValueError("field name is an empty string")
 
+        """
+        if is_ascii:
+            if dim is not None:
+                raise ValueError("array columns are not supported for ascii tables")
+        """
         names.append(name)
         formats.append(form)
         dims.append(dim)
@@ -2198,7 +2241,7 @@ def array2tabledef(data):
     return names, formats, dims
 
 
-def descr2tabledef(descr):
+def descr2tabledef(descr, table_type='binary'):
     """
     Create a FITS table def from the input numpy descriptor.
 
@@ -2218,10 +2261,23 @@ def descr2tabledef(descr):
     dims=[]
 
     for d in descr:
-        name, form, dim = npy2fits(d)
+
+        """
+        npy_dtype = d[1][1:]
+        if is_ascii and npy_dtype in ['u1','i1']:
+            raise ValueError("1-byte integers are not supported for ascii tables")
+        """
+
+        name, form, dim = npy2fits(d,table_type=table_type)
 
         if name == '':
             raise ValueError("field name is an empty string")
+
+        """
+        if is_ascii:
+            if dim is not None:
+                raise ValueError("array columns are not supported for ascii tables")
+        """
 
         names.append(name)
         formats.append(form)
@@ -2309,7 +2365,7 @@ def npy_obj2fits_old(data, name):
 
     return form, dim
 
-def npy2fits(d):
+def npy2fits(d, table_type='binary'):
     """
     d is the full element from the descr
     """
@@ -2317,11 +2373,11 @@ def npy2fits(d):
     if npy_dtype[0] == 'S':
         name, form, dim = npy_string2fits(d)
     else:
-        name, form, dim = npy_num2fits(d)
+        name, form, dim = npy_num2fits(d, table_type=table_type)
 
     return name, form, dim
 
-def npy_num2fits(d):
+def npy_num2fits(d, table_type='binary'):
     """
     d is the full element from the descr
 
@@ -2344,7 +2400,11 @@ def npy_num2fits(d):
 
     if npy_dtype not in _table_npy2fits_form:
         raise ValueError("unsupported type '%s'" % npy_dtype)
-    form = _table_npy2fits_form[npy_dtype]
+
+    if table_type==BINARY_TBL:
+        form = _table_npy2fits_form[npy_dtype]
+    else:
+        form = _table_npy2fits_form_ascii[npy_dtype]
 
     # now the dimensions
     if len(d) > 2:
@@ -2662,6 +2722,26 @@ def is_little_endian(array):
     return (byteorder == '<') or (machine_little and byteorder == '=')
 
 
+def _extract_table_type(type):
+    """
+    Get the numerical table type
+    """
+    if isinstance(type,str):
+        type=type.lower()
+        if type[0:7] == 'binary':
+            table_type = BINARY_TBL
+        elif type[0:6] == 'ascii':
+            table_type = ASCII_TBL
+        else:
+            raise ValueError("table type string should begin with 'binary' or 'ascii' (case insensitive)")
+    else:
+        type=int(type)
+        if type not in [BINARY_TBL,ASCII_TBL]:
+            raise ValueError("table type num should be BINARY_TBL (%d) or ASCII_TBL (%d)" % (BINARY_TBL,ASCII_TBL))
+        table_type=type
+
+    return table_type
+
 
 
 # this doesn't work
@@ -2719,6 +2799,18 @@ _table_npy2fits_form = {'u1':'B',
                         'i8':'K',
                         'f4':'E',
                         'f8':'D'}
+
+_table_npy2fits_form_ascii = {'S' :'A1',      # Need to add max here
+                              'i2':'I6',      # I
+                              'i4':'I10',     # ??
+                              'i8':'I20',     # K
+                              'f4':'E15.7',   # F 15.9
+                              'f8':'F23.17'}  # D
+  
+#      types=  ['A',   'I',   'L',   'B',   'F',    'D',      'C',     'M',     'K']
+#      formats=['A1',  'I6',  'I10', 'I4',  'G15.9','G23.17', 'G15.9', 'G23.17','I20']
+
+
 
 # remember, you should be using the equivalent image type for this
 _image_bitpix2npy = {8: 'u1',
