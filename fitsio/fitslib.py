@@ -2017,7 +2017,7 @@ class FITSHDU:
             pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
             for colnum,c in enumerate(self.info['colinfo']):
-                if len(c['name']) > 15:
+                if len(c['name']) > nname:
                     f = pformat
                 else:
                     f = format

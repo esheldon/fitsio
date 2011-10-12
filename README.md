@@ -49,7 +49,7 @@ Examples
     >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
     # read the header, or both at once
     >>> h = fitsio.read_header(filename, extension)
-    >>> data,h = fitsio.read_header(filename, ext=ext, header=True)
+    >>> data,h = fitsio.read(filename, ext=ext, header=True)
 
     # open the file, write a new binary table extension, and then write  the
     # data from "recarray" into the table. By default a new extension is
