@@ -669,7 +669,7 @@ class FITS:
         The File must be opened READWRITE
         """
 
-        table_type=_extract_table_type(table_type)
+        table_type_int=_extract_table_type(table_type)
 
         if data is not None:
             names, formats, dims = array2tabledef(data, table_type=table_type)
@@ -710,7 +710,7 @@ class FITS:
             extname=""
 
         # note we can create extname in the c code for tables, but not images
-        self._FITS.create_table_hdu(table_type,
+        self._FITS.create_table_hdu(table_type_int,
                                     names, formats, tunit=units, tdim=dims, 
                                     extname=extname, extver=extver)
         self.update_hdu_list()
@@ -1201,7 +1201,6 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
-
 
         if self.info['hdutype'] == IMAGE_HDU:
             return self.read_image()
@@ -2199,7 +2198,7 @@ def array2tabledef(data, table_type='binary'):
     Similar to descr2tabledef but if there are object columns a type
     and max length will be extracted and used for the tabledef
     """
-    is_ascii = (table_type==ASCII_TBL)
+    is_ascii = (table_type=='ascii')
 
     if data.dtype.fields is None:
         raise ValueError("data must have fields")
@@ -2371,7 +2370,7 @@ def npy2fits(d, table_type='binary'):
     """
     npy_dtype = d[1][1:]
     if npy_dtype[0] == 'S':
-        name, form, dim = npy_string2fits(d)
+        name, form, dim = npy_string2fits(d,table_type=table_type)
     else:
         name, form, dim = npy_num2fits(d, table_type=table_type)
 
@@ -2401,13 +2400,15 @@ def npy_num2fits(d, table_type='binary'):
     if npy_dtype not in _table_npy2fits_form:
         raise ValueError("unsupported type '%s'" % npy_dtype)
 
-    if table_type==BINARY_TBL:
+    if table_type=='binary':
         form = _table_npy2fits_form[npy_dtype]
     else:
         form = _table_npy2fits_form_ascii[npy_dtype]
 
     # now the dimensions
     if len(d) > 2:
+        if table_type == 'ascii':
+            raise ValueError("Ascii table columns must be scalar, got %s" % str(d))
         if isinstance(d[2], tuple):
             # this is an array column.  the form
             # should be total elements followed by A
@@ -2429,7 +2430,7 @@ def npy_num2fits(d, table_type='binary'):
     return name, form, dim
 
 
-def npy_string2fits(d):
+def npy_string2fits(d,table_type='binary'):
     """
     d is the full element from the descr
 
@@ -2457,8 +2458,13 @@ def npy_string2fits(d):
 
     # now the dimensions
     if len(d) == 2:
-        form = string_size_str+'A'
+        if table_type == 'ascii':
+            form = 'A'+string_size_str
+        else:
+            form = string_size_str+'A'
     else:
+        if table_type == 'ascii':
+            raise ValueError("Ascii table columns must be scalar, got %s" % str(d))
         if isinstance(d[2], tuple):
             # this is an array column.  the form
             # should be total elements followed by A
@@ -2800,12 +2806,12 @@ _table_npy2fits_form = {'u1':'B',
                         'f4':'E',
                         'f8':'D'}
 
-_table_npy2fits_form_ascii = {'S' :'A1',      # Need to add max here
-                              'i2':'I6',      # I
-                              'i4':'I10',     # ??
+_table_npy2fits_form_ascii = {'S' :'A1',       # Need to add max here
+                              'i2':'I7',      # I
+                              'i4':'I12',     # ??
                               'i8':'I20',     # K
                               'f4':'E15.7',   # F 15.9
-                              'f8':'F23.17'}  # D
+                              'f8':'E26.17'}  # D 25.16 looks right, but this is recommended
   
 #      types=  ['A',   'I',   'L',   'B',   'F',    'D',      'C',     'M',     'K']
 #      formats=['A1',  'I6',  'I10', 'I4',  'G15.9','G23.17', 'G15.9', 'G23.17','I20']

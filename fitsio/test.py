@@ -12,18 +12,6 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-def testsimple():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestSimple)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-
-def testgz():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWriteGZOnly)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-def testbuff():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestBufferProblem)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-
-
 
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
@@ -122,46 +110,41 @@ class TestReadWrite(unittest.TestCase):
         nvec = 2
         ashape = (2,3)
         Sdtype = 'S6'
-        # all currently available types, scalar, 1-d and 2-d array columns
-        adtype=[('f4scalar','f4')]
-
+        # we support writing i2, f4 and i8, but when reading
+        # cfitsio always reports their types as i4 and f8, so
+        # for now we will restrict ourselves to those types
+        adtype=[('i4scalar','i4'),
+                ('f8scalar','f8'),
+                ('Sscalar',Sdtype)]
         """
-                ('u2vec','u2',nvec),
-                ('i2vec','i2',nvec),
-                ('u4vec','u4',nvec),
-                ('i4vec','i4',nvec),
-                ('i8vec','i8',nvec),
-                ('f4vec','f4',nvec),
-                ('f8vec','f8',nvec),
-
-                ('u2arr','u2',ashape),
-                ('i2arr','i2',ashape),
-                ('u4arr','u4',ashape),
-                ('i4arr','i4',ashape),
-                ('i8arr','i8',ashape),
-                ('f4arr','f4',ashape),
-                ('f8arr','f8',ashape),
-                ('Sscalar',Sdtype),
-                ('Svec',   Sdtype, nvec),
-                ('Sarr',   Sdtype, ashape)]
-                """
-
+        adtype=[('i2scalar','i2'),
+                ('i4scalar','i4'),
+                ('f4scalar','f4'),
+                ('f8scalar','f8'),
+                ('i8scalar','i8'),
+                ('Sscalar',Sdtype)]
+        """
         nrows=4
         adata=numpy.zeros(nrows, dtype=adtype)
 
+        #adata['i2scalar'][:] = -32222  + numpy.arange(nrows,dtype='i2')
+        adata['i4scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i4')
+        #adata['i8scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i8')
+        #adata['f4scalar'][:] = -2.55555555555555555555555e35 + numpy.arange(nrows,dtype='f4')*1.e35
+        adata['f8scalar'][:] = -2.55555555555555555555555e110 + numpy.arange(nrows,dtype='f8')*1.e110
+        """
         for t in ['u2','i2','u4','i4','i8','f4','f8']:
             sname = t+'scalar'
             vname = t+'vec'
             aname = t+'arr'
             if sname in adata.dtype.names:
                 adata[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-                adata[t+'scalar'][2] = -353423423.
             if vname in adata.dtype.names:
                 adata[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
             arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
             if aname in adata.dtype.names:
                 adata[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-
+        """
 
 
         # strings get padded when written to the fits file.  And the way I do
@@ -170,8 +153,9 @@ class TestReadWrite(unittest.TestCase):
         # so for comparisons, we need to pad out the strings with blanks so we
         # can compare
 
+        #adata['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
+        adata['Sscalar'] = ['hello','world','good','bye']
         """
-        adata['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
         adata['Svec'][:,0] = '%-6s' % 'hello'
         adata['Svec'][:,1] = '%-6s' % 'world'
 
@@ -670,22 +654,28 @@ class TestReadWrite(unittest.TestCase):
 
         pass
 
-        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        fname=tempfile.mktemp(prefix='fitsio-AsciiTableWrite-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
-                #fits.write_table(self.ascii_data, table_type='ascii', header=self.keys, extname='mytable')
+                fits.write_table(self.ascii_data, table_type='ascii', header=self.keys, extname='mytable')
+                
+                # cfitsio always reports type as i4 and f8, period, even if if
+                # written with higher precision.  Need to fix that somehow
+                for f in self.ascii_data.dtype.names:
+                    d = fits[1].read_column(f)
+                    if d.dtype == numpy.float32:
+                        self.compare_array_tol(self.ascii_data[f], d, 5.96e-08, "table field read '%s'" % f)
+                    elif d.dtype == numpy.float64:
+                        # note we should be able to do 1.11e-16 in principle, but in practice
+                        # we get more like 2.15e-16
+                        self.compare_array_tol(self.ascii_data[f], d, 2.15e-16, "table field read '%s'" % f)
+                    else:
+                        self.compare_array(self.ascii_data[f], d, "table field read '%s'" % f)
 
-                #d=fits[1].read_column('f4scalar')
-                #print d
-                #d = fits[1].read()
-                #print 'read f4scalar:',d['f4scalar']
                 """
                 self.compare_rec(self.ascii_data, d, "table read/write")
 
-                for f in self.ascii_data.dtype.names:
-                    d = fits[1].read_column(f)
-                    self.compare_array(self.ascii_data[f], d, "table field read '%s'" % f)
 
                 # now list of columns
                 cols=['u2scalar','f4vec','Sarr']
@@ -875,6 +865,21 @@ class TestReadWrite(unittest.TestCase):
                                  header.get_comment(name).strip(),
                                  "testing comment for header key '%s'" % name)
 
+    def compare_array_tol(self, arr1, arr2, tol, name):
+        self.assertEqual(arr1.shape, arr2.shape,
+                         "testing arrays '%s' shapes are equal: "
+                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
+
+        adiff = numpy.abs( (arr1-arr2)/arr1 )
+        maxdiff = adiff.max()
+        res=numpy.where(adiff  > tol)
+        for i,w in enumerate(res):
+            self.assertEqual(w.size,0,
+                             "testing array '%s' dim %d are "
+                             "equal within tolerance %e, found "
+                             "max diff %e" % (name,i,tol,maxdiff))
+
+
     def compare_array(self, arr1, arr2, name):
         self.assertEqual(arr1.shape, arr2.shape,
                          "testing arrays '%s' shapes are equal: "
@@ -977,447 +982,5 @@ class TestReadWrite(unittest.TestCase):
 
 
 
-
-class TestBufferProblem(unittest.TestCase):
-    def setUp(self):
-        
-        nvec = 2
-        ashape = (2,3)
-        Sdtype = 'S6'
-        # all currently available types, scalar, 1-d and 2-d array columns
-        dtype=[('u1scalar','u1'),
-               ('i1scalar','i1'),
-               ('u2scalar','u2'),
-               ('i2scalar','i2'),
-               ('u4scalar','u4'),
-               ('i4scalar','i4'),
-               ('i8scalar','i8'),
-               ('f4scalar','f4'),
-               ('f8scalar','f8'),
-
-               ('u1vec','u1',nvec),
-               ('i1vec','i1',nvec),
-               ('u2vec','u2',nvec),
-               ('i2vec','i2',nvec),
-               ('u4vec','u4',nvec),
-               ('i4vec','i4',nvec),
-               ('i8vec','i8',nvec),
-               ('f4vec','f4',nvec),
-               ('f8vec','f8',nvec),
- 
-               ('u1arr','u1',ashape),
-               ('i1arr','i1',ashape),
-               ('u2arr','u2',ashape),
-               ('i2arr','i2',ashape),
-               ('u4arr','u4',ashape),
-               ('i4arr','i4',ashape),
-               ('i8arr','i8',ashape),
-               ('f4arr','f4',ashape),
-               ('f8arr','f8',ashape),
-
-               ('Sscalar',Sdtype),
-               ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
-
-        dtype2=[('index','i4'),
-                ('x','f8'),
-                ('y','f8')]
-
-        nrows=4
-        data=numpy.zeros(4, dtype=dtype)
-
-        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
-            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
-            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
-            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-
-
-
-        # strings get padded when written to the fits file.  And the way I do
-        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
-        # 
-        # so for comparisons, we need to pad out the strings with blanks so we
-        # can compare
-
-        data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
-        data['Svec'][:,0] = '%-6s' % 'hello'
-        data['Svec'][:,1] = '%-6s' % 'world'
-
-        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
-        s = ['%-6s' % el for el in s]
-        data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-
-        self.data = data
-
-        # use a dict list so we can have comments
-        self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
-                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
-
-        # a second extension using the convenience function
-        nrows2=10
-        data2 = numpy.zeros(nrows2, dtype=dtype2)
-        data2['index'] = numpy.arange(nrows2,dtype='i4')
-        data2['x'] = numpy.arange(nrows2,dtype='f8')
-        data2['y'] = numpy.arange(nrows2,dtype='f8')
-        self.data2 = data2
-
-    def testBuffer(self):
-        """
-        """
-
-        fname=tempfile.mktemp(prefix='fitsio-GZTableWrite-',suffix='.fits')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-
-
-                fits.write_table(self.data, header=self.keys, extname='mytable')
-                rd = fits[-1].read()
-
-                img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                fits.write_image(img)
-
-                timg = fits[-1].read()
-
-                res=numpy.where(timg != img)
-                for w in res:
-                    self.assertEqual(w.size,0,"testing image write/read consistent")
-
-                d = fits[1].read()
-                for f in self.data.dtype.names:
-                    res=numpy.where(self.data[f] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing column %s" % f)
-
-                h = fits[1].read_header()
-                for entry in self.keys:
-                    name=entry['name'].upper()
-                    value=entry['value']
-                    hvalue = h[name]
-                    if isinstance(hvalue,str):
-                        hvalue = hvalue.strip()
-                    self.assertEqual(value,hvalue,"testing header key '%s'" % name)
-
-                    if 'comment' in entry:
-                        self.assertEqual(entry['comment'].strip(),
-                                         h.get_comment(name).strip(),
-                                         "testing comment for header key '%s'" % name)
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
-
-
-
-class TestReadWriteGZOnly(unittest.TestCase):
-    def setUp(self):
-        
-        nvec = 2
-        ashape = (2,3)
-        Sdtype = 'S6'
-        # all currently available types, scalar, 1-d and 2-d array columns
-        dtype=[('u1scalar','u1'),
-               ('i1scalar','i1'),
-               ('u2scalar','u2'),
-               ('i2scalar','i2'),
-               ('u4scalar','u4'),
-               ('i4scalar','i4'),
-               ('i8scalar','i8'),
-               ('f4scalar','f4'),
-               ('f8scalar','f8'),
-
-               ('u1vec','u1',nvec),
-               ('i1vec','i1',nvec),
-               ('u2vec','u2',nvec),
-               ('i2vec','i2',nvec),
-               ('u4vec','u4',nvec),
-               ('i4vec','i4',nvec),
-               ('i8vec','i8',nvec),
-               ('f4vec','f4',nvec),
-               ('f8vec','f8',nvec),
- 
-               ('u1arr','u1',ashape),
-               ('i1arr','i1',ashape),
-               ('u2arr','u2',ashape),
-               ('i2arr','i2',ashape),
-               ('u4arr','u4',ashape),
-               ('i4arr','i4',ashape),
-               ('i8arr','i8',ashape),
-               ('f4arr','f4',ashape),
-               ('f8arr','f8',ashape),
-
-               ('Sscalar',Sdtype),
-               ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
-
-        dtype2=[('index','i4'),
-                ('x','f8'),
-                ('y','f8')]
-
-        nrows=4
-        data=numpy.zeros(4, dtype=dtype)
-
-        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
-            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
-            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
-            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-
-
-
-        # strings get padded when written to the fits file.  And the way I do
-        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
-        # 
-        # so for comparisons, we need to pad out the strings with blanks so we
-        # can compare
-
-        data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
-        data['Svec'][:,0] = '%-6s' % 'hello'
-        data['Svec'][:,1] = '%-6s' % 'world'
-
-        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
-        s = ['%-6s' % el for el in s]
-        data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-
-        self.data = data
-
-        # use a dict list so we can have comments
-        self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
-                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
-
-        # a second extension using the convenience function
-        nrows2=10
-        data2 = numpy.zeros(nrows2, dtype=dtype2)
-        data2['index'] = numpy.arange(nrows2,dtype='i4')
-        data2['x'] = numpy.arange(nrows2,dtype='f8')
-        data2['y'] = numpy.arange(nrows2,dtype='f8')
-        self.data2 = data2
-
-    def testGZWriteRead(self):
-        """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
-
-        this code all works, but the file is zere size when done!
-        """
-
-        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits.gz')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #img=numpy.arange(5*5,dtype='f4').reshape(5,5)
-                #fits.write_image(img)
-
-                fits.write_table(self.data, header=self.keys, extname='mytable')
-                rd = fits[-1].read()
-            #with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                #fits.reopen()
-                #return
-                #c = fits[-1].read_column('i4scalar')
-
-                img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                fits.write_image(img)
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #fits.write_image(img)
-
-                timg = fits[-1].read()
-
-                """
-                d = fits[1].read()
-                for f in self.data.dtype.names:
-                    res=numpy.where(self.data[f] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing column %s" % f)
-
-                h = fits[1].read_header()
-                for entry in self.keys:
-                    name=entry['name'].upper()
-                    value=entry['value']
-                    hvalue = h[name]
-                    if isinstance(hvalue,str):
-                        hvalue = hvalue.strip()
-                    self.assertEqual(value,hvalue,"testing header key '%s'" % name)
-
-                    if 'comment' in entry:
-                        self.assertEqual(entry['comment'].strip(),
-                                         h.get_comment(name).strip(),
-                                         "testing comment for header key '%s'" % name)
-                """
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
-
-
-
-
-class TestReadWriteGZOnly(unittest.TestCase):
-    def setUp(self):
-        
-        nvec = 2
-        ashape = (2,3)
-        Sdtype = 'S6'
-        # all currently available types, scalar, 1-d and 2-d array columns
-        dtype=[('u1scalar','u1'),
-               ('i1scalar','i1'),
-               ('u2scalar','u2'),
-               ('i2scalar','i2'),
-               ('u4scalar','u4'),
-               ('i4scalar','i4'),
-               ('i8scalar','i8'),
-               ('f4scalar','f4'),
-               ('f8scalar','f8'),
-
-               ('u1vec','u1',nvec),
-               ('i1vec','i1',nvec),
-               ('u2vec','u2',nvec),
-               ('i2vec','i2',nvec),
-               ('u4vec','u4',nvec),
-               ('i4vec','i4',nvec),
-               ('i8vec','i8',nvec),
-               ('f4vec','f4',nvec),
-               ('f8vec','f8',nvec),
- 
-               ('u1arr','u1',ashape),
-               ('i1arr','i1',ashape),
-               ('u2arr','u2',ashape),
-               ('i2arr','i2',ashape),
-               ('u4arr','u4',ashape),
-               ('i4arr','i4',ashape),
-               ('i8arr','i8',ashape),
-               ('f4arr','f4',ashape),
-               ('f8arr','f8',ashape),
-
-               ('Sscalar',Sdtype),
-               ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
-
-        dtype2=[('index','i4'),
-                ('x','f8'),
-                ('y','f8')]
-
-        nrows=4
-        data=numpy.zeros(4, dtype=dtype)
-
-        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
-            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
-            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
-            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-
-
-
-        # strings get padded when written to the fits file.  And the way I do
-        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
-        # 
-        # so for comparisons, we need to pad out the strings with blanks so we
-        # can compare
-
-        data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
-        data['Svec'][:,0] = '%-6s' % 'hello'
-        data['Svec'][:,1] = '%-6s' % 'world'
-
-        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
-        s = ['%-6s' % el for el in s]
-        data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-
-        self.data = data
-
-        # use a dict list so we can have comments
-        self.keys = [{'name':'test1','value':35},
-                     {'name':'test2','value':'stuff','comment':'this is a string keyword'},
-                     {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
-                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
-
-        # a second extension using the convenience function
-        nrows2=10
-        data2 = numpy.zeros(nrows2, dtype=dtype2)
-        data2['index'] = numpy.arange(nrows2,dtype='i4')
-        data2['x'] = numpy.arange(nrows2,dtype='f8')
-        data2['y'] = numpy.arange(nrows2,dtype='f8')
-        self.data2 = data2
-
-    def testGZWriteRead(self):
-        """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
-
-        this code all works, but the file is zere size when done!
-        """
-
-        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits.gz')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #img=numpy.arange(5*5,dtype='f4').reshape(5,5)
-                #fits.write_image(img)
-
-                fits.write_table(self.data, header=self.keys, extname='mytable')
-                rd = fits[-1].read()
-            #with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                #fits.reopen()
-                #return
-                #c = fits[-1].read_column('i4scalar')
-
-                img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                fits.write_image(img)
-                #img=numpy.arange(2048*2048,dtype='f4').reshape(2048,2048)
-                #fits.write_image(img)
-
-                timg = fits[-1].read()
-
-                """
-                d = fits[1].read()
-                for f in self.data.dtype.names:
-                    res=numpy.where(self.data[f] != d[f])
-                    for w in res:
-                        self.assertEqual(w.size,0,"testing column %s" % f)
-
-                h = fits[1].read_header()
-                for entry in self.keys:
-                    name=entry['name'].upper()
-                    value=entry['value']
-                    hvalue = h[name]
-                    if isinstance(hvalue,str):
-                        hvalue = hvalue.strip()
-                    self.assertEqual(value,hvalue,"testing header key '%s'" % name)
-
-                    if 'comment' in entry:
-                        self.assertEqual(entry['comment'].strip(),
-                                         h.get_comment(name).strip(),
-                                         "testing comment for header key '%s'" % name)
-                """
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
-
-
-class TestSimple(unittest.TestCase):
-    def testWrite(self):
-        """
-        """
-
-        fname=tempfile.mktemp(prefix='fitsio-ReadWrite-',suffix='.fits')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-
-                """
-                d=numpy.arange(2*3,dtype='i4').reshape(2,3)
-                fits.write_image(d)
-                fits.write_image(d,extname="test")
-                fits.write_image(d,extname="test",extver=2)
-                """
-                d=numpy.zeros(3,dtype=[('index','i4'),('ra','f8')])
-                d['index'] = 1,2,3
-                d['ra'] = 234., 44.2, 88.9
-                fits.write_table(d)
-
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
 
 
