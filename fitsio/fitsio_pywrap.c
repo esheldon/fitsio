@@ -1868,16 +1868,16 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     
     if (rowsObj == Py_None) {
         if (PyArray_ISCONTIGUOUS(array)) {
-            /*
             if (read_column_bytes(self->fits, colnum, data, &status)) {
                 set_ioerr_string_from_status(status);
                 return NULL;
             }
-            */
+            /*
             if (read_column_bytype(self->fits, colnum, array, &status)) {
                 set_ioerr_string_from_status(status);
                 return NULL;
             }
+            */
         } else {
             stride = PyArray_STRIDE(array,0);
             if (read_column_bytes_strided(self->fits, colnum, data, stride, &status)) {
