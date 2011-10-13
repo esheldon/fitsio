@@ -1381,6 +1381,12 @@ class FITSHDU:
         Note you can only read variable length arrays the default way,
         using this function, so set it as you want on construction.
         """
+
+        if self.info['hdutype'] == ASCII_TBL:
+            unpack=True
+        else:
+            unpack=False
+
         res, isrows, isslice = \
             self.process_args_as_rows_or_columns(arg)
 
@@ -1389,6 +1395,8 @@ class FITSHDU:
             if isslice:
                 return self.read_slice(res.start, res.stop, res.step)
             else:
+                # will also get here if slice is entered but this
+                # is an ascii table
                 return self.read(rows=res)
         else:
             return FITSHDUColumnSubset(self, res)
@@ -1658,10 +1666,10 @@ class FITSHDU:
             pass
         elif isinstance(arg, slice):
             isrows=True
-            isslice=True
             if unpack:
                 result = self.slice2rows(arg.start, arg.stop, arg.step)
             else:
+                isslice=True
                 result = self.process_slice(arg)
         else:
             # a single object was entered.  Probably should apply some more 
