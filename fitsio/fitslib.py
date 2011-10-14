@@ -153,7 +153,7 @@ def _make_item(ext, extver=None):
 
 
 
-def write(filename, data, extname=None, extver=None, units=None, compress=None, table_type='binary', header=None, clobber=False):
+def write(filename, data, extname=None, extver=None, units=None, compress=None, table_type='binary', header=None, clobber=False, **keys):
     """
     Convenience function to create a new HDU and write the data.
 
@@ -214,9 +214,9 @@ def write(filename, data, extname=None, extver=None, units=None, compress=None, 
 
 
     """
-    with FITS(filename, 'rw', clobber=clobber) as fits:
+    with FITS(filename, 'rw', clobber=clobber, **keys) as fits:
         fits.write(data, table_type=table_type, units=units, extname=extname, extver=extver, 
-                   compress=compress, header=header)
+                   compress=compress, header=header, **keys)
 
 
 ANY_HDU=-1
@@ -282,6 +282,7 @@ class FITS:
         self.mode=mode
         self.case_sensitive=keys.get('case_sensitive',False)
         self.vstorage=keys.get('vstorage','fixed')
+        self.verbose = keys.get('verbose',False)
         clobber = keys.get('clobber',False)
 
         if self.mode not in _int_modemap:
@@ -354,7 +355,7 @@ class FITS:
 
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
-              table_type='binary'):   
+              table_type='binary', **keys):
         """
         Write the data to a new HDU.
 

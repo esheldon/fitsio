@@ -670,7 +670,7 @@ class TestReadWrite(unittest.TestCase):
 
         pass
 
-        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        fname=tempfile.mktemp(prefix='fitsio-AsciiTableWrite-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
@@ -703,8 +703,7 @@ class TestReadWrite(unittest.TestCase):
                 """
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
 
     def testSlice(self):
