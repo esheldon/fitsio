@@ -110,59 +110,26 @@ class TestReadWrite(unittest.TestCase):
         nvec = 2
         ashape = (2,3)
         Sdtype = 'S6'
-        # we support writing i2, f4 and i8, but when reading
-        # cfitsio always reports their types as i4 and f8, so
-        # for now we will restrict ourselves to those types
-        adtype=[('i4scalar','i4'),
-                ('f8scalar','f8'),
-                ('Sscalar',Sdtype)]
-        """
+
+        # we support writing i2, i4, i8, f4 f8, but when reading cfitsio always
+        # reports their types as i4 and f8, so can't really use i8 and we are
+        # forced to read all floats as f8 precision
+
         adtype=[('i2scalar','i2'),
                 ('i4scalar','i4'),
+                #('i8scalar','i8'),
                 ('f4scalar','f4'),
                 ('f8scalar','f8'),
-                ('i8scalar','i8'),
                 ('Sscalar',Sdtype)]
-        """
         nrows=4
         adata=numpy.zeros(nrows, dtype=adtype)
 
-        #adata['i2scalar'][:] = -32222  + numpy.arange(nrows,dtype='i2')
+        adata['i2scalar'][:] = -32222  + numpy.arange(nrows,dtype='i2')
         adata['i4scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i4')
-        #adata['i8scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i8')
-        #adata['f4scalar'][:] = -2.55555555555555555555555e35 + numpy.arange(nrows,dtype='f4')*1.e35
+        #adata['i8scalar'][:] = -9223372036854775807 + numpy.arange(nrows,dtype='i8')
+        adata['f4scalar'][:] = -2.55555555555555555555555e35 + numpy.arange(nrows,dtype='f4')*1.e35
         adata['f8scalar'][:] = -2.55555555555555555555555e110 + numpy.arange(nrows,dtype='f8')*1.e110
-        """
-        for t in ['u2','i2','u4','i4','i8','f4','f8']:
-            sname = t+'scalar'
-            vname = t+'vec'
-            aname = t+'arr'
-            if sname in adata.dtype.names:
-                adata[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-            if vname in adata.dtype.names:
-                adata[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
-            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
-            if aname in adata.dtype.names:
-                adata[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-        """
-
-
-        # strings get padded when written to the fits file.  And the way I do
-        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
-        # 
-        # so for comparisons, we need to pad out the strings with blanks so we
-        # can compare
-
-        #adata['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
         adata['Sscalar'] = ['hello','world','good','bye']
-        """
-        adata['Svec'][:,0] = '%-6s' % 'hello'
-        adata['Svec'][:,1] = '%-6s' % 'world'
-
-        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
-        s = ['%-6s' % el for el in s]
-        adata['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-        """
 
         self.ascii_data = adata
 
@@ -652,8 +619,6 @@ class TestReadWrite(unittest.TestCase):
         check the values
         """
 
-        pass
-
         fname=tempfile.mktemp(prefix='fitsio-AsciiTableWrite-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
@@ -664,37 +629,91 @@ class TestReadWrite(unittest.TestCase):
                 # written with higher precision.  Need to fix that somehow
                 for f in self.ascii_data.dtype.names:
                     d = fits[1].read_column(f)
-                    if d.dtype == numpy.float32:
-                        self.compare_array_tol(self.ascii_data[f], d, 5.96e-08, "table field read '%s'" % f)
-                    elif d.dtype == numpy.float64:
+                    if d.dtype == numpy.float64:
                         # note we should be able to do 1.11e-16 in principle, but in practice
                         # we get more like 2.15e-16
                         self.compare_array_tol(self.ascii_data[f], d, 2.15e-16, "table field read '%s'" % f)
                     else:
                         self.compare_array(self.ascii_data[f], d, "table field read '%s'" % f)
 
-                """
-                self.compare_rec(self.ascii_data, d, "table read/write")
-
-
-                # now list of columns
-                cols=['u2scalar','f4vec','Sarr']
-                d = fits[1].read(columns=cols)
-                for f in d.dtype.names: 
-                    self.compare_array(self.asciii_data[f][:], d[f], "test column list %s" % f)
-
-
-                cols=['u2scalar','f4vec','Sarr']
                 rows = [1,3]
-                d = fits[1].read(columns=cols, rows=rows)
-                for f in d.dtype.names: 
-                    self.compare_array(self.ascii_data[f][rows], d[f], "test column list %s row subset" % f)
+                for f in self.ascii_data.dtype.names:
+                    d = fits[1].read_column(f,rows=rows)
+                    if d.dtype == numpy.float64:
+                        self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                                               "table field read subrows '%s'" % f)
+                    else:
+                        self.compare_array(self.ascii_data[f][rows], d, 
+                                           "table field read subrows '%s'" % f)
 
-                """
+                beg=1
+                end=3
+                for f in self.ascii_data.dtype.names:
+                    d = fits[1][f][beg:end]
+                    if d.dtype == numpy.float64:
+                        self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16, 
+                                               "table field read slice '%s'" % f)
+                    else:
+                        self.compare_array(self.ascii_data[f][beg:end], d, 
+                                           "table field read slice '%s'" % f)
+
+                cols = ['i2scalar','f4scalar']
+                for f in self.ascii_data.dtype.names:
+                    data = fits[1].read(columns=cols)
+                    for f in data.dtype.names:
+                        d=data[f]
+                        if d.dtype == numpy.float64:
+                            self.compare_array_tol(self.ascii_data[f], d, 2.15e-16, "table subcol, '%s'" % f)
+                        else:
+                            self.compare_array(self.ascii_data[f], d, "table subcol, '%s'" % f)
+
+                    data = fits[1][cols][:]
+                    for f in data.dtype.names:
+                        d=data[f]
+                        if d.dtype == numpy.float64:
+                            self.compare_array_tol(self.ascii_data[f], d, 2.15e-16, "table subcol, '%s'" % f)
+                        else:
+                            self.compare_array(self.ascii_data[f], d, "table subcol, '%s'" % f)
+
+                rows=[1,3]
+                for f in self.ascii_data.dtype.names:
+                    data = fits[1].read(columns=cols,rows=rows)
+                    for f in data.dtype.names:
+                        d=data[f]
+                        if d.dtype == numpy.float64:
+                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                                                   "table subcol, '%s'" % f)
+                        else:
+                            self.compare_array(self.ascii_data[f][rows], d, 
+                                               "table subcol, '%s'" % f)
+
+                    data = fits[1][cols][rows]
+                    for f in data.dtype.names:
+                        d=data[f]
+                        if d.dtype == numpy.float64:
+                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                                                   "table subcol/row, '%s'" % f)
+                        else:
+                            self.compare_array(self.ascii_data[f][rows], d, 
+                                               "table subcol/row, '%s'" % f)
+
+                for f in self.ascii_data.dtype.names:
+
+                    data = fits[1][cols][beg:end]
+                    for f in data.dtype.names:
+                        d=data[f]
+                        if d.dtype == numpy.float64:
+                            self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16, 
+                                                   "table subcol/slice, '%s'" % f)
+                        else:
+                            self.compare_array(self.ascii_data[f][beg:end], d, 
+                                               "table subcol/slice, '%s'" % f)
+
+
+
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
 
     def testSlice(self):

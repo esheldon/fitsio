@@ -1204,6 +1204,8 @@ class FITSHDU:
 
         if self.info['hdutype'] == IMAGE_HDU:
             return self.read_image()
+        elif self.info['hdutype'] == ASCII_TBL:
+            return self.read_ascii(**keys)
 
         columns = keys.get('columns',None)
         rows    = keys.get('rows',None)
@@ -1336,6 +1338,8 @@ class FITSHDU:
 
         if self.info['hdutype'] == IMAGE_HDU:
             return self.read_image()
+        elif self.info['hdutype'] == ASCII_TBL:
+            return self.read_ascii(**keys)
 
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
 
@@ -1422,6 +1426,11 @@ class FITSHDU:
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
+        if self.info['hdutype'] == ASCII_TBL:
+            rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+            keys['rows'] = rows
+            return self.read_ascii(**keys)
+
         step=keys.get('step',1)
         if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
@@ -1474,6 +1483,10 @@ class FITSHDU:
             # we actually want all rows!
             return self.read_all()
 
+        if self.info['hdutype'] == ASCII_TBL:
+            keys['rows'] = rows
+            return self.read_ascii(**keys)
+
         rows = self._extract_rows(rows)
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
 
@@ -1515,6 +1528,10 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
+
+        if self.info['hdutype'] == ASCII_TBL:
+            keys['columns'] = columns
+            return self.read_ascii(**keys)
 
         rows = keys.get('rows',None)
 
@@ -1558,6 +1575,92 @@ class FITSHDU:
                                     self.info['colinfo'][colnum]['tzero'])
 
         return array
+
+    def read_ascii(self, **keys):
+        """
+        read a subset of columns from this ascii table HDU
+
+        By default, all rows are read.  Send rows= to select subsets of the
+        data.  Table data are read into a recarray; use read_column() to get a
+        single column as an ordinary array.
+
+        parameters
+        ----------
+        columns: list/array
+            An optional set of columns to read from table HDUs.  Can be string
+            or number. If a sequence, a recarray is always returned.  If a
+            scalar, an ordinary array is returned.
+        rows: list/array, optional
+            An optional list of rows to read from table HDUS.  Default is to
+            read all.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        """
+
+        if self.info['hdutype'] != ASCII_TBL:
+            raise ValueError("expected an ASCII_TBL HDU")
+
+        rows = keys.get('rows',None)
+        columns = keys.get('columns',None)
+
+        # if columns is None, returns all.  Guaranteed to be unique and sorted
+        colnums = self._extract_colnums(columns)
+        if isinstance(colnums,int):
+            # scalar sent, don't read as a recarray
+            return self.read_column(columns, **keys)
+
+        rows = self._extract_rows(rows)
+        if rows is None:
+            nrows = self.info['nrows']
+        else:
+            nrows = rows.size
+
+        # if rows is None still returns None, and is correctly interpreted
+        # by the reader to mean all
+        rows = self._extract_rows(rows)
+
+        # this is the full dtype for all columns
+        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
+        array = numpy.zeros(nrows, dtype=dtype)
+
+        # note reading into existing data
+        wnotvar,=numpy.where(isvar == False)
+        if wnotvar.size > 0:
+            for i in wnotvar:
+                colnum = colnums[i]
+                name=array.dtype.names[i]
+                a=array[name].copy()
+                self._FITS.read_column(self.ext+1,colnum+1, a, rows)
+                array[name] = a
+                del a
+
+        wvar,=numpy.where(isvar == True)
+        if wvar.size > 0:
+            for i in wvar:
+                colnum = colnums[i]
+                name = array.dtype.names[i]
+                dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+                if isinstance(dlist[0],str):
+                    is_string=True
+                else:
+                    is_string=False
+
+                if array[name].dtype.descr[0][1][1] == 'O':
+                    # storing in object array
+                    # get references to each, no copy made
+                    for irow,item in enumerate(dlist):
+                        array[name][irow] = item
+                else: 
+                    for irow,item in enumerate(dlist):
+                        if is_string:
+                            array[name][irow]= item
+                        else:
+                            ncopy = len(item)
+                            array[name][irow][0:ncopy] = item[:]
+
+        return array
+
 
     def _read_rec_with_var(self, colnums, rows, dtype, offsets, isvar, vstorage):
         """
@@ -1894,12 +1997,17 @@ class FITSHDU:
         return npy_type
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
+        table_type = self.info['hdutype']
+        table_type_string = _hdu_type_map[table_type]
         try:
             ftype = self.info['colinfo'][colnum]['eqtype']
-            npy_type = _table_fits2npy[abs(ftype)]
+            if table_type == ASCII_TBL:
+                npy_type = _table_fits2npy_ascii[abs(ftype)]
+            else:
+                npy_type = _table_fits2npy[abs(ftype)]
         except KeyError:
-            raise KeyError("unsupported fits data type: %d" % ftype)
-
+            raise KeyError("unsupported %s fits data "
+                           "type: %d" % (table_type_string, ftype))
 
         isvar=False
         if ftype < 0:
@@ -1907,7 +2015,7 @@ class FITSHDU:
         if include_endianness:
             # if binary we will read the big endian bytes directly,
             # if ascii we read into native byte order
-            if self.info['hdutype'] == ASCII_TBL:
+            if table_type == ASCII_TBL:
                 addstr=''
             else:
                 addstr='>'
@@ -2323,54 +2431,6 @@ def npy_obj2fits(data, name):
     return form, dim
 
 
-
-def npy_obj2fits_old(data, name):
-    # this will be a variable length column 1Pt(len) where t is the
-    # type and len is max length.  Each element must be convertible to
-    # the same type as the first
-
-    d = data[name].dtype.descr
-    maxlen=0
-
-    # note numpy._string is an instance of str, so str is good enough
-    if isinstance(data[name][0], numpy.ndarray):
-        dtype0 = data[name][0].dtype
-        npy_dtype = dtype0.descr[0][1][1:]
-        if npy_dtype[0] == 'S':
-            raise ValueError("Field '%s' is an arrays of strings, this is "
-                             "not allowed in variable length columns" % name)
-        if npy_dtype not in _table_npy2fits_form:
-            raise ValueError("Field '%s' has unsupported type '%s'" % (name,npy_dtype))
-        fits_dtype = _table_npy2fits_form[npy_dtype]
-
-        for el in data[name]:
-            if not isinstance(el,numpy.ndarray):
-                raise ValueError("Not all elements in object field '%s' are the "
-                                 "the same type" % name)
-            if el.dtype != dtype0:
-                raise ValueError("Not all elements in object field '%s' are the "
-                                 "the same type" % name)
-            maxlen=max(maxlen, el.size)
-
-    elif isinstance(data[name][0], str):
-        fits_dtype = _table_npy2fits_form['S']
-        for el in data[name]:
-            if not isinstance(el,str):
-                raise ValueError("Not all elements in object field '%s' are "
-                                 "strings, found " % (name,type(el)))
-            maxlen=max(maxlen, len(el))
-    else:
-        raise ValueError("Object fields must contain numpy "
-                         "arrays, strings, or numpy strings, "
-                         "got %s for 'field' %s" % (type(data[name][0]),name))
-
-    # Q uses 64-bit addressing, should try at some point but the cfitsio manual
-    # says it is experimental
-    #form = '1Q%s(%d)' % (fits_dtype, maxlen)
-    form = '1P%s(%d)' % (fits_dtype, maxlen)
-    dim=None
-
-    return form, dim
 
 def npy2fits(d, table_type='binary'):
     """
@@ -2802,6 +2862,15 @@ _table_fits2npy = {11:'u1',
                    81: 'i8',
                    82: 'f8'}
 
+# cfitsio returns only types f8, i4 and strings for column types. in order to
+# avoid data loss, we always use i8 for integer types
+_table_fits2npy_ascii = {16: 'S',
+                         31: 'i8', # listed as TINT, reading as i8
+                         41: 'i8', # listed as TLONG, reading as i8
+                         81: 'i8',
+                         82: 'f8'}
+
+
 # for TFORM
 _table_npy2fits_form = {'u1':'B',
                         'i1':'S', # gets converted to unsigned
@@ -2817,10 +2886,12 @@ _table_npy2fits_form = {'u1':'B',
 _table_npy2fits_form_ascii = {'S' :'A1',       # Need to add max here
                               'i2':'I7',      # I
                               'i4':'I12',     # ??
-                              'i8':'I20',     # K
-                              'f4':'E15.7',   # F 15.9
+                              #'i8':'I21',     # K # i8 aren't supported
+                              #'f4':'E15.7',   # F
+                              'f4':'E26.17',   # F We must write as f8 since we can only read as f8
                               'f8':'E26.17'}  # D 25.16 looks right, but this is recommended
   
+# from mrdfits; note G gets turned into E
 #      types=  ['A',   'I',   'L',   'B',   'F',    'D',      'C',     'M',     'K']
 #      formats=['A1',  'I6',  'I10', 'I4',  'G15.9','G23.17', 'G15.9', 'G23.17','I20']
 

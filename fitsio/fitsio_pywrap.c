@@ -586,12 +586,12 @@ npy_to_fits_table_type(int npy_dtype) {
             }
 
         case NPY_INT64:
-            if (sizeof(int) == sizeof(npy_int64)) {
-                return TINT;
+            if (sizeof(long long) == sizeof(npy_int64)) {
+                return TLONGLONG;
             } else if (sizeof(long) == sizeof(npy_int64)) {
                 return TLONG;
-            } else if (sizeof(long long) == sizeof(npy_int64)) {
-                return TLONGLONG;
+            } else if (sizeof(int) == sizeof(npy_int64)) {
+                return TINT;
             } else {
                 PyErr_SetString(PyExc_TypeError, "could not determine 8 byte integer type");
                 return -9999;
@@ -1671,13 +1671,15 @@ static int read_column_bytes(fitsfile* fits, int colnum, void* data, int* status
 }
 
 /*
- * read a single, entire column from the current HDU, which can be a binary
- * table or an ascii table, into a normal unstrided array.  This version uses
- * the standard read column and requires a contiguous array.
+ * read a single, entire column from an ascii table into the input array.  This
+ * version uses the standard read column instead of our by-bytes version.
  *
+ * A number of assumptions are made, such as that columns are scalar, which
+ * is true for ascii.
  */
 
-static int read_column_bytype(fitsfile* fits, int colnum, PyObject* array, int* status) {
+static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, int* status) {
+
     int npy_dtype=0;
     int fits_dtype=0;
 
@@ -1685,6 +1687,12 @@ static int read_column_bytype(fitsfile* fits, int colnum, PyObject* array, int* 
     LONGLONG firstelem=1;
     LONGLONG firstrow=1;
     int* anynul=NULL;
+    void* nulval=0;
+    char* nulstr=" ";
+    void* data=NULL;
+    char* cdata=NULL;
+
+    npy_intp i=0;
 
     npy_dtype = PyArray_TYPE(array);
     fits_dtype = npy_to_fits_table_type(npy_dtype);
@@ -1692,11 +1700,10 @@ static int read_column_bytype(fitsfile* fits, int colnum, PyObject* array, int* 
     nelem = PyArray_SIZE(array);
 
     if (fits_dtype == TSTRING) {
-        npy_intp i=0;
         LONGLONG twidth=0;
-        char* cdata = (char*) PyArray_DATA(array);
         char** strdata=NULL;
-        char* nulstr=" ";
+
+        cdata = (char*) PyArray_DATA(array);
 
         strdata=malloc(nelem*sizeof(char*));
         if (NULL==strdata) {
@@ -1719,16 +1726,89 @@ static int read_column_bytype(fitsfile* fits, int colnum, PyObject* array, int* 
         free(strdata);
 
     } else {
-        void* data=NULL;
-        void* nulval=0;
         data=PyArray_DATA(array);
         if (fits_read_col(fits,fits_dtype,colnum,firstrow,firstelem,nelem,nulval,data,anynul,status) > 0) {
             return 1;
         }
     }
 
+    return 0;
+
+}
+static int read_ascii_column_byrow(
+        fitsfile* fits, int colnum, PyObject* array, PyObject* rowsObj, int* status) {
+
+    int npy_dtype=0;
+    int fits_dtype=0;
+
+    npy_intp nelem=0;
+    LONGLONG firstelem=1;
+    LONGLONG rownum=0;
+    npy_intp nrows=-1;
+    npy_intp stride=0;
+
+    int* anynul=NULL;
+    void* nulval=0;
+    char* nulstr=" ";
+    void* data=NULL;
+    char* cdata=NULL;
+
+    int dorows=0;
+
+    npy_intp i=0;
+
+    npy_dtype = PyArray_TYPE(array);
+    fits_dtype = npy_to_fits_table_type(npy_dtype);
+
+    nelem = PyArray_SIZE(array);
+
+
+    if (rowsObj != Py_None) {
+        dorows=1;
+        nrows = PyArray_SIZE(rowsObj);
+        if (nrows != nelem) {
+            PyErr_Format(PyExc_ValueError, 
+                    "input array[%ld] and rows[%ld] have different size", nelem,nrows);
+            return 1;
+        }
+    }
+
+    data = PyArray_GETPTR1(array, i);
+    stride = PyArray_STRIDE(array,0);
+    for (i=0; i<nrows; i++) {
+        if (dorows) {
+            rownum = (LONGLONG) (1 + *(npy_int64*) PyArray_GETPTR1(rowsObj, i));
+        } else {
+            rownum = (LONGLONG) (1+i);
+        }
+        // assuming 1-D
+        data = PyArray_GETPTR1(array, i);
+        if (fits_dtype==TSTRING) {
+            cdata = (char* ) data;
+            if (fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status) > 0) {
+                return 1;
+            }
+        } else {
+            if (fits_read_col(fits,fits_dtype,colnum,rownum,firstelem,1,nulval,data,anynul,status) > 0) {
+                return 1;
+            }
+        }
+    }
 
     return 0;
+}
+
+
+static int read_ascii_column(fitsfile* fits, int colnum, PyObject* array, PyObject* rowsObj, int* status) {
+
+    int ret=0;
+    if (rowsObj != Py_None || !PyArray_ISCONTIGUOUS(array)) {
+        ret = read_ascii_column_byrow(fits, colnum, array, rowsObj, status);
+    } else {
+        ret = read_ascii_column_all(fits, colnum, array, status);
+    }
+
+    return ret;
 }
 
 
@@ -1866,40 +1946,41 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
     
-    if (rowsObj == Py_None) {
-        if (PyArray_ISCONTIGUOUS(array)) {
-            if (hdutype == BINARY_TBL) {
+    if (hdutype == ASCII_TBL) {
+        if (read_ascii_column(self->fits, colnum, array, rowsObj, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+    } else {
+        // we have some more optimizations for binary tables
+        if (rowsObj == Py_None) {
+            if (PyArray_ISCONTIGUOUS(array)) {
                 if (read_column_bytes(self->fits, colnum, data, &status)) {
                     set_ioerr_string_from_status(status);
                     return NULL;
                 }
             } else {
-                if (read_column_bytype(self->fits, colnum, array, &status)) {
+                stride = PyArray_STRIDE(array,0);
+                if (read_column_bytes_strided(self->fits, colnum, data, stride, &status)) {
                     set_ioerr_string_from_status(status);
                     return NULL;
                 }
             }
         } else {
+            npy_intp nrows=0;
+            npy_int64* rows=NULL;
+            rows = get_int64_from_array(rowsObj, &nrows);
+            if (rows == NULL) {
+                return NULL;
+            }
             stride = PyArray_STRIDE(array,0);
-            if (read_column_bytes_strided(self->fits, colnum, data, stride, &status)) {
+            if (read_column_bytes_byrow(self->fits, colnum, nrows, rows,
+                        data, stride, &status)) {
                 set_ioerr_string_from_status(status);
                 return NULL;
             }
-        }
-    } else {
-        npy_intp nrows=0;
-        npy_int64* rows=NULL;
-        rows = get_int64_from_array(rowsObj, &nrows);
-        if (rows == NULL) {
-            return NULL;
-        }
-        stride = PyArray_STRIDE(array,0);
-        if (read_column_bytes_byrow(self->fits, colnum, nrows, rows,
-                                    data, stride, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
 
+        }
     }
     Py_RETURN_NONE;
 }
