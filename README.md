@@ -80,6 +80,7 @@ Examples
     # extension name if available
     >>> fits[0]
 
+    file: data.fits
     extension: 0
     type: IMAGE_HDU
     image info:
@@ -88,6 +89,7 @@ Examples
 
     >>> fits['mytable']  # can also use fits[1]
 
+    file: data.fits
     extension: 1
     type: BINARY_TBL
     extname: mytable
