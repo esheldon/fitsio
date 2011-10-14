@@ -14,7 +14,7 @@ you have installed; see below for details.
 Some Features
 -------------
 
-- Read from and write to image and binary table extensions.
+- Read from and write to image, binary, and ascii table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
 - Write and read variable length table columns.  Can read into
@@ -258,6 +258,9 @@ The unit tests should all pass for full support.
 TODO
 ----
 
+- separate classes for image, ascii and binary table HDUs.  Inherit from base
+  class.
+- Test variable length columns in ascii tables.
 - Read subsets of *images*
 - More error checking in c code for python lists and dicts.
 - optimize writing tables. When there are no unsigned short or long, no signed
@@ -267,7 +270,6 @@ TODO
   stuff we could add the scaling ourselves, but then it is far from
   atomic.
 - complex table columns.  bit? logical?
-- explore separate classes for image and table HDUs?  Inherit from base class.
 - add lower,upper keywords to read routines.
 - HDU groups?
 - Clean up the code

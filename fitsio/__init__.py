@@ -6,9 +6,11 @@ This is a python extension written in c and python.
 Some Features
 -------------
 
-- Read from and write to image and binary table extensions.
+- Read from and write to image, binary, and ascii table extensions.
 - Read arbitrary subsets of table columns and rows without loading the
   whole file.
+- Write and read variable length table columns.  Can read into
+  fixed length arrays of max size or object arrays to save memory.
 - Read columns and rows using slice notation similar to numpy arrays
   This is like a more powerful memmap, since it is column-aware.
 - Append rows to an existing table.
@@ -23,9 +25,12 @@ Some Features
 - Write checksums into the header.
 - data are guaranteed to conform to the FITS standard.
 
+
 Known CFITSIO Bugs
 ------------------
-None known in the patched version 3280 included in this package.
+For ascii tables, cfitsio always reports integer types as 4-byte and floating
+types as 8-byte.  No other bugs known in the pached version 3280 included in
+this package.
 
 Examples
 --------
@@ -42,7 +47,7 @@ Examples
     >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
     # read the header, or both at once
     >>> h = fitsio.read_header(filename, extension)
-    >>> data,h = fitsio.read_header(filename, ext=ext, header=True)
+    >>> data,h = fitsio.read(filename, ext=ext, header=True)
 
     # open the file, write a new binary table extension, and then write  the
     # data from "recarray" into the table. By default a new extension is
@@ -90,8 +95,10 @@ Examples
       f                   f4
       fvec                f4  array[2]
       darr                f8  array[3,2]
+      dvarr               f8  varray[10]
       s                   S5
       svec                S6  array[3]
+      svar                S0  vstring[8]
       sarr                S2  array[4,3]
 
     # [-1] to refers the last HDU
@@ -128,10 +135,25 @@ Examples
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
 
+    # Note dvarr shows type varray[10] and svar shows type vstring[8]. These
+    # are variable length columns and the number specified is the maximum size.
+    # By default they are read into fixed-length fields in the output array.
+    # You can over-ride this by constructing the FITS object with the vstorage
+    # keyword or specifying vstorage when reading.  Sending vstorage='object'
+    # will store the data in variable size object fields to save memory; the
+    # default is vstorage='fixed'.  Object fields can also be written out to a
+    # new FITS file as variable length to save disk space.
+
+    >>> fits = fitsio.FITS(filename,vstorage='object')
+    # OR
+    >>> data = fits[1].read(vstorage='object')
+    >>> print data['dvarr'].dtype
+        dtype('object')
+
+
     # you can grab a FITSHDU object to simplify notation
     >>> hdu1 = fits[1]
     >>> data = hdu1['x','y'][35:50]
-
     
     # get rows that satisfy the input expression.  See "Row Filtering
     # Specification" in the cfitsio manual
@@ -150,18 +172,20 @@ Examples
     >>> fits = FITS('test.fits','rw')
 
  
-    # create a rec array
+    # create a rec array.  Note vstr
+    # is a variable length string
     >>> nrows=35
-    >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('x','f8'),('arr','f4',(3,4))])
+    >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
     >>> data['index'] = numpy.arange(nrows,dtype='i4')
     >>> data['x'] = numpy.random.random(nrows)
+    >>> data['vstr'] = [str(i) for i in xrange(nrows)]
     >>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
     # create a new table extension and write the data
     >>> fits.write(data)
 
     # note under the hood the above does the following
-    >>> fits.create_table_hdu(dtype=data.dtype)
+    >>> fits.create_table_hdu(data=data)
     >>> fits[-1].write(data)
     >>> fits.update_hdu_list()
 
