@@ -120,8 +120,8 @@ Examples
     >>> data = fits['mytable'].read()
 
     # read a subset of rows and columns. By default uses a case-insensitive
-    # match but returned array leaves the names with original case
-    # if columns is a sequence, a recarray is returned
+    # match. The result retains the names with original case.  If columns is a
+    # sequence, a recarray is returned
     >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
     # Similar but using slice notation
@@ -132,10 +132,14 @@ Examples
 
     # all rows of column 'x'
     >>> data = fits[1]['x'][:]
-    # Read a few columns, more efficient than single read for each.
+
+    # Read a few columns at once. This is more efficient than separate read for
+    # each column
     >>> data = fits[1]['x','y'][:]
+
     # General column and row subsets.
     >>> data = fits[1][columns][rows]
+
 
     # Note dvarr shows type varray[10] and svar shows type vstring[8]. These
     # are variable length columns and the number specified is the maximum size.
