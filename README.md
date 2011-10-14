@@ -258,11 +258,7 @@ The unit tests should all pass for full support.
 TODO
 ----
 
-- Currently can only read ascii one column at a time, and only the full column.
-  Just need to do the book keeping to make it work.
-- For ascii, cfitsio reports all integer columns as i4 and all float columns as
-  i8, period.  Maybe can instead examine the tform for non string and interpret
-  that.
+- Test variable length columns in ascii tables.
 - Read subsets of *images*
 - More error checking in c code for python lists and dicts.
 - optimize writing tables. When there are no unsigned short or long, no signed

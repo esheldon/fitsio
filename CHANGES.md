@@ -11,6 +11,7 @@ for help with OS X testing and bug fixes.
 
 New features
 
+
     - Write and read variable length columns.  When writing a table, any fields
       declared "object" ("O" type char) in the input array will be written to a
       variable length column.  For numbers, this means vectors of varying
@@ -25,6 +26,12 @@ New features
       length columns. You can also over-ride the default vstorage when calling
       read functions.
       
+    - Write and read ascii tables.  Note cfitsio supports writing scalar 2- and
+      4-byte integers, floats and doubles. But for reading only 4-byte integers
+      and doubles are supported, presumably because of the ambiguity in the
+      tform fields.  Scalar strings are fully supported in both reading and
+      writing.  No array fields are supported for ascii.
+
     - Append rows to an existing table using the append method.
             >>> fits.write_table(data1)
             >>> fits[-1].append(data2)
