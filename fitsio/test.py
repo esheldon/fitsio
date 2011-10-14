@@ -610,8 +610,7 @@ class TestReadWrite(unittest.TestCase):
 
         finally:
             if os.path.exists(fname):
-                #os.remove(fname)
-                pass
+                os.remove(fname)
 
 
     def testAsciiTableWriteRead(self):
