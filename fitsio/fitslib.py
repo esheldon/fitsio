@@ -2479,18 +2479,18 @@ def npy_num2fits(d, table_type='binary'):
         if table_type == 'ascii':
             raise ValueError("Ascii table columns must be scalar, got %s" % str(d))
         if isinstance(d[2], tuple):
-            # this is an array column.  the form
-            # should be total elements followed by A
-            #count = 1
-            #count = [count*el for el in d[2]]
-            count=reduce(lambda x, y: x*y, d[2])
-            form = '%d%s' % (count,form)
+            if len(d[2]) > 1:
 
-            # will have to do tests to see if this is the right order
-            dim = list(reversed(d[2]))
-            #dim = d[2]
-            dim = [str(e) for e in dim]
-            dim = '(' + ','.join(dim)+')'
+                # this is multi-dimensional array column.  the form
+                # should be total elements followed by A
+
+                count=reduce(lambda x, y: x*y, d[2])
+                form = '%d%s' % (count,form)
+
+                # will have to do tests to see if this is the right order
+                dim = list(reversed(d[2]))
+                dim = [str(e) for e in dim]
+                dim = '(' + ','.join(dim)+')'
         else:
             # this is a vector (1d array) column
             count = d[2]
