@@ -2479,7 +2479,8 @@ def npy_num2fits(d, table_type='binary'):
         if table_type == 'ascii':
             raise ValueError("Ascii table columns must be scalar, got %s" % str(d))
         if isinstance(d[2], tuple):
-            if len(d[2]) > 1:
+            #if len(d[2]) > 1:
+            if True:
 
                 # this is multi-dimensional array column.  the form
                 # should be total elements followed by A
