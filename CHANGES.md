@@ -1,13 +1,14 @@
 version 0.90
 -----------------------
 
-This is a beta for the first "official" release. cfitsio 3.28 is now bundled.
-This should make it easier for folks to install, and a consistent code base
-with which to develop.  Thanks to Eli Rykoff for suggesting a bundle.  Thanks
-to Eli and Martin white for helping test this.
+This is the first "official" release. A patched version of cfitsio 3.28 is now
+bundled.  This will make it easier for folks to install, and provide a
+consistent code base with which to develop.  Thanks to Eli Rykoff for
+suggesting a bundle.  Thanks to Eli and Martin White for helping extensively
+with testing.
 
-On OS X, we now link properly with universal binaries on intel. Thanks to Eli Rykoff
-for help with OS X testing and bug fixes.
+On OS X, we now link properly with universal binaries on intel. Thanks to Eli
+Rykoff for help with OS X testing and bug fixes.
 
 New features
 
@@ -26,7 +27,7 @@ New features
       length columns. You can also over-ride the default vstorage when calling
       read functions.
       
-    - Write and read ascii tables.  Note cfitsio supports writing scalar 2- and
+    - Write and read ascii tables.  cfitsio supports writing scalar 2- and
       4-byte integers, floats and doubles. But for reading only 4-byte integers
       and doubles are supported, presumably because of the ambiguity in the
       tform fields.  Scalar strings are fully supported in both reading and
