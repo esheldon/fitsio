@@ -1,5 +1,5 @@
-version 0.90
------------------------
+version 0.90 (2011-10-21)
+-------------------------
 
 This is the first "official" release. A patched version of cfitsio 3.28 is now
 bundled.  This will make it easier for folks to install, and provide a

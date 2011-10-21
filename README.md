@@ -233,7 +233,7 @@ Examples
 
 Installation
 ------------
-Either download the tar ball (upper right corner "Downloads" on github page) or
+Either download the tar ball ("Downloads" in the center of the github page) or
 use 
 
     git clone git://github.com/esheldon/fitsio.git
