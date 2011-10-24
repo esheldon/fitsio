@@ -30,7 +30,7 @@ Some Features
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write unsigned integer types and signed bytes.
-- Write checksums into the header.
+- Write checksums into the header and verify them.
 - data are guaranteed to conform to the FITS standard.
 
 

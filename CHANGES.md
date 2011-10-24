@@ -1,4 +1,11 @@
-version 0.90 (2011-10-21)
+version 0.9.1
+-------------------------
+
+New features
+
+    - Added a verify_checksum() method for HDU objects. 2011-10-24, ESS
+
+version 0.9.0 (2011-10-21)
 -------------------------
 
 This is the first "official" release. A patched version of cfitsio 3.28 is now
