@@ -2840,6 +2840,37 @@ PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
 
     return dict;
 }
+static PyObject *
+PyFITSObject_verify_checksum(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    int dataok=0, hduok=0;
+
+    PyObject* dict=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_verify_chksum(self->fits, &dataok, &hduok, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    dict=PyDict_New();
+    PyDict_SetItemString(dict, "dataok", PyLong_FromLong((long)dataok));
+    PyDict_SetItemString(dict, "hduok", PyLong_FromLong((long)hduok));
+
+    return dict;
+}
+
 
 
 static PyObject *
@@ -2945,6 +2976,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
 
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
+    {"verify_checksum",      (PyCFunction)PyFITSObject_verify_checksum,      METH_VARARGS,  "verify_checksum\n\nReturn a dict with dataok and hduok."},
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},

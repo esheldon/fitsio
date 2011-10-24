@@ -912,6 +912,16 @@ class FITSHDU:
         """
         return self._FITS.write_checksum(self.ext+1)
 
+    def verify_checksum(self):
+        """
+        Verify the checksum in the header for this HDU.
+        """
+        res = self._FITS.verify_checksum(self.ext+1)
+        if res['dataok'] != 1:
+            raise ValueError("data checksum failed")
+        if res['hduok'] != 1:
+            raise ValueError("hdu checksum failed")
+
     def write_key(self, keyname, value, comment=""):
         """
         Write the input value to the header

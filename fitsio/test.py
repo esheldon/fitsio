@@ -866,6 +866,28 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+
+    def testChecksum(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-Checksum-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                fits.write_table(self.data, header=self.keys, extname='mytable')
+                fits[1].write_checksum()
+                fits[1].verify_checksum()
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
+
+
     def compare_headerlist_header(self, header_list, header):
         """
         The first is a list of dicts, second a FITSHDR
