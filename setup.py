@@ -29,7 +29,7 @@ def copy_update(dir1,dir2):
 
 def configure_cfitsio():
     os.chdir(cfitsio_build_dir)
-    ret=os.system('./configure')
+    ret=os.system('sh ./configure')
     if ret != 0:
         raise ValueError("could not configure cfitsio %s" % cfitsio_version)
     os.chdir(package_basedir)
@@ -80,10 +80,17 @@ ext=Extension("fitsio._fitsio_wrap",
               extra_compile_args=extra_compile_args, 
               extra_link_args=extra_link_args)
 
+
+description = ("A full featured python library to read and "
+               "write data to FITS files.")
+
 include_dirs=[cfitsio_dir,numpy.get_include()]
 setup(name="fitsio", 
+      version="0.9.0",
+      description=description,
+      url="https://github.com/esheldon/fitsio",
+      author="Erin Scott Sheldon",
       packages=['fitsio'],
-      version="1.0",
       data_files=data_files,
       ext_modules=[ext],
       include_dirs=include_dirs)
