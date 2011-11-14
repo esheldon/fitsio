@@ -353,6 +353,11 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
+    def create_empty_hdu(self):
+        """
+        Create a new, empty HDU.
+        """
+        self._FITS.create_empty_hdu()
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
               table_type='binary', **keys):
@@ -1087,6 +1092,53 @@ class FITSHDU:
 
         self._FITS.write_image(self.ext+1, img_send)
         self._update_info()
+
+    def insert_column(self, name, data, colnum=None):
+        """
+        Insert a new column.
+
+        parameters
+        ----------
+        name: string
+            The column name
+        data:
+            The data to write into the new column.
+        colnum: int, optional
+            The column number for the new column, zero-offset.  Default
+            is to add the new column after the existing ones.
+        """
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannot write a column to an IMAGE_HDU")
+        if self.info['hdutype'] == ASCII_TBL:
+            table_type='ascii'
+        else:
+            table_type='binary'
+
+        if name in self.colnames:
+            raise ValueError("column '%s' already exists" % name)
+
+        descr=data.dtype.descr
+        if len(descr) > 1:
+            raise ValueError("you can only insert a single column, requested: %s" % descr)
+
+        this_descr = descr[0]
+        this_descr = [name, this_descr[1]]
+        if len(data.shape) > 1:
+            this_descr += [data.shape[1:]]
+        this_descr = tuple(this_descr)
+
+        name, fmt, dims = npy2fits(this_descr, table_type=table_type)
+        if dims is not None:
+            dims=[dims]
+
+        if colnum is None:
+            new_colnum = len(self.info['colinfo']) + 1
+        else:
+            new_colnum = colnum+1
+        self._FITS.insert_col(self.ext+1, new_colnum, name, fmt, tdim=dims)
+        self._update_info()
+
+        self.write_column(name, data)
 
 
     def write_column(self, column, data, firstrow=0):

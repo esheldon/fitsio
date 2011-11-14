@@ -167,6 +167,21 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 }
 
 
+static PyObject*
+PyFITSObject_create_empty_hdu(struct PyFITSObject* self)
+{
+    int status=0;
+    int bitpix=SHORT_IMG;
+    int naxis=0;
+    long* naxes=NULL;
+    if (fits_create_img(self->fits, bitpix, naxis, naxes, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
 
 // if input is NULL or None, return NULL
 // if maxlen is 0, the full string is copied, else
@@ -1153,6 +1168,63 @@ create_table_cleanup:
     }
     Py_RETURN_NONE;
 }
+
+
+// create a new table structure.  No physical rows are added yet.
+static PyObject *
+PyFITSObject_insert_col(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+    int colnum=0;
+
+    int hdutype=0;
+
+    static char *kwlist[] = {"hdunum","colnum","ttyp","tform","tdim", NULL};
+    // these are all strings
+    char* ttype=NULL; // field name
+    char* tform=NULL; // format
+    PyObject* tdimObj=NULL;     // optional, a list of len 1
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiss|O", kwlist,
+                          &hdunum, &colnum, &ttype, &tform, &tdimObj)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_insert_col(self->fits, colnum, ttype, tform, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // OK if dims are not sent
+    if (tdimObj != NULL && tdimObj != Py_None) {
+        PyObject* tmp=NULL;
+        char* tdim=NULL;
+        char keyname[20];
+        tmp = PyList_GetItem(tdimObj, 0);
+        tdim = PyString_AsString(tmp);
+        sprintf(keyname, "TDIM%d", colnum);
+        if (fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+    }
+
+    // this does a full close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
+
 
 // No error checking performed here
 static
@@ -2972,15 +3044,17 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
+    {"create_empty_hdu",     (PyCFunction)PyFITSObject_create_empty_hdu,     METH_KEYWORDS, "create_empty_hdu\n\nWrite an empty HDU in a new extension."},
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
+    {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_KEYWORDS, "insert_col\n\nInsert a new column."},
 
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
     {"verify_checksum",      (PyCFunction)PyFITSObject_verify_checksum,      METH_VARARGS,  "verify_checksum\n\nReturn a dict with dataok and hduok."},
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
-    {"write_var_column",         (PyCFunction)PyFITSObject_write_var_column,         METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
+    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,         METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},

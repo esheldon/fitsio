@@ -199,6 +199,11 @@ Examples
     # in the table.  missing columns will be filled with zeros
     >>> fits[-1].append(data2)
 
+    # insert a new column into a table
+    >>> fits[-1].insert_column('newcol', data)
+    # insert with a specific colnum
+    >>> fits[-1].insert_column('newcol', data, colnum=2)
+
 
     # create an image
     >>> img=numpy.arange(20,30,dtype='i4')

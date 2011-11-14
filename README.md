@@ -31,6 +31,7 @@ Some Features
   shape.
 - Read and write unsigned integer types and signed bytes.
 - Write checksums into the header and verify them.
+- Insert new columns into tables in-place.
 - data are guaranteed to conform to the FITS standard.
 
 
@@ -200,6 +201,11 @@ Examples
     # append more rows to the table.  The fields in data2 should match columns
     # in the table.  missing columns will be filled with zeros
     >>> fits[-1].append(data2)
+
+    # insert a new column into a table
+    >>> fits[-1].insert_column('newcol', data)
+    # insert with a specific colnum
+    >>> fits[-1].insert_column('newcol', data, colnum=2)
 
 
     # create an image

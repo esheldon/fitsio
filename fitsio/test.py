@@ -715,6 +715,34 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
 
+    def testTableInsertColumn(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableInsertColumn-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                fits.write_table(self.data, header=self.keys, extname='mytable')
+
+                d = fits[1].read()
+
+                for n in d.dtype.names:
+                    newname = n+'_insert'
+
+                    fits[1].insert_column(newname, d[n])
+
+                    newdata = fits[1][newname][:]
+
+                    self.compare_array(d[n], newdata, "table single field insert and read '%s'" % n)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
     def testSlice(self):
         """
         Test reading by slice
