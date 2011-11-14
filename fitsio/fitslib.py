@@ -967,7 +967,7 @@ class FITSHDU:
                                       int(value),
                                       str(comment))
 
-    def write_keys(self, records):
+    def write_keys(self, records_in, clean=True):
         """
         Write the keywords to the header.
 
@@ -980,22 +980,21 @@ class FITSHDU:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+        clean: boolean
+            If True, trim out the standard fits header keywords that are
+            created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
+            TDIM, XTENSION, BITPIX, NAXIS, etc.
         """
 
-        if isinstance(records, dict):
-            for k in records:
-                self.write_key(k,records[k])
-        else:
-            if isinstance(records,list):
-                h = FITSHDR(records)
-            elif isinstance(records,FITSHDR):
-                h = records
+        hdr = FITSHDR(records_in)
+        if clean:
+            hdr.clean()
 
-            for r in h.records():
-                name=r['name']
-                value=r['value']
-                comment = r.get('comment','')
-                self.write_key(name,value,comment)
+        for r in hdr.records():
+            name=r['name']
+            value=r['value']
+            comment = r.get('comment','')
+            self.write_key(name,value,comment)
 
 
     def write(self, data, firstrow=0):
@@ -2625,27 +2624,31 @@ class FITSHDR:
         self._record_list = []
         self._record_map = {}
 
-        if record_list is not None:
-
-            if isinstance(record_list, dict):
-                for k in record_list:
-                    r = {'name':k, 'value':record_list[k]}
-                    self.add_record(r)
-            elif isinstance(record_list, list):
-                for r in record_list:
-                    self.add_record(r)
-            else:
+        if isinstance(record_list,FITSHDR):
+            for r in record_list.records():
+                self.add_record(r)
+        elif isinstance(record_list, dict):
+            for k in record_list:
+                r = {'name':k, 'value':record_list[k]}
+                self.add_record(r)
+        elif isinstance(record_list, list):
+            for r in record_list:
+                self.add_record(r)
+        elif record_list is not None:
                 raise ValueError("expected a dict or list of dicts")
 
 
-    def add_record(self, record):   
+    def add_record(self, record_in):   
+        import copy
+        record = copy.deepcopy(record_in)
+         
+        nrec = len(self._record_list)
         self.check_record(record)
         self._record_list.append(record)
-        self._add_to_map(record, len(self._record_list)-1)
+        self._add_to_map(record)
 
-    def _add_to_map(self, record, num):
+    def _add_to_map(self, record):
         self._record_map[record['name']] = record
-        self._record_map[num] = record
 
     def check_record(self, record):
         if not isinstance(record,dict):
@@ -2674,6 +2677,44 @@ class FITSHDR:
         Return a copy of the current key list.
         """
         return [e['name'] for e in self._record_list]
+
+    def delete(self, name):
+        if isinstance(name, (list,tuple)):
+            for xx in name:
+                self.delete(xx)
+        else:
+            if name in self._record_map:
+                del self._record_map[name]
+                self._record_list = [r for r in self._record_list if r['name'] != name]
+
+    def clean(self):
+
+        rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT',
+                   'GCOUNT','THEAP']
+        self.delete(rmnames)
+
+        r = self._record_map.get('NAXIS',None)
+        if r is not None:
+            naxis = int(r['value'])
+            self.delete('NAXIS')
+
+            rmnames = ['NAXIS%d' % i for i in xrange(1,naxis+1)]
+            self.delete(rmnames)
+        
+        r = self._record_map.get('TFIELDS',None)
+        if r is not None:
+            tfields = int(r['value'])
+            self.delete('TFIELDS')
+
+            if tfields > 0:
+
+                nbase = ['TFORM','TTYPE','TDIM','TUNIT','TSCAL','TZERO',
+                         'TNULL','TDISP','TDMIN','TDMAX','TDESC','TROTA',
+                         'TRPIX','TRVAL','TDELT','TCUNI']
+                for i in xrange(1,tfields+1):
+                        names=['%s%d' % (n,i) for n in nbase]
+                        self.delete(names)
+            
 
     def __len__(self):
         return len(self._record_list)
