@@ -197,6 +197,8 @@ def write(filename, data, extname=None, extver=None, units=None, compress=None, 
               a 'comment' field.
             - a dictionary of keyword-value pairs; no comments are written
               in this case, and the order is arbitrary
+        Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
+
     clobber: bool, optional
         If True, overwrite any existing file. Default is to append
         a new extension on existing files.
@@ -387,6 +389,7 @@ class FITS:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
         Image-only keywords:
             compress: string, optional
@@ -450,6 +453,7 @@ class FITS:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
 
         restrictions
@@ -504,6 +508,7 @@ class FITS:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
 
         restrictions
@@ -578,6 +583,7 @@ class FITS:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
         restrictions
         ------------
@@ -668,6 +674,7 @@ class FITS:
                   a 'comment' field.
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary
+            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
 
         restrictions

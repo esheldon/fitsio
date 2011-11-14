@@ -3,7 +3,16 @@ version 0.9.1
 
 New features
 
+    - Added insert_column(name, data, colnum=) method for HDUs., 2011-11-14 ESS
     - Added a verify_checksum() method for HDU objects. 2011-10-24, ESS
+    - Headers are cleaned of required keyword before writing.  E.g. if you have
+      with fitsio.FITS(file,'rw') as fits:
+        fits.write(data, header=h)
+      Keywords like NAXIS, TTYPE* etc are removed.  This allows you to read
+      a header from a fits file and write it to another without clobbering
+      the required keywords.
+
+    - the setup.py is now set up for registering versions to pypi.
 
 version 0.9.0 (2011-10-21)
 -------------------------
