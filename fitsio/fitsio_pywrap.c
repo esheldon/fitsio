@@ -2577,9 +2577,45 @@ recread_columns_byoffset_cleanup:
     Py_RETURN_NONE;
 }
  
- 
+
+
 // read specified rows, all columns
 static int read_rec_bytes_byrow(
+        fitsfile* fits, 
+        npy_intp nrows, npy_int64* rows,
+        void* data, int* status) {
+
+    FITSfile* hdu=NULL;
+    LONGLONG file_pos=0;
+
+    npy_intp irow=0;
+    LONGLONG firstrow=1;
+    LONGLONG firstchar=1;
+    LONGLONG nchars=0;
+
+    // use char for pointer arith.  It's actually ok to use void as char but
+    // this is just in case.
+    unsigned char* ptr;
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+    ptr = (unsigned char*) data;
+
+    for (irow=0; irow<nrows; irow++) {
+        // Input is zero-offset
+        firstrow = 1 + (LONGLONG) rows[irow];
+
+        if (fits_read_tblbytes(fits, firstrow, firstchar, hdu->rowlength, ptr, status)) {
+            return 1;
+        }
+
+        ptr += hdu->rowlength;
+    }
+
+    return 0;
+}
+// read specified rows, all columns
+static int read_rec_bytes_byrowold(
         fitsfile* fits, 
         npy_intp nrows, npy_int64* rows,
         void* data, int* status) {
@@ -2614,6 +2650,8 @@ static int read_rec_bytes_byrow(
 
     return 0;
 }
+
+
 
 // python method to read all columns but subset of rows
 static PyObject *
@@ -2669,8 +2707,7 @@ recread_byrow_cleanup:
 
 
 
-
-/* Read the range of rows, 1-offset. It is assumed the data match the table
+ /* Read the range of rows, 1-offset. It is assumed the data match the table
  * perfectly.
  */
 
@@ -2691,6 +2728,7 @@ static int read_rec_range(fitsfile* fits, LONGLONG firstrow, LONGLONG nrows, voi
 
 
 
+/* here rows are 1-offset, unlike when reading a specific subset of rows */
 static PyObject *
 PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
@@ -2713,7 +2751,7 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        goto recread_slice_cleanup;
+        goto recread_asrec_cleanup;
     }
 
     if (hdutype == IMAGE_HDU) {
@@ -2725,10 +2763,10 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     nrows=lastrow-firstrow+1;
     if (read_rec_range(self->fits, (LONGLONG)firstrow, (LONGLONG)nrows, data, &status)) {
-        goto recread_slice_cleanup;
+        goto recread_asrec_cleanup;
     }
 
-recread_slice_cleanup:
+recread_asrec_cleanup:
 
     if (status != 0) {
         set_ioerr_string_from_status(status);
