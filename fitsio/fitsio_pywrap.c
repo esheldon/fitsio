@@ -166,27 +166,6 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 #endif
 }
 
-int create_empty_hdu(struct PyFITSObject* self)
-{
-    int status=0;
-    int bitpix=SHORT_IMG;
-    int naxis=0;
-    long* naxes=NULL;
-    if (fits_create_img(self->fits, bitpix, naxis, naxes, &status)) {
-        set_ioerr_string_from_status(status);
-        return 1;
-    }
-    return 0;
-}
-static PyObject*
-PyFITSObject_create_empty_hdu(struct PyFITSObject* self)
-{
-    if (create_empty_hdu(self)) {
-        return NULL;
-    }
-    Py_RETURN_NONE;
-}
-
 
 
 // if input is NULL or None, return NULL
@@ -867,6 +846,20 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
     return 0;
 }
 
+
+
+int create_empty_hdu(struct PyFITSObject* self)
+{
+    int status=0;
+    int bitpix=SHORT_IMG;
+    int naxis=0;
+    long* naxes=NULL;
+    if (fits_create_img(self->fits, bitpix, naxis, naxes, &status)) {
+        set_ioerr_string_from_status(status);
+        return 1;
+    }
+    return 0;
+}
 
 
 
@@ -3095,7 +3088,6 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
-    {"create_empty_hdu",     (PyCFunction)PyFITSObject_create_empty_hdu,     METH_KEYWORDS, "create_empty_hdu\n\nWrite an empty HDU in a new extension."},
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
     {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_KEYWORDS, "insert_col\n\nInsert a new column."},

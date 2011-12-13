@@ -355,16 +355,6 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
-    def write_empty_hdu(self, header=None):
-        """
-
-        Create a new, empty HDU.  Write the input header keys if sent.
-
-        """
-        self._FITS.create_empty_hdu()
-        if header is not None:
-            self[-1].write_keys(header)
-
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
               table_type='binary', **keys):
         """
@@ -2340,17 +2330,67 @@ class FITSHDUColumnSubset(object):
         spacing = ' '*2
         cspacing = ' '*4
 
+        hdu = self.fitshdu
+        info = self.fitshdu.info
+
         text = []
-        text.append("%sfile: %s" % (spacing,self.fitshdu.filename))
-        text.append("%sextension: %d" % (spacing,self.fitshdu.info['hdunum']-1))
-        text.append("%stype: %s" % (spacing,_hdu_type_map[self.fitshdu.info['hdutype']]))
+        text.append("%sfile: %s" % (spacing,hdu.filename))
+        text.append("%sextension: %d" % (spacing,info['hdunum']-1))
+        text.append("%stype: %s" % (spacing,_hdu_type_map[info['hdutype']]))
+        text.append('%srows: %d' % (spacing,info['nrows']))
         text.append("%scolumn subset:" %  spacing)
 
+
+
+        cspacing = ' '*4
+        nspace = 4
+        nname = 15
+        ntype = 6
+        format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
+        pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
+
+        for colnum,c in enumerate(info['colinfo']):
+            if c['name'] not in self.columns:
+                continue
+
+            if len(c['name']) > nname:
+                f = pformat
+            else:
+                f = format
+
+            dt,isvar = hdu._get_tbl_numpy_dtype(colnum, include_endianness=False)
+            if isvar:
+                tform = info['colinfo'][colnum]['tform']
+                if dt[0] == 'S':
+                    dt = 'S0'
+                    dimstr='vstring[%d]' % extract_vararray_max(tform)
+                else:
+                    dimstr = 'varray[%s]' % extract_vararray_max(tform)
+            else:
+                tdim = c['tdim']
+                dimstr=''
+                if dt[0] == 'S':
+                    if len(tdim) > 1:
+                        dimstr = [str(d) for d in tdim[1:]]
+                else:
+                    if len(tdim) > 1 or tdim[0] > 1:
+                        dimstr = [str(d) for d in tdim]
+                if dimstr != '':
+                    dimstr = ','.join(dimstr)
+                    dimstr = 'array[%s]' % dimstr
+
+            s = f % (c['name'],dt,dimstr)
+            text.append(s)
+
+
+
+
+        """
         c=pprint.pformat(self.columns, indent=4)
         c = c.split('\n')
         for r in c:
             text.append('%s%s' % (cspacing, r))
-
+        """
         s = "\n".join(text)
         return s
 
