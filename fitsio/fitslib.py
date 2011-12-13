@@ -355,11 +355,15 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
         self.update_hdu_list()
 
-    def create_empty_hdu(self):
+    def write_empty_hdu(self, header=None):
         """
-        Create a new, empty HDU.
+
+        Create a new, empty HDU.  Write the input header keys if sent.
+
         """
         self._FITS.create_empty_hdu()
+        if header is not None:
+            self[-1].write_keys(header)
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
               table_type='binary', **keys):
@@ -411,7 +415,9 @@ class FITS:
         ------------
         The File must be opened READWRITE
         """
-        if data.dtype.fields == None:
+
+        # using short-circuiting here
+        if data is None or data.dtype.fields == None:
             self.write_image(data, extname=extname, extver=extver, 
                              compress=compress, header=header)
         else:
@@ -462,7 +468,8 @@ class FITS:
         """
 
         self.create_image_hdu(img, extname=extname, extver=extver, compress=compress, header=header)
-        self[-1].write_image(img)
+        if img is not None:
+            self[-1].write_image(img)
         self.update_hdu_list()
 
     def create_image_hdu(self, img, extname=None, extver=None ,compress=None, header=None):
@@ -516,10 +523,14 @@ class FITS:
         The File must be opened READWRITE
         """
 
-        if img.dtype.fields is not None:
-            raise ValueError("got recarray, expected regular ndarray")
-        if img.size == 0:
-            raise ValueError("data must have at least 1 row")
+        if img is None:
+            self._ensure_empty_image_ok()
+            compress=None
+        else:
+            if img.dtype.fields is not None:
+                raise ValueError("got recarray, expected regular ndarray")
+            if img.size == 0:
+                raise ValueError("data must have at least 1 row")
 
         if extname is not None and extver is not None:
             extver = check_extver(extver)
@@ -542,6 +553,16 @@ class FITS:
         if extname is not None or header is not None:
             self.update_hdu_list()
 
+    def _ensure_empty_image_ok(self):
+        """
+        Only allow empty HDU for first HDU and if there is no
+        data there already
+        """
+        if len(self) > 1:
+            raise RuntimeError("Cannot write None image at extension %d" % len(self))
+        if 'ndims' in self[0].info:
+            raise RuntimeError("Can only write None images to extension zero, "
+                               "which already exists")
 
 
     def write_table(self, data, table_type='binary', units=None, extname=None, extver=None, header=None):
@@ -901,7 +922,8 @@ class FITSHDU:
         For tables, check that the row count is not zero
         """
         if self.info['hdutype'] == IMAGE_HDU:
-            if self.info['ndims'] == 0:
+            ndims = self.info.get('ndims',0)
+            if ndims == 0:
                 return False
             else:
                 return True
@@ -1298,6 +1320,9 @@ class FITSHDU:
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
         """
+        if not self.has_data():
+            return None
+
         dtype, shape = self._get_image_dtype_and_shape()
         array = numpy.zeros(shape, dtype=dtype)
         self._FITS.read_image(self.ext+1, array)
@@ -1454,6 +1479,10 @@ class FITSHDU:
         Note you can only read variable length arrays the default way,
         using this function, so set it as you want on construction.
         """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("slice notation not yet implemented for images; "
+                             "use the read() method")
 
         if self.info['hdutype'] == ASCII_TBL:
             unpack=True
@@ -2176,18 +2205,20 @@ class FITSHDU:
             text.append("%simage info:" % spacing)
             cspacing = ' '*4
 
-            if self.info['comptype'] is not None:
-                text.append("%scompression: %s" % (cspacing,self.info['comptype']))
+            # need this check for when we haven't written data yet
+            if 'ndims' in self.info:
+                if self.info['comptype'] is not None:
+                    text.append("%scompression: %s" % (cspacing,self.info['comptype']))
 
-            if self.info['ndims'] != 0:
-                dimstr = [str(d) for d in self.info['dims']]
-            else:
-                dimstr=''
-            dimstr = ",".join(dimstr)
+                if self.info['ndims'] != 0:
+                    dimstr = [str(d) for d in self.info['dims']]
+                else:
+                    dimstr=''
+                dimstr = ",".join(dimstr)
 
-            dt = _image_bitpix2npy[self.info['img_equiv_type']]
-            text.append("%sdata type: %s" % (cspacing,dt))
-            text.append("%sdims: [%s]" % (cspacing,dimstr))
+                dt = _image_bitpix2npy[self.info['img_equiv_type']]
+                text.append("%sdata type: %s" % (cspacing,dt))
+                text.append("%sdims: [%s]" % (cspacing,dimstr))
 
         else:
             text.append('%srows: %d' % (spacing,self.info['nrows']))

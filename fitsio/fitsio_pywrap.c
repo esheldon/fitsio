@@ -166,9 +166,7 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 #endif
 }
 
-
-static PyObject*
-PyFITSObject_create_empty_hdu(struct PyFITSObject* self)
+int create_empty_hdu(struct PyFITSObject* self)
 {
     int status=0;
     int bitpix=SHORT_IMG;
@@ -176,6 +174,14 @@ PyFITSObject_create_empty_hdu(struct PyFITSObject* self)
     long* naxes=NULL;
     if (fits_create_img(self->fits, bitpix, naxis, naxes, &status)) {
         set_ioerr_string_from_status(status);
+        return 1;
+    }
+    return 0;
+}
+static PyObject*
+PyFITSObject_create_empty_hdu(struct PyFITSObject* self)
+{
+    if (create_empty_hdu(self)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -871,9 +877,12 @@ static int pyarray_get_ndim(PyObject* obj) {
     return arr->nd;
 }
 
-// It is useful to create the extension first so we can write keywords
-// into the header before adding data.  This avoid possibly moving the data
-// if the header grows too large.
+/*
+ * It is useful to create the extension first so we can write keywords into the
+ * header before adding data.  This avoids moving the data if the header grows
+ * too large.
+ */
+
 static PyObject *
 PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
     // allow 10 dimensions
@@ -904,33 +913,38 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
 
-    if (!PyArray_Check(array)) {
-        PyErr_SetString(PyExc_TypeError, "input must be an array.");
-        goto create_image_hdu_cleanup;
-    }
+    if (array == Py_None) {
+        if (create_empty_hdu(self)) {
+            return NULL;
+        }
+    } else {
+        if (!PyArray_Check(array)) {
+            PyErr_SetString(PyExc_TypeError, "input must be an array.");
+            goto create_image_hdu_cleanup;
+        }
 
-    npy_dtype = PyArray_TYPE(array);
-    if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
-        goto create_image_hdu_cleanup;
-    }
+        npy_dtype = PyArray_TYPE(array);
+        if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
+            goto create_image_hdu_cleanup;
+        }
 
-    // order must be reversed for FITS
-    ndims = pyarray_get_ndim(array);
-    for (i=0; i<ndims; i++) {
-        dims[ndims-i-1] = PyArray_DIM(array, i);
-    }
+        // order must be reversed for FITS
+        ndims = pyarray_get_ndim(array);
+        for (i=0; i<ndims; i++) {
+            dims[ndims-i-1] = PyArray_DIM(array, i);
+        }
 
-    // can be NOCOMPRESS (0)
-    if (fits_set_compression_type(self->fits, comptype, &status)) {
-        set_ioerr_string_from_status(status);
-        goto create_image_hdu_cleanup;
-    }
+        // can be NOCOMPRESS (0)
+        if (fits_set_compression_type(self->fits, comptype, &status)) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
 
-    if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
-        set_ioerr_string_from_status(status);
-        goto create_image_hdu_cleanup;
+        if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
     }
-
     if (extname != NULL) {
         if (strlen(extname) > 0) {
 
@@ -2586,12 +2600,10 @@ static int read_rec_bytes_byrow(
         void* data, int* status) {
 
     FITSfile* hdu=NULL;
-    LONGLONG file_pos=0;
 
     npy_intp irow=0;
     LONGLONG firstrow=1;
     LONGLONG firstchar=1;
-    LONGLONG nchars=0;
 
     // use char for pointer arith.  It's actually ok to use void as char but
     // this is just in case.
@@ -2615,6 +2627,7 @@ static int read_rec_bytes_byrow(
     return 0;
 }
 // read specified rows, all columns
+/*
 static int read_rec_bytes_byrowold(
         fitsfile* fits, 
         npy_intp nrows, npy_int64* rows,
@@ -2650,7 +2663,7 @@ static int read_rec_bytes_byrowold(
 
     return 0;
 }
-
+*/
 
 
 // python method to read all columns but subset of rows
