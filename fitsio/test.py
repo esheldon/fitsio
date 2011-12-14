@@ -251,6 +251,32 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
  
+
+    def testImageSlice(self):
+        fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
+                    data = numpy.arange(16*20,dtype=dtype).reshape(16,20)
+                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    fits.write_image(data, header=header)
+                    rdata = fits[-1][4:12, 9:17]
+
+                    self.compare_array(data[4:12,9:17], rdata, "images")
+
+                    rh = fits[-1].read_header()
+                    for k,v in header.iteritems():
+                        rv = rh[k]
+                        if isinstance(rv,str):
+                            v = v.strip()
+                            rv = rv.strip()
+                        self.assertEqual(v,rv,"testing equal key '%s'" % k)
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
     def testRiceTileCompressedWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
