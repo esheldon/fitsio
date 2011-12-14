@@ -7,12 +7,13 @@ Some Features
 -------------
 
 - Read from and write to image, binary, and ascii table extensions.
-- Read arbitrary subsets of table columns and rows without loading the
-  whole file.
-- Write and read variable length table columns.  Can read into
-  fixed length arrays of max size or object arrays to save memory.
-- Read columns and rows using slice notation similar to numpy arrays
-  This is like a more powerful memmap, since it is column-aware.
+- Read arbitrary subsets of table columns and rows without loading al
+  the data to memory.
+- Read image subsets without reading the whole image.
+- Write and read variable length table columns.  Can read into fixed length
+  arrays with the maximum size, or object arrays to save memory.
+- Read data using slice notation similar to numpy arrays.  For tables, this is
+  like a more powerful memmap, since it is column-aware.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
 - Read and write header keywords.
@@ -22,15 +23,10 @@ Some Features
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write unsigned integer types and signed bytes.
-- Write checksums into the header.
+- Write checksums into the header and verify them.
+- Insert new columns into tables in-place.
 - data are guaranteed to conform to the FITS standard.
 
-
-Known CFITSIO Bugs
-------------------
-For ascii tables, cfitsio always reports integer types as 4-byte and floating
-types as 8-byte.  No other bugs known in the pached version 3280 included in
-this package.
 
 Examples
 --------
@@ -114,10 +110,16 @@ Examples
 
     # read the image from extension zero
     >>> img = fits[0].read()
+    >>> img = fits[0][:,:]
 
-    # read all rows and columns from the binary table extension
+    # read a subset of the image without reading the whole image
+    >>> img = fits[0][25:35, 45:55]
+
+
+    # read all rows and columns from a binary table extension
     >>> data = fits[1].read()
     >>> data = fits['mytable'].read()
+    >>> data = fits[1][:]
 
     # read a subset of rows and columns. By default uses a case-insensitive
     # match. The result retains the names with original case.  If columns is a

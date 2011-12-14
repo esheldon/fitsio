@@ -2817,7 +2817,8 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes, &status)) {
+    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, 
+                             naxes, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -2832,9 +2833,9 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     data = PyArray_DATA(array);
 
     if (size != arrsize) {
-        char mess[255];
-        sprintf(mess,"Input array size is %ld but on disk array size is %lld", arrsize, size);
-        PyErr_SetString(PyExc_RuntimeError, mess);
+        PyErr_Format(PyExc_RuntimeError,
+          "Input array size is %ld but on disk array size is %lld", 
+          arrsize, size);
         return NULL;
     }
 
@@ -2850,6 +2851,104 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
+
+
+int get_long_slices(
+        PyObject* fpix_arr,
+        PyObject* lpix_arr,
+        PyObject* step_arr,
+        long** fpix,
+        long** lpix,
+        long** step) {
+
+    int i=0;
+    long* ptr=NULL;
+    npy_intp fsize=0, lsize=0, ssize=0;
+
+    fsize=PyArray_SIZE(fpix_arr);
+    lsize=PyArray_SIZE(lpix_arr);
+    ssize=PyArray_SIZE(step_arr);
+
+    if (lsize != fsize || ssize != fsize) {
+        PyErr_SetString(PyExc_RuntimeError, 
+                        "start/end/step must be same len");
+        return 1;
+    }
+
+    *fpix=calloc(fsize, sizeof(long));
+    *lpix=calloc(fsize, sizeof(long));
+    *step=calloc(fsize, sizeof(long));
+
+    for (i=0;i<fsize;i++) {
+        ptr=PyArray_GETPTR1(fpix_arr, i);
+        (*fpix)[i] = *ptr;
+        ptr=PyArray_GETPTR1(lpix_arr, i);
+        (*lpix)[i] = *ptr;
+        ptr=PyArray_GETPTR1(step_arr, i);
+        (*step)[i] = *ptr;
+    }
+    return 0;
+}
+
+// read an n-dimensional "image" into the input array.  Only minimal checking
+// of the input array is done.
+static PyObject *
+PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int hdutype=0;
+    int status=0;
+    PyObject* fpix_arr=NULL;
+    PyObject* lpix_arr=NULL;
+    PyObject* step_arr=NULL;
+    PyObject* array=NULL;
+    long* fpix=NULL;
+    long* lpix=NULL;
+    long* step=NULL;
+    void* data=NULL;
+    int npy_dtype=0;
+    int dummy=0, fits_read_dtype=0;
+
+    int anynul=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"iOOOO", 
+                &hdunum, &fpix_arr, &lpix_arr, &step_arr,
+                &array)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        return NULL;
+    }
+
+    if (get_long_slices(fpix_arr,lpix_arr,step_arr,
+                        &fpix,&lpix,&step)) {
+        return NULL;
+    }
+    data = PyArray_DATA(array);
+
+    npy_dtype = PyArray_TYPE(array);
+    npy_to_fits_image_types(npy_dtype, &dummy, &fits_read_dtype);
+
+    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
+                         0, data, &anynul, &status)) {
+        set_ioerr_string_from_status(status);
+        goto read_image_slice_cleanup;
+    }
+
+read_image_slice_cleanup:
+    free(fpix);
+    free(lpix);
+    free(step);
+
+    if (status != 0) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
+
 
 // read the entire header as list of dicts with name,value,comment and full
 // card
@@ -3072,7 +3171,7 @@ PyFITS_cfitsio_version(void) {
 static PyMethodDef PyFITSObject_methods[] = {
     {"filename",             (PyCFunction)PyFITSObject_filename,             METH_VARARGS,  "filename\n\nReturn the name of the file."},
 
-    {"where",           (PyCFunction)PyFITSObject_where,           METH_VARARGS,  "where\n\nReturn an index array where the input expression evaluates to true."},
+    {"where",                (PyCFunction)PyFITSObject_where,                METH_VARARGS,  "where\n\nReturn an index array where the input expression evaluates to true."},
 
     {"movabs_hdu",           (PyCFunction)PyFITSObject_movabs_hdu,           METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
     {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
@@ -3080,6 +3179,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
 
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
+    {"read_image_slice",     (PyCFunction)PyFITSObject_read_image_slice,     METH_VARARGS,  "read_image_slice\n\nRead an image slice."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_var_column_as_list",          (PyCFunction)PyFITSObject_read_var_column_as_list,          METH_VARARGS,  "read_var_column_as_list\n\nRead the variable length column as a list of arrays."},
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},

@@ -1450,12 +1450,14 @@ class FITSHDU:
 
     def __getitem__(self, arg):
         """
-        Get data from an extension using [] notation.  
+        Get data from an extension using python [] notation.  
         
-        You can use [] to extract column and row subsets, or read everything.
-        The notation is essentially the same as numpy [] notation, except that
-        a sequence of column names may also be given.  Examples reading from
-        "filename", extension "ext"
+        For images, extract a subset with, e.g., [2:25, 4:45].
+
+        For tables, you can use [] to extract column and row subsets, or read
+        everything.  The notation is essentially the same as numpy [] notation,
+        except that a sequence of column names may also be given.  Examples
+        reading from "filename", extension "ext"
 
             fits=fitsio.FITS(filename)
             fits[ext][:]
@@ -1471,8 +1473,7 @@ class FITSHDU:
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
-            raise ValueError("slice notation not yet implemented for images; "
-                             "use the read() method")
+            return self._read_image_slice(arg)
 
         if self.info['hdutype'] == ASCII_TBL:
             unpack=True
@@ -1493,12 +1494,96 @@ class FITSHDU:
         else:
             return FITSHDUColumnSubset(self, res)
 
+    def _read_image_slice(self, arg):
+        if 'ndims' not in self.info:
+            raise ValueError("Attempt to slice empty extension")
+
+        if isinstance(arg, tuple):
+            # should be a tuple of slices, one for each dimension
+            # e.g. [2:3, 8:100]
+            nd = len(arg)
+            if nd != self.info['ndims']:
+                raise ValueError("Got slice dimensions %d, "
+                                 "expected %d" % (nd,self.info['ndims']))
+
+
+            for a in arg:
+                if not isinstance(a, slice):
+                    raise ValueError("arguments must be slices, e.g. 2:12")
+
+            dims=self.info['dims']
+            arrdims = []
+            first = []
+            last = []
+            steps = []
+
+            # check the args and reverse dimensions since
+            # fits is backwards from numpy
+            dim=0
+            for slc in arg:
+                start = slc.start
+                stop = slc.stop
+                step = slc.step
+
+                if start is None:
+                    start=0
+                if stop is None:
+                    stop = dims[dim]
+                if step is None:
+                    step=1
+                if step < 1:
+                    raise ValueError("slice steps must be >= 1")
+
+                if start < 0:
+                    start = dims[dim] + start
+                    if start < 0:
+                        raise IndexError("Index out of bounds")
+
+                if stop < 0:
+                    stop = dims[dim] + start + 1
+
+                # move to 1-offset
+                start = start + 1
+
+                if stop < start:
+                    raise ValueError("python slices but include at least one "
+                                     "element, got %s" % slc)
+                if stop > dims[dim]:
+                    stop = dims[dim]
+
+                first.append(start)
+                last.append(stop)
+                steps.append(step)
+                arrdims.append(stop-start+1)
+
+                dim += 1
+
+            first.reverse()
+            last.reverse()
+            steps.reverse()
+            first = numpy.array(first, dtype='i8')
+            last  = numpy.array(last, dtype='i8')
+            steps = numpy.array(steps, dtype='i8')
+
+        elif isinstance(arg, slice):
+            # one-dimensional, e.g. 2:20
+            return self._read_image_slice((arg,))
+        else:
+            raise ValueError("arguments must be slices, one for each "
+                             "dimension, e.g. [2:5] or [2:5,8:25] etc.")
+        npy_dtype = self._get_image_numpy_dtype()
+        array = numpy.zeros(arrdims, dtype=npy_dtype)
+        self._FITS.read_image_slice(self.ext+1, first, last, steps, array)
+        return array
+
+
     def read_slice(self, firstrow, lastrow, step=1, **keys):
         """
-        Read the specified row slice.
+        Read the specified row slice from a table.
 
         Read all rows between firstrow and lastrow (non-inclusive, as per
-        python slice notation).
+        python slice notation).  Note you must use slice notation for
+        images, e.g. f[ext][20:30, 40:50]
 
         parameters
         ----------
