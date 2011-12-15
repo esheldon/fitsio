@@ -20,8 +20,8 @@ Some Features
 - Read image subsets without reading the whole image.
 - Write and read variable length table columns.  Can read into fixed length
   arrays with the maximum size, or object arrays to save memory.
-- Read data using slice notation similar to numpy arrays.  For tables, this is
-  like a more powerful memmap, since it is column-aware.
+- Read data using slice notation similar to numpy arrays.  This is
+  like a more powerful memmap, since it is column-aware for tables.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
 - Read and write header keywords.
@@ -138,7 +138,7 @@ Examples
     # row subsets
     >>> data = fits[1][10:20]
     >>> data = fits[1][10:20:2]
-    >>> data = fits[1][rowlist]
+    >>> data = fits[1][[1,5,18]]
 
     # all rows of column 'x'
     >>> data = fits[1]['x'][:]
@@ -233,7 +233,7 @@ Examples
     # fields, or a FITSHDR object
 
     >>> header = {'somekey': 35, 'location': 'kitt peak'}
-    >>> fits.write_table(data, header=header)
+    >>> fits.write(data, header=header)
    
     # you can add individual keys to an existing HDU
     >>> fits[1].write_key(name, value, comment="my comment")
