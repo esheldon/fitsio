@@ -616,9 +616,13 @@ class TestReadWrite(unittest.TestCase):
             # now test read_column
             with fitsio.FITS(fname) as fits:
 
+                for f in self.data.dtype.names:
+                    d = fits[1].read_column(f)
+                    self.compare_array(self.data[f], d, "table 1 single field read '%s'" % f)
+
                 for f in self.data2.dtype.names:
                     d = fits['newext'].read_column(f)
-                    self.compare_array(self.data2[f], d, "table single field read '%s'" % f)
+                    self.compare_array(self.data2[f], d, "table 2 single field read '%s'" % f)
 
                 # now list of columns
                 cols=['u2scalar','f4vec','Sarr']
