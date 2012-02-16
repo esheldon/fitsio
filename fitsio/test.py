@@ -19,7 +19,7 @@ class TestReadWrite(unittest.TestCase):
 
 
         nvec = 2
-        ashape = (2,3)
+        ashape=(21,21)
         Sdtype = 'S6'
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
@@ -625,20 +625,21 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(self.data2[f], d, "table 2 single field read '%s'" % f)
 
                 # now list of columns
-                cols=['u2scalar','f4vec','Sarr']
-                d = fits[1].read(columns=cols)
-                for f in d.dtype.names: 
-                    self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
+                for cols in [['u2scalar','f4vec','Sarr'],
+                             ['f8scalar','u2arr','Sscalar']]:
+                    d = fits[1].read(columns=cols)
+                    for f in d.dtype.names: 
+                        self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
 
 
-                cols=['u2scalar','f4vec','Sarr']
-                rows = [1,3]
-                d = fits[1].read(columns=cols, rows=rows)
-                for f in d.dtype.names: 
-                    self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
+                    rows = [1,3]
+                    d = fits[1].read(columns=cols, rows=rows)
+                    for f in d.dtype.names: 
+                        self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
 
         finally:
             if os.path.exists(fname):
+                #pass
                 os.remove(fname)
 
 
