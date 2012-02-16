@@ -21,12 +21,12 @@ New features
 
 bug fixes
 
-    - fixed bug that occured sometimes when reading individual columns.
-      am now using the internal cfitsio buffers more carefully.
+    - Fixed bug that occured sometimes when reading individual columns where a
+      few bytes were not read.  Now using the internal cfitsio buffers more
+      carefully.
 
-    - using fits_read_tblbytes when reading full rows fixes a bug that showed
-      up in a particular file.  most likely slower but now works, presumably
-      by respecting the internal buffers.
+    - Using fits_read_tblbytes when reading full rows fixes a bug that showed
+      up in a particular file.
 
     - required header keywords are stripped from input header objects before
       writing.
