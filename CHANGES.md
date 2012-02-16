@@ -3,6 +3,7 @@ version 0.9.1
 
 New features
 
+    - Added reading of image slices, e.g. f[ext][2:25, 10:100]
     - Added insert_column(name, data, colnum=) method for HDUs., 2011-11-14 ESS
     - Added a verify_checksum() method for HDU objects. 2011-10-24, ESS
     - Headers are cleaned of required keyword before writing.  E.g. if you have
@@ -12,7 +13,23 @@ New features
       a header from a fits file and write it to another without clobbering
       the required keywords.
 
+    - when accessing a column subset object, more metadata are shown
+        f[ext][name]
+    - can write None as an image for extension 0, as supported by
+      the spirit standard.  Similarly reading gives None in that case.
     - the setup.py is now set up for registering versions to pypi.
+
+bug fixes
+
+    - fixed bug that occured sometimes when reading individual columns.
+      am now using the internal cfitsio buffers more carefully.
+
+    - using fits_read_tblbytes when reading full rows fixes a bug that showed
+      up in a particular file.  most likely slower but now works, presumably
+      by respecting the internal buffers.
+
+    - required header keywords are stripped from input header objects before
+      writing.
 
 version 0.9.0 (2011-10-21)
 -------------------------
