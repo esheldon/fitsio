@@ -59,7 +59,6 @@ struct stringlist* stringlist_new(void) {
 // push a copy of the string onto the string list
 void stringlist_push(struct stringlist* slist, const char* str) {
     size_t newsize=0;
-    size_t slen=0;
     size_t i=0;
 
     newsize = slist->size+1;
@@ -67,7 +66,6 @@ void stringlist_push(struct stringlist* slist, const char* str) {
     slist->size += 1;
 
     i = slist->size-1;
-    slen = strlen(str);
 
     slist->data[i] = strdup(str);
 }

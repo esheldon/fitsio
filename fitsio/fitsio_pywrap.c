@@ -1787,7 +1787,6 @@ static int read_ascii_column_byrow(
     LONGLONG firstelem=1;
     LONGLONG rownum=0;
     npy_intp nrows=-1;
-    npy_intp stride=0;
 
     int* anynul=NULL;
     void* nulval=0;
@@ -1816,7 +1815,6 @@ static int read_ascii_column_byrow(
     }
 
     data = PyArray_GETPTR1(array, i);
-    stride = PyArray_STRIDE(array,0);
     for (i=0; i<nrows; i++) {
         if (dorows) {
             rownum = (LONGLONG) (1 + *(npy_int64*) PyArray_GETPTR1(rowsObj, i));
@@ -1873,7 +1871,6 @@ static int read_binary_column(
     LONGLONG file_pos=0, irow=0;
     npy_int64 row=0;
 
-    LONGLONG gsize=0; // number of bytes in column
     LONGLONG repeat=0;
     LONGLONG width=0;
 
@@ -1889,7 +1886,6 @@ static int read_binary_column(
 
     repeat = colptr->trepeat;
     width = colptr->tdatatype == TSTRING ? 1 : colptr->twidth;
-    gsize = repeat*width;
 
     rows_sent = nrows == hdu->numrows ? 0 : 1;
 
