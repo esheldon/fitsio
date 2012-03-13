@@ -275,7 +275,6 @@ class FITS:
         Default is 'fixed'.  The rationale is that this is the option
             of 'least surprise'
     """
-    #def __init__(self, filename, mode='r', clobber=False, case_sensitive=False, vstorage='fixed'):
     def __init__(self, filename, mode='r', **keys):
         filename = extract_filename(filename)
         self.filename = filename
@@ -1197,7 +1196,9 @@ class FITSHDU:
             # some logic
             data_send = array_to_native(data, inplace=False)
 
-        self._FITS.write_column(self.ext+1, colnum+1, data_send, firstrow=firstrow+1)
+        self._FITS.write_column(self.ext+1, colnum+1, data_send, 
+                                firstrow=firstrow+1)
+        del data_send
         self._update_info()
 
     def write_var_column(self, column, data, firstrow=0):
