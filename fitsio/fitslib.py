@@ -1685,8 +1685,8 @@ class FITSHDU:
         read a subset of columns from this binary table HDU
 
         By default, all rows are read.  Send rows= to select subsets of the
-        data.  Table data are read into a recarray; use read_column() to get a
-        single column as an ordinary array.
+        data.  Table data are read into a recarray for multiple columns,
+        plain array for a single column.
 
         parameters
         ----------
@@ -1754,8 +1754,8 @@ class FITSHDU:
         read a subset of columns from this ascii table HDU
 
         By default, all rows are read.  Send rows= to select subsets of the
-        data.  Table data are read into a recarray; use read_column() to get a
-        single column as an ordinary array.
+        data.  Table data are read into a recarray for multiple columns,
+        plain array for a single column.
 
         parameters
         ----------
