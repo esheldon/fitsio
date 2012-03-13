@@ -80,8 +80,9 @@ void stringlist_push_size(struct stringlist* slist, size_t slen) {
 
     i = slist->size-1;
 
-    slist->data[i] = malloc(sizeof(char)*(slen+1));
-    memset(slist->data[i], 0, slen+1);
+    slist->data[i] = calloc(slen+1,sizeof(char));
+    //slist->data[i] = malloc(sizeof(char)*(slen+1));
+    //memset(slist->data[i], 0, slen+1);
 }
 struct stringlist* stringlist_delete(struct stringlist* slist) {
     if (slist != NULL) {
@@ -109,7 +110,9 @@ void stringlist_print(struct stringlist* slist) {
 }
 
 
-int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, const char* listname) {
+int stringlist_addfrom_listobj(struct stringlist* slist, 
+                               PyObject* listObj, 
+                               const char* listname) {
     size_t size=0, i=0;
 
     if (!PyList_Check(listObj)) {
@@ -122,7 +125,8 @@ int stringlist_addfrom_listobj(struct stringlist* slist, PyObject* listObj, cons
         PyObject* tmp = PyList_GetItem(listObj, i);
         const char* tmpstr;
         if (!PyString_Check(tmp)) {
-            PyErr_Format(PyExc_ValueError, "Expected only strings in %s list.", listname);
+            PyErr_Format(PyExc_ValueError, 
+                         "Expected only strings in %s list.", listname);
             return 1;
         }
         tmpstr = (const char*) PyString_AsString(tmp);

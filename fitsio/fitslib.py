@@ -748,6 +748,11 @@ class FITS:
         self.hdu_map={}
         for ext in xrange(1000):
             try:
+                # first make sure we have this extension
+                self._FITS.movabs_hdu(ext+1)
+            except IOError:
+                break
+            try:
                 hdu = FITSHDU(self._FITS, ext, 
                               case_sensitive=self.case_sensitive,
                               vstorage=self.vstorage)

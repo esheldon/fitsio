@@ -347,7 +347,6 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         PyDict_SetItemString(dict, "hduver", PyLong_FromLong((long)0));
     }
 
-
     int ndims=0;
     int maxdim=CFITSIO_MAX_ARRAY_DIMS;
     LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS];
@@ -411,7 +410,8 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 stringlist_push_size(tforms, 70);
             }
             // just get the names: no other way to do it!
-            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data, tforms->data, 
+            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, 
+                                names->data, tforms->data, 
                                 NULL, NULL, NULL, &tstatus);
 
             for (i=0; i<ncols; i++) {
@@ -420,16 +420,16 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 LONGLONG repeat=0;
                 LONGLONG width=0;
 
-                PyDict_SetItemString(d, "name", PyString_FromString(names->data[i]));
-                PyDict_SetItemString(d, "tform", PyString_FromString(tforms->data[i]));
+                PyDict_SetItemString(d,"name",PyString_FromString(names->data[i]));
+                PyDict_SetItemString(d,"tform",PyString_FromString(tforms->data[i]));
 
                 fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "type", PyLong_FromLong( (long)type));
-                PyDict_SetItemString(d, "repeat", PyLong_FromLongLong( (long long)repeat));
-                PyDict_SetItemString(d, "width", PyLong_FromLongLong( (long long)width));
+                PyDict_SetItemString(d,"type",PyLong_FromLong((long)type));
+                PyDict_SetItemString(d,"repeat",PyLong_FromLongLong((long long)repeat));
+                PyDict_SetItemString(d,"width",PyLong_FromLongLong((long long)width));
 
-                fits_get_eqcoltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "eqtype", PyLong_FromLong( (long)type));
+                fits_get_eqcoltypell(self->fits,i+1,&type,&repeat,&width, &tstatus);
+                PyDict_SetItemString(d,"eqtype",PyLong_FromLong((long)type));
                 /*
                 PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
                 PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
