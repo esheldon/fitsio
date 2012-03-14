@@ -63,6 +63,57 @@ set_ioerr_string_from_status(int status) {
     return;
 }
 
+void add_double_to_dict(PyObject* dict, const char* key, double value) {
+    PyObject* tobj=NULL;
+    tobj=PyFloat_FromDouble(value);
+    PyDict_SetItemString(dict, key, tobj);
+    Py_XDECREF(tobj);
+}
+
+void add_long_to_dict(PyObject* dict, const char* key, long value) {
+    PyObject* tobj=NULL;
+    tobj=PyLong_FromLong(value);
+    PyDict_SetItemString(dict, key, tobj);
+    Py_XDECREF(tobj);
+}
+void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
+    PyObject* tobj=NULL;
+    tobj=PyLong_FromLongLong(value);
+    PyDict_SetItemString(dict, key, tobj);
+    Py_XDECREF(tobj);
+}
+
+void add_string_to_dict(PyObject* dict, const char* key, const char* str) {
+    PyObject* tobj=NULL;
+    tobj=PyString_FromString(str);
+    PyDict_SetItemString(dict, key, tobj);
+    Py_XDECREF(tobj);
+}
+void add_none_to_dict(PyObject* dict, const char* key) {
+    PyDict_SetItemString(dict, key, Py_None);
+}
+
+
+void append_long_to_list(PyObject* list, long value) {
+    PyObject* tobj=NULL;
+    tobj=PyLong_FromLong(value);
+    PyList_Append(list, tobj);
+    Py_XDECREF(tobj);
+}
+void append_long_long_to_list(PyObject* list, long long value) {
+    PyObject* tobj=NULL;
+    tobj=PyLong_FromLongLong(value);
+    PyList_Append(list, tobj);
+    Py_XDECREF(tobj);
+}
+
+void append_string_to_list(PyObject* list, const char* str) {
+    PyObject* tobj=NULL;
+    tobj=PyString_FromString(str);
+    PyList_Append(list, tobj);
+    Py_XDECREF(tobj);
+}
+
 
 
 static int
@@ -317,34 +368,38 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     dict = PyDict_New();
     ext=hdunum-1;
-    PyDict_SetItemString(dict, "hdunum", PyLong_FromLong((long)hdunum));
-    PyDict_SetItemString(dict, "extnum", PyLong_FromLong((long)ext));
-    PyDict_SetItemString(dict, "hdutype", PyLong_FromLong((long)hdutype));
+
+    add_long_to_dict(dict, "hdunum", (long)hdunum);
+    add_long_to_dict(dict, "extnum", (long)ext);
+    add_long_to_dict(dict, "hdutype", (long)hdutype);
 
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "extname", PyString_FromString(extname));
+        add_string_to_dict(dict, "extname", extname);
     } else {
-        PyDict_SetItemString(dict, "extname", PyString_FromString(""));
+        add_string_to_dict(dict, "extname", "");
     }
+
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "hduname", PyString_FromString(hduname));
+        add_string_to_dict(dict, "hduname", hduname);
     } else {
-        PyDict_SetItemString(dict, "hduname", PyString_FromString(""));
+        add_string_to_dict(dict, "hduname", "");
     }
+
     tstatus=0;
     if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "extver", PyLong_FromLong((long)extver));
+        add_long_to_dict(dict, "extver", (long)extver);
     } else {
-        PyDict_SetItemString(dict, "extver", PyLong_FromLong((long)0));
+        add_long_to_dict(dict, "extver", (long)0);
     }
+
     tstatus=0;
     if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)==0) {
-        PyDict_SetItemString(dict, "hduver", PyLong_FromLong((long)hduver));
+        add_long_to_dict(dict, "hduver", (long)hduver);
     } else {
-        PyDict_SetItemString(dict, "hduver", PyLong_FromLong((long)0));
+        add_long_to_dict(dict, "hduver", (long)0);
     }
 
     int ndims=0;
@@ -362,27 +417,27 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         //if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
         //                       dims, pcount_p, gcount_p, extend_p, &status)) {
         if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims, &tstatus)) {
-            PyDict_SetItemString(dict, "error", PyString_FromString("could not determine image parameters"));
+            add_string_to_dict(dict,"error","could not determine image parameters");
         } else {
-            PyDict_SetItemString(dict, "ndims", PyLong_FromLong((long)ndims));
-            PyDict_SetItemString(dict, "img_type", PyLong_FromLong((long)bitpix));
+            add_long_to_dict(dict,"ndims",(long)ndims);
+            add_long_to_dict(dict,"img_type",(long)bitpix);
 
             fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
-            PyDict_SetItemString(dict, "img_equiv_type", PyLong_FromLong((long)bitpix_equiv));
+            add_long_to_dict(dict,"img_equiv_type",(long)bitpix_equiv);
 
             tstatus=0;
-            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL, &tstatus)==0) {
-                PyDict_SetItemString(dict, "comptype", PyString_FromString(comptype));
+            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", 
+                              comptype, NULL, &tstatus)==0) {
+                add_string_to_dict(dict,"comptype",comptype);
             } else {
-                Py_INCREF(Py_None);
-                PyDict_SetItemString(dict, "comptype", Py_None);
+                add_none_to_dict(dict,"comptype");
             }
 
             for (i=0; i<ndims; i++) {
-                PY_LONG_LONG d=dims[i];
-                PyList_Append(dimsObj, PyLong_FromLongLong(d));
+                append_long_long_to_list(dimsObj, (long long)dims[i]);
             }
             PyDict_SetItemString(dict, "dims", dimsObj);
+            Py_XDECREF(dimsObj);
 
         }
 
@@ -395,10 +450,11 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         fits_get_num_cols(self->fits, &ncols, &tstatus);
-        PyDict_SetItemString(dict, "nrows", PyLong_FromLongLong( (long long)nrows ));
-        PyDict_SetItemString(dict, "ncols", PyLong_FromLong( (long)ncols));
+        add_long_long_to_dict(dict,"nrows",(long long)nrows);
+        add_long_to_dict(dict,"ncols",(long)ncols);
 
         {
+            PyObject* d = NULL;
             tcolumn* col=NULL;
             struct stringlist* names=NULL;
             struct stringlist* tforms=NULL;
@@ -415,53 +471,51 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                                 NULL, NULL, NULL, &tstatus);
 
             for (i=0; i<ncols; i++) {
-                PyObject* d = PyDict_New();
+                d = PyDict_New();
                 int type=0;
                 LONGLONG repeat=0;
                 LONGLONG width=0;
 
-                PyDict_SetItemString(d,"name",PyString_FromString(names->data[i]));
-                PyDict_SetItemString(d,"tform",PyString_FromString(tforms->data[i]));
+                add_string_to_dict(d,"name",names->data[i]);
+                add_string_to_dict(d,"tform",tforms->data[i]);
 
                 fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d,"type",PyLong_FromLong((long)type));
-                PyDict_SetItemString(d,"repeat",PyLong_FromLongLong((long long)repeat));
-                PyDict_SetItemString(d,"width",PyLong_FromLongLong((long long)width));
+                add_long_to_dict(d,"type",(long)type);
+                add_long_long_to_dict(d,"repeat",(long long)repeat);
+                add_long_long_to_dict(d,"width",(long long)width);
 
                 fits_get_eqcoltypell(self->fits,i+1,&type,&repeat,&width, &tstatus);
-                PyDict_SetItemString(d,"eqtype",PyLong_FromLong((long)type));
-                /*
-                PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
-                PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
-                */
+                add_long_to_dict(d,"eqtype",(long)type);
 
                 tstatus=0;
-                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, &tstatus)) {
-                    Py_INCREF(Py_None);
-                    PyDict_SetItemString(d, "tdim", Py_None);
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, 
+                                     &tstatus)) {
+                    add_none_to_dict(d,"tdim");
                 } else {
                     PyObject* dimsObj=PyList_New(0);
                     for (j=0; j<ndims; j++) {
-                        PY_LONG_LONG d=dims[j];
-                        PyList_Append(dimsObj, PyLong_FromLongLong(d));
+                        append_long_long_to_list(dimsObj, (long long)dims[j]);
                     }
 
                     PyDict_SetItemString(d, "tdim", dimsObj);
+                    Py_XDECREF(dimsObj);
                 }
 
                 // using the struct, could cause problems
                 // actually, we can use ffgcprll to get this info, but will
                 // be redundant with some others above
                 col = &self->fits->Fptr->tableptr[i];
-                PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
-                PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
+                add_double_to_dict(d,"tscale",col->tscale);
+                add_double_to_dict(d,"tzero",col->tzero);
 
                 PyList_Append(colinfo, d);
+                Py_XDECREF(d);
             }
             names=stringlist_delete(names);
             tforms=stringlist_delete(tforms);
 
             PyDict_SetItemString(dict, "colinfo", colinfo);
+            Py_XDECREF(colinfo);
         }
     } else {
         int tstatus=0;
@@ -472,8 +526,8 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         fits_get_num_cols(self->fits, &ncols, &tstatus);
-        PyDict_SetItemString(dict, "nrows", PyLong_FromLongLong( (long long)nrows ));
-        PyDict_SetItemString(dict, "ncols", PyLong_FromLong( (long)ncols));
+        add_long_long_to_dict(dict,"nrows",(long long)nrows);
+        add_long_to_dict(dict,"ncols",(long)ncols);
 
         {
             tcolumn* col=NULL;
@@ -503,48 +557,46 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 LONGLONG repeat=0;
                 LONGLONG width=0;
 
-                PyDict_SetItemString(d, "name", PyString_FromString(names->data[i]));
-                PyDict_SetItemString(d, "tform", PyString_FromString(tforms->data[i]));
+                add_string_to_dict(d,"name",names->data[i]);
+                add_string_to_dict(d,"tform",tforms->data[i]);
 
                 fits_get_coltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "type", PyLong_FromLong( (long)type));
-                PyDict_SetItemString(d, "repeat", PyLong_FromLongLong( (long long)repeat));
-                PyDict_SetItemString(d, "width", PyLong_FromLongLong( (long long)width));
+                add_long_to_dict(d,"type",(long)type);
+                add_long_long_to_dict(d,"repeat",(long long)repeat);
+                add_long_long_to_dict(d,"width",(long long)width);
 
                 fits_get_eqcoltypell(self->fits, i+1, &type, &repeat, &width, &tstatus);
-                PyDict_SetItemString(d, "eqtype", PyLong_FromLong( (long)type));
-                /*
-                PyDict_SetItemString(d, "eqrepeat", PyLong_FromLongLong( (long long)repeat));
-                PyDict_SetItemString(d, "eqwidth", PyLong_FromLongLong( (long long)width));
-                */
+                add_long_to_dict(d,"eqtype",(long)type);
 
                 tstatus=0;
-                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, &tstatus)) {
-                    Py_INCREF(Py_None);
-                    PyDict_SetItemString(d, "tdim", Py_None);
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, 
+                                                      &tstatus)) {
+                    add_none_to_dict(dict,"tdim");
                 } else {
                     PyObject* dimsObj=PyList_New(0);
                     for (j=0; j<ndims; j++) {
-                        PY_LONG_LONG d=dims[j];
-                        PyList_Append(dimsObj, PyLong_FromLongLong(d));
+                        append_long_long_to_list(dimsObj, (long long)dims[j]);
                     }
 
                     PyDict_SetItemString(d, "tdim", dimsObj);
+                    Py_XDECREF(dimsObj);
                 }
 
                 // using the struct, could cause problems
                 // actually, we can use ffgcprll to get this info, but will
                 // be redundant with some others above
                 col = &self->fits->Fptr->tableptr[i];
-                PyDict_SetItemString(d, "tscale", PyFloat_FromDouble(col->tscale));
-                PyDict_SetItemString(d, "tzero", PyFloat_FromDouble(col->tzero));
+                add_double_to_dict(d,"tscale",col->tscale);
+                add_double_to_dict(d,"tzero",col->tzero);
 
                 PyList_Append(colinfo, d);
+                Py_XDECREF(d);
             }
             names=stringlist_delete(names);
             tforms=stringlist_delete(tforms);
 
             PyDict_SetItemString(dict, "colinfo", colinfo);
+            Py_XDECREF(colinfo);
         }
 
     }
@@ -2129,6 +2181,8 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
     listObj = PyList_New(0);
 
     for (i=0; i<nrows; i++) {
+        tempObj=NULL;
+
         if (get_all_rows) {
             row = i+1;
         } else {
@@ -2151,6 +2205,7 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
             goto read_var_column_cleanup;
         }
         PyList_Append(listObj, tempObj);
+        Py_XDECREF(tempObj);
     }
 
 
@@ -2882,11 +2937,13 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         }
 
         dict = PyDict_New();
-        PyDict_SetItemString(dict, "card", PyString_FromString(card));
-        PyDict_SetItemString(dict, "name", PyString_FromString(keyname));
-        PyDict_SetItemString(dict, "value", PyString_FromString(value));
-        PyDict_SetItemString(dict, "comment", PyString_FromString(comment));
+        add_string_to_dict(dict,"card",card);
+        add_string_to_dict(dict,"name",keyname);
+        add_string_to_dict(dict,"value",value);
+        add_string_to_dict(dict,"comment",comment);
 
+        // PyList_SetItem and PyTuple_SetItem only exceptions, don't 
+        // have to decref the object set
         PyList_SetItem(list, i, dict);
 
     }
@@ -2924,8 +2981,8 @@ PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
     }
 
     dict=PyDict_New();
-    PyDict_SetItemString(dict, "datasum", PyLong_FromLongLong( (long long)datasum ));
-    PyDict_SetItemString(dict, "hdusum", PyLong_FromLongLong( (long long)hdusum ));
+    add_long_long_to_dict(dict,"datasum",(long long)datasum);
+    add_long_long_to_dict(dict,"hdusum",(long long)hdusum);
 
     return dict;
 }
@@ -2954,8 +3011,8 @@ PyFITSObject_verify_checksum(struct PyFITSObject* self, PyObject* args) {
     }
 
     dict=PyDict_New();
-    PyDict_SetItemString(dict, "dataok", PyLong_FromLong((long)dataok));
-    PyDict_SetItemString(dict, "hduok", PyLong_FromLong((long)hduok));
+    add_long_to_dict(dict,"dataok",(long)dataok);
+    add_long_to_dict(dict,"hduok",(long)hduok);
 
     return dict;
 }
