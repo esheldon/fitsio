@@ -1,3 +1,11 @@
+version X.X.X
+--------------------------
+
+New Features
+    - Header object now has a setitem feature
+        h['item'] = value
+    - Header stores values now instead of the string rep
+
 version 0.9.1
 -------------------------
 
