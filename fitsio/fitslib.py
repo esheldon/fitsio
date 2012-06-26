@@ -2808,13 +2808,32 @@ class FITSHDR:
 
 
     def add_record(self, record_in):   
+        """
+        Add a new record.  Strip quotes from around strings.
+        """
         import copy
         record = copy.deepcopy(record_in)
          
-        nrec = len(self._record_list)
         self.check_record(record)
+        if isinstance(record['value'],basestring):
+            try:
+                record['value'] = eval(record['value'])
+            except:
+                record['value'] = self._strip_quotes(record['value'])
         self._record_list.append(record)
         self._add_to_map(record)
+
+    def _strip_quotes(self, value):
+        """
+        Remove quotes around strings
+        """
+        # Strip extra quotes from strings if needed
+        if value.startswith("'") and value.endswith("'"):
+            val = value[1:-1]
+        else:
+            val=value
+
+        return val
 
     def _add_to_map(self, record):
         self._record_map[record['name']] = record
@@ -2891,24 +2910,48 @@ class FITSHDR:
     def __contains__(self, item):
         return item in self._record_map
 
-    def get(self, item):
+    """
+    def get_string(self, item):
         if item not in self._record_map:
             raise ValueError("unknown record: %s" % item)
+        return self._record_map[item]['value']
+
+    def get_float(self, item):
+        s=self.get_string(item)
+        try:
+            val=float(s)
+        except:
+            raise ValueError("Could not convert header item '%s' with value "
+                             "'%s' to float" % (item, s))
+        return val
+
+    def get_int(self, item):
+        s=self.get_string(item)
+        try:
+            val=int(s)
+        except:
+            raise ValueError("Could not convert header item '%s' with value "
+                             "'%s' to int" % (item, s))
+        return val
+    """
+    def get(self, item, default_value=None):
+        if item not in self._record_map:
+            return default_value
 
         if item == 'COMMENT':
             # there could be many comments, just return one
             v = self._record_map[item].get('comment','')
             return v
 
-        s = self._record_map[item]['value']
-        try:
-            val = eval(s)
-        except:
-            val = s
-        return val
+        return self._record_map[item]['value']
 
+    def __setitem__(self, item, value):
+        new_rec = {'name':item, 'value':value}
+        self.add_record(new_rec)
 
     def __getitem__(self, item):
+        if item not in self._record_map:
+            raise ValueError("unknown record: %s" % item)
         return self.get(item)
 
     def _record2card(self, record):
