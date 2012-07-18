@@ -944,7 +944,84 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
 
+    def testLowerUpper(self):
+        fname=tempfile.mktemp(prefix='fitsio-LowerUpper-',suffix='.fits')
+        dt=[('MyName','f8'),('StuffThings','i4'),('Blah','f4')]
+        data=numpy.zeros(3, dtype=dt)
+        data['MyName'] = numpy.random.random(data.size)
+        data['StuffThings'] = numpy.random.random(data.size)
+        data['Blah'] = numpy.random.random(data.size)
 
+        lnames = [n.lower() for n in data.dtype.names]
+        unames = [n.upper() for n in data.dtype.names]
+
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write(data)
+
+            for i in [1,2]:
+                if i == 1:
+                    lower=True
+                    upper=False
+                else:
+                    lower=False
+                    upper=True
+
+                with fitsio.FITS(fname,'rw', lower=lower, upper=upper) as fits:
+                    for rows in [None, [1,2]]:
+
+                        d=fits[1].read(rows=rows)
+                        self.compare_names(d.dtype.names,data.dtype.names,
+                                           lower=lower,upper=upper)
+
+
+                        d=fits[1].read(rows=rows, columns=['MyName','stuffthings'])
+                        self.compare_names(d.dtype.names,data.dtype.names[0:2],
+                                           lower=lower,upper=upper)
+
+                        d = fits[1][1:2]
+                        self.compare_names(d.dtype.names,data.dtype.names,
+                                           lower=lower,upper=upper)
+
+                        if rows is not None:
+                            d = fits[1][rows]
+                        else:
+                            d = fits[1][:]
+                        self.compare_names(d.dtype.names,data.dtype.names,
+                                           lower=lower,upper=upper)
+
+                        if rows is not None:
+                            d = fits[1][['myname','stuffthings']][rows]
+                        else:
+                            d = fits[1][['myname','stuffthings']][:]
+                        self.compare_names(d.dtype.names,data.dtype.names[0:2],
+                                           lower=lower,upper=upper)
+
+                for rows in [None, [1,2]]:
+                    d=fitsio.read(fname, rows=rows, lower=lower, upper=upper)
+                    self.compare_names(d.dtype.names,data.dtype.names,
+                                       lower=lower,upper=upper)
+
+                    d=fitsio.read(fname, rows=rows, columns=['MyName','stuffthings'],
+                                  lower=lower, upper=upper)
+                    self.compare_names(d.dtype.names,data.dtype.names[0:2],
+                                       lower=lower,upper=upper)
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+    def compare_names(self, read_names, true_names, lower=False, upper=False):
+        for nread,ntrue in zip(read_names,true_names):
+            if lower:
+                tname = ntrue.lower()
+                mess="lower: '%s' vs '%s'" % (nread,tname)
+            else:
+                tname = ntrue.upper()
+                mess="upper: '%s' vs '%s'" % (nread,tname)
+            self.assertEqual(nread, tname, mess)
 
 
     def compare_headerlist_header(self, header_list, header):

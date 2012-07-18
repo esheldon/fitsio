@@ -85,10 +85,13 @@ def read(filename, ext=None, extver=None, **keys):
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
     vstorage: string, optional
         Set the default method to store variable length columns.  Can be
         'fixed' or 'object'.  See docs on fitsio.FITS for details.
-
     """
 
     with FITS(filename, **keys) as fits:
@@ -260,6 +263,10 @@ class FITS:
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
     vstorage: string, optional
         A string describing how, by default, to store variable length columns
         in the output array.  This can be over-ridden when reading by using the
@@ -276,13 +283,14 @@ class FITS:
             of 'least surprise'
     """
     def __init__(self, filename, mode='r', **keys):
+        self.keys=keys
         filename = extract_filename(filename)
         self.filename = filename
 
         #self.mode=keys.get('mode','r')
         self.mode=mode
         self.case_sensitive=keys.get('case_sensitive',False)
-        self.vstorage=keys.get('vstorage','fixed')
+
         self.verbose = keys.get('verbose',False)
         clobber = keys.get('clobber',False)
 
@@ -753,9 +761,7 @@ class FITS:
             except IOError:
                 break
             try:
-                hdu = FITSHDU(self._FITS, ext, 
-                              case_sensitive=self.case_sensitive,
-                              vstorage=self.vstorage)
+                hdu = FITSHDU(self._FITS, ext, **self.keys)
                 self.hdu_list.append(hdu)
                 self.hdu_map[ext] = hdu
 
@@ -873,15 +879,23 @@ class FITSHDU:
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
     vstorage: string, optional
         Set the default method to store variable length columns.  Can be
         'fixed' or 'object'.  See docs on fitsio.FITS for details.
     """
-    def __init__(self, fits, ext, case_sensitive=False, vstorage='fixed'):
+    def __init__(self, fits, ext, **keys):
         self._FITS = fits
         self.ext = ext
-        self.case_sensitive=case_sensitive
-        self.vstorage=vstorage
+
+        self.lower=keys.get('lower',False)
+        self.upper=keys.get('upper',False)
+        self.case_sensitive=keys.get('case_sensitive',False)
+        self.vstorage=keys.get('case_sensitive','fixed')
+
         self._update_info()
         self.filename = self._FITS.filename()
 
@@ -1300,14 +1314,15 @@ class FITSHDU:
         if columns is not None:
             if 'columns' in keys: 
                 del keys['columns']
-            return self.read_columns(columns, **keys)
+            data = self.read_columns(columns, **keys)
         elif rows is not None:
             if 'rows' in keys: 
                 del keys['rows']
-            return self.read_rows(rows, **keys)
+            data = self.read_rows(rows, **keys)
         else:
-            return self.read_all(**keys)
+            data = self.read_all(**keys)
 
+        return data
 
     def read_image(self):
         """
@@ -1451,6 +1466,10 @@ class FITSHDU:
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
 
         return array
 
@@ -1492,13 +1511,20 @@ class FITSHDU:
         if isrows:
             # rows were entered: read all columns
             if isslice:
-                return self.read_slice(res.start, res.stop, res.step)
+                array = self.read_slice(res.start, res.stop, res.step)
             else:
                 # will also get here if slice is entered but this
                 # is an ascii table
-                return self.read(rows=res)
+                array = self.read(rows=res)
         else:
             return FITSHDUColumnSubset(self, res)
+
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
+
+        return array
 
     def _read_image_slice(self, arg):
         if 'ndims' not in self.info:
@@ -1643,6 +1669,12 @@ class FITSHDU:
                                         self.info['colinfo'][colnum]['tscale'], 
                                         self.info['colinfo'][colnum]['tzero'])
 
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
+
+
         return array
 
 
@@ -1682,6 +1714,11 @@ class FITSHDU:
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
+
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
 
         return array
 
@@ -1753,6 +1790,10 @@ class FITSHDU:
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
 
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
         return array
 
     def read_ascii(self, **keys):
@@ -1838,6 +1879,10 @@ class FITSHDU:
                             ncopy = len(item)
                             array[name][irow][0:ncopy] = item[:]
 
+        if self.lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper:
+            _names_to_upper_if_recarray(array)
         return array
 
 
@@ -3132,6 +3177,12 @@ def _extract_table_type(type):
     return table_type
 
 
+def _names_to_lower_if_recarray(data):
+    if data.dtype.names is not None:
+        data.dtype.names = [n.lower() for n in data.dtype.names]
+def _names_to_upper_if_recarray(data):
+    if data.dtype.names is not None:
+        data.dtype.names = [n.upper() for n in data.dtype.names]
 
 # this doesn't work
 #GZIP_2 = 22
