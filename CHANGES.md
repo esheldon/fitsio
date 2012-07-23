@@ -1,11 +1,16 @@
-version X.X.X
+next version
 --------------------------
 
 New Features
+    - Much faster writing to tables, but to a factor of 8
+    when there are many columns.
     - Header object now has a setitem feature
         h['item'] = value
     - Header stores values now instead of the string rep
 
+bug fixes
+    - more sensible data structure for header keywords.  Now
+    works better when reading and rewriting string fields.
 version 0.9.1
 -------------------------
 
