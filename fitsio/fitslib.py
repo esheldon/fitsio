@@ -1027,46 +1027,63 @@ class FITSHDU:
         parameters
         ----------
         data: ndarray
-            A numerical python array.  Should be an ordinary array for image
-            HDUs, should have fields for tables.  To write an ordinary array to
-            a column in a table HDU, use write_column.  If data already exists
-            in this HDU, it will be overwritten.  See the append(() method to
-            append new rows to a table HDU.
+            A numerical python array or list of arrays.  
+            
+            Should be an ordinary array for image HDUs, should have fields for
+            tables unless a list is sent.  To write an ordinary array to a
+            column in a single table HDU, write_column is simpler.  If data
+            already exists in this HDU, it will be overwritten.  See the
+            append(() method to append new rows to a table HDU.
+
         firstrow: integer, optional
             At which row you should begin writing to tables.  Be sure you know
             what you are doing!  For appending see the append() method.
             Default 0.
-        colnums: list, optional
-            If data is a list of arrays, you must send colnums as a list
+        columns: list, optional
+            If data is a list of arrays, you must send columns as a list
+            of names or column numbers
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
             self.write_image(data)
         else:
             self.write_columns(data, **keys)
-            """
-            if data.dtype.fields is None:
-                raise ValueError("You are writing to a table, so I expected "
-                                 "an array with fields as input. If you want "
-                                 "to write a simple array, you should use "
-                                 "write_column to write to a single column, "
-                                 "or instead write to an image hdu")
 
-            # only write object types (variable-length columns) after
-            # writing the main table
-            isobj = fields_are_object(data)
-            for i,name in enumerate(data.dtype.names):
-                if not isobj[i]:
-                    self.write_column(name, data[name], firstrow=firstrow)
-            for i,name in enumerate(data.dtype.names):
-                if isobj[i]:
-                    self.write_var_column(name, data[name], firstrow=firstrow)
-            """
+
+
+    def write_image(self, img):
+        """
+        Write the image into this HDU
+
+        If data already exist in this HDU, they will be overwritten.
+
+        parameters
+        ----------
+        img: ndarray
+            A simple numpy ndarray
+        """
+
+        if img.dtype.fields is not None:
+            raise ValueError("got recarray, expected regular ndarray")
+        if img.size == 0:
+            raise ValueError("data must have at least 1 row")
+
+        # data must be c-contiguous and native byte order
+        if not img.flags['C_CONTIGUOUS']:
+            # this always makes a copy
+            img_send = numpy.ascontiguousarray(img)
+            array_to_native(img_send, inplace=True)
+        else:
+            img_send = array_to_native(img, inplace=False)
+
+        self._FITS.write_image(self.ext+1, img_send)
+        self._update_info()
+
     def write_columns(self, data, **keys):
         """
         Write data into this HDU
 
-        Need to accept list of arrays and list of colnums
+        Need to accept list of arrays and list of columns
 
         parameters
         ----------
@@ -1080,8 +1097,9 @@ class FITSHDU:
             At which row you should begin writing to tables.  Be sure you know
             what you are doing!  For appending see the append() method.
             Default 0.
-        colnums: list, optional
-            If data is a list of arrays, you must send colnums as a list
+        columns: list, optional
+            If data is a list of arrays, you must send columns as a list
+            of names or column numbers
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
@@ -1092,9 +1110,11 @@ class FITSHDU:
 
         if isinstance(data,list):
             data_list=data
-            colnums_all = keys.get('colnums',None)
-            if colnums_all is None:
+            columns_all = keys.get('columns',None)
+            if columns_all is None:
                 raise ValueError("you must send colnums with a list of arrays")
+            colnums_all = [self._extract_colnum(c) for c in columns_all]
+
             names = [self.get_colname(c) for c in colnums_all]
             isobj=numpy.zeros(len(data_list),dtype=numpy.bool)
             for i in xrange(len(data_list)):
@@ -1145,109 +1165,6 @@ class FITSHDU:
                 self.write_var_column(name, data_list[i], **keys)
 
         self._update_info()
-
-
-    def append(self, data):
-        """
-        Append new rows to a table HDU
-
-        parameters
-        ----------
-        data: ndarray
-            A numerical python array with fields (recarray).  Should have the
-            same fields as the existing table. If only a subset of the table
-            columns are present, the other columns are filled with zeros.
-        """
-
-        if self.info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Cannot append rows to an image HDU")
-
-        firstrow=self.info['nrows']
-
-        if data.dtype.fields is None:
-            raise ValueError("got an ordinary array, can only append recarrays.  "
-                             "using this method")
-
-        # make sure these columns exist
-        for n in data.dtype.names:
-            colnum = self._extract_colnum(n)
-        self.write(data, firstrow=firstrow)
-
-
-    def write_image(self, img):
-        """
-        Write the image into this HDU
-
-        If data already exist in this HDU, they will be overwritten.
-
-        parameters
-        ----------
-        img: ndarray
-            A simple numpy ndarray
-        """
-
-        if img.dtype.fields is not None:
-            raise ValueError("got recarray, expected regular ndarray")
-        if img.size == 0:
-            raise ValueError("data must have at least 1 row")
-
-        # data must be c-contiguous and native byte order
-        if not img.flags['C_CONTIGUOUS']:
-            # this always makes a copy
-            img_send = numpy.ascontiguousarray(img)
-            array_to_native(img_send, inplace=True)
-        else:
-            img_send = array_to_native(img, inplace=False)
-
-        self._FITS.write_image(self.ext+1, img_send)
-        self._update_info()
-
-    def insert_column(self, name, data, colnum=None):
-        """
-        Insert a new column.
-
-        parameters
-        ----------
-        name: string
-            The column name
-        data:
-            The data to write into the new column.
-        colnum: int, optional
-            The column number for the new column, zero-offset.  Default
-            is to add the new column after the existing ones.
-        """
-        if self.info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Cannot write a column to an IMAGE_HDU")
-        if self.info['hdutype'] == ASCII_TBL:
-            table_type='ascii'
-        else:
-            table_type='binary'
-
-        if name in self.colnames:
-            raise ValueError("column '%s' already exists" % name)
-
-        descr=data.dtype.descr
-        if len(descr) > 1:
-            raise ValueError("you can only insert a single column, requested: %s" % descr)
-
-        this_descr = descr[0]
-        this_descr = [name, this_descr[1]]
-        if len(data.shape) > 1:
-            this_descr += [data.shape[1:]]
-        this_descr = tuple(this_descr)
-
-        name, fmt, dims = npy2fits(this_descr, table_type=table_type)
-        if dims is not None:
-            dims=[dims]
-
-        if colnum is None:
-            new_colnum = len(self.info['colinfo']) + 1
-        else:
-            new_colnum = colnum+1
-        self._FITS.insert_col(self.ext+1, new_colnum, name, fmt, tdim=dims)
-        self._update_info()
-
-        self.write_column(name, data)
 
 
     def write_column(self, column, data, **keys):
@@ -1321,6 +1238,91 @@ class FITSHDU:
 
         self._FITS.write_var_column(self.ext+1, colnum+1, data, firstrow=firstrow+1)
         self._update_info()
+
+
+
+    def insert_column(self, name, data, colnum=None):
+        """
+        Insert a new column.
+
+        parameters
+        ----------
+        name: string
+            The column name
+        data:
+            The data to write into the new column.
+        colnum: int, optional
+            The column number for the new column, zero-offset.  Default
+            is to add the new column after the existing ones.
+        """
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannot write a column to an IMAGE_HDU")
+        if self.info['hdutype'] == ASCII_TBL:
+            table_type='ascii'
+        else:
+            table_type='binary'
+
+        if name in self.colnames:
+            raise ValueError("column '%s' already exists" % name)
+
+        descr=data.dtype.descr
+        if len(descr) > 1:
+            raise ValueError("you can only insert a single column, requested: %s" % descr)
+
+        this_descr = descr[0]
+        this_descr = [name, this_descr[1]]
+        if len(data.shape) > 1:
+            this_descr += [data.shape[1:]]
+        this_descr = tuple(this_descr)
+
+        name, fmt, dims = npy2fits(this_descr, table_type=table_type)
+        if dims is not None:
+            dims=[dims]
+
+        if colnum is None:
+            new_colnum = len(self.info['colinfo']) + 1
+        else:
+            new_colnum = colnum+1
+        self._FITS.insert_col(self.ext+1, new_colnum, name, fmt, tdim=dims)
+        self._update_info()
+
+        self.write_column(name, data)
+
+
+    def append(self, data, **keys):
+        """
+        Append new rows to a table HDU
+
+        parameters
+        ----------
+        data: ndarray or list of arrays
+
+            A numerical python array with fields (recarray) or a list of
+            arrays.  Should have the same fields as the existing table. If only
+            a subset of the table columns are present, the other columns are
+            filled with zeros.
+
+        columns: list, optional
+            if a list of arrays is sent, also send the columns
+            of names or column numbers
+        """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Cannot append rows to an image HDU")
+
+        firstrow=self.info['nrows']
+
+        #if data.dtype.fields is None:
+        #    raise ValueError("got an ordinary array, can only append recarrays.  "
+        #                     "using this method")
+
+        # make sure these columns exist
+        #for n in data.dtype.names:
+        #    colnum = self._extract_colnum(n)
+
+        keys['firstrow'] = firstrow
+        self.write(data, **keys)
+
 
     def read_header(self):
         """

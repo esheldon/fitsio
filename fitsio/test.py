@@ -642,7 +642,7 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
-    def testTableWriteReadFast(self):
+    def testTableWriteListOfArrays(self):
         """
         Test a basic table write, data and a header, then reading back in to
         check the values
@@ -654,7 +654,10 @@ class TestReadWrite(unittest.TestCase):
 
                 try:
                     fits.create_table_hdu(self.data, extname='mytable')
-                    fits[-1].write_columns(self.data)
+
+                    columns = [n for n in self.data.dtype.names]
+                    dlist = [self.data[n] for n in self.data.dtype.names]
+                    fits[-1].write(dlist, columns=columns)
                     write_success=True
                 except:
                     write_success=False

@@ -200,6 +200,10 @@ Examples
     # create a new table extension and write the data
     >>> fits.write(data)
 
+    # can also be a list of ordinary arrays if you send the names
+    names=['x','y','name']
+    >>> fits.write(array_list, columns=names)
+
     # note under the hood the above does the following
     >>> fits.create_table_hdu(data=data)
     >>> fits[-1].write(data)
