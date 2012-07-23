@@ -1229,6 +1229,8 @@ create_table_cleanup:
 }
 
 
+
+
 // create a new table structure.  No physical rows are added yet.
 static PyObject *
 PyFITSObject_insert_col(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
@@ -1407,6 +1409,208 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
 
     Py_RETURN_NONE;
 }
+
+
+static PyObject *
+PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+    //void **data_ptrs=NULL;
+    PyObject* colnum_list=NULL;
+    PyObject* array_list=NULL;
+    PyObject *tmp_array=NULL, *tmp_obj=NULL;
+
+    Py_ssize_t ncols=0;
+
+    void* data=NULL;
+    PY_LONG_LONG firstrow_py=0;
+    LONGLONG firstrow=1, thisrow=0;
+    LONGLONG firstelem=1;
+    LONGLONG nelem=0;
+    LONGLONG *nperrow=NULL;
+    int npy_dtype=0;
+    int *fits_dtypes=NULL;
+    int *is_string=NULL, *colnums=NULL;
+    void **array_ptrs=NULL;
+
+    npy_intp ndim=0, *dims=NULL;
+    Py_ssize_t irow=0, icol=0, j=0;;
+
+    static char *kwlist[] = {"hdunum","colnums","arraylist","firstrow", NULL};
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOL", 
+                  kwlist, &hdunum, &colnum_list, &array_list, &firstrow_py)) {
+        return NULL;
+    }
+    firstrow = (LONGLONG) firstrow_py;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+
+    if (!PyList_Check(colnum_list)) {
+        PyErr_SetString(PyExc_ValueError,"colnums must be a list");
+        return NULL;
+    }
+    if (!PyList_Check(array_list)) {
+        PyErr_SetString(PyExc_ValueError,"colnums must be a list");
+        return NULL;
+    }
+    ncols = PyList_Size(colnum_list);
+    if (ncols == 0) {
+        goto _fitsio_pywrap_write_columns_bail;
+    }
+    if (ncols != PyList_Size(array_list)) {
+        PyErr_Format(PyExc_ValueError,"colnum and array lists not same size: %ld/%ld",
+                     ncols, PyList_Size(array_list));
+    }
+
+    // from here on we'll have some temporary arrays we have to free
+    is_string = calloc(ncols, sizeof(int));
+    colnums = calloc(ncols, sizeof(int));
+    array_ptrs = calloc(ncols, sizeof(void*));
+    nperrow = calloc(ncols, sizeof(LONGLONG));
+    fits_dtypes = calloc(ncols, sizeof(int));
+    for (icol=0; icol<ncols; icol++) {
+        tmp_array = PyList_GetItem(array_list, icol);
+        npy_dtype = PyArray_TYPE(tmp_array);
+        fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype);
+        if (fits_dtypes[icol] == -9999) {
+            status=1;
+            goto _fitsio_pywrap_write_columns_bail;
+        }
+
+        if (fits_dtypes[icol]==TSTRING) {
+            is_string[icol] = 1;
+        }
+        ndim = PyArray_NDIM(tmp_array);
+        dims = PyArray_DIMS(tmp_array);
+        if (icol==0) {
+            nelem = dims[0];
+            //fprintf(stderr,"nelem: %ld\n", (long)nelem);
+        } else {
+            if (dims[0] != nelem) {
+                PyErr_Format(PyExc_ValueError,
+                        "not all entries have same row count, "
+                        "%lld/%ld", nelem,dims[0]);
+                status=1;
+                goto _fitsio_pywrap_write_columns_bail;
+            }
+        }
+        if (is_string[icol]) {
+            //fprintf(stderr,"is_string[%ld]: %d\n", icol, is_string[icol]);
+        }
+
+        tmp_obj = PyList_GetItem(colnum_list,icol);
+        colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
+        array_ptrs[icol] = tmp_array;
+
+        nperrow[icol] = 1;
+        for (j=1; j<ndim; j++) {
+            nperrow[icol] *= dims[j];
+        }
+        //fprintf(stderr,"nperrow[%ld]: %ld\n", icol, (long)nperrow[icol]);
+    }
+
+    for (irow=0; irow<nelem; irow++) {
+        thisrow = firstrow + irow;
+        for (icol=0; icol<ncols; icol++) {
+            data=PyArray_GETPTR1(array_ptrs[icol], irow);
+            if (is_string[icol]) {
+                if (write_string_column(self->fits, 
+                                        colnums[icol], 
+                                        thisrow, 
+                                        firstelem, 
+                                        nperrow[icol], 
+                                        (char*)data, 
+                                        &status)) {
+                    set_ioerr_string_from_status(status);
+                    goto _fitsio_pywrap_write_columns_bail;
+                }
+                /*
+                char *strdata=NULL;
+                strdata = (char* ) data;
+
+                if( fits_write_col_str(self->fits, 
+                                       colnums[icol], 
+                                       thisrow, 
+                                       firstelem, 
+                                       nperrow[icol], 
+                                       &strdata, 
+                                       &status)) {
+                    set_ioerr_string_from_status(status);
+                    goto _fitsio_pywrap_write_columns_bail;
+                }
+                */
+
+
+            } else {
+                //fprintf(stderr,"row: %ld col: %d\n", (long)thisrow, colnums[icol]);
+                if( fits_write_col(self->fits, 
+                                   fits_dtypes[icol], 
+                                   colnums[icol], 
+                                   thisrow, 
+                                   firstelem, 
+                                   nperrow[icol], 
+                                   data, 
+                                   &status)) {
+                    set_ioerr_string_from_status(status);
+                    goto _fitsio_pywrap_write_columns_bail;
+                }
+            }
+        }
+    }
+    /*
+    nelem = PyArray_SIZE(array);
+
+    if (fits_dtype == TSTRING) {
+
+        // this is my wrapper for strings
+        if (write_string_column(self->fits, colnum, firstrow, firstelem, nelem, data, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+        
+    } else {
+        if( fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+    }
+
+    // this is a full file close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    */
+
+_fitsio_pywrap_write_columns_bail:
+    free(is_string); is_string=NULL;
+    free(colnums); colnums=NULL;
+    free(array_ptrs); array_ptrs=NULL;
+    free(nperrow); nperrow=NULL;
+    free(fits_dtypes); fits_dtypes=NULL;
+    if (status != 0) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
+
+
+
+
+
 
 // No error checking performed here
 static
@@ -3128,7 +3332,8 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
-    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,         METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
+    {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
+    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},

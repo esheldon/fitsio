@@ -1058,6 +1058,56 @@ class FITSHDU:
                 if isobj[i]:
                     self.write_var_column(name, data[name], firstrow=firstrow)
 
+    def write_columns(self, data, firstrow=0):
+        """
+        Write data into this HDU
+
+        Need to accept list of arrays and list of colnums
+
+        parameters
+        ----------
+        data: ndarray
+            A numerical python array.  Should be an ordinary array for image
+            HDUs, should have fields for tables.  To write an ordinary array to
+            a column in a table HDU, use write_column.  If data already exists
+            in this HDU, it will be overwritten.  See the append(() method to
+            append new rows to a table HDU.
+        firstrow: integer, optional
+            At which row you should begin writing to tables.  Be sure you know
+            what you are doing!  For appending see the append() method.
+            Default 0.
+        """
+
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("can't write columns to an image HDU")
+        else:
+            if data.dtype.fields is None:
+                raise ValueError("You are writing to a table, so I expected "
+                                 "an array with fields as input. If you want "
+                                 "to write a simple array, you should use "
+                                 "write_column to write to a single column, "
+                                 "or instead write to an image hdu")
+
+            # only write object types (variable-length columns) after
+            # writing the main table
+            isobj = fields_are_object(data)
+
+            arrays = []
+            colnums = []
+            for i,name in enumerate(data.dtype.names):
+                if not isobj[i]:
+                    colnum = self._extract_colnum(name)
+                    # will only make a copy if not native
+                    arrays.append( array_to_native(data[name],inplace=False) )
+                    colnums.append(colnum)
+            if len(arrays) > 0:
+                self._FITS.write_columns(self.ext+1, colnums, arrays, 
+                                         firstrow=firstrow+1)
+            # need to make sure this works for array fields
+            for i,name in enumerate(data.dtype.names):
+                if isobj[i]:
+                    self.write_var_column(name, data[name], firstrow=firstrow)
+
 
 
     def append(self, data):
@@ -3062,6 +3112,11 @@ def array_to_native(array, inplace=False):
 
     data_little=False
     if array.dtype.names is None:
+
+        if array.dtype.base.byteorder=='|':
+            # strings and 1 byte integers
+            return array
+
         data_little = is_little_endian(array)
     else:
         # assume all are same byte order: we only need to find one with
