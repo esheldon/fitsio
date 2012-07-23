@@ -642,6 +642,37 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableWriteReadFast(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWriteFast-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                try:
+                    fits.create_table_hdu(self.data, extname='mytable')
+                    fits[-1].write_columns(self.data)
+                    write_success=True
+                except:
+                    write_success=False
+
+                self.assertTrue(write_success,"testing write does not raise an error")
+                if not write_success:
+                    skipTest("cannot test result if write failed")
+
+            d = fitsio.read(fname, ext='mytable')
+            self.compare_rec(self.data, d, "table data fast")
+
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
+
+
 
     def testAsciiTableWriteRead(self):
         """

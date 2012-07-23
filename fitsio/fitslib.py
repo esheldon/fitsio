@@ -1020,7 +1020,7 @@ class FITSHDU:
             self.write_key(name,value,comment)
 
 
-    def write(self, data, firstrow=0):
+    def write(self, data, **keys):
         """
         Write data into this HDU
 
@@ -1036,11 +1036,15 @@ class FITSHDU:
             At which row you should begin writing to tables.  Be sure you know
             what you are doing!  For appending see the append() method.
             Default 0.
+        colnums: list, optional
+            If data is a list of arrays, you must send colnums as a list
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
             self.write_image(data)
         else:
+            self.write_columns(data, **keys)
+            """
             if data.dtype.fields is None:
                 raise ValueError("You are writing to a table, so I expected "
                                  "an array with fields as input. If you want "
@@ -1057,8 +1061,8 @@ class FITSHDU:
             for i,name in enumerate(data.dtype.names):
                 if isobj[i]:
                     self.write_var_column(name, data[name], firstrow=firstrow)
-
-    def write_columns(self, data, firstrow=0):
+            """
+    def write_columns(self, data, **keys):
         """
         Write data into this HDU
 
@@ -1066,7 +1070,7 @@ class FITSHDU:
 
         parameters
         ----------
-        data: ndarray
+        data: ndarray or list of ndarray
             A numerical python array.  Should be an ordinary array for image
             HDUs, should have fields for tables.  To write an ordinary array to
             a column in a table HDU, use write_column.  If data already exists
@@ -1076,10 +1080,26 @@ class FITSHDU:
             At which row you should begin writing to tables.  Be sure you know
             what you are doing!  For appending see the append() method.
             Default 0.
+        colnums: list, optional
+            If data is a list of arrays, you must send colnums as a list
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("can't write columns to an image HDU")
+
+        slow = keys.get('slow',False)
+        #slow = keys.get('slow',True)
+
+        if isinstance(data,list):
+            data_list=data
+            colnums_all = keys.get('colnums',None)
+            if colnums_all is None:
+                raise ValueError("you must send colnums with a list of arrays")
+            names = [self.get_colname(c) for c in colnums_all]
+            isobj=numpy.zeros(len(data_list),dtype=numpy.bool)
+            for i in xrange(len(data_list)):
+                isobj[i] = is_object(data_list[i])
+
         else:
             if data.dtype.fields is None:
                 raise ValueError("You are writing to a table, so I expected "
@@ -1088,26 +1108,43 @@ class FITSHDU:
                                  "write_column to write to a single column, "
                                  "or instead write to an image hdu")
 
+            names=data.dtype.names
             # only write object types (variable-length columns) after
             # writing the main table
             isobj = fields_are_object(data)
 
-            arrays = []
-            colnums = []
-            for i,name in enumerate(data.dtype.names):
+            data_list = []
+            colnums_all=[]
+            for i,name in enumerate(names):
+                colnum = self._extract_colnum(name)
+                data_list.append(data[name])
+                colnums_all.append(colnum)
+     
+        if slow:
+            for i,name in enumerate(names):
                 if not isobj[i]:
-                    colnum = self._extract_colnum(name)
-                    # will only make a copy if not native
-                    arrays.append( array_to_native(data[name],inplace=False) )
-                    colnums.append(colnum)
-            if len(arrays) > 0:
-                self._FITS.write_columns(self.ext+1, colnums, arrays, 
-                                         firstrow=firstrow+1)
-            # need to make sure this works for array fields
-            for i,name in enumerate(data.dtype.names):
-                if isobj[i]:
-                    self.write_var_column(name, data[name], firstrow=firstrow)
+                    self.write_column(name, data_list[i], **keys)
+        else:
 
+            nonobj_colnums = []
+            nonobj_arrays = []
+            for i in xrange(len(data_list)):
+                if not isobj[i]:
+                    nonobj_colnums.append(colnums_all[i])
+                    nonobj_arrays.append( array_to_native(data_list[i],inplace=False) )
+
+            if len(nonobj_arrays) > 0:
+                firstrow=keys.get('firstrow',0)
+                self._FITS.write_columns(self.ext+1, nonobj_colnums, nonobj_arrays, 
+                                         firstrow=firstrow+1)
+
+        # writing the object arrays always occurs the same way
+        # need to make sure this works for array fields
+        for i,name in enumerate(names):
+            if isobj[i]:
+                self.write_var_column(name, data_list[i], **keys)
+
+        self._update_info()
 
 
     def append(self, data):
@@ -1213,7 +1250,7 @@ class FITSHDU:
         self.write_column(name, data)
 
 
-    def write_column(self, column, data, firstrow=0):
+    def write_column(self, column, data, **keys):
         """
         Write data to a column in this HDU
 
@@ -1232,6 +1269,7 @@ class FITSHDU:
             are doing!  For appending see the append() method.  Default 0.
         """
 
+        firstrow=keys.get('firstrow',0)
         if self.info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot write a column to an IMAGE_HDU")
 
@@ -2256,6 +2294,11 @@ class FITSHDU:
             npy_type = 'S%d' % width
         return npy_type, isvar
 
+    def get_colname(self, colnum):
+        if self.info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Can't get colname for an image HDU")
+        if colnum < 0 or colnum > (len(self.colnames)-1):
+            raise ValueError("colnum out of range [0,%s-1]" % (0,len(self.colnames)))
     def _extract_colnums(self, columns=None):
         if columns is None:
             return numpy.arange(self.ncol, dtype='i8')
