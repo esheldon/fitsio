@@ -1031,6 +1031,22 @@ class TestReadWrite(unittest.TestCase):
                         self.compare_names(d.dtype.names,data.dtype.names[0:2],
                                            lower=lower,upper=upper)
 
+                # using overrides
+                with fitsio.FITS(fname,'rw') as fits:
+                    for rows in [None, [1,2]]:
+
+                        d=fits[1].read(rows=rows, lower=lower, upper=upper)
+                        self.compare_names(d.dtype.names,data.dtype.names,
+                                           lower=lower,upper=upper)
+
+
+                        d=fits[1].read(rows=rows, columns=['MyName','stuffthings'],
+                                       lower=lower,upper=upper)
+                        self.compare_names(d.dtype.names,data.dtype.names[0:2],
+                                           lower=lower,upper=upper)
+
+
+
                 for rows in [None, [1,2]]:
                     d=fitsio.read(fname, rows=rows, lower=lower, upper=upper)
                     self.compare_names(d.dtype.names,data.dtype.names,

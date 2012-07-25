@@ -292,7 +292,6 @@ TODO
   stuff we could add the scaling ourselves, but then it is far from
   atomic.
 - complex table columns.  bit? logical?
-- add lower,upper keywords to read routines.
 - HDU groups?
 - Clean up the code
 

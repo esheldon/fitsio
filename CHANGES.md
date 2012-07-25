@@ -6,6 +6,9 @@ New Features
     - Header object now has a setitem feature
         h['item'] = value
     - Header stores values now instead of the string rep
+    - You can force names of fields read from tables to upper
+      or lower case, either during construction of the FITS object
+      using or at read time using the lower= and upper= keywords.
 
 bug fixes
     - more sensible data structure for header keywords.  Now works in all known

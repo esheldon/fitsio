@@ -1529,6 +1529,12 @@ class FITSHDU:
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
         """
 
         if self.info['hdutype'] == IMAGE_HDU:
@@ -1556,9 +1562,11 @@ class FITSHDU:
                 self._rescale_array(array[name], 
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
-        if self.lower:
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
             _names_to_lower_if_recarray(array)
-        elif self.upper:
+        elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
         return array
@@ -1719,6 +1727,12 @@ class FITSHDU:
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
         """
 
         if self.info['hdutype'] == ASCII_TBL:
@@ -1759,10 +1773,13 @@ class FITSHDU:
                                         self.info['colinfo'][colnum]['tscale'], 
                                         self.info['colinfo'][colnum]['tzero'])
 
-        if self.lower:
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
             _names_to_lower_if_recarray(array)
-        elif self.upper:
+        elif self.upper or upper:
             _names_to_upper_if_recarray(array)
+
 
 
         return array
@@ -1779,6 +1796,12 @@ class FITSHDU:
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
         """
         if rows is None:
             # we actually want all rows!
@@ -1805,10 +1828,13 @@ class FITSHDU:
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
 
-        if self.lower:
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
             _names_to_lower_if_recarray(array)
-        elif self.upper:
+        elif self.upper or upper:
             _names_to_upper_if_recarray(array)
+
 
         return array
 
@@ -1833,6 +1859,12 @@ class FITSHDU:
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
         """
 
         if self.info['hdutype'] == ASCII_TBL:
@@ -1880,10 +1912,13 @@ class FITSHDU:
                                     self.info['colinfo'][colnum]['tscale'], 
                                     self.info['colinfo'][colnum]['tzero'])
 
-        if self.lower:
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
             _names_to_lower_if_recarray(array)
-        elif self.upper:
+        elif self.upper or upper:
             _names_to_upper_if_recarray(array)
+
         return array
 
     def read_ascii(self, **keys):
@@ -1906,6 +1941,12 @@ class FITSHDU:
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
         """
 
         if self.info['hdutype'] != ASCII_TBL:
@@ -1969,10 +2010,14 @@ class FITSHDU:
                             ncopy = len(item)
                             array[name][irow][0:ncopy] = item[:]
 
-        if self.lower:
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
             _names_to_lower_if_recarray(array)
-        elif self.upper:
+        elif self.upper or upper:
             _names_to_upper_if_recarray(array)
+
+
         return array
 
 
