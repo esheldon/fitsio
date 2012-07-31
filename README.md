@@ -233,9 +233,10 @@ Examples
     # add checksums for the data
     >>> fits[-1].write_checksum()
 
-    # you can also write a header at the same time.  The header can be a simple
-    # dict (no comments), or a list of dicts with 'name','value','comment'
-    # fields, or a FITSHDR object
+    # you can also write a header at the same time.  The header can be 
+    #   - a simple dict (no comments)
+    #   - a list of dicts with 'name','value','comment' fields
+    #   - a FITSHDR object
 
     >>> header = {'somekey': 35, 'location': 'kitt peak'}
     >>> fits.write(data, header=header)
@@ -284,17 +285,10 @@ TODO
 
 - separate classes for image, ascii and binary table HDUs.  Inherit from base
   class.
-- Test variable length columns in ascii tables.
+- More testing of variable length columns in ascii tables.
 - More error checking in c code for python lists and dicts.
-- optimize writing tables. When there are no unsigned short or long, no signed
-  bytes, no strings, this could be simple using fits_write_tblbytes.  If
-  strings are present, it is hard to imagine how to do it: perhaps write
-  the whole thing and then re-write the string columns?  For unsigned
-  stuff we could add the scaling ourselves, but then it is far from
-  atomic.
 - complex table columns.  bit? logical?
 - HDU groups?
-- Clean up the code
 
 Notes on cfitsio bundling
 -------------------------
