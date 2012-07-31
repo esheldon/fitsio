@@ -15,7 +15,7 @@ Some Features
 -------------
 
 - Read from and write to image, binary, and ascii table extensions.
-- Read arbitrary subsets of table columns and rows without loading al
+- Read arbitrary subsets of table columns and rows without loading all
   the data to memory.
 - Read image subsets without reading the whole image.
 - Write and read variable length table columns.  Can read into fixed length
@@ -201,10 +201,11 @@ Examples
     >>> fits.write(data)
 
     # can also be a list of ordinary arrays if you send the names
+    array_list=[xarray,yarray,namearray]
     names=['x','y','name']
     >>> fits.write(array_list, columns=names)
 
-    # note under the hood the above does the following
+    # note under the hood writing data to a HDU does the following
     >>> fits.create_table_hdu(data=data)
     >>> fits[-1].write(data)
     >>> fits.update_hdu_list()

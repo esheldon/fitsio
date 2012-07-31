@@ -2974,6 +2974,9 @@ def npy_string2fits(d,table_type='binary'):
     return name, form, dim
 
 class FITSHDR:
+    """
+    A class representing a FITS header.
+    """
     def __init__(self, record_list=None):
         self._record_list = []
         self._record_map = {}
@@ -3021,7 +3024,9 @@ class FITSHDR:
         return val
 
     def _add_to_map(self, record):
-        self._record_map[record['name']] = record
+        #self._record_map[record['name']] = record
+        key=record['name'].upper()
+        self._record_map[key] = record
 
     def check_record(self, record):
         if not isinstance(record,dict):
@@ -3032,12 +3037,13 @@ class FITSHDR:
             raise ValueError("each record must have a 'value' field")
 
     def get_comment(self, item):
-        if item not in self._record_map:
-            raise ValueError("unknown record: %s" % item)
-        if 'comment' not in self._record_map[item]:
+        key=item.upper()
+        if key not in self._record_map:
+            raise ValueError("unknown record: %s" % key)
+        if 'comment' not in self._record_map[key]:
             return None
         else:
-            return self._record_map[item]['comment']
+            return self._record_map[key]['comment']
 
     def records(self):
         """
@@ -3093,51 +3099,29 @@ class FITSHDR:
         return len(self._record_list)
 
     def __contains__(self, item):
-        return item in self._record_map
+        return item.upper() in self._record_map
 
-    """
-    def get_string(self, item):
-        if item not in self._record_map:
-            raise ValueError("unknown record: %s" % item)
-        return self._record_map[item]['value']
-
-    def get_float(self, item):
-        s=self.get_string(item)
-        try:
-            val=float(s)
-        except:
-            raise ValueError("Could not convert header item '%s' with value "
-                             "'%s' to float" % (item, s))
-        return val
-
-    def get_int(self, item):
-        s=self.get_string(item)
-        try:
-            val=int(s)
-        except:
-            raise ValueError("Could not convert header item '%s' with value "
-                             "'%s' to int" % (item, s))
-        return val
-    """
     def get(self, item, default_value=None):
-        if item not in self._record_map:
+        key=item.upper()
+        if key not in self._record_map:
             return default_value
 
-        if item == 'COMMENT':
+        if key == 'COMMENT':
             # there could be many comments, just return one
-            v = self._record_map[item].get('comment','')
+            v = self._record_map[key].get('comment','')
             return v
 
-        return self._record_map[item]['value']
+        return self._record_map[key]['value']
 
     def __setitem__(self, item, value):
         new_rec = {'name':item, 'value':value}
         self.add_record(new_rec)
 
     def __getitem__(self, item):
-        if item not in self._record_map:
-            raise ValueError("unknown record: %s" % item)
-        return self.get(item)
+        key=item.upper()
+        if key not in self._record_map:
+            raise ValueError("unknown record: %s" % key)
+        return self.get(key)
 
     def _record2card(self, record):
         """
