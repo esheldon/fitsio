@@ -61,6 +61,11 @@ Examples
     # write an image
     >>> fitsio.write(filename, image)
 
+    # NOTE when reading row subsets, the data must still be read from disk.
+    # This is most efficient if the data are read in the order they appear in
+    # the file.  For this reason, the rows are always returned in row-sorted
+    # order.
+
     #
     # the FITS class gives the you the ability to explore the data, and gives
     # more control
@@ -140,11 +145,6 @@ Examples
     >>> data = fits[1][10:20:2]
     >>> data = fits[1][[1,5,18]]
 
-    # NOTE when using slice notation, the data must still be read from disk.
-    # This is most efficient if the data are read in the order they appear in
-    # the file.  For this reason, the rows are always returned in row-sorted
-    # order.
-
     # all rows of column 'x'
     >>> data = fits[1]['x'][:]
 
@@ -152,7 +152,8 @@ Examples
     # each column
     >>> data = fits[1]['x','y'][:]
 
-    # General column and row subsets.
+    # General column and row subsets.  As noted above, the data are returned
+    # in row sorted order for efficiency reasons.
     >>> data = fits[1][columns][rows]
 
 
