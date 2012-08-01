@@ -27,9 +27,13 @@
 #include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h> 
 
+
 // this is not defined anywhere in cfitsio except in
 // the fits file structure
 #define CFITSIO_MAX_ARRAY_DIMS 99
+
+// not sure where this is defined in numpy...
+#define NUMPY_MAX_DIMS 32
 
 struct PyFITSObject {
     PyObject_HEAD
@@ -2921,6 +2925,7 @@ recread_asrec_cleanup:
  
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
+// Note numpy allows a maximum of 32 dimensions
 static PyObject *
 PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
@@ -2931,12 +2936,12 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     int npy_dtype=0;
     int dummy=0, fits_read_dtype=0;
 
-    int maxdim=10;
+    int maxdim=NUMPY_MAX_DIMS; // numpy maximum
     int datatype=0; // type info for axis
     int naxis=0; // number of axes
     int i=0;
-    LONGLONG naxes[]={0,0,0,0,0,0,0,0,0,0};  // size of each axis
-    LONGLONG firstpixels[]={1,1,1,1,1,1,1,1,1,1};
+    LONGLONG naxes[NUMPY_MAX_DIMS];;  // size of each axis
+    LONGLONG firstpixels[NUMPY_MAX_DIMS];
     LONGLONG size=0;
     npy_intp arrsize=0;
 
@@ -2979,6 +2984,9 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     npy_dtype = PyArray_TYPE(array);
     npy_to_fits_image_types(npy_dtype, &dummy, &fits_read_dtype);
 
+    for (i=0; i<naxis; i++) {
+        firstpixels[i] = 1;
+    }
     if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
                         0, data, &anynul, &status)) {
         set_ioerr_string_from_status(status);
