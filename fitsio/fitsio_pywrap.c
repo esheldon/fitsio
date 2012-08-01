@@ -930,9 +930,8 @@ static int pyarray_get_ndim(PyObject* obj) {
 
 static PyObject *
 PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
-    // allow 10 dimensions
     int ndims=0;
-    long dims[] = {0,0,0,0,0,0,0,0,0,0};
+    long *dims=NULL;
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
     //int comptype=NOCOMPRESS;
@@ -975,6 +974,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
         // order must be reversed for FITS
         ndims = pyarray_get_ndim(array);
+        dims = calloc(ndims,sizeof(long));
         for (i=0; i<ndims; i++) {
             dims[ndims-i-1] = PyArray_DIM(array, i);
         }
@@ -1019,6 +1019,7 @@ create_image_hdu_cleanup:
         return NULL;
     }
 
+    free(dims); dims=NULL;
     Py_RETURN_NONE;
 }
 
