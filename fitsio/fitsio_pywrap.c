@@ -1152,9 +1152,9 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     PyObject* tdimObj=NULL;     // optional
 
     // these must be freed
-    struct stringlist* ttyp=stringlist_new();
-    struct stringlist* tform=stringlist_new();
-    struct stringlist* tunit=stringlist_new();
+    struct stringlist* ttyp=NULL;
+    struct stringlist* tform=NULL;
+    struct stringlist* tunit=NULL;
     //struct stringlist* tdim=stringlist_new();
     char* extname=NULL;
     char* extname_use=NULL;
@@ -1165,6 +1165,9 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         return NULL;
     }
 
+    ttyp=stringlist_new();
+    tform=stringlist_new();
+    tunit=stringlist_new();
     if (stringlist_addfrom_listobj(ttyp, ttypObj, "names")) {
         status=99;
         goto create_table_cleanup;
