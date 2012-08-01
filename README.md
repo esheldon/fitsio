@@ -140,6 +140,11 @@ Examples
     >>> data = fits[1][10:20:2]
     >>> data = fits[1][[1,5,18]]
 
+    # NOTE when using slice notation, the data must still be read from disk.
+    # This is most efficient if the data are read in the order they appear in
+    # the file.  For this reason, the rows are always returned in row-sorted
+    # order.
+
     # all rows of column 'x'
     >>> data = fits[1]['x'][:]
 
