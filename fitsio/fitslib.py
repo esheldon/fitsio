@@ -2274,6 +2274,10 @@ class FITSHDU:
         for scalar columns, shape is just nrows, otherwise
         it is (nrows, dim1, dim2)
 
+        Note if rows= is sent and only a single row is requested,
+        the shape will be (dim2,dim2)
+
+
         """
 
         # basic datatype
@@ -2290,12 +2294,13 @@ class FITSHDU:
 
         shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
         if shape is not None:
-            if not isinstance(shape,tuple):
-                # vector
-                shape = (nrows,shape)
-            else:
-                # multi-dimensional
-                shape = tuple( [nrows] + list(shape) )
+            if nrows > 1:
+                if not isinstance(shape,tuple):
+                    # vector
+                    shape = (nrows,shape)
+                else:
+                    # multi-dimensional
+                    shape = tuple( [nrows] + list(shape) )
         else:
             # scalar
             shape = nrows
