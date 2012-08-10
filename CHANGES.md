@@ -1,4 +1,4 @@
-next version
+version 0.9.2
 --------------------------
 
 New Features

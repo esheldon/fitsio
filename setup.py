@@ -84,10 +84,21 @@ ext=Extension("fitsio._fitsio_wrap",
 description = ("A full featured python library to read and "
                "write data to FITS files.")
 
+long_description=open(os.path.join(os.path.dirname(__file__), "README.md")).read()
+
+classifiers = ["Development Status :: 5 - Production/Stable"
+               ,"License :: OSI Approved :: GNU General Public License (GPL)"
+               ,"Topic :: Scientific/Engineering :: Astronomy"
+               ,"Intended Audience :: Science/Research"
+              ]
+
 include_dirs=[cfitsio_dir,numpy.get_include()]
 setup(name="fitsio", 
-      version="0.9.0",
+      version="0.9.2",
       description=description,
+      long_description=long_description,
+      license = "GPL",
+      classifiers=classifiers,
       url="https://github.com/esheldon/fitsio",
       author="Erin Scott Sheldon",
       author_email="erin.sheldon@gmail.com",
