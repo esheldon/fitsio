@@ -258,8 +258,12 @@ Examples
 
 Installation
 ------------
-Either download the tar ball ("Downloads" in the center of the github page) or
-use 
+The easiest way is using pip
+
+    pip install fitsio
+
+Also, you can download the source from github ("Downloads" in the center of the
+github page) or use 
 
     git clone git://github.com/esheldon/fitsio.git
 
