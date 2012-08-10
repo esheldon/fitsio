@@ -262,8 +262,8 @@ The easiest way is using pip
 
     pip install fitsio
 
-Also, you can download the source from github ("Downloads" in the center of the
-github page) or use 
+Also, you can download the source from github ("Downloads" on the upper right
+of the github page) or use git clone
 
     git clone git://github.com/esheldon/fitsio.git
 
