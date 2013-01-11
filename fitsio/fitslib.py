@@ -3128,6 +3128,19 @@ class FITSHDR:
             raise ValueError("unknown record: %s" % key)
         return self.get(key)
 
+    def __iter__(self):
+        self._current=0
+        return self
+    def next(self):
+        if self._current < len(self._record_list):
+            rec=self._record_list[self._current]
+            key=rec['name']
+            self._current += 1
+            return key
+        else:
+            raise StopIteration
+
+
     def _record2card(self, record):
         """
         when we add new records they don't have a card,

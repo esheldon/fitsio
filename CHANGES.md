@@ -1,3 +1,8 @@
+next version
+--------------------------
+New Features
+    - Added iteration to the FITSHDR header object
+
 version 0.9.2
 --------------------------
 
