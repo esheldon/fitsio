@@ -3,6 +3,9 @@ next version
 New Features
     - Added iteration to the FITSHDR header object
 
+Bug Fixes
+    - newer numpys are (1.6.2) barfing adding a python float to u4 arrays.
+
 version 0.9.2
 --------------------------
 
