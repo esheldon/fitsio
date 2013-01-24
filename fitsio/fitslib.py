@@ -116,7 +116,7 @@ def read(filename, ext=None, extver=None, **keys):
             return data
 
 
-def read_header(filename, ext=0, extver=None, case_sensitive=False):
+def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     """
     Convenience function to read the header from the specified FITS HDU
 
