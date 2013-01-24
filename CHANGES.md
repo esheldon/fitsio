@@ -2,6 +2,7 @@ next version
 --------------------------
 New Features
     - Added iteration to the FITSHDR header object
+    - added **keys to the read_header function
 
 Bug Fixes
     - newer numpys are (1.6.2) barfing adding a python float to u4 arrays.
