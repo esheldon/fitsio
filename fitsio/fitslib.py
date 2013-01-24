@@ -2225,9 +2225,11 @@ class FITSHDU:
 
     def _rescale_array(self, array, scale, zero):
         if scale != 1.0:
-            array *= scale
+            sval=numpy.array(scale,dtype=array.dtype)
+            array *= sval
         if zero != 0.0:
-            array += zero
+            zval=numpy.array(zero,dtype=array.dtype)
+            array += zval
 
     def get_rec_dtype(self, **keys):
         """
