@@ -2723,6 +2723,8 @@ def check_extver(extver):
     return extver
 
 def extract_filename(filename):
+    if( type(filename) == file ):
+        filename = filename.name
     if filename[0] == "!":
         filename=filename[1:]
     filename = os.path.expandvars(filename)
