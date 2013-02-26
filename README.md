@@ -266,23 +266,23 @@ Examples
             data=f[2][:]
 
     # how to get more information about an extension
+    f[1].get_info()             # lots of info about the extension
     f[1].get_extname()
     f[1].get_extver()
-    f[1].get_exttype() # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
+    f[1].get_extnum()           # return zero-offset extension number
+    f[1].get_exttype()          # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
     f[1].get_colnames()
-    f[1].get_rec_dtype() # for tables
+    f[1].get_colname(colnum)    # find the column name from column number
+    f[1].get_rec_dtype()        # for tables
     f[1].get_rec_column_descr() # for tables
-    f[1].get_colname(colnum)
+    f[1].get_vstorage()         # storage mechanism for variable length columns
+    f[1].has_data()             # returns True if data is present in extension
+    f[1].is_compressed()
 
-    # interesting attributes
-    f[1].info            # lots of info about the extension
-    f[1].has_data        # True if data is present in extension
-    f[1].filename
-    f[1].is_compressed
+    # public attributes you can feel free to change as needed
     f[1].lower           # If True, lower case colnames on output
     f[1].upper           # If True, upper case colnames on output
-    f[1].ncol  # number of columns
-    f[1].vstorage        # storage mechanism for variable length columns
+    f[1].case_sensitive  # if True, names are matched case sensitive
 
 Installation
 ------------
@@ -290,8 +290,7 @@ The easiest way is using pip
 
     pip install fitsio
 
-Also, you can download the source from github ("Downloads" on the upper right
-of the github page) or use git clone
+Also, you can download the source from github or use git clone
 
     git clone git://github.com/esheldon/fitsio.git
 

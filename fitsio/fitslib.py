@@ -285,7 +285,7 @@ class FITS:
     def __init__(self, filename, mode='r', **keys):
         self.keys=keys
         filename = extract_filename(filename)
-        self.filename = filename
+        self._filename = filename
 
         #self.mode=keys.get('mode','r')
         self.mode=mode
@@ -322,9 +322,9 @@ class FITS:
         if (filename[-3:].lower() == '.gz' 
                 or filename[-2:].upper() == '.Z'
                 or filename[-4:].lower() == '.zip'):
-            self.is_compressed=True
+            self._is_compressed=True
         else:
-            self.is_compressed=False
+            self._is_compressed=False
 
     def close(self):
         """
@@ -334,7 +334,7 @@ class FITS:
             if self._FITS is not None:
                 self._FITS.close()
                 self._FITS=None
-        self.filename=None
+        self._filename=None
         self.mode=None
         self.charmode=None
         self.intmode=None
@@ -359,7 +359,7 @@ class FITS:
         """
         self._FITS.close()
         del self._FITS
-        self._FITS =  _fitsio_wrap.FITS(self.filename, self.intmode, 0)
+        self._FITS =  _fitsio_wrap.FITS(self._filename, self.intmode, 0)
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
@@ -557,7 +557,7 @@ class FITS:
         """
         if len(self) > 1:
             raise RuntimeError("Cannot write None image at extension %d" % len(self))
-        if 'ndims' in self[0].info:
+        if 'ndims' in self[0]._info:
             raise RuntimeError("Can only write None images to extension zero, "
                                "which already exists")
 
@@ -859,12 +859,12 @@ class FITS:
             self.update_hdu_list()
 
         rep = []
-        rep.append("%sfile: %s" % (spacing,self.filename))
+        rep.append("%sfile: %s" % (spacing,self._filename))
         rep.append("%smode: %s" % (spacing,_modeprint_map[self.intmode]))
 
         rep.append('%sextnum %-15s %s' % (spacing,"hdutype","hduname[v]"))
         for i,hdu in enumerate(self.hdu_list):
-            t = hdu.info['hdutype']
+            t = hdu._info['hdutype']
             name = hdu.get_extname()
             if name != '':
                 ver=hdu.get_extver()
@@ -909,22 +909,22 @@ class FITSHDU:
     """
     def __init__(self, fits, ext, **keys):
         self._FITS = fits
-        self.ext = ext
+        self._ext = ext
 
         self.lower=keys.get('lower',False)
         self.upper=keys.get('upper',False)
         self.case_sensitive=keys.get('case_sensitive',False)
-        self.vstorage=keys.get('case_sensitive','fixed')
+        self._vstorage=keys.get('case_sensitive','fixed')
 
         self._update_info()
-        self.filename = self._FITS.filename()
+        self._filename = self._FITS.filename()
 
-        if (self.filename[-3:].lower() == '.gz' 
-                or self.filename[-2:].upper() == '.Z'
-                or self.filename[-4:].lower() == '.zip'):
-            self.is_compressed=True
+        if (self._filename[-3:].lower() == '.gz' 
+                or self._filename[-2:].upper() == '.Z'
+                or self._filename[-4:].lower() == '.zip'):
+            self._is_compressed=True
         else:
-            self.is_compressed=False
+            self._is_compressed=False
 
     def where(self, expression):
         """
@@ -937,9 +937,9 @@ class FITSHDU:
 
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("where() only works on tables")
-        return self._FITS.where(self.ext+1, expression)
+        return self._FITS.where(self._ext+1, expression)
 
     def has_data(self):
         """
@@ -949,14 +949,14 @@ class FITSHDU:
 
         For tables, check that the row count is not zero
         """
-        if self.info['hdutype'] == IMAGE_HDU:
-            ndims = self.info.get('ndims',0)
+        if self._info['hdutype'] == IMAGE_HDU:
+            ndims = self._info.get('ndims',0)
             if ndims == 0:
                 return False
             else:
                 return True
         else:
-            if self.info['nrows'] > 0:
+            if self._info['nrows'] > 0:
                 return True
             else:
                 return False
@@ -972,13 +972,13 @@ class FITSHDU:
         -------
         A dict with keys 'datasum' and 'hdusum'
         """
-        return self._FITS.write_checksum(self.ext+1)
+        return self._FITS.write_checksum(self._ext+1)
 
     def verify_checksum(self):
         """
         Verify the checksum in the header for this HDU.
         """
-        res = self._FITS.verify_checksum(self.ext+1)
+        res = self._FITS.verify_checksum(self._ext+1)
         if res['dataok'] != 1:
             raise ValueError("data checksum failed")
         if res['hduok'] != 1:
@@ -1009,17 +1009,17 @@ class FITSHDU:
 
 
         if isinstance(value, stypes):
-            self._FITS.write_string_key(self.ext+1,
+            self._FITS.write_string_key(self._ext+1,
                                         str(keyname),
                                         str(value),
                                         str(comment))
         elif isinstance(value, ftypes):
-            self._FITS.write_double_key(self.ext+1,
+            self._FITS.write_double_key(self._ext+1,
                                         str(keyname),
                                         float(value),
                                         str(comment))
         elif isinstance(value, itypes):
-            self._FITS.write_long_key(self.ext+1,
+            self._FITS.write_long_key(self._ext+1,
                                       str(keyname),
                                       int(value),
                                       str(comment))
@@ -1078,7 +1078,7 @@ class FITSHDU:
             of names or column numbers
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             self.write_image(data)
         else:
             self.write_columns(data, **keys)
@@ -1110,7 +1110,7 @@ class FITSHDU:
         else:
             img_send = array_to_native(img, inplace=False)
 
-        self._FITS.write_image(self.ext+1, img_send)
+        self._FITS.write_image(self._ext+1, img_send)
         self._update_info()
 
     def write_columns(self, data, **keys):
@@ -1136,7 +1136,7 @@ class FITSHDU:
             of names or column numbers
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("can't write columns to an image HDU")
 
         slow = keys.get('slow',False)
@@ -1189,7 +1189,7 @@ class FITSHDU:
 
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
-                self._FITS.write_columns(self.ext+1, nonobj_colnums, nonobj_arrays, 
+                self._FITS.write_columns(self._ext+1, nonobj_colnums, nonobj_arrays, 
                                          firstrow=firstrow+1)
 
         # writing the object arrays always occurs the same way
@@ -1221,7 +1221,7 @@ class FITSHDU:
         """
 
         firstrow=keys.get('firstrow',0)
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot write a column to an IMAGE_HDU")
 
         colnum = self._extract_colnum(column)
@@ -1240,7 +1240,7 @@ class FITSHDU:
             # some logic
             data_send = array_to_native(data, inplace=False)
 
-        self._FITS.write_column(self.ext+1, colnum+1, data_send, 
+        self._FITS.write_column(self._ext+1, colnum+1, data_send, 
                                 firstrow=firstrow+1)
         del data_send
         self._update_info()
@@ -1262,7 +1262,7 @@ class FITSHDU:
             are doing!  For appending see the append() method.  Default 0.
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot write a column to an IMAGE_HDU")
 
         if not is_object(data):
@@ -1270,7 +1270,7 @@ class FITSHDU:
                              "variable-length arrays")
         colnum = self._extract_colnum(column)
 
-        self._FITS.write_var_column(self.ext+1, colnum+1, data, firstrow=firstrow+1)
+        self._FITS.write_var_column(self._ext+1, colnum+1, data, firstrow=firstrow+1)
         self._update_info()
 
 
@@ -1289,14 +1289,14 @@ class FITSHDU:
             The column number for the new column, zero-offset.  Default
             is to add the new column after the existing ones.
         """
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot write a column to an IMAGE_HDU")
-        if self.info['hdutype'] == ASCII_TBL:
+        if self._info['hdutype'] == ASCII_TBL:
             table_type='ascii'
         else:
             table_type='binary'
 
-        if name in self.colnames:
+        if name in self._colnames:
             raise ValueError("column '%s' already exists" % name)
 
         descr=data.dtype.descr
@@ -1314,10 +1314,10 @@ class FITSHDU:
             dims=[dims]
 
         if colnum is None:
-            new_colnum = len(self.info['colinfo']) + 1
+            new_colnum = len(self._info['colinfo']) + 1
         else:
             new_colnum = colnum+1
-        self._FITS.insert_col(self.ext+1, new_colnum, name, fmt, tdim=dims)
+        self._FITS.insert_col(self._ext+1, new_colnum, name, fmt, tdim=dims)
         self._update_info()
 
         self.write_column(name, data)
@@ -1341,10 +1341,10 @@ class FITSHDU:
             of names or column numbers
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot append rows to an image HDU")
 
-        firstrow=self.info['nrows']
+        firstrow=self._info['nrows']
 
         #if data.dtype.fields is None:
         #    raise ValueError("got an ordinary array, can only append recarrays.  "
@@ -1381,7 +1381,7 @@ class FITSHDU:
             'value': the value field as a string
             'comment': the comment field as a string.
         """
-        return self._FITS.read_header(self.ext+1)
+        return self._FITS.read_header(self._ext+1)
 
     def read(self, **keys):
         """
@@ -1413,9 +1413,9 @@ class FITSHDU:
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
-        elif self.info['hdutype'] == ASCII_TBL:
+        elif self._info['hdutype'] == ASCII_TBL:
             return self.read_ascii(**keys)
 
         columns = keys.get('columns',None)
@@ -1446,7 +1446,7 @@ class FITSHDU:
 
         dtype, shape = self._get_image_dtype_and_shape()
         array = numpy.zeros(shape, dtype=dtype)
-        self._FITS.read_image(self.ext+1, array)
+        self._FITS.read_image(self._ext+1, array)
         return array
 
     def read_column(self, col, **keys):
@@ -1473,7 +1473,7 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
-        if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
+        if self._info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             raise ValueError("Cannot yet read columns from an image HDU")
 
         rows=keys.get('rows',None)
@@ -1481,19 +1481,19 @@ class FITSHDU:
         # ensures unique, contiguous
         rows = self._extract_rows(rows)
 
-        if self.info['colinfo'][colnum]['eqtype'] < 0:
-            vstorage=keys.get('vstorage',self.vstorage)
+        if self._info['colinfo'][colnum]['eqtype'] < 0:
+            vstorage=keys.get('vstorage',self._vstorage)
             return self._read_var_column(colnum, rows, vstorage)
         else:
             npy_type, shape = self._get_simple_dtype_and_shape(colnum, rows=rows)
 
             array = numpy.zeros(shape, dtype=npy_type)
 
-            self._FITS.read_column(self.ext+1,colnum+1, array, rows)
+            self._FITS.read_column(self._ext+1,colnum+1, array, rows)
             
             self._rescale_array(array, 
-                                self.info['colinfo'][colnum]['tscale'], 
-                                self.info['colinfo'][colnum]['tzero'])
+                                self._info['colinfo'][colnum]['tscale'], 
+                                self._info['colinfo'][colnum]['tzero'])
 
         return array
 
@@ -1505,15 +1505,15 @@ class FITSHDU:
 
         """
 
-        dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+        dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
 
-            tform = self.info['colinfo'][colnum]['tform']
+            tform = self._info['colinfo'][colnum]['tform']
             max_size = extract_vararray_max(tform)
 
             if max_size <= 0:
-                name=self.info['colinfo'][colnum]['name']
+                name=self._info['colinfo'][colnum]['name']
                 mess='Will read as an object field'
                 if max_size < 0:
                     print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
@@ -1557,31 +1557,31 @@ class FITSHDU:
             ride the lower= keyword from construction.
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
-        elif self.info['hdutype'] == ASCII_TBL:
+        elif self._info['hdutype'] == ASCII_TBL:
             return self.read_ascii(**keys)
 
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
 
         w,=numpy.where(isvar == True)
         if w.size > 0:
-            vstorage = keys.get('vstorage',self.vstorage)
+            vstorage = keys.get('vstorage',self._vstorage)
             colnums = self._extract_colnums()
             rows=None
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
 
             firstrow=1
-            nrows = self.info['nrows']
+            nrows = self._info['nrows']
             array = numpy.zeros(nrows, dtype=dtype)
 
-            self._FITS.read_as_rec(self.ext+1, 1, nrows, array)
+            self._FITS.read_as_rec(self._ext+1, 1, nrows, array)
 
             for colnum,name in enumerate(array.dtype.names):
                 self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+                                    self._info['colinfo'][colnum]['tscale'], 
+                                    self._info['colinfo'][colnum]['tzero'])
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -1615,10 +1615,10 @@ class FITSHDU:
         using this function, so set it as you want on construction.
         """
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             return self._read_image_slice(arg)
 
-        if self.info['hdutype'] == ASCII_TBL:
+        if self._info['hdutype'] == ASCII_TBL:
             unpack=True
         else:
             unpack=False
@@ -1645,23 +1645,23 @@ class FITSHDU:
         return array
 
     def _read_image_slice(self, arg):
-        if 'ndims' not in self.info:
+        if 'ndims' not in self._info:
             raise ValueError("Attempt to slice empty extension")
 
         if isinstance(arg, tuple):
             # should be a tuple of slices, one for each dimension
             # e.g. [2:3, 8:100]
             nd = len(arg)
-            if nd != self.info['ndims']:
+            if nd != self._info['ndims']:
                 raise ValueError("Got slice dimensions %d, "
-                                 "expected %d" % (nd,self.info['ndims']))
+                                 "expected %d" % (nd,self._info['ndims']))
 
 
             for a in arg:
                 if not isinstance(a, slice):
                     raise ValueError("arguments must be slices, e.g. 2:12")
 
-            dims=self.info['dims']
+            dims=self._info['dims']
             arrdims = []
             first = []
             last = []
@@ -1723,7 +1723,7 @@ class FITSHDU:
                              "dimension, e.g. [2:5] or [2:5,8:25] etc.")
         npy_dtype = self._get_image_numpy_dtype()
         array = numpy.zeros(arrdims, dtype=npy_dtype)
-        self._FITS.read_image_slice(self.ext+1, first, last, steps, array)
+        self._FITS.read_image_slice(self._ext+1, first, last, steps, array)
         return array
 
 
@@ -1755,16 +1755,16 @@ class FITSHDU:
             ride the lower= keyword from construction.
         """
 
-        if self.info['hdutype'] == ASCII_TBL:
+        if self._info['hdutype'] == ASCII_TBL:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
             keys['rows'] = rows
             return self.read_ascii(**keys)
 
         step=keys.get('step',1)
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
 
-        maxrow = self.info['nrows']
+        maxrow = self._info['nrows']
         if firstrow < 0 or lastrow > maxrow:
             raise ValueError("slice must specify a sub-range of [%d,%d]" % (0,maxrow))
 
@@ -1772,7 +1772,7 @@ class FITSHDU:
 
         w,=numpy.where(isvar == True)
         if w.size > 0:
-            vstorage = keys.get('vstorage',self.vstorage)
+            vstorage = keys.get('vstorage',self._vstorage)
             rows=numpy.arange(firstrow,lastrow,step,dtype='i8')
             colnums=self._extract_colnums()
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
@@ -1786,12 +1786,12 @@ class FITSHDU:
                 array = numpy.zeros(nrows, dtype=dtype)
 
                 # only first needs to be +1.  This is becuase the c code is inclusive
-                self._FITS.read_as_rec(self.ext+1, firstrow+1, lastrow, array)
+                self._FITS.read_as_rec(self._ext+1, firstrow+1, lastrow, array)
 
                 for colnum,name in enumerate(array.dtype.names):
                     self._rescale_array(array[name], 
-                                        self.info['colinfo'][colnum]['tscale'], 
-                                        self.info['colinfo'][colnum]['tzero'])
+                                        self._info['colinfo'][colnum]['tscale'], 
+                                        self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -1827,7 +1827,7 @@ class FITSHDU:
             # we actually want all rows!
             return self.read_all()
 
-        if self.info['hdutype'] == ASCII_TBL:
+        if self._info['hdutype'] == ASCII_TBL:
             keys['rows'] = rows
             return self.read_ascii(**keys)
 
@@ -1836,17 +1836,17 @@ class FITSHDU:
 
         w,=numpy.where(isvar == True)
         if w.size > 0:
-            vstorage = keys.get('vstorage',self.vstorage)
+            vstorage = keys.get('vstorage',self._vstorage)
             colnums=self._extract_colnums()
             return self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             array = numpy.zeros(rows.size, dtype=dtype)
-            self._FITS.read_rows_as_rec(self.ext+1, array, rows)
+            self._FITS.read_rows_as_rec(self._ext+1, array, rows)
 
             for colnum,name in enumerate(array.dtype.names):
                 self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+                                    self._info['colinfo'][colnum]['tscale'], 
+                                    self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -1887,13 +1887,13 @@ class FITSHDU:
             ride the lower= keyword from construction.
         """
 
-        if self.info['hdutype'] == ASCII_TBL:
+        if self._info['hdutype'] == ASCII_TBL:
             keys['columns'] = columns
             return self.read_ascii(**keys)
 
         rows = keys.get('rows',None)
 
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot yet read columns from an image HDU")
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
@@ -1911,26 +1911,26 @@ class FITSHDU:
 
         w,=numpy.where(isvar == True)
         if w.size > 0:
-            vstorage = keys.get('vstorage',self.vstorage)
+            vstorage = keys.get('vstorage',self._vstorage)
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
 
             if rows is None:
-                nrows = self.info['nrows']
+                nrows = self._info['nrows']
             else:
                 nrows = rows.size
             array = numpy.zeros(nrows, dtype=dtype)
 
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
-            self._FITS.read_columns_as_rec(self.ext+1, colnumsp, array, rows)
+            self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
             
             for i in xrange(colnums.size):
                 colnum = int(colnums[i])
                 name = array.dtype.names[i]
                 self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+                                    self._info['colinfo'][colnum]['tscale'], 
+                                    self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -1969,7 +1969,7 @@ class FITSHDU:
             ride the lower= keyword from construction.
         """
 
-        if self.info['hdutype'] != ASCII_TBL:
+        if self._info['hdutype'] != ASCII_TBL:
             raise ValueError("expected an ASCII_TBL HDU")
 
         rows = keys.get('rows',None)
@@ -1983,7 +1983,7 @@ class FITSHDU:
 
         rows = self._extract_rows(rows)
         if rows is None:
-            nrows = self.info['nrows']
+            nrows = self._info['nrows']
         else:
             nrows = rows.size
 
@@ -2002,7 +2002,7 @@ class FITSHDU:
                 colnum = colnums[i]
                 name=array.dtype.names[i]
                 a=array[name].copy()
-                self._FITS.read_column(self.ext+1,colnum+1, a, rows)
+                self._FITS.read_column(self._ext+1,colnum+1, a, rows)
                 array[name] = a
                 del a
 
@@ -2011,7 +2011,7 @@ class FITSHDU:
             for i in wvar:
                 colnum = colnums[i]
                 name = array.dtype.names[i]
-                dlist = self._FITS.read_var_column_as_list(self.ext+1,colnum+1,rows)
+                dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
                 if isinstance(dlist[0],str):
                     is_string=True
                 else:
@@ -2056,7 +2056,7 @@ class FITSHDU:
 
         colnumsp=colnums+1
         if rows is None:
-            nrows = self.info['nrows']
+            nrows = self._info['nrows']
         else:
             nrows = rows.size
         array = numpy.zeros(nrows, dtype=dtype)
@@ -2066,7 +2066,7 @@ class FITSHDU:
         if wnotvar.size > 0:
             thesecol=colnumsp[wnotvar] # this will be contiguous (not true for slices)
             theseoff=offsets[wnotvar]
-            self._FITS.read_columns_as_rec_byoffset(self.ext+1,
+            self._FITS.read_columns_as_rec_byoffset(self._ext+1,
                                                     thesecol,
                                                     theseoff,
                                                     array,
@@ -2076,8 +2076,8 @@ class FITSHDU:
                 name = array.dtype.names[wnotvar[i]]
                 colnum = thesecol[i]-1
                 self._rescale_array(array[name], 
-                                    self.info['colinfo'][colnum]['tscale'], 
-                                    self.info['colinfo'][colnum]['tzero'])
+                                    self._info['colinfo'][colnum]['tscale'], 
+                                    self._info['colinfo'][colnum]['tzero'])
 
         # now read the variable length arrays we may be able to speed this up
         # by storing directly instead of reading first into a list
@@ -2087,7 +2087,7 @@ class FITSHDU:
             for i in xrange(thesecol.size):
                 colnump = thesecol[i]
                 name = array.dtype.names[wvar[i]]
-                dlist = self._FITS.read_var_column_as_list(self.ext+1,colnump,rows)
+                dlist = self._FITS.read_var_column_as_list(self._ext+1,colnump,rows)
                 if isinstance(dlist[0],str):
                     is_string=True
                 else:
@@ -2114,7 +2114,7 @@ class FITSHDU:
             # returns unique, sorted
             rows = numpy.unique(rows)
 
-            maxrow = self.info['nrows']-1
+            maxrow = self._info['nrows']-1
             if rows[0] < 0 or rows[-1] > maxrow:
                 raise ValueError("rows must be in [%d,%d]" % (0,maxrow))
         return rows
@@ -2165,7 +2165,7 @@ class FITSHDU:
         stop = arg.stop
         step = arg.step
 
-        nrows=self.info['nrows']
+        nrows=self._info['nrows']
         if step is None:
             step=1
         if start is None:
@@ -2190,7 +2190,7 @@ class FITSHDU:
         return slice(start, stop, step)
 
     def _slice2rows(self, start, stop, step=None):
-        nrows=self.info['nrows']
+        nrows=self._info['nrows']
         if start is None:
             start=0
         if stop is None:
@@ -2213,7 +2213,7 @@ class FITSHDU:
         If el=True, then don't treat as a slice element
         """
 
-        nrows = self.info['nrows']
+        nrows = self._info['nrows']
         if isslice:
             # include the end
             if num < 0:
@@ -2251,7 +2251,7 @@ class FITSHDU:
             See docs in read_columns
         """
         colnums=keys.get('colnums',None)
-        vstorage = keys.get('vstorage',self.vstorage)
+        vstorage = keys.get('vstorage',self._vstorage)
 
         if colnums is None:
             colnums = self._extract_colnums()
@@ -2282,18 +2282,18 @@ class FITSHDU:
             See docs in read_columns
         """
         npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
-        name = self.info['colinfo'][colnum]['name']
+        name = self._info['colinfo'][colnum]['name']
 
         if isvar:
             if vstorage == 'object':
                 descr=(name,'O')
             else:
-                tform = self.info['colinfo'][colnum]['tform']
+                tform = self._info['colinfo'][colnum]['tform']
                 max_size = extract_vararray_max(tform)
 
                 if max_size == 0:
                     if max_size <= 0:
-                        name=self.info['colinfo'][colnum]['name']
+                        name=self._info['colinfo'][colnum]['name']
                         mess='Will read as an object field'
                         if max_size < 0:
                             print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
@@ -2311,7 +2311,7 @@ class FITSHDU:
                 else:
                     descr=(name,npy_type,max_size)
         else:
-            tdim = self.info['colinfo'][colnum]['tdim']
+            tdim = self._info['colinfo'][colnum]['tdim']
             shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
             if shape is not None:
                 descr=(name,npy_type,shape)
@@ -2321,13 +2321,13 @@ class FITSHDU:
 
     def _get_image_dtype_and_shape(self):
 
-        if self.info['hdutype'] != _hdu_type_map['IMAGE_HDU']:
+        if self._info['hdutype'] != _hdu_type_map['IMAGE_HDU']:
             raise ValueError("HDU is not an IMAGE_HDU")
 
         npy_dtype = self._get_image_numpy_dtype()
 
-        if self.info['ndims'] != 0:
-            shape = self.info['dims']
+        if self._info['ndims'] != 0:
+            shape = self._info['dims']
         else:
             raise ValueError("no image present in HDU")
 
@@ -2349,10 +2349,10 @@ class FITSHDU:
 
         # basic datatype
         npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
-        info = self.info['colinfo'][colnum]
+        info = self._info['colinfo'][colnum]
 
         if rows is None:
-            nrows = self.info['nrows']
+            nrows = self._info['nrows']
         else:
             nrows = rows.size
 
@@ -2375,7 +2375,7 @@ class FITSHDU:
 
     def _get_image_numpy_dtype(self):
         try:
-            ftype = self.info['img_equiv_type']
+            ftype = self._info['img_equiv_type']
             npy_type = _image_bitpix2npy[ftype]
         except KeyError:
             raise KeyError("unsupported fits data type: %d" % ftype)
@@ -2383,10 +2383,10 @@ class FITSHDU:
         return npy_type
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
-        table_type = self.info['hdutype']
+        table_type = self._info['hdutype']
         table_type_string = _hdu_type_map[table_type]
         try:
-            ftype = self.info['colinfo'][colnum]['eqtype']
+            ftype = self._info['colinfo'][colnum]['eqtype']
             if table_type == ASCII_TBL:
                 npy_type = _table_fits2npy_ascii[abs(ftype)]
             else:
@@ -2409,18 +2409,18 @@ class FITSHDU:
                 npy_type = addstr+npy_type
 
         if npy_type == 'S':
-            width = self.info['colinfo'][colnum]['width']
+            width = self._info['colinfo'][colnum]['width']
             npy_type = 'S%d' % width
         return npy_type, isvar
 
     def get_colname(self, colnum):
-        if self.info['hdutype'] == IMAGE_HDU:
+        if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Can't get colname for an image HDU")
-        if colnum < 0 or colnum > (len(self.colnames)-1):
-            raise ValueError("colnum out of range [0,%s-1]" % (0,len(self.colnames)))
+        if colnum < 0 or colnum > (len(self._colnames)-1):
+            raise ValueError("colnum out of range [0,%s-1]" % (0,len(self._colnames)))
     def _extract_colnums(self, columns=None):
         if columns is None:
-            return numpy.arange(self.ncol, dtype='i8')
+            return numpy.arange(self._ncol, dtype='i8')
         
         if not isinstance(columns,(tuple,list,numpy.ndarray)):
             # is a scalar
@@ -2438,17 +2438,17 @@ class FITSHDU:
         if isinstance(col,(int,long)):
             colnum = col
 
-            if (colnum < 0) or (colnum > (self.ncol-1)):
-                raise ValueError("column number should be in [0,%d]" % (0,self.ncol-1))
+            if (colnum < 0) or (colnum > (self._ncol-1)):
+                raise ValueError("column number should be in [0,%d]" % (0,self._ncol-1))
         else:
             colstr='%s' % col
             try:
                 if self.case_sensitive:
                     mess="column name '%s' not found (case sensitive)" % col
-                    colnum = self.colnames.index(colstr)
+                    colnum = self._colnames.index(colstr)
                 else:
                     mess="column name '%s' not found (case insensitive)" % col
-                    colnum = self.colnames_lower.index(colstr.lower())
+                    colnum = self._colnames_lower.index(colstr.lower())
             except ValueError:
                 raise ValueError(mess)
         return int(colnum)
@@ -2456,43 +2456,56 @@ class FITSHDU:
     def _update_info(self):
         # do this here first so we can catch the error
         try:
-            self._FITS.movabs_hdu(self.ext+1)
+            self._FITS.movabs_hdu(self._ext+1)
         except IOError:
             raise RuntimeError("no such hdu")
 
-        self.info = self._FITS.get_hdu_info(self.ext+1)
+        self._info = self._FITS.get_hdu_info(self._ext+1)
         # convert to c order
-        if 'dims' in self.info:
-            self.info['dims'] = list( reversed(self.info['dims']) )
-        if 'colinfo' in self.info:
-            self.colnames = [i['name'] for i in self.info['colinfo']]
-            self.colnames_lower = [i['name'].lower() for i in self.info['colinfo']]
-            self.ncol = len(self.colnames)
+        if 'dims' in self._info:
+            self._info['dims'] = list( reversed(self._info['dims']) )
+        if 'colinfo' in self._info:
+            self._colnames = [i['name'] for i in self._info['colinfo']]
+            self._colnames_lower = [i['name'].lower() for i in self._info['colinfo']]
+            self._ncol = len(self._colnames)
+
+    def get_extnum(self):
+        return self._ext
 
     def get_extname(self):
-        name = self.info['extname']
+        name = self._info['extname']
         if name.strip() == '':
-            name = self.info['hduname']
+            name = self._info['hduname']
         return name.strip()
 
     def get_extver(self):
-        ver=self.info['extver']
+        ver=self._info['extver']
         if ver == 0:
-            ver=self.info['hduver']
+            ver=self._info['hduver']
         return ver
 
     def get_exttype(self):
-        return self.info['hdutype']
+        return self._info['hdutype']
 
     def get_colnames(self):
-        return copy.copy(self.colnames)
+        return copy.copy(self._colnames)
+    def get_info(self):
+        return copy.deepcopy(self._info)
+
+    def is_compressed(self):
+        return self._is_compressed
+
+    def get_filename(self):
+        return self._filename
+    def get_vstorage(self):
+        return self._vstorage
 
     def __repr__(self):
         spacing = ' '*2
         text = []
-        text.append("%sfile: %s" % (spacing,self.filename))
-        text.append("%sextension: %d" % (spacing,self.info['hdunum']-1))
-        text.append("%stype: %s" % (spacing,_hdu_type_map[self.info['hdutype']]))
+        text.append("%sfile: %s" % (spacing,self._filename))
+        text.append("%sextension: %d" % (spacing,self._info['hdunum']-1))
+        text.append("%stype: %s" % (spacing,_hdu_type_map[self._info['hdutype']]))
 
         extname=self.get_extname()
         if extname != "":
@@ -2501,27 +2514,27 @@ class FITSHDU:
         if extver != 0:
             text.append("%sextver: %s" % (spacing,extver))
         
-        if self.info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
+        if self._info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             text.append("%simage info:" % spacing)
             cspacing = ' '*4
 
             # need this check for when we haven't written data yet
-            if 'ndims' in self.info:
-                if self.info['comptype'] is not None:
-                    text.append("%scompression: %s" % (cspacing,self.info['comptype']))
+            if 'ndims' in self._info:
+                if self._info['comptype'] is not None:
+                    text.append("%scompression: %s" % (cspacing,self._info['comptype']))
 
-                if self.info['ndims'] != 0:
-                    dimstr = [str(d) for d in self.info['dims']]
+                if self._info['ndims'] != 0:
+                    dimstr = [str(d) for d in self._info['dims']]
                 else:
                     dimstr=''
                 dimstr = ",".join(dimstr)
 
-                dt = _image_bitpix2npy[self.info['img_equiv_type']]
+                dt = _image_bitpix2npy[self._info['img_equiv_type']]
                 text.append("%sdata type: %s" % (cspacing,dt))
                 text.append("%sdims: [%s]" % (cspacing,dimstr))
 
         else:
-            text.append('%srows: %d' % (spacing,self.info['nrows']))
+            text.append('%srows: %d' % (spacing,self._info['nrows']))
             text.append('%scolumn info:' % spacing)
 
             cspacing = ' '*4
@@ -2531,7 +2544,7 @@ class FITSHDU:
             format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
             pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
-            for colnum,c in enumerate(self.info['colinfo']):
+            for colnum,c in enumerate(self._info['colinfo']):
                 if len(c['name']) > nname:
                     f = pformat
                 else:
@@ -2539,7 +2552,7 @@ class FITSHDU:
 
                 dt,isvar = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
                 if isvar:
-                    tform = self.info['colinfo'][colnum]['tform']
+                    tform = self._info['colinfo'][colnum]['tform']
                     if dt[0] == 'S':
                         dt = 'S0'
                         dimstr='vstring[%d]' % extract_vararray_max(tform)
@@ -2641,10 +2654,10 @@ class FITSHDUColumnSubset(object):
         cspacing = ' '*4
 
         hdu = self.fitshdu
-        info = self.fitshdu.info
+        info = self.fitshdu._info
 
         text = []
-        text.append("%sfile: %s" % (spacing,hdu.filename))
+        text.append("%sfile: %s" % (spacing,hdu._filename))
         text.append("%sextension: %d" % (spacing,info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[info['hdutype']]))
         text.append('%srows: %d' % (spacing,info['nrows']))

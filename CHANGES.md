@@ -9,6 +9,19 @@ New Features
       representing the type of extension/hdu.  This is to be compared
       do the fitsio.BINARY_TBL and fitsio.ASCII_TBL, fitsio.IMAGE_HDU
     - added get_colnames()
+    - added get_filename()
+    - added get_info()
+    - added get_vstorage()
+    - added is_compressed()
+    - added get_ext()
+
+Backwards incompatible changes
+    - renamed some attributes
+        - colnames -> _colnames
+        - info -> _info
+        - filename -> _filename
+        - ext -> _ext
+        - vstorage -> _vstorage
 
 Bug Fixes
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
