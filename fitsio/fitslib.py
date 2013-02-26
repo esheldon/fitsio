@@ -2474,11 +2474,15 @@ class FITSHDU:
         if name.strip() == '':
             name = self.info['hduname']
         return name.strip()
+
     def get_extver(self):
         ver=self.info['extver']
         if ver == 0:
             ver=self.info['hduver']
         return ver
+
+    def get_exttype(self):
+        return self.info['hdutype']
 
     def __repr__(self):
         spacing = ' '*2

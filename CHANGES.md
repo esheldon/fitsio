@@ -5,6 +5,9 @@ New Features
     - added **keys to the read_header function
     - added checking that a hdu exists in the file, either
         by extension number or name. 
+    - added get_exttype() to the FITSHDU class, which returns a number
+      representing the type of extension/hdu.  This is to be compared
+      do the fitsio.BINARY_TBL and fitsio.ASCII_TBL, fitsio.IMAGE_HDU
 
 Bug Fixes
     - newer numpys are (1.6.2) barfing adding a python float to u4 arrays.
