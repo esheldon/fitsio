@@ -16,12 +16,15 @@ New Features
     - added get_ext()
 
 Backwards incompatible changes
-    - renamed some attributes
+
+    - renamed some attributes; use the getters instead
         - colnames -> _colnames
         - info -> _info
         - filename -> _filename
         - ext -> _ext
         - vstorage -> _vstorage
+        - is_comparessed -> _is_compressed
+            ( use the getter )
 
 Bug Fixes
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
