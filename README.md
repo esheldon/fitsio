@@ -256,6 +256,13 @@ Examples
     with FITS('path/to/file') as fits:
         data = fits[ext][:]
 
+    # you can check if a header exists using "in":
+        f=fitsio.FITS(filename)
+        if 'blah' in f:
+            data=f['blah'][:]
+        if 2 in f:
+            data=f[2][:]
+
 Installation
 ------------
 The easiest way is using pip

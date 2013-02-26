@@ -836,7 +836,8 @@ class FITS:
             if ver > 0:
                 key = '%s-%s' % (ext,ver)
                 if key not in self.hdu_map:
-                    raise ValueError("extension not found: %s, version %s %s" % (ext,ver,mess))
+                    raise ValueError("extension not found: %s, "
+                                     "version %s %s" % (ext,ver,mess))
                 hdu = self.hdu_map[key]
             else:
                 if ext not in self.hdu_map:
@@ -845,6 +846,13 @@ class FITS:
 
         return hdu
 
+    def __contains__(self, item):
+        try:
+            hdu=self[item]
+            return True
+        except:
+            return False
+            
     def __repr__(self):
         spacing = ' '*2
         if not hasattr(self, 'hdu_list'):
