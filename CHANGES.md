@@ -8,6 +8,7 @@ New Features
     - added get_exttype() to the FITSHDU class, which returns a number
       representing the type of extension/hdu.  This is to be compared
       do the fitsio.BINARY_TBL and fitsio.ASCII_TBL, fitsio.IMAGE_HDU
+    - added get_colnames()
 
 Bug Fixes
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.

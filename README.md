@@ -112,10 +112,7 @@ Examples
       svar                S0  vstring[8]
       sarr                S2  array[4,3]
 
-    # specific information for an extension
-    f[1].get_extname()
-    f[1].get_extver()
-    f[1].get_exttype() # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
+    # See bottom for how to get more information for an extension
 
     # [-1] to refers the last HDU
     >>> fits[-1]
@@ -267,6 +264,25 @@ Examples
             data=f['blah'][:]
         if 2 in f:
             data=f[2][:]
+
+    # how to get more information about an extension
+    f[1].get_extname()
+    f[1].get_extver()
+    f[1].get_exttype() # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
+    f[1].get_colnames()
+    f[1].get_rec_dtype() # for tables
+    f[1].get_rec_column_descr() # for tables
+    f[1].get_colname(colnum)
+
+    # interesting attributes
+    f[1].info            # lots of info about the extension
+    f[1].has_data        # True if data is present in extension
+    f[1].filename
+    f[1].is_compressed
+    f[1].lower           # If True, lower case colnames on output
+    f[1].upper           # If True, upper case colnames on output
+    f[1].ncol  # number of columns
+    f[1].vstorage        # storage mechanism for variable length columns
 
 Installation
 ------------

@@ -1624,7 +1624,7 @@ class FITSHDU:
             unpack=False
 
         res, isrows, isslice = \
-            self.process_args_as_rows_or_columns(arg)
+            self._process_args_as_rows_or_columns(arg)
 
         if isrows:
             # rows were entered: read all columns
@@ -2119,7 +2119,7 @@ class FITSHDU:
                 raise ValueError("rows must be in [%d,%d]" % (0,maxrow))
         return rows
 
-    def process_args_as_rows_or_columns(self, arg, unpack=False):
+    def _process_args_as_rows_or_columns(self, arg, unpack=False):
         """
         We must be able to interpret the args as as either a column name or
         row number, or sequences thereof.  Numpy arrays and slices are also
@@ -2149,10 +2149,10 @@ class FITSHDU:
         elif isinstance(arg, slice):
             isrows=True
             if unpack:
-                result = self.slice2rows(arg.start, arg.stop, arg.step)
+                result = self._slice2rows(arg.start, arg.stop, arg.step)
             else:
                 isslice=True
-                result = self.process_slice(arg)
+                result = self._process_slice(arg)
         else:
             # a single object was entered.  Probably should apply some more 
             # checking on this
@@ -2160,7 +2160,7 @@ class FITSHDU:
 
         return result, isrows, isslice
 
-    def process_slice(self, arg):
+    def _process_slice(self, arg):
         start = arg.start
         stop = arg.stop
         step = arg.step
@@ -2189,7 +2189,7 @@ class FITSHDU:
             stop=nrows
         return slice(start, stop, step)
 
-    def slice2rows(self, start, stop, step=None):
+    def _slice2rows(self, start, stop, step=None):
         nrows=self.info['nrows']
         if start is None:
             start=0
@@ -2484,6 +2484,9 @@ class FITSHDU:
     def get_exttype(self):
         return self.info['hdutype']
 
+    def get_colnames(self):
+        return copy.copy(self.colnames)
+
     def __repr__(self):
         spacing = ' '*2
         text = []
@@ -2624,7 +2627,7 @@ class FITSHDUColumnSubset(object):
         # be a slice...
 
         res, isrows, isslice = \
-            self.fitshdu.process_args_as_rows_or_columns(arg, unpack=True)
+            self.fitshdu._process_args_as_rows_or_columns(arg, unpack=True)
         if isrows:
             # rows was entered: read all current column subset
             return self.read(rows=res)
