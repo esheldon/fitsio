@@ -10,7 +10,7 @@ New Features
       do the fitsio.BINARY_TBL and fitsio.ASCII_TBL, fitsio.IMAGE_HDU
 
 Bug Fixes
-    - newer numpys are (1.6.2) barfing adding a python float to u4 arrays.
+    - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
 
 version 0.9.2
 --------------------------

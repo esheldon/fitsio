@@ -112,10 +112,10 @@ Examples
       svar                S0  vstring[8]
       sarr                S2  array[4,3]
 
-    # specific information
-    f.get_extname()
-    f.get_extver()
-    f.get_exttype() # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
+    # specific information for an extension
+    f[1].get_extname()
+    f[1].get_extver()
+    f[1].get_exttype() # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
 
     # [-1] to refers the last HDU
     >>> fits[-1]
