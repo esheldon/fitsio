@@ -342,14 +342,40 @@ class FITS:
         self.hdu_map=None
 
     def movabs_ext(self, ext):
+        """
+        Move to the indicated zero-offset extension.
+
+        In general, it is not necessary to use this method explicitly.
+        """
         return self._FITS.movabs_hdu(ext+1)
+
     def movabs_hdu(self, hdunum):
+        """
+        Move to the indicated one-offset hdu number.
+
+        In general, it is not necessary to use this method explicitly.
+        """
         return self._FITS.movabs_hdu(hdunum)
 
     def movnam_ext(self, extname, hdutype=ANY_HDU, extver=0):
+        """
+        Move to the indicated extension by name
+
+        In general, it is not necessary to use this method explicitly.
+
+        returns the zero-offset extension number
+        """
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         return hdu-1
+
     def movnam_hdu(self, extname, hdutype=ANY_HDU, extver=0):
+        """
+        Move to the indicated HDU by name
+
+        In general, it is not necessary to use this method explicitly.
+
+        returns the one-offset extension number
+        """
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         return hdu
 
@@ -752,6 +778,11 @@ class FITS:
 
 
     def update_hdu_list(self):
+        """
+        Force an update of the HDU list
+
+        Normally you don't need to call this method directly
+        """
         self.hdu_list = []
         self.hdu_map={}
         for ext in xrange(1000):
@@ -791,6 +822,9 @@ class FITS:
         return self
 
     def next(self):
+        """
+        Move to the next iteration
+        """
         if self._iter_index == 0:
             raise StopIteration
         self._iter_index -= 1
