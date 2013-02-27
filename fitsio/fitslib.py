@@ -2039,7 +2039,7 @@ class FITSHDU:
 
     def read_ascii(self, **keys):
         """
-        read a subset of columns from this ascii table HDU
+        read a data from an ascii table HDU
 
         By default, all rows are read.  Send rows= to select subsets of the
         data.  Table data are read into a recarray for multiple columns,
