@@ -961,6 +961,102 @@ class FITSHDU:
             else:
                 return False
 
+    def get_extnum(self):
+        """
+        Get the extension number
+        """
+        return self._ext
+
+    def get_extname(self):
+        """
+        Get the name for this extension, can be an empty string
+        """
+        name = self._info['extname']
+        if name.strip() == '':
+            name = self._info['hduname']
+        return name.strip()
+
+    def get_extver(self):
+        """
+        Get the version for this extension.
+
+        Used when a name is given to multiple extensions
+        """
+        ver=self._info['extver']
+        if ver == 0:
+            ver=self._info['hduver']
+        return ver
+
+    def get_exttype(self, num=False):
+        """
+        Get the extension type
+
+        By default the result is a string that mirrors
+        the enumerated type names in cfitsio
+            'IMAGE_HDU', 'ASCII_TBL', 'BINARY_TBL'
+        which have numeric values
+            0 1 2
+        send num=True to get the numbers.  The values
+            fitsio.IMAGE_HDU .ASCII_TBL, and .BINARY_TBL
+        are available for comparison
+
+        parameters
+        ----------
+        num: bool, optional
+            Return the numeric values.
+        """
+        if num:
+            return self._info['hdutype']
+        else:
+            name=_hdu_type_map[self._info['hdutype']]
+            return name
+
+    def get_colname(self, colnum):
+        """
+        Get the name associated with the given column number
+
+        parameters
+        ----------
+        colnum: integer
+            The number for the column, zero offset
+        """
+        if self._info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Can't get colname for an image HDU")
+        if colnum < 0 or colnum > (len(self._colnames)-1):
+            raise ValueError("colnum out of range [0,%s-1]" % (0,len(self._colnames)))
+
+    def get_colnames(self):
+        """
+        Get a copy of the column names for a table HDU
+        """
+        return copy.copy(self._colnames)
+
+    def get_info(self):
+        """
+        Get a copy of the internal dictionary holding extension information
+        """
+        return copy.deepcopy(self._info)
+
+    def is_compressed(self):
+        """
+        returns true of this extensionis compressed
+        """
+        return self._is_compressed
+
+    def get_filename(self):
+        """
+        Get a copy of the filename for this fits file
+        """
+        return self._filename
+
+    def get_vstorage(self):
+        """
+        Get a string representing the storage method for variable length 
+        columns
+        """
+        return self._vstorage
+
+
     def write_checksum(self):
         """
         Write the checksum into the header for this HDU.
@@ -2413,11 +2509,7 @@ class FITSHDU:
             npy_type = 'S%d' % width
         return npy_type, isvar
 
-    def get_colname(self, colnum):
-        if self._info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Can't get colname for an image HDU")
-        if colnum < 0 or colnum > (len(self._colnames)-1):
-            raise ValueError("colnum out of range [0,%s-1]" % (0,len(self._colnames)))
+
     def _extract_colnums(self, columns=None):
         if columns is None:
             return numpy.arange(self._ncol, dtype='i8')
@@ -2469,36 +2561,6 @@ class FITSHDU:
             self._colnames_lower = [i['name'].lower() for i in self._info['colinfo']]
             self._ncol = len(self._colnames)
 
-    def get_extnum(self):
-        return self._ext
-
-    def get_extname(self):
-        name = self._info['extname']
-        if name.strip() == '':
-            name = self._info['hduname']
-        return name.strip()
-
-    def get_extver(self):
-        ver=self._info['extver']
-        if ver == 0:
-            ver=self._info['hduver']
-        return ver
-
-    def get_exttype(self):
-        return self._info['hdutype']
-
-    def get_colnames(self):
-        return copy.copy(self._colnames)
-    def get_info(self):
-        return copy.deepcopy(self._info)
-
-    def is_compressed(self):
-        return self._is_compressed
-
-    def get_filename(self):
-        return self._filename
-    def get_vstorage(self):
-        return self._vstorage
 
     def __repr__(self):
         spacing = ' '*2

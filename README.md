@@ -270,7 +270,7 @@ Examples
     f[1].get_extname()
     f[1].get_extver()
     f[1].get_extnum()           # return zero-offset extension number
-    f[1].get_exttype()          # fitsio.BINARY_TBL or ASCII_TBL or IMAGE_HDU
+    f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
     f[1].get_colnames()
     f[1].get_colname(colnum)    # find the column name from column number
     f[1].get_rec_dtype()        # for tables

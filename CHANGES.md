@@ -8,9 +8,8 @@ New Features
             fits=fitsio.FITS(filename)
             if 'name' in fits:
                 ....
-    - added get_exttype() to the FITSHDU class, which returns a number
-      representing the type of extension/hdu.  This is to be compared
-      do the fitsio.BINARY_TBL and fitsio.ASCII_TBL, fitsio.IMAGE_HDU
+    - added get_exttype() to the FITSHDU class
+        'BINARY_TBL' 'ASCII_TBL' 'IMAGE_HDU'
     - added get_colnames()
     - added get_filename()
     - added get_info()
