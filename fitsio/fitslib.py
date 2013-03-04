@@ -389,6 +389,7 @@ class FITS:
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
+              names=None,
               table_type='binary', **keys):
         """
         Write the data to a new HDU.
@@ -439,13 +440,20 @@ class FITS:
         The File must be opened READWRITE
         """
 
-        # using short-circuiting here
-        if data is None or data.dtype.fields == None:
+        isimage=False
+        if data is None:
+            isimage=True
+        elif isinstance(data,numpy.ndarray):
+            if data.dtype.fields == None:
+                isimage=True
+
+        if isimage:
             self.write_image(data, extname=extname, extver=extver, 
                              compress=compress, header=header)
         else:
             self.write_table(data, units=units, 
                              extname=extname, extver=extver, header=header,
+                             names=names,
                              table_type=table_type)
 
 
@@ -588,7 +596,9 @@ class FITS:
                                "which already exists")
 
 
-    def write_table(self, data, table_type='binary', units=None, extname=None, extver=None, header=None):
+    def write_table(self, data, table_type='binary', 
+                    names=None, formats=None, units=None, 
+                    extname=None, extver=None, header=None):
         """
         Create a new table extension and write the data.
 
@@ -634,16 +644,21 @@ class FITS:
         The File must be opened READWRITE
         """
 
+        """
         if data.dtype.fields == None:
             raise ValueError("data must have fields")
         if data.size == 0:
             raise ValueError("data must have at least 1 row")
-        
+        """
+
         self.create_table_hdu(data=data, 
-                              units=units, extname=extname,extver=extver,
+                              names=names,
+                              units=units, 
+                              extname=extname,
+                              extver=extver,
                               table_type=table_type,
                               header=header)
-        self[-1].write(data)
+        self[-1].write(data,names=names)
         self.update_hdu_list()
 
     def create_table_hdu(self, data=None, dtype=None, 
@@ -682,10 +697,12 @@ class FITS:
             can also use a list of tuples, e.g. [('x','f8'),('index','i4')] or
             a dictionary representation.
         data: a numpy array with fields, optional
-            An array from which to determine the table definition.
-            You must use this instead of sending a descriptor if
-            you have object array fields, as this is the only way
-            to determine the type and max size.
+              or a dictionary
+
+            An array or dict from which to determine the table definition.  You
+            must use this instead of sending a descriptor if you have object
+            array fields, as this is the only way to determine the type and max
+            size.
 
         names: list of strings, optional
             The list of field names
@@ -729,7 +746,12 @@ class FITS:
         table_type_int=_extract_table_type(table_type)
 
         if data is not None:
-            names, formats, dims = array2tabledef(data, table_type=table_type)
+            if isinstance(data,numpy.ndarray):
+                names, formats, dims = array2tabledef(data, table_type=table_type)
+            elif isinstance(data, (list,dict)):
+                names, formats, dims = collection2tabledef(data, names=names, table_type=table_type)
+            else:
+                raise ValueError("data must be an ndarray with fields or a dict")
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
             names, formats, dims = descr2tabledef(dtype.descr)
@@ -1058,6 +1080,7 @@ class FITSHDU:
             raise ValueError("Can't get colname for an image HDU")
         if colnum < 0 or colnum > (len(self._colnames)-1):
             raise ValueError("colnum out of range [0,%s-1]" % (0,len(self._colnames)))
+        return self._colnames[colnum]
 
     def get_colnames(self):
         """
@@ -1264,6 +1287,10 @@ class FITSHDU:
         columns: list, optional
             If data is a list of arrays, you must send columns as a list
             of names or column numbers
+
+            You can also send names=
+        names: list, optional
+            same as columns=
         """
 
         if self._info['hdutype'] == IMAGE_HDU:
@@ -1272,14 +1299,22 @@ class FITSHDU:
         slow = keys.get('slow',False)
         #slow = keys.get('slow',True)
 
-        if isinstance(data,list):
-            data_list=data
-            columns_all = keys.get('columns',None)
-            if columns_all is None:
-                raise ValueError("you must send colnums with a list of arrays")
-            colnums_all = [self._extract_colnum(c) for c in columns_all]
+        if isinstance(data,(list,dict)):
+            if isinstance(data,list):
+                data_list=data
+                columns_all = keys.get('columns',None)
+                if columns_all is None:
+                    columns_all=keys.get('names',None)
+                    if columns_all is None:
+                        raise ValueError("you must send columns with a list of arrays")
 
+            else:
+                columns_all=data.keys()
+                data_list=[data[n] for n in columns_all]
+
+            colnums_all = [self._extract_colnum(c) for c in columns_all]
             names = [self.get_colname(c) for c in colnums_all]
+
             isobj=numpy.zeros(len(data_list),dtype=numpy.bool)
             for i in xrange(len(data_list)):
                 isobj[i] = is_object(data_list[i])
@@ -1375,7 +1410,7 @@ class FITSHDU:
         del data_send
         self._update_info()
 
-    def write_var_column(self, column, data, firstrow=0):
+    def write_var_column(self, column, data, firstrow=0, **keys):
         """
         Write data to a variable-length column in this HDU
 
@@ -2914,6 +2949,53 @@ def array2tabledef(data, table_type='binary'):
 
     return names, formats, dims
 
+def collection2tabledef(data, names=None, table_type='binary'):
+    if isinstance(data,dict):
+        names = list(data.keys())
+        isdict=True
+    elif isinstance(data,list):
+        if names is None:
+            raise ValueError("For list of array, send names=")
+        isdict=False
+    else:
+        raise ValueError("expected a dict")
+
+    is_ascii = (table_type=='ascii')
+    formats=[]
+    dims=[]
+
+    for i,name in enumerate(names):
+
+        if isdict:
+            this_data=data[name]
+        else:
+            this_data=data[i]
+
+        dt=this_data.dtype.descr[0]
+        dname=dt[1][1:]
+
+        if is_ascii:
+            if dname in ['u1','i1']:
+                raise ValueError("1-byte integers are not supported for ascii tables: '%s'" % dname)
+            if dname in ['u2']:
+                raise ValueError("unsigned 2-byte integers are not supported for ascii tables: '%s'" % dname)
+
+        if dname[0] == 'O':
+            # this will be a variable length column 1Pt(len) where t is the
+            # type and len is max length.  Each element must be convertible to
+            # the same type as the first
+            form, dim = npy_obj2fits(this_data)
+        else:
+            send_dt=dt
+            if len(this_data.shape) > 1:
+                send_dt=list(dt) + [this_data.shape[1:]]
+            _, form, dim = npy2fits(send_dt,table_type=table_type)
+
+        formats.append(form)
+        dims.append(dim)
+
+    return names, formats, dims
+
 
 def descr2tabledef(descr, table_type='binary'):
     """
@@ -2959,15 +3041,19 @@ def descr2tabledef(descr, table_type='binary'):
 
     return names, formats, dims
 
-def npy_obj2fits(data, name):
+def npy_obj2fits(data, name=None):
     # this will be a variable length column 1Pt(len) where t is the
     # type and len is max length.  Each element must be convertible to
     # the same type as the first
 
-    d = data[name].dtype.descr
+    if name is None:
+        d = data.dtype.descr
+        first=data[0]
+    else:
+        d = data[name].dtype.descr
+        first = data[name][0]
 
     # note numpy._string is an instance of str, so str is good enough
-    first = data[name][0]
     if isinstance(first, str):
         fits_dtype = _table_npy2fits_form['S']
     else:
