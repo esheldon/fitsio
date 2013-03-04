@@ -2951,7 +2951,8 @@ def array2tabledef(data, table_type='binary'):
 
 def collection2tabledef(data, names=None, table_type='binary'):
     if isinstance(data,dict):
-        names = list(data.keys())
+        if names is None:
+            names = list(data.keys())
         isdict=True
     elif isinstance(data,list):
         if names is None:

@@ -643,7 +643,7 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
 
-    def testTableWriteDictOfArrays(self):
+    def testTableWriteDictOfArraysScratch(self):
         """
         This version creating the table from the names and list
         Test a basic table write, data and a header, then reading back in to
@@ -669,12 +669,48 @@ class TestReadWrite(unittest.TestCase):
                     skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
+            self.compare_rec(self.data, d, "list of dicts, scratch")
+
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
+    def testTableWriteDictOfArrays(self):
+        """
+        This version creating the table from the names and list
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableDict-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                try:
+                    fits.create_table_hdu(self.data, extname='mytable')
+
+                    d={}
+                    for n in self.data.dtype.names:
+                        d[n] = self.data[n]
+
+                    fits[-1].write(d)
+                    write_success=True
+                except:
+                    write_success=False
+
+                self.assertTrue(write_success,"write should not raise an error")
+                if not write_success:
+                    skipTest("cannot test result if write failed")
+
+            d = fitsio.read(fname)
             self.compare_rec(self.data, d, "list of dicts")
 
         finally:
             if os.path.exists(fname):
                 #pass
                 os.remove(fname)
+
 
     def testTableWriteDictOfArraysVar(self):
         """
