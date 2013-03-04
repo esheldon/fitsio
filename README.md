@@ -211,7 +211,11 @@ Examples
     # can also be a list of ordinary arrays if you send the names
     array_list=[xarray,yarray,namearray]
     names=['x','y','name']
-    >>> fits.write(array_list, columns=names)
+    >>> fits.write(array_list, names=names)
+
+    # similarly a dict of arrays
+    >>> fits.write(dict_of_arrays)
+    >>> fits.write(dict_of_arrays, names=names) # control name order
 
     # note under the hood writing data to a HDU does the following
     >>> fits.create_table_hdu(data=data)
