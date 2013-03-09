@@ -1,6 +1,7 @@
 next version
 --------------------------
 New Features
+
     - Added iteration to the FITSHDR header object
     - added **keys to the read_header function
     - added checking that a hdu exists in the file, either
@@ -35,6 +36,7 @@ version 0.9.2
 --------------------------
 
 New Features
+
     - Much faster writing to tables when there are many columns.
     - Header object now has a setitem feature
         h['item'] = value
