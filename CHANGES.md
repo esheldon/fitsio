@@ -2,6 +2,8 @@ next version
 --------------------------
 New Features
 
+    - Can write lists of arrays and dictionaries of arrays
+      to fits tables.
     - Added iteration to the FITSHDR header object
     - added **keys to the read_header function
     - added checking that a hdu exists in the file, either
