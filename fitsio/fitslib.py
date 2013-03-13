@@ -840,17 +840,18 @@ class FITS:
     def __iter__(self):
         if not hasattr(self,'hdu_list'):
             self.update_hdu_list()
-        self._iter_index=len(self.hdu_list)
+        self._iter_index=0
         return self
 
     def next(self):
         """
         Move to the next iteration
         """
-        if self._iter_index == 0:
+        if self._iter_index == len(self.hdu_list):
             raise StopIteration
-        self._iter_index -= 1
-        return self.hdu_list[self._iter_index]
+        hdu=self.hdu_list[self._iter_index]
+        self._iter_index += 1
+        return hdu
 
     def __len__(self):
         if not hasattr(self,'hdu_list'):
