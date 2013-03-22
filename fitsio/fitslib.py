@@ -1095,6 +1095,14 @@ class FITSHDU:
         """
         return copy.deepcopy(self._info)
 
+    def get_nrows(self):
+        """
+        Get a copy of the internal dictionary holding extension information
+        """
+        if 'nrows' not in self._info:
+            raise ValueError("hdu does not have 'nrows' metadata")
+        return self._info['nrows']
+
     def is_compressed(self):
         """
         returns true of this extensionis compressed
