@@ -277,6 +277,7 @@ Examples
     f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
     f[1].get_colnames()
     f[1].get_colname(colnum)    # find the column name from column number
+    f[1].get_nrows()            # for tables
     f[1].get_rec_dtype()        # for tables
     f[1].get_rec_column_descr() # for tables
     f[1].get_vstorage()         # storage mechanism for variable length columns
