@@ -1351,7 +1351,7 @@ class FITSHDU:
             for i in xrange(len(data_list)):
                 if not isobj[i]:
                     nonobj_colnums.append(colnums_all[i])
-                    nonobj_arrays.append( array_to_native(data_list[i],inplace=False) )
+                    nonobj_arrays.append( array_to_native_c(data_list[i],inplace=False) )
 
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
@@ -3467,6 +3467,12 @@ def is_object(arr):
     else:
         return False
 
+def array_to_native_c(array_in, inplace=False):
+    # copy only made if not C order
+    arr=numpy.array(array_in, order='C', copy=False)
+    return array_to_native(arr, inplace=inplace)
+
+ 
 def array_to_native(array, inplace=False):
     if numpy.little_endian:
         machine_little=True
