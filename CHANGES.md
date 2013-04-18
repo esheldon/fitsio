@@ -17,6 +17,7 @@ New Features
     - added get_colnames()
     - added get_filename()
     - added get_info()
+    - added get_nrows()
     - added get_vstorage()
     - added is_compressed()
     - added get_ext()
