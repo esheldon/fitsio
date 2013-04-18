@@ -13,6 +13,7 @@ New Features
                 ....
     - added get_exttype() to the FITSHDU class
         'BINARY_TBL' 'ASCII_TBL' 'IMAGE_HDU'
+    - added get_nrows() for binary tables
     - added get_colnames()
     - added get_filename()
     - added get_info()
