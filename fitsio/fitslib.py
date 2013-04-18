@@ -1068,6 +1068,16 @@ class FITSHDU:
             name=_hdu_type_map[self._info['hdutype']]
             return name
 
+    def get_nrows(self):
+        """
+        Get number of rows in a binary table.
+        """
+        if self._info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Can't get nrows for an image HDU")
+        if 'nrows' not in self._info:
+            raise ValueError("nrows not in info table; this is a bug")
+        return self._info['nrows']
+
     def get_colname(self, colnum):
         """
         Get the name associated with the given column number
