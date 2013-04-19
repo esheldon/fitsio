@@ -2719,15 +2719,18 @@ class FITSHDU:
                 else:
                     tdim = c['tdim']
                     dimstr=''
-                    if dt[0] == 'S':
-                        if len(tdim) > 1:
-                            dimstr = [str(d) for d in tdim[1:]]
+                    if tdim is None:
+                        dimstr='array[bad TDIM]'
                     else:
-                        if len(tdim) > 1 or tdim[0] > 1:
-                            dimstr = [str(d) for d in tdim]
-                    if dimstr != '':
-                        dimstr = ','.join(dimstr)
-                        dimstr = 'array[%s]' % dimstr
+                        if dt[0] == 'S':
+                            if len(tdim) > 1:
+                                dimstr = [str(d) for d in tdim[1:]]
+                        else:
+                            if len(tdim) > 1 or tdim[0] > 1:
+                                dimstr = [str(d) for d in tdim]
+                        if dimstr != '':
+                            dimstr = ','.join(dimstr)
+                            dimstr = 'array[%s]' % dimstr
 
                 s = f % (c['name'],dt,dimstr)
                 text.append(s)
@@ -2918,7 +2921,7 @@ def extract_filename(filename):
 def tdim2shape(tdim, name, is_string=False):
     shape=None
     if tdim is None:
-        raise ValueError('%s has malformed TDIM' % name)
+        raise ValueError("field '%s' has malformed TDIM" % name)
 
     if len(tdim) > 1 or tdim[0] > 1:
         if is_string:
