@@ -2503,7 +2503,7 @@ class FITSHDU:
                     descr=(name,npy_type,max_size)
         else:
             tdim = self._info['colinfo'][colnum]['tdim']
-            shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
+            shape = tdim2shape(tdim, name, is_string=(npy_type[0] == 'S'))
             if shape is not None:
                 descr=(name,npy_type,shape)
             else:
@@ -2541,6 +2541,7 @@ class FITSHDU:
         # basic datatype
         npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
         info = self._info['colinfo'][colnum]
+        name = info['name']
 
         if rows is None:
             nrows = self._info['nrows']
@@ -2550,7 +2551,7 @@ class FITSHDU:
         shape = None
         tdim = info['tdim']
 
-        shape = tdim2shape(tdim, is_string=(npy_type[0] == 'S'))
+        shape = tdim2shape(tdim, name, is_string=(npy_type[0] == 'S'))
         if shape is not None:
             if nrows > 1:
                 if not isinstance(shape,tuple):
@@ -2914,10 +2915,10 @@ def extract_filename(filename):
     filename = os.path.expanduser(filename)
     return filename
 
-def tdim2shape(tdim, is_string=False):
+def tdim2shape(tdim, name, is_string=False):
     shape=None
     if tdim is None:
-        print 'TDIM malformed, assuming 1-d array'
+        print 'Warning:',name,'has malformed TDIM, reading as 1-d array'
         return None
 
     if len(tdim) > 1 or tdim[0] > 1:
