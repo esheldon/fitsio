@@ -1372,6 +1372,7 @@ class FITSHDU:
                 if not isobj[i]:
                     nonobj_colnums.append(colnums_all[i])
                     if isrec:
+                        # this still leaves possibility of f-order sub-arrays..
                         colref=array_to_native(data_list[i],inplace=False)
                     else:
                         colref=array_to_native_c(data_list[i],inplace=False)
@@ -2915,6 +2916,10 @@ def extract_filename(filename):
 
 def tdim2shape(tdim, is_string=False):
     shape=None
+    if tdim is None:
+        print 'TDIM malformed, assuming 1-d array'
+        return None
+
     if len(tdim) > 1 or tdim[0] > 1:
         if is_string:
             shape = list( reversed(tdim[1:]) )
