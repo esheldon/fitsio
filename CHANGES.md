@@ -35,6 +35,7 @@ Backwards incompatible changes
 
 Bug Fixes
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
+    - Give a more clear error message for malformed TDIM header keywords
 
 version 0.9.2
 --------------------------
