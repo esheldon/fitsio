@@ -55,6 +55,7 @@ def read(filename, ext=None, extver=None, **keys):
     By default, all data are read.  For tables, send columns= and rows= to
     select subsets of the data.  Table data are read into a recarray; use a
     FITS object and read_column() to get a single column as an ordinary array.
+    For images, create a FITS object and use slice notation to read subsets.
 
     Under the hood, a FITS object is constructed and data are read using
     an associated FITSHDU object.
@@ -156,7 +157,9 @@ def _make_item(ext, extver=None):
 
 
 
-def write(filename, data, extname=None, extver=None, units=None, compress=None, table_type='binary', header=None, clobber=False, **keys):
+def write(filename, data, extname=None, extver=None, units=None, 
+          compress=None, table_type='binary', header=None, 
+          clobber=False, **keys):
     """
     Convenience function to create a new HDU and write the data.
 
