@@ -2683,9 +2683,9 @@ class FITSHDU:
 
                 if self._info['ndims'] != 0:
                     dimstr = [str(d) for d in self._info['dims']]
+                    dimstr = ",".join(dimstr)
                 else:
                     dimstr=''
-                dimstr = ",".join(dimstr)
 
                 dt = _image_bitpix2npy[self._info['img_equiv_type']]
                 text.append("%sdata type: %s" % (cspacing,dt))
@@ -2717,20 +2717,7 @@ class FITSHDU:
                     else:
                         dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
-                    tdim = c['tdim']
-                    dimstr=''
-                    if tdim is None:
-                        dimstr='array[bad TDIM]'
-                    else:
-                        if dt[0] == 'S':
-                            if len(tdim) > 1:
-                                dimstr = [str(d) for d in tdim[1:]]
-                        else:
-                            if len(tdim) > 1 or tdim[0] > 1:
-                                dimstr = [str(d) for d in tdim]
-                        if dimstr != '':
-                            dimstr = ','.join(dimstr)
-                            dimstr = 'array[%s]' % dimstr
+                    dimstr = _get_col_dimstr(c['tdim'])
 
                 s = f % (c['name'],dt,dimstr)
                 text.append(s)
@@ -2739,8 +2726,25 @@ class FITSHDU:
         return text
 
 
+def _get_col_dimstr(tdim):
+    """
+    not for variable length
+    """
+    dimstr=''
+    if tdim is None:
+        dimstr='array[bad TDIM]'
+    else:
+        if dt[0] == 'S':
+            if len(tdim) > 1:
+                dimstr = [str(d) for d in tdim[1:]]
+        else:
+            if len(tdim) > 1 or tdim[0] > 1:
+                dimstr = [str(d) for d in tdim]
+        if dimstr != '':
+            dimstr = ','.join(dimstr)
+            dimstr = 'array[%s]' % dimstr
 
-
+    return dimstr
 
 class FITSHDUColumnSubset(object):
     """
@@ -2824,8 +2828,6 @@ class FITSHDUColumnSubset(object):
         text.append('%srows: %d' % (spacing,info['nrows']))
         text.append("%scolumn subset:" %  spacing)
 
-
-
         cspacing = ' '*4
         nspace = 4
         nname = 15
@@ -2851,17 +2853,7 @@ class FITSHDUColumnSubset(object):
                 else:
                     dimstr = 'varray[%s]' % extract_vararray_max(tform)
             else:
-                tdim = c['tdim']
-                dimstr=''
-                if dt[0] == 'S':
-                    if len(tdim) > 1:
-                        dimstr = [str(d) for d in tdim[1:]]
-                else:
-                    if len(tdim) > 1 or tdim[0] > 1:
-                        dimstr = [str(d) for d in tdim]
-                if dimstr != '':
-                    dimstr = ','.join(dimstr)
-                    dimstr = 'array[%s]' % dimstr
+                dimstr = _get_col_dimstr(c['tdim'])
 
             s = f % (c['name'],dt,dimstr)
             text.append(s)
