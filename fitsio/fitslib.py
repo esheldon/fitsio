@@ -1318,6 +1318,7 @@ class FITSHDU:
         slow = keys.get('slow',False)
         #slow = keys.get('slow',True)
 
+        isrec=False
         if isinstance(data,(list,dict)):
             if isinstance(data,list):
                 data_list=data
@@ -1346,6 +1347,7 @@ class FITSHDU:
                                  "write_column to write to a single column, "
                                  "or instead write to an image hdu")
 
+            isrec=True
             names=data.dtype.names
             # only write object types (variable-length columns) after
             # writing the main table
@@ -1369,7 +1371,11 @@ class FITSHDU:
             for i in xrange(len(data_list)):
                 if not isobj[i]:
                     nonobj_colnums.append(colnums_all[i])
-                    nonobj_arrays.append( array_to_native_c(data_list[i],inplace=False) )
+                    if isrec:
+                        colref=array_to_native(data_list[i],inplace=False)
+                    else:
+                        colref=array_to_native_c(data_list[i],inplace=False)
+                    nonobj_arrays.append(colref)
 
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
