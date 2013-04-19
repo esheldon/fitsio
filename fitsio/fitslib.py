@@ -2918,8 +2918,7 @@ def extract_filename(filename):
 def tdim2shape(tdim, name, is_string=False):
     shape=None
     if tdim is None:
-        print 'Warning:',name,'has malformed TDIM, reading as 1-d array'
-        return None
+        raise ValueError('%s has malformed TDIM' % name)
 
     if len(tdim) > 1 or tdim[0] > 1:
         if is_string:
