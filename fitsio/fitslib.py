@@ -2737,7 +2737,8 @@ def _get_col_dimstr(tdim):
     if tdim is None:
         dimstr='array[bad TDIM]'
     else:
-        if dt[0] == 'S':
+        #if dt[0] == 'S':
+        if tdim[0] == 'S':
             if len(tdim) > 1:
                 dimstr = [str(d) for d in tdim[1:]]
         else:
