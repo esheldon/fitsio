@@ -266,7 +266,7 @@ static long get_groupsize(tcolumn* colptr) {
 static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
 
     npy_int64* colnums;
-    int npy_type=0;
+    int npy_type=0, check=0;
 
     if (!PyArray_Check(arr)) {
         PyErr_SetString(PyExc_TypeError, "int64 array must be an array.");
@@ -274,8 +274,17 @@ static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
     }
 
     npy_type = PyArray_TYPE(arr);
-	if (npy_type != NPY_INT64) {
-        PyErr_SetString(PyExc_TypeError, "array must be an int64 array.");
+
+    // on some platforms, creating an 'i8' array gives it a longlong
+    // dtype.  Just make sure it is 8 bytes
+    check=
+        (npy_type == NPY_INT64) 
+        |
+        (npy_type==NPY_LONGLONG && sizeof(npy_longlong)==sizeof(npy_int64));
+	if (!check) {
+        PyErr_Format(PyExc_TypeError,
+                     "array must be an int64 array (%d), got %d.",
+                     NPY_INT64,npy_type);
         return NULL;
     }
     if (!PyArray_ISCONTIGUOUS(arr)) {
