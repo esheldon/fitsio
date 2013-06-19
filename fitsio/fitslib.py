@@ -1292,8 +1292,6 @@ class FITSHDU:
         """
         Write data into this HDU
 
-        Need to accept list of arrays and list of columns
-
         parameters
         ----------
         data: ndarray or list of ndarray
