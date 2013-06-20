@@ -297,7 +297,7 @@ The easiest way is using pip
 
 Also, you can download the source from github or use git clone
 
-    git clone git://github.com/esheldon/fitsio.git
+    git clone https://github.com/esheldon/fitsio.git
 
 Enter the fitsio directory and type
 
