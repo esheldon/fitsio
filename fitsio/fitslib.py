@@ -317,7 +317,7 @@ class FITS:
                     create=1
         else:
             if not os.path.exists(filename):
-                raise ValueError("File not found: %s" % filename)
+                raise ValueError("File not found: '%s'" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
