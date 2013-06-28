@@ -311,7 +311,7 @@ class FITS(object):
             if clobber:
                 create=1
                 if os.path.exists(filename):
-                    print('Removing existing file')
+                    # print('Removing existing file')
                     os.remove(filename)
             else:
                 if os.path.exists(filename):
