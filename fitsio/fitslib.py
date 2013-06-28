@@ -23,10 +23,10 @@ See the main docs at https://github.com/esheldon/fitsio
 from __future__ import with_statement, print_function
 import sys, os
 import numpy
-from . import _fitsio_wrap
 import copy
 import pprint
 
+import _fitsio_wrap
 def cfitsio_version(asfloat=False):
     """
     Return the cfitsio version as a string.

@@ -20,7 +20,7 @@ from .fitslib import READONLY
 from .fitslib import READWRITE
 from .fitslib import cfitsio_version
 
-from .fitslib import BINARY_TBL, ASCII_TBL, IMAGE_HDU
+from fitslib import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
 
-from . import test
+import test
