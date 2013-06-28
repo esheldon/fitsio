@@ -3153,7 +3153,7 @@ class TableColumnSubset(object):
 
         for colnum,c in enumerate(info['colinfo']):
             if isstring(self.columns):
-                if c['name'] == self.columns:
+                if c['name'] != self.columns:
                     continue
             else:
                 if c['name'] not in self.columns:
