@@ -3152,8 +3152,12 @@ class TableColumnSubset(object):
         pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
         for colnum,c in enumerate(info['colinfo']):
-            if c['name'] not in self.columns:
-                continue
+            if isstring(self.columns):
+                if c['name'] == self.columns:
+                    continue
+            else:
+                if c['name'] not in self.columns:
+                    continue
 
             if len(c['name']) > nname:
                 f = pformat
