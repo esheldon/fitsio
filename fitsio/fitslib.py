@@ -3442,7 +3442,7 @@ class FITSHDR:
             card += vstr
 
             if 'comment' in record:
-                f += ' / %s' % record['comment']
+                card += ' / %s' % record['comment']
 
         return card[0:80]
 
