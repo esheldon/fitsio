@@ -256,9 +256,9 @@ Examples
     # you can add individual keys to an existing HDU
     >>> fits[1].write_key(name, value, comment="my comment")
 
-    # Write multiple header keys. Here records is a dict of keyword-value
-    # pairs, a FITSHDR, or list of dicts with 'name','value', and optionally
-    # 'comment' fields
+    # Write multiple header keys to an existing HDU. Here records is a dict of
+    # keyword-value pairs, a FITSHDR, or list of dicts with 'name','value', and
+    # optionally 'comment' fields
     >>> fits[1].write_keys(records)
 
     >>> fits.close()
