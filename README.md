@@ -265,14 +265,14 @@ Examples
 
     # using a context, the file is closed automatically after leaving the block
     with FITS('path/to/file') as fits:
-        data = fits[ext][:]
+        data = fits[ext].read()
 
     # you can check if a header exists using "in":
         f=fitsio.FITS(filename)
         if 'blah' in f:
-            data=f['blah'][:]
+            data=f['blah'].read()
         if 2 in f:
-            data=f[2][:]
+            data=f[2].read()
 
     # how to get more information about an extension
     f[1].get_info()             # lots of info about the extension
