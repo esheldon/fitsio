@@ -2718,7 +2718,11 @@ class FITSHDU:
                     else:
                         dimstr = 'varray[%s]' % extract_vararray_max(tform)
                 else:
-                    dimstr = _get_col_dimstr(c['tdim'])
+                    if dt[0] == 'S':
+                        is_string=True
+                    else:
+                        is_string=False
+                    dimstr = _get_col_dimstr(c['tdim'],is_string=is_string)
 
                 s = f % (c['name'],dt,dimstr)
                 text.append(s)
@@ -2727,7 +2731,7 @@ class FITSHDU:
         return text
 
 
-def _get_col_dimstr(tdim):
+def _get_col_dimstr(tdim, is_string=False):
     """
     not for variable length
     """
@@ -2735,8 +2739,7 @@ def _get_col_dimstr(tdim):
     if tdim is None:
         dimstr='array[bad TDIM]'
     else:
-        #if dt[0] == 'S':
-        if tdim[0] == 'S':
+        if is_string:
             if len(tdim) > 1:
                 dimstr = [str(d) for d in tdim[1:]]
         else:
