@@ -81,8 +81,8 @@ ext=Extension("fitsio._fitsio_wrap",
               extra_link_args=extra_link_args)
 
 
-description = ("A full featured python library to read and "
-               "write data to FITS files.")
+description = ("A full featured python library to read from and "
+               "write to FITS files.")
 
 long_description=open(os.path.join(os.path.dirname(__file__), "README.md")).read()
 
