@@ -39,6 +39,7 @@ Backwards incompatible changes
             ( use the getter )
 
 Bug Fixes
+
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
     - Give a more clear error message for malformed TDIM header keywords
     - fixed bug displaying column info for string array columns in tables
