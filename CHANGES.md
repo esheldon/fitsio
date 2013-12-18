@@ -26,7 +26,6 @@ New Features
 
 minor changes
     - raise error on malformed TDIM
-    - get_exttype not returns a string
 
 Backwards incompatible changes
 
