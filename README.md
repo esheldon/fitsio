@@ -160,8 +160,11 @@ Examples
     >>> data = fits[1][columns][rows]
 
     # iterate over rows in a table hdu
+    # faster if we buffer some rows, let's buffer 1000 at a time
+    fits=fitsio.FITS(filename,iter_row_buffer=1000)
     for row in fits[1]:
         print row
+
     # iterate over HDUs in a FITS object
     for hdu in fits:
         data=hdu.read()
