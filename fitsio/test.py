@@ -12,11 +12,10 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
-    
+
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
 
-        
 
 
         nvec = 2
@@ -78,7 +77,6 @@ class TestReadWrite(unittest.TestCase):
             data[t+'vec'] = (numpy.arange(nrows*nvec) % 2 == 0).astype(t).reshape(nrows,nvec)
             arr = (numpy.arange(nrows*ashape[0]*ashape[1]) % 2 == 0).astype(t)
             data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
-            
 
 
         # strings get padded when written to the fits file.  And the way I do

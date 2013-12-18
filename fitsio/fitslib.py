@@ -1776,7 +1776,6 @@ class FITSHDU:
                                     self._info['colinfo'][colnum]['tscale'], 
                                     self._info['colinfo'][colnum]['tzero'])
                 array[name] = self._filter_array(array[name])
-                
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -2120,7 +2119,7 @@ class FITSHDU:
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
             self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
-            
+
             for i in xrange(colnums.size):
                 colnum = int(colnums[i])
                 name = array.dtype.names[i]
@@ -2128,7 +2127,7 @@ class FITSHDU:
                                     self._info['colinfo'][colnum]['tscale'], 
                                     self._info['colinfo'][colnum]['tzero'])
                 array[name] = self._filter_array(array[name])
-                    
+
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -2441,7 +2440,7 @@ class FITSHDU:
         if array.dtype == numpy.bool:
             array = (array.astype(numpy.int8) == ord('T')).astype(numpy.bool)
         return array
-            
+
     def get_rec_dtype(self, **keys):
         """
         Get the dtype for the specified columns
