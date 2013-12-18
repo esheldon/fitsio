@@ -284,6 +284,9 @@ class FITS:
 
         Default is 'fixed'.  The rationale is that this is the option
             of 'least surprise'
+    iter_row_buffer: integer
+        Number of rows to buffer when iterating over table HDUs.
+        Default is 1.
     """
     def __init__(self, filename, mode='r', **keys):
         self.keys=keys
@@ -810,7 +813,11 @@ class FITS:
         """
         self.hdu_list = []
         self.hdu_map={}
-        for ext in xrange(1000):
+
+        # we don't know how many hdus there are, so iterate
+        # until we can't open any more 
+        ext=0
+        while True:
             try:
                 # first make sure we have this extension
                 self._FITS.movabs_hdu(ext+1)
@@ -837,7 +844,8 @@ class FITS:
 
             except RuntimeError:
                 break
-
+            
+            ext += 1
 
 
     def __iter__(self):
@@ -966,6 +974,9 @@ class FITSHDU:
     vstorage: string, optional
         Set the default method to store variable length columns.  Can be
         'fixed' or 'object'.  See docs on fitsio.FITS for details.
+    iter_row_buffer: integer
+        Number of rows to buffer when iterating over table HDUs.
+        Default is 1.
     """
     def __init__(self, fits, ext, **keys):
         self._FITS = fits
@@ -975,6 +986,7 @@ class FITSHDU:
         self.upper=keys.get('upper',False)
         self.case_sensitive=keys.get('case_sensitive',False)
         self._vstorage=keys.get('case_sensitive','fixed')
+        self._iter_row_buffer=keys.get('iter_row_buffer',1)
 
         self._update_info()
         self._filename = self._FITS.filename()
@@ -1835,6 +1847,69 @@ class FITSHDU:
             _names_to_upper_if_recarray(array)
 
         return array
+
+    def __iter__(self):
+        """
+        Get an iterator for a table
+
+        e.g.
+        f=fitsio.FITS(fname)
+        hdu1 = f[1]
+        for row in hdu1:
+            ...
+        """
+
+        if self._info['hdutype'] == IMAGE_HDU:
+            raise ValueError("Iteration only works on tables")
+
+        # always start with first row
+        self._iter_row=0
+
+        # for iterating we must assume the number of rows will not change
+        self._iter_nrows=self.get_nrows()
+
+        self._buffer_iter_rows(0)
+        return self
+
+    def next(self):
+        """
+        get the next row when iterating
+
+        e.g.
+        f=fitsio.FITS(fname)
+        hdu1 = f[1]
+        for row in hdu1:
+            ...
+
+        By default read one row at a time.  Send iter_row_buffer to get a more 
+        efficient buffering.
+        """
+        return self._get_next_buffered_row()
+
+
+    def _get_next_buffered_row(self):
+        """
+        Get the next row for iteration.
+        """
+        if self._iter_row == self._iter_nrows:
+            raise StopIteration
+
+        if self._row_buffer_index >= self._iter_row_buffer:
+            self._buffer_iter_rows(self._iter_row)
+
+        data=self._row_buffer[self._row_buffer_index]
+        self._iter_row += 1
+        self._row_buffer_index += 1
+        return data
+
+    def _buffer_iter_rows(self, start):
+        """
+        Read in the buffer for iteration
+        """
+        self._row_buffer = self[start:start+self._iter_row_buffer]
+
+        # start back at the front of the buffer
+        self._row_buffer_index = 0
 
     def _read_image_slice(self, arg):
         if 'ndims' not in self._info:

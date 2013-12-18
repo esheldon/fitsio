@@ -33,6 +33,7 @@ Some Features
 - Read and write unsigned integer types and signed bytes.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
+- Iterate over rows in a table.  Data are buffered for efficiency.
 - data are guaranteed to conform to the FITS standard.
 
 
