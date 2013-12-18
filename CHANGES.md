@@ -4,8 +4,12 @@ New Features
 
     - Can write lists of arrays and dictionaries of arrays
       to fits tables.
+    - Added iteration over HDUs in FITS class
     - Added iteration to the FITSHDU object
     - Added iteration to the FITSHDR header object
+    - Added "in" syntax for FITS class:
+        if ext in fits_obj:
+            data=fits_obj[ext].read()
     - added **keys to the read_header function
     - added checking that a hdu exists in the file, either
         by extension number or name, using the "in" syntax.  e.g.
@@ -23,6 +27,10 @@ New Features
     - added is_compressed()
     - added get_ext()
 
+minor changes
+    - raise error on malformed TDIM
+    - get_exttype not returns a string
+
 Backwards incompatible changes
 
     - renamed some attributes; use the getters instead
@@ -37,6 +45,12 @@ Backwards incompatible changes
 Bug Fixes
     - newer numpys (1.6.2) were barfing adding a python float to u4 arrays.
     - Give a more clear error message for malformed TDIM header keywords
+    - fixed bug displaying column info for string array columns in tables
+    - got cfitsio patch to deal with very large compressed images, which were
+      not read properly.  This is now in the latest cfitsio.
+    - implemented workaround for bug where numpy declareds 'i8' arrays as type
+      npy_longlong, which is not correct.
+    - fixed bug in order of iteration of HDUs
 
 version 0.9.2
 --------------------------
