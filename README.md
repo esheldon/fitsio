@@ -159,6 +159,12 @@ Examples
     # in row sorted order for efficiency reasons.
     >>> data = fits[1][columns][rows]
 
+    # iterate over rows in a table hdu
+    for row in fits[1]:
+        print row
+    # iterate over HDUs in a FITS object
+    for hdu in fits:
+        data=hdu.read()
 
     # Note dvarr shows type varray[10] and svar shows type vstring[8]. These
     # are variable length columns and the number specified is the maximum size.
