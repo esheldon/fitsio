@@ -1604,6 +1604,7 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
+
         if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
         elif self._info['hdutype'] == ASCII_TBL:
@@ -1696,6 +1697,7 @@ class FITSHDU:
         array or an array of objects, depending on vstorage.
 
         """
+
         dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
@@ -1747,6 +1749,7 @@ class FITSHDU:
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
         """
+
         if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
         elif self._info['hdutype'] == ASCII_TBL:
@@ -2079,6 +2082,7 @@ class FITSHDU:
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
         """
+
         if self._info['hdutype'] == ASCII_TBL:
             keys['columns'] = columns
             return self.read_ascii(**keys)
@@ -2106,6 +2110,7 @@ class FITSHDU:
             vstorage = keys.get('vstorage',self._vstorage)
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
+
             if rows is None:
                 nrows = self._info['nrows']
             else:
@@ -2245,6 +2250,7 @@ class FITSHDU:
         row and column numbers should be checked before calling this function
 
         """
+
         colnumsp=colnums+1
         if rows is None:
             nrows = self._info['nrows']
