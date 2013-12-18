@@ -7,15 +7,12 @@ New Features
     - Added iteration over HDUs in FITS class
     - Added iteration to the FITSHDU object
     - Added iteration to the FITSHDR header object
-    - Added "in" syntax for FITS class:
-        if ext in fits_obj:
-            data=fits_obj[ext].read()
-    - added **keys to the read_header function
     - added checking that a hdu exists in the file, either
         by extension number or name, using the "in" syntax.  e.g.
             fits=fitsio.FITS(filename)
             if 'name' in fits:
-                ....
+                data=fits['name'].read()
+    - added **keys to the read_header function
     - added get_exttype() to the FITSHDU class
         'BINARY_TBL' 'ASCII_TBL' 'IMAGE_HDU'
     - added get_nrows() for binary tables
