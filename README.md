@@ -6,9 +6,9 @@ Description
 This is a python extension written in c and python.  Data are read into
 numerical python arrays.
 
-A patched version of cfitsio 3.28 is bundled with this package, there
-is no need to install your own, nor will this conflict with a version
-you have installed; see below for details.  
+A patched version of cfitsio is bundled with this package, there is no need to
+install your own, nor will this conflict with a version you have installed; see
+below for details.  
 
 
 Some Features
@@ -347,13 +347,12 @@ TODO
 Notes on cfitsio bundling
 -------------------------
 
-We bundle partly because many deployed versions of cfitsio in the wild don't
+We bundle partly because many deployed versions of cfitsio in the wild do not
 have support for interesting features like tiled image compression.   Bundling
 a version that meets our needs is a safe alternative.  The patches to 3.28 fix
-the ability to read float and double images from tile-compressed HDUs and add
-back support for tile-compressed byte and unsigned byte images.
-
-There are no known bugs in the patched version 3280 included in this package.
+the ability to read float and double images from tile-compressed HDUs, support
+to read very large compressed images, and add back support for tile-compressed
+byte and unsigned byte images.
 
 Note on array ordering
 ----------------------
