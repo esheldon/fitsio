@@ -1481,7 +1481,6 @@ class FITSHDU:
             The column number for the new column, zero-offset.  Default
             is to add the new column after the existing ones.
         """
-        print 'insert_column()'
         if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("Cannot write a column to an IMAGE_HDU")
         if self._info['hdutype'] == ASCII_TBL:
@@ -1605,7 +1604,6 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
-        print 'read()'
         if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
         elif self._info['hdutype'] == ASCII_TBL:
@@ -1666,7 +1664,6 @@ class FITSHDU:
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
-        print 'read_column()'
         if self._info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
             raise ValueError("Cannot yet read columns from an image HDU")
 
@@ -1699,8 +1696,6 @@ class FITSHDU:
         array or an array of objects, depending on vstorage.
 
         """
-        print '_read_var_column'
-        
         dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
@@ -1752,7 +1747,6 @@ class FITSHDU:
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
         """
-        print 'read_all()'
         if self._info['hdutype'] == IMAGE_HDU:
             return self.read_image()
         elif self._info['hdutype'] == ASCII_TBL:
@@ -2021,7 +2015,6 @@ class FITSHDU:
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
         """
-        print 'read_rows()'
         if rows is None:
             # we actually want all rows!
             return self.read_all()
@@ -2035,12 +2028,10 @@ class FITSHDU:
 
         w,=numpy.where(isvar == True)
         if w.size > 0:
-            print 'read_rows . _read_rec_with_var'
             vstorage = keys.get('vstorage',self._vstorage)
             colnums=self._extract_colnums()
             return self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
-            print 'read_rows . read_rows_as_rec'
             array = numpy.zeros(rows.size, dtype=dtype)
             self._FITS.read_rows_as_rec(self._ext+1, array, rows)
 
@@ -2088,7 +2079,6 @@ class FITSHDU:
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
         """
-        print 'read_columns'
         if self._info['hdutype'] == ASCII_TBL:
             keys['columns'] = columns
             return self.read_ascii(**keys)
@@ -2111,13 +2101,9 @@ class FITSHDU:
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
 
-        print 'dtypes', dtype
-        print 'offsets', offsets
-        
         w,=numpy.where(isvar == True)
         if w.size > 0:
             vstorage = keys.get('vstorage',self._vstorage)
-            print '_read_rec_with_var'
             array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
         else:
             if rows is None:
@@ -2128,7 +2114,6 @@ class FITSHDU:
 
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
-            print '_read_columns_as_rec'
             self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
             
             for i in xrange(colnums.size):
@@ -2260,8 +2245,6 @@ class FITSHDU:
         row and column numbers should be checked before calling this function
 
         """
-        print '_read_rec_with_var'
-        
         colnumsp=colnums+1
         if rows is None:
             nrows = self._info['nrows']
