@@ -25,6 +25,7 @@ New Features
     - added get_ext()
 
 minor changes
+
     - raise error on malformed TDIM
 
 Backwards incompatible changes
