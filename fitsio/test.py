@@ -12,6 +12,7 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
+    
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
 
