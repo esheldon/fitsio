@@ -998,12 +998,7 @@ class TestReadWrite(unittest.TestCase):
 
                 # test reading single columns
                 for f in self.data.dtype.names:
-                    print
-                    print 'reading'
                     d = fits[1][f][:]
-                    print
-                    print
-
                     self.compare_array(self.data[f], d, "test read all rows %s column subset" % f)
 
                 # test reading row subsets
@@ -1294,9 +1289,6 @@ class TestReadWrite(unittest.TestCase):
 
         res=numpy.where(arr1 != arr2)
         for i,w in enumerate(res):
-            if w.size != 0:
-                print 'arr1', arr1
-                print 'arr2', arr2
             self.assertEqual(w.size,0,"testing array '%s' dim %d are equal" % (name,i))
 
     def compare_rec(self, rec1, rec2, name):
