@@ -3622,7 +3622,7 @@ _hdu_type_map = {IMAGE_HDU:'IMAGE_HDU',
                  'BINARY_TBL':BINARY_TBL}
 
 # no support yet for complex
-_table_fits2npy = {11:'u1',
+_table_fits2npy = {11: 'u1',
                    12: 'i1',
                    14: 'i1', # logical. Note pyfits uses this for i1, cfitsio casts to char*
                    16: 'S',
@@ -3646,7 +3646,8 @@ _table_fits2npy_ascii = {16: 'S',
 
 
 # for TFORM
-_table_npy2fits_form = {'u1':'B',
+_table_npy2fits_form = {'b1':'L',
+                        'u1':'B',
                         'i1':'S', # gets converted to unsigned
                         'S' :'A',
                         'u2':'U', # gets converted to signed
