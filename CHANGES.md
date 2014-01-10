@@ -1,12 +1,15 @@
-version 0.9.3.1
---------------------------
+version 0.9.3.1 (not yet released)
+----------------------------------
 
 New Features
     - Write and read boolean values.
-    - specify tile dimensions for compressed images
+    - Specify tile dimensions for compressed images.  These are specified to
+      align with the dimensions of the input image.
+    - write_comment and write_history methods added.
 
 Bug Fixes
-    - Correct handling of COMMENT and HISTORY fields.
+    - Correct appending to COMMENT and HISTORY fields when writing a full
+      header object.
     - Strip out compression related reserved keywords when writing a
       user-provided header.
 
