@@ -1172,6 +1172,18 @@ class FITSHDU:
         if res['hduok'] != 1:
             raise ValueError("hdu checksum failed")
 
+    def write_comment(self, comment):
+        """
+        Write a comment into the header
+        """
+        self._FITS.write_comment(self._ext+1, str(comment))
+
+    def write_history(self, history):
+        """
+        Write history text into the header
+        """
+        self._FITS.write_history(self._ext+1, str(history))
+
     def write_key(self, keyname, value, comment=""):
         """
         Write the input value to the header
@@ -1185,6 +1197,11 @@ class FITSHDU:
             including numpy scalar types.
         comment: string, optional
             An optional comment to write for this key
+
+        Notes
+        -----
+        Write COMMENT and HISTORY using the write_comment and write_history
+        methods
         """
 
         stypes = (str,unicode,numpy.string_)
@@ -1229,6 +1246,11 @@ class FITSHDU:
             If True, trim out the standard fits header keywords that are
             created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
             TDIM, XTENSION, BITPIX, NAXIS, etc.
+
+        Notes
+        -----
+        COMMENT and HISTORY are written using the write_comment and
+        write_history methods.
         """
 
         hdr = FITSHDR(records_in)
@@ -1238,9 +1260,15 @@ class FITSHDU:
         for r in hdr.records():
             name=r['name']
             value=r['value']
-            comment = r.get('comment','')
-            self.write_key(name,value,comment)
 
+            comment = r.get('comment','')
+
+            if name=='COMMENT':
+                self.write_comment(comment)
+            elif name=='HISTORY':
+                self.write_history(comment)
+            else:
+                self.write_key(name,value,comment=comment)
 
     def write(self, data, **keys):
         """

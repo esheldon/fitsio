@@ -1983,8 +1983,78 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
 }
  
 
+// let python do the conversions
+static PyObject *
+PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
 
+    char* comment=NULL;
+ 
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &comment)) {
+        return NULL;
+    }
 
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_write_comment(self->fits, comment, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+ 
+// let python do the conversions
+static PyObject *
+PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    char* history=NULL;
+ 
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &history)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_write_history(self->fits, history, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+ 
 /*
  * read a single, entire column from an ascii table into the input array.  This
  * version uses the standard read column instead of our by-bytes version.
@@ -3358,6 +3428,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},
+    {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
+    {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
     {"close",                (PyCFunction)PyFITSObject_close,                METH_VARARGS,  "close\n\nClose the fits file."},
     {NULL}  /* Sentinel */
 };
