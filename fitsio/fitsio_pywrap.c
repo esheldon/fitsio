@@ -623,6 +623,8 @@ npy_to_fits_table_type(int npy_dtype) {
 
     char mess[255];
     switch (npy_dtype) {
+        case NPY_BOOL:
+            return TLOGICAL;
         case NPY_UINT8:
             return TBYTE;
         case NPY_INT8:
