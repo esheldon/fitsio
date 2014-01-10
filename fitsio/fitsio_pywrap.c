@@ -927,7 +927,56 @@ int create_empty_hdu(struct PyFITSObject* self)
 }
 
 
+// follows fits convention that return value is true
+// for failure
+//
+// exception strings are set internally
+//
+// length checking should happen in python
+//
+// note tile dims are written reverse order since
+// python orders C and fits orders Fortran
+static int set_compression(fitsfile *fits,
+                           int comptype,
+                           PyObject* tile_dims_obj,
+                           int *status) {
 
+    npy_int64 *tile_dims_py=NULL, *tile_dims_fits=NULL;
+    npy_intp ndims=0, i=0;
+
+    // can be NOCOMPRESS (0)
+    if (fits_set_compression_type(fits, comptype, status)) {
+        set_ioerr_string_from_status(*status);
+        goto _set_compression_bail;
+        return 1;
+    }
+
+    if (tile_dims_obj != Py_None) {
+
+        tile_dims_py=get_int64_from_array(tile_dims_obj, &ndims);
+        if (tile_dims_py==NULL) {
+            *status=1;
+        } else {
+            tile_dims_fits = calloc(ndims,sizeof(long));
+            if (!tile_dims_fits) {
+                PyErr_Format(PyExc_MemoryError, "failed to allocate %ld longs",
+                             ndims);
+                goto _set_compression_bail;
+            }
+
+            for (i=0; i<ndims; i++) {
+                tile_dims_fits[ndims-i-1] = tile_dims_py[i];
+            }
+
+            fits_set_tile_dim(fits, ndims, tile_dims_fits, status);
+
+            free(tile_dims_fits);tile_dims_fits=NULL;
+        }
+    }
+
+_set_compression_bail:
+    return *status;
+}
 
 static int pyarray_get_ndim(PyObject* obj) {
     PyArrayObject* arr;
@@ -949,6 +998,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int datatype=0; // type for the data we entered
     //int comptype=NOCOMPRESS;
     int comptype=0; // same as NOCOMPRESS in newer cfitsio
+    PyObject* tile_dims_obj=NULL;
 
     PyObject* array;
     int npy_dtype=0;
@@ -963,9 +1013,11 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         return NULL;
     }
 
-    static char *kwlist[] = {"array","comptype", "extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|isi", kwlist,
-                          &array, &comptype, &extname, &extver)) {
+    static char *kwlist[] = 
+        {"array","comptype","tile_dims","extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iOsi", kwlist,
+                          &array, &comptype, &tile_dims_obj,
+                          &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
 
@@ -992,11 +1044,17 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             dims[ndims-i-1] = PyArray_DIM(array, i);
         }
 
-        // can be NOCOMPRESS (0)
-        if (fits_set_compression_type(self->fits, comptype, &status)) {
-            set_ioerr_string_from_status(status);
-            goto create_image_hdu_cleanup;
+        if (comptype > 0) {
+            // exception strings are set internally
+            if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
+                goto create_image_hdu_cleanup;
+            }
         }
+        // can be NOCOMPRESS (0)
+        //if (fits_set_compression_type(self->fits, comptype, &status)) {
+        //    set_ioerr_string_from_status(status);
+        //    goto create_image_hdu_cleanup;
+        //}
 
         if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
             set_ioerr_string_from_status(status);

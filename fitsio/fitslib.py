@@ -394,7 +394,9 @@ class FITS:
         self._FITS =  _fitsio_wrap.FITS(self._filename, self.intmode, 0)
         self.update_hdu_list()
 
-    def write(self, data, units=None, extname=None, extver=None, compress=None, header=None,
+    def write(self, data, units=None, extname=None, extver=None,
+              compress=None, tile_dims=None,
+              header=None,
               names=None,
               table_type='binary', **keys):
         """
@@ -455,7 +457,8 @@ class FITS:
 
         if isimage:
             self.write_image(data, extname=extname, extver=extver, 
-                             compress=compress, header=header)
+                             compress=compress, tile_dims=tile_dims,
+                             header=header)
         else:
             self.write_table(data, units=units, 
                              extname=extname, extver=extver, header=header,
@@ -464,7 +467,8 @@ class FITS:
 
 
 
-    def write_image(self, img, extname=None, extver=None, compress=None, header=None):
+    def write_image(self, img, extname=None, extver=None,
+                    compress=None, tile_dims=None, header=None):
         """
         Create a new image extension and write the data.  
 
@@ -505,12 +509,15 @@ class FITS:
         """
 
         self.create_image_hdu(img, extname=extname, extver=extver,
-                              compress=compress, header=header)
+                              compress=compress, tile_dims=tile_dims,
+                              header=header)
         if img is not None:
             self[-1].write_image(img)
         self.update_hdu_list()
 
-    def create_image_hdu(self, img, extname=None, extver=None ,compress=None, header=None):
+    def create_image_hdu(self, img, extname=None, extver=None,
+                         compress=None,tile_dims=None,
+                         header=None):
         """
         Create a new, empty image HDU and reload the hdu list.
 
@@ -580,9 +587,14 @@ class FITS:
             extname=""
 
         comptype = get_compress_type(compress)
+        tile_dims = get_tile_dims(tile_dims, img)
+
         check_comptype_img(comptype, img)
-        self._FITS.create_image_hdu(img, comptype=comptype, 
-                                    extname=extname, extver=extver)
+        self._FITS.create_image_hdu(img,
+                                    comptype=comptype, 
+                                    tile_dims=tile_dims,
+                                    extname=extname,
+                                    extver=extver)
         self.update_hdu_list()
 
         if header is not None:
@@ -3578,6 +3590,22 @@ class FITSHDR:
 
             rep.append(card)
         return '\n'.join(rep)
+
+def get_tile_dims(tile_dims, img):
+    """
+    Just make sure the tile dims has the appropriate number of dimensions
+    """
+
+    if tile_dims is None:
+        td=None
+    else:
+        td = numpy.array(tile_dims, dtype='i8')
+        nd=len(img.shape)
+        if td.size != nd:
+            msg="expected tile_dims to have %d dims, got %d" % (td.size,nd)
+            raise ValueError(msg)
+
+    return td
 
 def get_compress_type(compress):
     if compress is not None:

@@ -282,6 +282,9 @@ class TestReadWrite(unittest.TestCase):
         Test a basic image write, data and a header, then reading back in to
         check the values
         """
+        nrows=30
+        ncols=100
+        tile_dims=[5,10]
         compress='rice'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
@@ -290,12 +293,23 @@ class TestReadWrite(unittest.TestCase):
                 dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
-                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
+                    data = numpy.arange(nrows*ncols,dtype=dtype).reshape(nrows,ncols)
                     fits.write_image(data, compress=compress)
                     #fits.reopen()
                     rdata = fits[-1].read()
 
-                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+                    self.compare_array(data, rdata,
+                                       "%s compressed images ('%s')" % (compress,dtype))
+
+
+                    fits.write_image(data, compress=compress, tile_dims=tile_dims)
+                    #fits.reopen()
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata,
+                                       ("%s tile dims compressed images "
+                                        "('%s')" % (compress,dtype)))
+
 
         finally:
             if os.path.exists(fname):

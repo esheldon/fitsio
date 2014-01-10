@@ -1,3 +1,15 @@
+version 0.9.3.1
+--------------------------
+
+New Features
+    - Write and read boolean values.
+    - specify tile dimensions for compressed images
+
+Bug Fixes
+    - Correct handling of COMMENT and HISTORY fields.
+    - Strip out compression related reserved keywords when writing a
+      user-provided header.
+
 version 0.9.3
 --------------------------
 New Features
