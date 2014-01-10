@@ -504,7 +504,8 @@ class FITS:
         The File must be opened READWRITE
         """
 
-        self.create_image_hdu(img, extname=extname, extver=extver, compress=compress, header=header)
+        self.create_image_hdu(img, extname=extname, extver=extver,
+                              compress=compress, header=header)
         if img is not None:
             self[-1].write_image(img)
         self.update_hdu_list()
@@ -3404,7 +3405,11 @@ class FITSHDR:
     def clean(self):
 
         rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT',
-                   'GCOUNT','THEAP']
+                   'EXTNAME',
+                   'GCOUNT','THEAP',
+                   'ZQUANTIZ','ZDITHER0','ZIMAGE','ZCMPTYPE',
+                   'ZSIMPLE','ZBITPIX','ZEXTEND',
+                   'CHECKSUM','DATASUM']
         self.delete(rmnames)
 
         r = self._record_map.get('NAXIS',None)
@@ -3414,6 +3419,17 @@ class FITSHDR:
 
             rmnames = ['NAXIS%d' % i for i in xrange(1,naxis+1)]
             self.delete(rmnames)
+
+        r = self._record_map.get('ZNAXIS',None)
+        if r is not None:
+            znaxis = int(r['value'])
+            rmnames = ['ZTILE%d' % i for i in xrange(1,znaxis+1)]
+            self.delete(rmnames)
+            rmnames = ['ZNAME%d' % i for i in xrange(1,znaxis+1)]
+            self.delete(rmnames)
+            rmnames = ['ZVAL%d' % i for i in xrange(1,znaxis+1)]
+            self.delete(rmnames)
+
         
         r = self._record_map.get('TFIELDS',None)
         if r is not None:
