@@ -1732,6 +1732,7 @@ class FITSHDU:
             self._rescale_array(array, 
                                 self._info['colinfo'][colnum]['tscale'], 
                                 self._info['colinfo'][colnum]['tzero'])
+            array = self._filter_array(array)
 
         return array
 
@@ -1820,6 +1821,7 @@ class FITSHDU:
                 self._rescale_array(array[name], 
                                     self._info['colinfo'][colnum]['tscale'], 
                                     self._info['colinfo'][colnum]['tzero'])
+                array[name] = self._filter_array(array[name])
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -2148,6 +2150,7 @@ class FITSHDU:
                 self._rescale_array(array[name], 
                                     self._info['colinfo'][colnum]['tscale'], 
                                     self._info['colinfo'][colnum]['tzero'])
+                array[name] = self._filter_array(array[name])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -2225,13 +2228,14 @@ class FITSHDU:
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
             self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
-            
+
             for i in xrange(colnums.size):
                 colnum = int(colnums[i])
                 name = array.dtype.names[i]
                 self._rescale_array(array[name], 
                                     self._info['colinfo'][colnum]['tscale'], 
                                     self._info['colinfo'][colnum]['tzero'])
+                array[name] = self._filter_array(array[name])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -2539,6 +2543,12 @@ class FITSHDU:
         if zero != 0.0:
             zval=numpy.array(zero,dtype=array.dtype)
             array += zval
+
+    def _filter_array(self, array):
+        # cfitsio reads as characters 'T' and 'F' -- convert to real boolean
+        if array.dtype == numpy.bool:
+            array = (array.astype(numpy.int8) == ord('T')).astype(numpy.bool)
+        return array
 
     def get_rec_dtype(self, **keys):
         """
@@ -3768,9 +3778,9 @@ _hdu_type_map = {IMAGE_HDU:'IMAGE_HDU',
                  'BINARY_TBL':BINARY_TBL}
 
 # no support yet for complex
-_table_fits2npy = {11:'u1',
+_table_fits2npy = {11: 'u1',
                    12: 'i1',
-                   14: 'i1', # logical. Note pyfits uses this for i1, cfitsio casts to char*
+                   14: 'b1', # logical. Note pyfits uses this for i1, cfitsio casts to char*
                    16: 'S',
                    20: 'u2',
                    21: 'i2',
@@ -3792,7 +3802,8 @@ _table_fits2npy_ascii = {16: 'S',
 
 
 # for TFORM
-_table_npy2fits_form = {'u1':'B',
+_table_npy2fits_form = {'b1':'L',
+                        'u1':'B',
                         'i1':'S', # gets converted to unsigned
                         'S' :'A',
                         'u2':'U', # gets converted to signed
