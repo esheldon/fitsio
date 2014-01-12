@@ -509,15 +509,23 @@ class FITS:
         """
 
         self.create_image_hdu(img, extname=extname, extver=extver,
-                              compress=compress, tile_dims=tile_dims,
-                              header=header)
+                              compress=compress, tile_dims=tile_dims)
+
+        if header is not None:
+            self[-1].write_keys(header)
+            self[-1]._update_info()
+
         if img is not None:
             self[-1].write_image(img)
+
         self.update_hdu_list()
 
+        #if extname is not None or header is not None:
+        #    self.update_hdu_list()
+
+
     def create_image_hdu(self, img, extname=None, extver=None,
-                         compress=None,tile_dims=None,
-                         header=None):
+                         compress=None,tile_dims=None):
         """
         Create a new, empty image HDU and reload the hdu list.
 
@@ -597,11 +605,6 @@ class FITS:
                                     extver=extver)
         self.update_hdu_list()
 
-        if header is not None:
-            self[-1].write_keys(header)
-
-        if extname is not None or header is not None:
-            self.update_hdu_list()
 
     def _ensure_empty_image_ok(self):
         """
@@ -675,16 +678,20 @@ class FITS:
                               units=units, 
                               extname=extname,
                               extver=extver,
-                              table_type=table_type,
-                              header=header)
+                              table_type=table_type)
+
+        if header is not None:
+            self[-1].write_keys(header)
+            self[-1]._update_info()
+
         self[-1].write(data,names=names)
+
         self.update_hdu_list()
 
     def create_table_hdu(self, data=None, dtype=None, 
                          names=None, formats=None,
                          units=None, dims=None, extname=None, extver=None, 
-                         table_type='binary',
-                         header=None):
+                         table_type='binary'):
         """
         Create a new, empty table extension and reload the hdu list.
 
@@ -747,15 +754,6 @@ class FITS:
             be represented in the header with keyname EXTVER.  The extver must
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
-        header: FITSHDR, list, dict
-            A set of header keys to write. Can be one of these:
-                - FITSHDR object
-                - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
-                - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
-            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
-
 
         restrictions
         ------------
@@ -812,11 +810,6 @@ class FITS:
                                     names, formats, tunit=units, tdim=dims, 
                                     extname=extname, extver=extver)
         self.update_hdu_list()
-
-        if header is not None:
-            self[-1].write_keys(header)
-            self[-1]._update_info()
-
 
     def update_hdu_list(self):
         """
@@ -3444,9 +3437,10 @@ class FITSHDR:
 
     def clean(self):
 
-        rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT',
+        rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT','GCOUNT',
+                   'THEAP',
                    'EXTNAME',
-                   'GCOUNT','THEAP',
+                   'BUNIT','BSCALE','BZERO','BLANK',
                    'ZQUANTIZ','ZDITHER0','ZIMAGE','ZCMPTYPE',
                    'ZSIMPLE','ZBITPIX','ZEXTEND',
                    'CHECKSUM','DATASUM']
@@ -3461,8 +3455,13 @@ class FITSHDR:
             self.delete(rmnames)
 
         r = self._record_map.get('ZNAXIS',None)
+        self.delete('ZNAXIS')
         if r is not None:
+
             znaxis = int(r['value'])
+
+            rmnames = ['ZNAXIS%d' % i for i in xrange(1,znaxis+1)]
+            self.delete(rmnames)
             rmnames = ['ZTILE%d' % i for i in xrange(1,znaxis+1)]
             self.delete(rmnames)
             rmnames = ['ZNAME%d' % i for i in xrange(1,znaxis+1)]
@@ -3482,8 +3481,8 @@ class FITSHDR:
                          'TNULL','TDISP','TDMIN','TDMAX','TDESC','TROTA',
                          'TRPIX','TRVAL','TDELT','TCUNI']
                 for i in xrange(1,tfields+1):
-                        names=['%s%d' % (n,i) for n in nbase]
-                        self.delete(names)
+                    names=['%s%d' % (n,i) for n in nbase]
+                    self.delete(names)
             
 
     def __len__(self):
