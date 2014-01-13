@@ -1067,12 +1067,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         if (strlen(extname) > 0) {
 
             // comments are NULL
-            if (ffukys(self->fits, "EXTNAME", extname, NULL, &status)) {
+            if (fits_update_key_str(self->fits, "EXTNAME", extname, NULL, &status)) {
                 set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
             if (extver > 0) {
-                if (ffukyj(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
+                if (fits_update_key_lng(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
                     set_ioerr_string_from_status(status);
                     goto create_image_hdu_cleanup;
                 }
@@ -1279,7 +1279,7 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     if (extname_use != NULL) {
         if (extver > 0) {
 
-            if (ffukyj(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
+            if (fits_update_key_lng(self->fits, "EXTVER", (LONGLONG) extver, NULL, &status)) {
                 set_ioerr_string_from_status(status);
                 goto create_table_cleanup;
             }
@@ -1941,7 +1941,7 @@ PyFITSObject_write_string_key(struct PyFITSObject* self, PyObject* args) {
         comment=comment_in;
     }
 
-    if (ffukys(self->fits, keyname, value, comment, &status)) {
+    if (fits_update_key_str(self->fits, keyname, value, comment, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -1985,7 +1985,7 @@ PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
         comment=comment_in;
     }
 
-    if (ffukyd(self->fits, keyname, value, decimals, comment, &status)) {
+    if (fits_update_key_dbl(self->fits, keyname, value, decimals, comment, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -2028,7 +2028,7 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
         comment=comment_in;
     }
 
-    if (ffukyj(self->fits, keyname, (LONGLONG) value, comment, &status)) {
+    if (fits_update_key_lng(self->fits, keyname, (LONGLONG) value, comment, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -2042,7 +2042,48 @@ PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
  
+static PyObject *
+PyFITSObject_write_logical_key(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
 
+    char* keyname=NULL;
+    int value=0;
+    char* comment=NULL;
+    char* comment_in=NULL;
+ 
+    if (!PyArg_ParseTuple(args, (char*)"isis", &hdunum, &keyname, &value, &comment_in)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (strlen(comment_in) > 0) {
+        comment=comment_in;
+    }
+
+    if (fits_update_key_log(self->fits, keyname, value, comment, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+ 
 // let python do the conversions
 static PyObject *
 PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
@@ -3487,7 +3528,10 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
+
     {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},
+    {"write_logical_key",    (PyCFunction)PyFITSObject_write_logical_key,    METH_VARARGS,  "write_logical_key\n\nWrite a logical key into the specified HDU."},
+
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
     {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
     {"close",                (PyCFunction)PyFITSObject_close,                METH_VARARGS,  "close\n\nClose the fits file."},

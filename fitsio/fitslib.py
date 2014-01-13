@@ -1209,30 +1209,50 @@ class FITSHDU:
         methods
         """
 
-        stypes = (str,unicode,numpy.string_)
-        ftypes = (float,numpy.float32,numpy.float64)
-        itypes = (int,long,
-                  numpy.uint8,numpy.int8,
-                  numpy.uint16,numpy.int16,
-                  numpy.uint32,numpy.int32,
-                  numpy.uint64,numpy.int64)
+        if value is None:
+            value=''
 
-
-        if isinstance(value, stypes):
+        if isinstance(value,bool):
+            if value:
+                v=1
+            else:
+                v=0
+            self._FITS.write_logical_key(self._ext+1,
+                                         str(keyname),
+                                         v,
+                                         str(comment))
+        elif isinstance(value, _stypes):
             self._FITS.write_string_key(self._ext+1,
                                         str(keyname),
                                         str(value),
                                         str(comment))
-        elif isinstance(value, ftypes):
+        elif isinstance(value, _ftypes):
             self._FITS.write_double_key(self._ext+1,
                                         str(keyname),
                                         float(value),
                                         str(comment))
-        elif isinstance(value, itypes):
+        elif isinstance(value, _itypes):
             self._FITS.write_long_key(self._ext+1,
                                       str(keyname),
                                       int(value),
                                       str(comment))
+        elif isinstance(value,(tuple,list)):
+            vl=[str(el) for el in value]
+            sval=','.join(vl)
+            self._FITS.write_string_key(self._ext+1,
+                                        str(keyname),
+                                        sval,
+                                        str(comment))
+        else:
+            sval=str(value)
+            mess=("warning, keyword '%s' has non-standard "
+                  "value type %s, "
+                  "Converting to string: '%s'")
+            print mess % (keyname,type(value),sval)
+            self._FITS.write_string_key(self._ext+1,
+                                        str(keyname),
+                                        sval,
+                                        str(comment))
 
     def write_keys(self, records_in, clean=True):
         """
@@ -3397,6 +3417,10 @@ class FITSHDR:
         # Strip extra quotes from strings if needed
         if value.startswith("'") and value.endswith("'"):
             val = value[1:-1]
+        elif value=='T':
+            val=True
+        elif value=='F':
+            val=False
         else:
             val=value
 
@@ -3838,4 +3862,13 @@ _image_bitpix2npy = {8: 'u1',
                      64: 'i8',
                      -32: 'f4',
                      -64: 'f8'}
+
+# for header keywords
+_stypes = (str,unicode,numpy.string_)
+_ftypes = (float,numpy.float32,numpy.float64)
+_itypes = (int,long,
+          numpy.uint8,numpy.int8,
+          numpy.uint16,numpy.int16,
+          numpy.uint32,numpy.int32,
+          numpy.uint64,numpy.int64)
 
