@@ -342,9 +342,7 @@ TODO
 
 - separate classes for image, ascii and binary table HDUs.  Inherit from base
   class.
-- More testing of variable length columns in ascii tables.
-- More error checking in c code for python lists and dicts.
-- complex table columns.  bit? logical?
+- complex table columns.  bit?
 - HDU groups?
 
 Notes on cfitsio bundling

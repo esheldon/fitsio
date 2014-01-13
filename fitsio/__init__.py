@@ -239,7 +239,7 @@ Examples
 
 """
 
-__version__='0.9.3.1'
+__version__='0.9.4'
 
 from . import fitslib
 from .fitslib import FITS
