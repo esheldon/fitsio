@@ -10,6 +10,7 @@ New Features
 Bug Fixes
     - Correct appending to COMMENT and HISTORY fields when writing a full
       header object.
+    - Correct conversion of boolean keywords, writing and reading.
     - Strip out compression related reserved keywords when writing a
       user-provided header.
 
