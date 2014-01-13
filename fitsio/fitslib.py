@@ -3476,7 +3476,8 @@ class FITSHDR:
                    'EXTNAME',
                    'BUNIT','BSCALE','BZERO','BLANK',
                    'ZQUANTIZ','ZDITHER0','ZIMAGE','ZCMPTYPE',
-                   'ZSIMPLE','ZBITPIX','ZEXTEND',
+                   'ZSIMPLE','ZTENSION','ZPCOUNT','ZGCOUNT',
+                   'ZBITPIX','ZEXTEND',
                    'CHECKSUM','DATASUM']
         self.delete(rmnames)
 
