@@ -80,10 +80,9 @@ class TestReadWrite(unittest.TestCase):
 
 
         # strings get padded when written to the fits file.  And the way I do
-        # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
+        # the read, I read all bytes (ala mrdfits) so the spaces are preserved.
         # 
-        # so for comparisons, we need to pad out the strings with blanks so we
-        # can compare
+        # so we need to pad out the strings with blanks so we can compare
 
         data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
         data['Svec'][:,0] = '%-6s' % 'hello'
@@ -859,6 +858,38 @@ class TestReadWrite(unittest.TestCase):
 
             d = fitsio.read(fname)
             self.compare_rec_with_var(self.vardata,d,"list of arrays, var")
+
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
+    def testTableIter(self):
+        """
+        Test iterating over rows of a table
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableIter-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                try:
+                    fits.write_table(self.data, header=self.keys, extname='mytable')
+                    write_success=True
+                except:
+                    write_success=False
+
+                self.assertTrue(write_success,"testing write does not raise an error")
+                if not write_success:
+                    skipTest("cannot test result if write failed")
+
+            # one row at a time
+            with fitsio.FITS(fname) as fits:
+                hdu = fits["mytable"]
+                i=0
+                for row_data in hdu:
+                    self.compare_rec(self.data[i], row_data, "table data")
+                    i+=1
 
         finally:
             if os.path.exists(fname):
