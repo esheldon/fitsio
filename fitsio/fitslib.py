@@ -1019,12 +1019,6 @@ class HDUBase(object):
         self._FITS = fits
         self._ext = ext
 
-        self.lower=keys.get('lower',False)
-        self.upper=keys.get('upper',False)
-        self.case_sensitive=keys.get('case_sensitive',False)
-        self._vstorage=keys.get('case_sensitive','fixed')
-        self._iter_row_buffer=keys.get('iter_row_buffer',1)
-
         self._update_info()
         self._filename = self._FITS.filename()
 
@@ -1084,24 +1078,11 @@ class HDUBase(object):
         """
         return copy.deepcopy(self._info)
 
-    def is_compressed(self):
-        """
-        returns true of this extension is compressed
-        """
-        return self._info['is_compressed_image']==1
-
     def get_filename(self):
         """
         Get a copy of the filename for this fits file
         """
         return self._filename
-
-    def get_vstorage(self):
-        """
-        Get a string representing the storage method for variable length 
-        columns
-        """
-        return self._vstorage
 
     def write_checksum(self):
         """
@@ -1308,6 +1289,13 @@ class TableHDU(HDUBase):
     """
     def __init__(self, fits, ext, **keys):
         super(TableHDU,self).__init__(fits, ext, **keys)
+
+        self.lower=keys.get('lower',False)
+        self.upper=keys.get('upper',False)
+        self._vstorage=keys.get('vstorage','fixed')
+        self.case_sensitive=keys.get('case_sensitive',False)
+        self._iter_row_buffer=keys.get('iter_row_buffer',1)
+
         if self._info['hdutype'] == ASCII_TBL:
             self._table_type_str='ascii'
         else:
@@ -1340,6 +1328,13 @@ class TableHDU(HDUBase):
         Get a copy of the column names for a table HDU
         """
         return copy.copy(self._colnames)
+
+    def get_vstorage(self):
+        """
+        Get a string representing the storage method for variable length 
+        columns
+        """
+        return copy.copy(self._vstorage)
 
     def has_data(self):
         """
@@ -2684,6 +2679,20 @@ class ImageHDU(HDUBase):
             return False
         else:
             return True
+
+    def is_compressed(self):
+        """
+        returns true of this extension is compressed
+        """
+        return self._info['is_compressed_image']==1
+
+    def get_comptype(self):
+        """
+        Get the compression type.
+
+        None if the image is not compressed.
+        """
+        return self._info['comptype']
 
     def write(self, img, **keys):
         """
