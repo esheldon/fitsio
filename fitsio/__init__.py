@@ -243,7 +243,6 @@ __version__='0.9.4'
 
 from . import fitslib
 from .fitslib import FITS
-from .fitslib import FITSHDU
 from .fitslib import FITSHDR
 from .fitslib import read
 from .fitslib import read_header
