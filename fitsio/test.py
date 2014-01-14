@@ -236,10 +236,11 @@ class TestReadWrite(unittest.TestCase):
         """
 
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 # note mixing up byte orders a bit
-                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
+                for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
                     fits.write_image(data, header=header)
@@ -254,6 +255,11 @@ class TestReadWrite(unittest.TestCase):
                             v = v.strip()
                             rv = rv.strip()
                         self.assertEqual(v,rv,"testing equal key '%s'" % k)
+
+            with fitsio.FITS(fname) as fits:
+                for i in xrange(len(dtypes)):
+                    self.assertEqual(fits[i].is_compressed(), False, "not compressed")
+
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
@@ -294,10 +300,11 @@ class TestReadWrite(unittest.TestCase):
         tile_dims=[5,10]
         compress='rice'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+        dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
+
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 # note i8 not supported for compressed!
-                dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
                     data = numpy.arange(nrows*ncols,dtype=dtype).reshape(nrows,ncols)
@@ -317,6 +324,10 @@ class TestReadWrite(unittest.TestCase):
                                        ("%s tile dims compressed images "
                                         "('%s')" % (compress,dtype)))
 
+            with fitsio.FITS(fname) as fits:
+                for ii in xrange(len(dtypes)):
+                    i=ii+1
+                    self.assertEqual(fits[i].is_compressed(), True, "is compressed")
 
         finally:
             if os.path.exists(fname):

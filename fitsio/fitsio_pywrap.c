@@ -354,7 +354,7 @@ PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
 static PyObject *
 PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0, hdutype=0, ext=0;
-    int status=0, tstatus=0;
+    int status=0, tstatus=0, is_compressed=0;
     PyObject* dict=NULL;
 
     char extname[FLEN_VALUE];
@@ -414,6 +414,10 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     } else {
         add_long_to_dict(dict, "hduver", (long)0);
     }
+
+    tstatus=0;
+    is_compressed=fits_is_compressed_image(self->fits, &tstatus);
+    add_long_to_dict(dict, "is_compressed_image", (long)is_compressed);
 
     int ndims=0;
     int maxdim=CFITSIO_MAX_ARRAY_DIMS;

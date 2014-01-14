@@ -12,10 +12,6 @@ Also see docs for the FITS class and its methods.
 In ipython:
     fitsio.FITS?
 
-TODO
-    fix is_compressed
-    int fits_is_compressed_image(fitsfile *fptr, int *status);
-
   Copyright (C) 2011  Erin Sheldon, BNL.  erin dot sheldon at gmail dot com
 
     This program is free software; you can redistribute it and/or modify
@@ -334,14 +330,6 @@ class FITS(object):
                 raise ValueError("File not found: '%s'" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
-
-
-        if (filename[-3:].lower() == '.gz' 
-                or filename[-2:].upper() == '.Z'
-                or filename[-4:].lower() == '.zip'):
-            self._is_compressed=True
-        else:
-            self._is_compressed=False
 
     def close(self):
         """
@@ -1040,13 +1028,6 @@ class HDUBase(object):
         self._update_info()
         self._filename = self._FITS.filename()
 
-        if (self._filename[-3:].lower() == '.gz' 
-                or self._filename[-2:].upper() == '.Z'
-                or self._filename[-4:].lower() == '.zip'):
-            self._is_compressed=True
-        else:
-            self._is_compressed=False
-
     def get_extnum(self):
         """
         Get the extension number
@@ -1105,9 +1086,9 @@ class HDUBase(object):
 
     def is_compressed(self):
         """
-        returns true of this extensionis compressed
+        returns true of this extension is compressed
         """
-        return self._is_compressed
+        return self._info['is_compressed_image']==1
 
     def get_filename(self):
         """
