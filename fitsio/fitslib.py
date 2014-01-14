@@ -227,8 +227,14 @@ def write(filename, data, extname=None, extver=None, units=None,
 
     """
     with FITS(filename, 'rw', clobber=clobber, **keys) as fits:
-        fits.write(data, table_type=table_type, units=units, extname=extname, extver=extver, 
-                   compress=compress, header=header, **keys)
+        fits.write(data,
+                   table_type=table_type,
+                   units=units,
+                   extname=extname,
+                   extver=extver, 
+                   compress=compress,
+                   header=header,
+                   **keys)
 
 
 ANY_HDU=-1
@@ -305,7 +311,8 @@ class FITS(object):
         clobber = keys.get('clobber',False)
 
         if self.mode not in _int_modemap:
-            raise ValueError("mode should be one of 'r','rw',READONLY,READWRITE")
+            raise ValueError("mode should be one of 'r','rw',"
+                             "READONLY,READWRITE")
 
         self.charmode = _char_modemap[self.mode]
         self.intmode = _int_modemap[self.mode]
@@ -520,7 +527,7 @@ class FITS(object):
             self[-1]._update_info()
 
         if img is not None:
-            self[-1].write_image(img)
+            self[-1].write(img)
 
         self.update_hdu_list()
 
@@ -1321,9 +1328,9 @@ class TableHDU(HDUBase):
     def __init__(self, fits, ext, **keys):
         super(TableHDU,self).__init__(fits, ext, **keys)
         if self._info['hdutype'] == ASCII_TBL:
-            self._table_type='ascii'
+            self._table_type_str='ascii'
         else:
-            self._table_type='binary'
+            self._table_type_str='binary'
 
     def get_nrows(self):
         """
@@ -1477,8 +1484,6 @@ class TableHDU(HDUBase):
 
         self._update_info()
 
-    write_columns=write
-
     def write_column(self, column, data, **keys):
         """
         Write data to a column in this HDU
@@ -1581,7 +1586,7 @@ class TableHDU(HDUBase):
         this_descr = tuple(this_descr)
 
         name, fmt, dims = npy2fits(this_descr, 
-                                   table_type=self._table_type)
+                                   table_type=self._table_type_str)
         if dims is not None:
             dims=[dims]
 
@@ -1667,11 +1672,11 @@ class TableHDU(HDUBase):
                 del keys['rows']
             data = self.read_rows(rows, **keys)
         else:
-            data = self.read_all(**keys)
+            data = self._read_all(**keys)
 
         return data
 
-    def read_all(self, **keys):
+    def _read_all(self, **keys):
         """
         Read all data in the HDU.
 
@@ -1742,8 +1747,6 @@ class TableHDU(HDUBase):
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
-        if self._info['hdutype'] == _hdu_type_map['IMAGE_HDU']:
-            raise ValueError("Cannot yet read columns from an image HDU")
 
         rows=keys.get('rows',None)
         colnum = self._extract_colnum(col)
@@ -1787,7 +1790,7 @@ class TableHDU(HDUBase):
         """
         if rows is None:
             # we actually want all rows!
-            return self.read_all()
+            return self._read_all()
 
         if self._info['hdutype'] == ASCII_TBL:
             keys['rows'] = rows
@@ -1852,12 +1855,9 @@ class TableHDU(HDUBase):
 
         if self._info['hdutype'] == ASCII_TBL:
             keys['columns'] = columns
-            return self.read_ascii(**keys)
+            return self.read(**keys)
 
         rows = keys.get('rows',None)
-
-        if self._info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Cannot yet read columns from an image HDU")
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
@@ -2421,7 +2421,7 @@ class TableHDU(HDUBase):
         Call parent method and make sure this is in fact a
         table HDU.  Set some convenience data.
         """
-        super(TableHDU)._update_info()
+        super(TableHDU,self)._update_info()
         if self._info['hdutype'] == IMAGE_HDU:
             mess="Extension %s is not a Table HDU" % self.ext
             raise ValueError(mess)
@@ -2485,9 +2485,6 @@ class TableHDU(HDUBase):
         for row in hdu1:
             ...
         """
-
-        if self._info['hdutype'] == IMAGE_HDU:
-            raise ValueError("Iteration only works on tables")
 
         # always start with first row
         self._iter_row=0
@@ -2683,7 +2680,7 @@ class ImageHDU(HDUBase):
         Call parent method and make sure this is in fact a
         image HDU.  Set dims in C order
         """
-        super(ImageHDU)._update_info()
+        super(ImageHDU,self)._update_info()
 
         if self._info['hdutype'] != IMAGE_HDU:
             mess="Extension %s is not a Image HDU" % self.ext
@@ -2735,8 +2732,6 @@ class ImageHDU(HDUBase):
         self._FITS.write_image(self._ext+1, img_send)
         self._update_info()
 
-    write_image=write
-
     def read(self):
         """
         Read the image.
@@ -2751,8 +2746,6 @@ class ImageHDU(HDUBase):
         array = numpy.zeros(shape, dtype=dtype)
         self._FITS.read_image(self._ext+1, array)
         return array
-
-    read_image=read
 
     def _get_dtype_and_shape(self):
 
@@ -3573,6 +3566,7 @@ class FITSHDR:
     def __iter__(self):
         self._current=0
         return self
+
     def next(self):
         if self._current < len(self._record_list):
             rec=self._record_list[self._current]
@@ -3581,7 +3575,6 @@ class FITSHDR:
             return key
         else:
             raise StopIteration
-
 
     def _record2card(self, record):
         """
