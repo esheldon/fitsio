@@ -1082,7 +1082,7 @@ class HDUBase(object):
         """
         Get a copy of the filename for this fits file
         """
-        return self._filename
+        return copy.copy(self._filename)
 
     def write_checksum(self):
         """
@@ -1250,7 +1250,6 @@ class HDUBase(object):
             'comment': the comment field as a string.
         """
         return self._FITS.read_header(self._ext+1)
-
 
 
     def _update_info(self):

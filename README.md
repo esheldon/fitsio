@@ -286,18 +286,19 @@ Examples
 
     # how to get more information about an extension
     f[1].get_info()             # lots of info about the extension
+    f[1].has_data()             # returns True if data is present in extension
     f[1].get_extname()
     f[1].get_extver()
     f[1].get_extnum()           # return zero-offset extension number
     f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
-    f[1].get_colnames()
-    f[1].get_colname(colnum)    # find the column name from column number
+    f[1].is_compressed()        # for images. True if tile-compressed
+    f[1].get_colnames()         # for tables
+    f[1].get_colname(colnum)    # for tables find the name from column number
     f[1].get_nrows()            # for tables
     f[1].get_rec_dtype()        # for tables
     f[1].get_rec_column_descr() # for tables
-    f[1].get_vstorage()         # storage mechanism for variable length columns
-    f[1].has_data()             # returns True if data is present in extension
-    f[1].is_compressed()
+    f[1].get_vstorage()         # for tables, storage mechanism for variable 
+                                # length columns
 
     # public attributes you can feel free to change as needed
     f[1].lower           # If True, lower case colnames on output
