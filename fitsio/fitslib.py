@@ -3819,7 +3819,9 @@ _table_fits2npy = {11: 'u1',
                    41: 'i4', # 41=TLONG
                    42: 'f4',
                    81: 'i8',
-                   82: 'f8'}
+                   82: 'f8',
+                   83: 'c8',   # TCOMPLEX
+                   163: 'c16'} # TDBLCOMPLEX 
 
 # cfitsio returns only types f8, i4 and strings for column types. in order to
 # avoid data loss, we always use i8 for integer types
@@ -3841,7 +3843,9 @@ _table_npy2fits_form = {'b1':'L',
                         'i4':'J',
                         'i8':'K',
                         'f4':'E',
-                        'f8':'D'}
+                        'f8':'D',
+                        'c8':'C',
+                        'c16':'M'}
 
 _table_npy2fits_form_ascii = {'S' :'A1',       # Need to add max here
                               'i2':'I7',      # I

@@ -32,6 +32,8 @@ class TestReadWrite(unittest.TestCase):
                ('i8scalar','i8'),
                ('f4scalar','f4'),
                ('f8scalar','>f8'),
+               ('c8scalar','c8'), # complex, two 32-bit
+               ('c16scalar','c16'), # complex, two 32-bit
 
                ('u1vec','u1',nvec),
                ('i1vec','i1',nvec),
@@ -43,6 +45,8 @@ class TestReadWrite(unittest.TestCase):
                ('i8vec','i8',nvec),
                ('f4vec','f4',nvec),
                ('f8vec','f8',nvec),
+               ('c8vec','c8',nvec),
+               ('c16vec','c16',nvec),
  
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
@@ -54,6 +58,8 @@ class TestReadWrite(unittest.TestCase):
                ('i8arr','i8',ashape),
                ('f4arr','f4',ashape),
                ('f8arr','f8',ashape),
+               ('c8arr','c8',ashape),
+               ('c16arr','c16',ashape),
 
                ('Sscalar',Sdtype),
                ('Svec',   Sdtype, nvec),
@@ -66,11 +72,27 @@ class TestReadWrite(unittest.TestCase):
         nrows=4
         data=numpy.zeros(nrows, dtype=dtype)
 
-        for t in ['u1','i1','u2','i2','u4','i4','i8','f4','f8']:
-            data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
-            data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
-            arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
-            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
+        dtypes=['u1','i1','u2','i2','u4','i4','i8','f4','f8','c8','c16']
+        for t in dtypes:
+            if t in ['c8','c16']:
+                data[t+'scalar'] = [complex(i+1,(i+1)*2) for i in xrange(nrows)]
+                vname=t+'vec'
+                for row in xrange(nrows):
+                    for i in xrange(nvec):
+                        index=(row+1)*(i+1)
+                        data[vname][row,i] = complex(index,index*2)
+                aname=t+'arr'
+                for row in xrange(nrows):
+                    for i in xrange(ashape[0]):
+                        for j in xrange(ashape[1]):
+                            index=(row+1)*(i+1)*(j+1)
+                            data[aname][row,i,j] = complex(index,index*2)
+
+            else:
+                data[t+'scalar'] = 1 + numpy.arange(nrows, dtype=t)
+                data[t+'vec'] = 1 + numpy.arange(nrows*nvec,dtype=t).reshape(nrows,nvec)
+                arr = 1 + numpy.arange(nrows*ashape[0]*ashape[1],dtype=t)
+                data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
 
         for t in ['b1']:
             data[t+'scalar'] = (numpy.arange(nrows) % 2 == 0).astype(t)
@@ -875,6 +897,7 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    '''
     def testTableIter(self):
         """
         Test iterating over rows of a table
@@ -907,7 +930,7 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
-
+    '''
 
     def testAsciiTableWriteRead(self):
         """

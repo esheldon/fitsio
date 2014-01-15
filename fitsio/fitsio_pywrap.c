@@ -674,6 +674,11 @@ npy_to_fits_table_type(int npy_dtype) {
         case NPY_FLOAT64:
             return TDOUBLE;
 
+        case NPY_COMPLEX64:
+            return TCOMPLEX;
+        case NPY_COMPLEX128:
+            return TDBLCOMPLEX;
+
         case NPY_STRING:
             return TSTRING;
 
@@ -905,6 +910,12 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
             return NPY_FLOAT32;
         case TDOUBLE:
             return NPY_FLOAT64;
+
+        case TCOMPLEX:
+            return NPY_COMPLEX64;
+        case TDBLCOMPLEX:
+            return NPY_COMPLEX128;
+
 
         case TSTRING:
             return NPY_STRING;

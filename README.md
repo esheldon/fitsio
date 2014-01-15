@@ -30,7 +30,7 @@ Some Features
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
-- Read and write unsigned integer types and signed bytes.
+- Read and write complex, unsigned integer signed bytes types.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
@@ -341,9 +341,7 @@ The unit tests should all pass for full support.
 TODO
 ----
 
-- separate classes for image, ascii and binary table HDUs.  Inherit from base
-  class.
-- complex table columns.  bit?
+- bit columns
 - HDU groups?
 
 Notes on cfitsio bundling
