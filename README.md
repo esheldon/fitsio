@@ -210,7 +210,8 @@ for hdu in fits:
 # create a rec array.  Note vstr
 # is a variable length string
 >>> nrows=35
->>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
+>>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
+                                     ('arr','f4',(3,4))])
 >>> data['index'] = numpy.arange(nrows,dtype='i4')
 >>> data['x'] = numpy.random.random(nrows)
 >>> data['vstr'] = [str(i) for i in xrange(nrows)]
