@@ -263,7 +263,8 @@ names=['x','y','name']
 >>> hdict = {'somekey': 35, 'location': 'kitt peak'}
 >>> fits.write(data, header=hdict)
 >>> hlist = [{'name':'observer', 'value':'ES', 'comment':'who'},
-             {'name':'location','value':'CTIO'}]
+             {'name':'location','value':'CTIO'},
+             {'name':'photometric','value':True}]
 >>> fits.write(data, header=hlist)
 >>> hdr=FITSHDR(hlist)
 >>> fits.write(data, header=hdr)
