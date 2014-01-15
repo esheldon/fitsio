@@ -2140,6 +2140,9 @@ class TableHDU(HDUBase):
         return array
 
     def _extract_rows(self, rows):
+        """
+        Extract an array of rows from an input scalar or sequence
+        """
         if rows is not None:
             rows = numpy.array(rows, ndmin=1, copy=False, dtype='i8')
             # returns unique, sorted
@@ -2151,6 +2154,9 @@ class TableHDU(HDUBase):
         return rows
 
     def _process_slice(self, arg):
+        """
+        process the input slice for use calling the C code
+        """
         start = arg.start
         stop = arg.stop
         step = arg.step
@@ -2180,6 +2186,9 @@ class TableHDU(HDUBase):
         return slice(start, stop, step)
 
     def _slice2rows(self, start, stop, step=None):
+        """
+        Convert a slice to an explicit array of rows
+        """
         nrows=self._info['nrows']
         if start is None:
             start=0
@@ -2200,6 +2209,8 @@ class TableHDU(HDUBase):
 
     def _fix_range(self, num, isslice=True):
         """
+        Ensure the input is within range.
+
         If el=True, then don't treat as a slice element
         """
 
@@ -2220,6 +2231,9 @@ class TableHDU(HDUBase):
         return num
 
     def _rescale_array(self, array, scale, zero):
+        """
+        Scale the input array
+        """
         if scale != 1.0:
             sval=numpy.array(scale,dtype=array.dtype)
             array *= sval
@@ -2228,12 +2242,18 @@ class TableHDU(HDUBase):
             array += zval
 
     def _filter_array(self, array):
+        """
+        If input is a fits bool, convert to numpy boolean
+        """
         # cfitsio reads as characters 'T' and 'F' -- convert to real boolean
         if array.dtype == numpy.bool:
             array = (array.astype(numpy.int8) == ord('T')).astype(numpy.bool)
         return array
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
+        """
+        Get numpy type for the input column
+        """
         table_type = self._info['hdutype']
         table_type_string = _hdu_type_map[table_type]
         try:
@@ -2350,6 +2370,9 @@ class TableHDU(HDUBase):
         return array
 
     def _extract_colnums(self, columns=None):
+        """
+        Extract an array of columns from the input
+        """
         if columns is None:
             return numpy.arange(self._ncol, dtype='i8')
         
@@ -2366,6 +2389,9 @@ class TableHDU(HDUBase):
         return colnums
 
     def _extract_colnum(self, col):
+        """
+        Get the column number for the input column
+        """
         if isinstance(col,(int,long)):
             colnum = col
 
@@ -2504,6 +2530,9 @@ class TableHDU(HDUBase):
         self._row_buffer_index = 0
 
     def __repr__(self):
+        """
+        textual representation for some metadata
+        """
         text, spacing = self._get_repr_list()
 
         text.append('%srows: %d' % (spacing,self._info['nrows']))
@@ -2730,7 +2759,9 @@ class ImageHDU(HDUBase):
         return array
 
     def _get_dtype_and_shape(self):
-
+        """
+        Get the numpy dtype and shape for image
+        """
         npy_dtype = self._get_image_numpy_dtype()
 
         if self._info['ndims'] != 0:
@@ -2741,6 +2772,9 @@ class ImageHDU(HDUBase):
         return npy_dtype, shape
 
     def _get_image_numpy_dtype(self):
+        """
+        Get the numpy dtype for the image
+        """
         try:
             ftype = self._info['img_equiv_type']
             npy_type = _image_bitpix2npy[ftype]
@@ -2758,6 +2792,9 @@ class ImageHDU(HDUBase):
         return self._read_image_slice(arg)
 
     def _read_image_slice(self, arg):
+        """
+        workhorse to read a slice
+        """
         if 'ndims' not in self._info:
             raise ValueError("Attempt to slice empty extension")
 
