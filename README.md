@@ -40,6 +40,7 @@ Some Features
 Examples
 --------
 
+```python
     >>> import fitsio
 
     # Often you just want to quickly read or write data without bothering to
@@ -304,7 +305,7 @@ Examples
     f[1].lower           # If True, lower case colnames on output
     f[1].upper           # If True, upper case colnames on output
     f[1].case_sensitive  # if True, names are matched case sensitive
-
+```
 Installation
 ------------
 
