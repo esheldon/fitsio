@@ -897,7 +897,6 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
-    '''
     def testTableIter(self):
         """
         Test iterating over rows of a table
@@ -929,8 +928,6 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 #pass
                 os.remove(fname)
-
-    '''
 
     def testAsciiTableWriteRead(self):
         """
