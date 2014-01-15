@@ -93,7 +93,8 @@ extnum hdutype         hduname
 # at the python prompt, you could just type "fits" and it will automatically
 # print itself.  Same for ipython.
 >>> fits
-...
+file: data.fits
+... etc
 
 # explore the extensions, either by extension number or
 # extension name if available
