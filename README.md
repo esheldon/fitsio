@@ -50,8 +50,10 @@ Examples
 
 # read all data from the first hdu with data
 >>> data = fitsio.read(filename)
+
 # read a subset of rows and columns from the specified extension
 >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+
 # read the header, or both at once
 >>> h = fitsio.read_header(filename, extension)
 >>> data,h = fitsio.read(filename, ext=ext, header=True)
@@ -61,6 +63,7 @@ Examples
 # added to the file.  use clobber=True to overwrite an existing file
 # instead.  To append rows to an existing table, see below.
 >>> fitsio.write(filename, recarray)
+
 # write an image
 >>> fitsio.write(filename, image)
 
