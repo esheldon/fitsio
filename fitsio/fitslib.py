@@ -956,7 +956,7 @@ class FITS(object):
         if not hasattr(self, 'hdu_list'):
             self.update_hdu_list()
 
-        rep = []
+        rep = ['']
         rep.append("%sfile: %s" % (spacing,self._filename))
         rep.append("%smode: %s" % (spacing,_modeprint_map[self.intmode]))
 
@@ -1261,7 +1261,7 @@ class HDUBase(object):
         Get some representation data common to all HDU types
         """
         spacing = ' '*2
-        text = []
+        text = ['']
         text.append("%sfile: %s" % (spacing,self._filename))
         text.append("%sextension: %d" % (spacing,self._info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[self._info['hdutype']]))
@@ -1302,6 +1302,12 @@ class TableHDU(HDUBase):
             raise ValueError("nrows not in info table; this is a bug")
         return nrows
 
+    def get_colnames(self):
+        """
+        Get a copy of the column names for a table HDU
+        """
+        return copy.copy(self._colnames)
+
     def get_colname(self, colnum):
         """
         Get the name associated with the given column number
@@ -1314,12 +1320,6 @@ class TableHDU(HDUBase):
         if colnum < 0 or colnum > (len(self._colnames)-1):
             raise ValueError("colnum out of range [0,%s-1]" % (0,len(self._colnames)))
         return self._colnames[colnum]
-
-    def get_colnames(self):
-        """
-        Get a copy of the column names for a table HDU
-        """
-        return copy.copy(self._colnames)
 
     def get_vstorage(self):
         """
