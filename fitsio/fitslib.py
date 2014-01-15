@@ -1668,7 +1668,8 @@ class TableHDU(HDUBase):
             vstorage = keys.get('vstorage',self._vstorage)
             colnums = self._extract_colnums()
             rows=None
-            array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
+            array = self._read_rec_with_var(colnums, rows, dtype,
+                                            offsets, isvar, vstorage)
         else:
 
             firstrow=1
@@ -1678,10 +1679,10 @@ class TableHDU(HDUBase):
             self._FITS.read_as_rec(self._ext+1, 1, nrows, array)
 
             for colnum,name in enumerate(array.dtype.names):
-                self._rescale_and_convert(array, 
+                self._rescale_and_convert_field_inplace(array,
+                                          name,
                                           self._info['colinfo'][colnum]['tscale'], 
-                                          self._info['colinfo'][colnum]['tzero'],
-                                          name=name)
+                                          self._info['colinfo'][colnum]['tzero'])
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -1776,10 +1777,10 @@ class TableHDU(HDUBase):
             self._FITS.read_rows_as_rec(self._ext+1, array, rows)
 
             for colnum,name in enumerate(array.dtype.names):
-                self._rescale_and_convert(array, 
+                self._rescale_and_convert_field_inplace(array,
+                                          name,
                                           self._info['colinfo'][colnum]['tscale'], 
-                                          self._info['colinfo'][colnum]['tzero'],
-                                          name=name)
+                                          self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -1858,10 +1859,10 @@ class TableHDU(HDUBase):
             for i in xrange(colnums.size):
                 colnum = int(colnums[i])
                 name = array.dtype.names[i]
-                self._rescale_and_convert(array, 
+                self._rescale_and_convert_field_inplace(array,
+                                          name,
                                           self._info['colinfo'][colnum]['tscale'], 
-                                          self._info['colinfo'][colnum]['tzero'],
-                                          name=name)
+                                          self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -1934,10 +1935,10 @@ class TableHDU(HDUBase):
                 self._FITS.read_as_rec(self._ext+1, firstrow+1, lastrow, array)
 
                 for colnum,name in enumerate(array.dtype.names):
-                    self._rescale_and_convert(array, 
+                    self._rescale_and_convert_field_inplace(array, 
+                                              name,
                                               self._info['colinfo'][colnum]['tscale'], 
-                                              self._info['colinfo'][colnum]['tzero'],
-                                              name=name)
+                                              self._info['colinfo'][colnum]['tzero'])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -2230,21 +2231,28 @@ class TableHDU(HDUBase):
 
         return num
 
+    def _rescale_and_convert_field_inplace(self, array, name, scale, zero):
+        """
+        Apply fits scalings.  Also, convert bool to proper
+        numpy boolean values
+        """
+        self._rescale_array(array[name], scale, zero)
+        if array[name].dtype==numpy.bool:
+            array[name] = self._convert_bool_array(array[name])
+            
+        return array
+
     def _rescale_and_convert(self, array, scale, zero, name=None):
         """
         Apply fits scalings.  Also, convert bool to proper
         numpy boolean values
         """
-        if name is None:
-            self._rescale_array(array, scale, zero)
-            if array.dtype==numpy.bool:
-                array = self._convert_bool_array(array)
-        else:
-            self._rescale_array(array[name], scale, zero)
-            if array[name].dtype==numpy.bool:
-                array[name] = self._convert_bool_array(array[name])
-                
+        self._rescale_array(array, scale, zero)
+        if array.dtype==numpy.bool:
+            array = self._convert_bool_array(array)
+            
         return array
+
 
     def _rescale_array(self, array, scale, zero):
         """
