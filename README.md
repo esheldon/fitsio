@@ -41,270 +41,270 @@ Examples
 --------
 
 ```python
-    >>> import fitsio
+>>> import fitsio
 
-    # Often you just want to quickly read or write data without bothering to
-    # create a FITS object.  In that case, you can use the read and write
-    # convienience functions.
+# Often you just want to quickly read or write data without bothering to
+# create a FITS object.  In that case, you can use the read and write
+# convienience functions.
 
-    # read all data from the first hdu with data
-    >>> data = fitsio.read(filename)
-    # read a subset of rows and columns from the specified extension
-    >>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
-    # read the header, or both at once
-    >>> h = fitsio.read_header(filename, extension)
-    >>> data,h = fitsio.read(filename, ext=ext, header=True)
+# read all data from the first hdu with data
+>>> data = fitsio.read(filename)
+# read a subset of rows and columns from the specified extension
+>>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+# read the header, or both at once
+>>> h = fitsio.read_header(filename, extension)
+>>> data,h = fitsio.read(filename, ext=ext, header=True)
 
-    # open the file, write a new binary table extension, and then write  the
-    # data from "recarray" into the table. By default a new extension is
-    # added to the file.  use clobber=True to overwrite an existing file
-    # instead.  To append rows to an existing table, see below.
-    >>> fitsio.write(filename, recarray)
-    # write an image
-    >>> fitsio.write(filename, image)
+# open the file, write a new binary table extension, and then write  the
+# data from "recarray" into the table. By default a new extension is
+# added to the file.  use clobber=True to overwrite an existing file
+# instead.  To append rows to an existing table, see below.
+>>> fitsio.write(filename, recarray)
+# write an image
+>>> fitsio.write(filename, image)
 
-    # NOTE when reading row subsets, the data must still be read from disk.
-    # This is most efficient if the data are read in the order they appear in
-    # the file.  For this reason, the rows are always returned in row-sorted
-    # order.
+# NOTE when reading row subsets, the data must still be read from disk.
+# This is most efficient if the data are read in the order they appear in
+# the file.  For this reason, the rows are always returned in row-sorted
+# order.
 
-    #
-    # the FITS class gives the you the ability to explore the data, and gives
-    # more control
-    #
+#
+# the FITS class gives the you the ability to explore the data, and gives
+# more control
+#
 
-    # open a FITS file for reading and explore
-    >>> fits=fitsio.FITS('data.fits')
+# open a FITS file for reading and explore
+>>> fits=fitsio.FITS('data.fits')
 
-    # see what is in here; the FITS object prints itself
-    >>> fits
+# see what is in here; the FITS object prints itself
+>>> fits
 
-    file: data.fits
-    mode: READONLY
-    extnum hdutype         hduname
-    0      IMAGE_HDU
-    1      BINARY_TBL      mytable
+file: data.fits
+mode: READONLY
+extnum hdutype         hduname
+0      IMAGE_HDU
+1      BINARY_TBL      mytable
 
-    # explore the extensions, either by extension number or
-    # extension name if available
-    >>> fits[0]
+# explore the extensions, either by extension number or
+# extension name if available
+>>> fits[0]
 
-    file: data.fits
-    extension: 0
-    type: IMAGE_HDU
-    image info:
-      data type: f8
-      dims: [4096,2048]
+file: data.fits
+extension: 0
+type: IMAGE_HDU
+image info:
+  data type: f8
+  dims: [4096,2048]
 
-    >>> fits['mytable']  # can also use fits[1]
+>>> fits['mytable']  # can also use fits[1]
 
-    file: data.fits
-    extension: 1
-    type: BINARY_TBL
-    extname: mytable
-    rows: 4328342
-    column info:
-      i1scalar            u1
-      f                   f4
-      fvec                f4  array[2]
-      darr                f8  array[3,2]
-      dvarr               f8  varray[10]
-      s                   S5
-      svec                S6  array[3]
-      svar                S0  vstring[8]
-      sarr                S2  array[4,3]
+file: data.fits
+extension: 1
+type: BINARY_TBL
+extname: mytable
+rows: 4328342
+column info:
+  i1scalar            u1
+  f                   f4
+  fvec                f4  array[2]
+  darr                f8  array[3,2]
+  dvarr               f8  varray[10]
+  s                   S5
+  svec                S6  array[3]
+  svar                S0  vstring[8]
+  sarr                S2  array[4,3]
 
-    # See bottom for how to get more information for an extension
+# See bottom for how to get more information for an extension
 
-    # [-1] to refers the last HDU
-    >>> fits[-1]
-    ...
+# [-1] to refers the last HDU
+>>> fits[-1]
+...
 
-    # if there are multiple HDUs with the same name, and an EXTVER
-    # is set, you can use it.  Here extver=2
-    #    fits['mytable',2]
-
-
-    # read the image from extension zero
-    >>> img = fits[0].read()
-    >>> img = fits[0][:,:]
-
-    # read a subset of the image without reading the whole image
-    >>> img = fits[0][25:35, 45:55]
+# if there are multiple HDUs with the same name, and an EXTVER
+# is set, you can use it.  Here extver=2
+#    fits['mytable',2]
 
 
-    # read all rows and columns from a binary table extension
-    >>> data = fits[1].read()
-    >>> data = fits['mytable'].read()
-    >>> data = fits[1][:]
+# read the image from extension zero
+>>> img = fits[0].read()
+>>> img = fits[0][:,:]
 
-    # read a subset of rows and columns. By default uses a case-insensitive
-    # match. The result retains the names with original case.  If columns is a
-    # sequence, a recarray is returned
-    >>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
-
-    # Similar but using slice notation
-    # row subsets
-    >>> data = fits[1][10:20]
-    >>> data = fits[1][10:20:2]
-    >>> data = fits[1][[1,5,18]]
-
-    # all rows of column 'x'
-    >>> data = fits[1]['x'][:]
-
-    # Read a few columns at once. This is more efficient than separate read for
-    # each column
-    >>> data = fits[1]['x','y'][:]
-
-    # General column and row subsets.  As noted above, the data are returned
-    # in row sorted order for efficiency reasons.
-    >>> data = fits[1][columns][rows]
-
-    # iterate over rows in a table hdu
-    # faster if we buffer some rows, let's buffer 1000 at a time
-    fits=fitsio.FITS(filename,iter_row_buffer=1000)
-    for row in fits[1]:
-        print row
-
-    # iterate over HDUs in a FITS object
-    for hdu in fits:
-        data=hdu.read()
-
-    # Note dvarr shows type varray[10] and svar shows type vstring[8]. These
-    # are variable length columns and the number specified is the maximum size.
-    # By default they are read into fixed-length fields in the output array.
-    # You can over-ride this by constructing the FITS object with the vstorage
-    # keyword or specifying vstorage when reading.  Sending vstorage='object'
-    # will store the data in variable size object fields to save memory; the
-    # default is vstorage='fixed'.  Object fields can also be written out to a
-    # new FITS file as variable length to save disk space.
-
-    >>> fits = fitsio.FITS(filename,vstorage='object')
-    # OR
-    >>> data = fits[1].read(vstorage='object')
-    >>> print data['dvarr'].dtype
-        dtype('object')
+# read a subset of the image without reading the whole image
+>>> img = fits[0][25:35, 45:55]
 
 
-    # you can grab a FITSHDU object to simplify notation
-    >>> hdu1 = fits[1]
-    >>> data = hdu1['x','y'][35:50]
-    
-    # get rows that satisfy the input expression.  See "Row Filtering
-    # Specification" in the cfitsio manual
-    >>> w=fits[1].where("x > 0.25 && y < 35.0")
-    >>> data = fits[1][w]
+# read all rows and columns from a binary table extension
+>>> data = fits[1].read()
+>>> data = fits['mytable'].read()
+>>> data = fits[1][:]
 
-    # read the header
-    >>> h = fits[0].read_header()
-    >>> h['BITPIX']
-    -64
+# read a subset of rows and columns. By default uses a case-insensitive
+# match. The result retains the names with original case.  If columns is a
+# sequence, a recarray is returned
+>>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
-    >>> fits.close()
+# Similar but using slice notation
+# row subsets
+>>> data = fits[1][10:20]
+>>> data = fits[1][10:20:2]
+>>> data = fits[1][[1,5,18]]
 
+# all rows of column 'x'
+>>> data = fits[1]['x'][:]
 
-    # now write some data
-    >>> fits = FITS('test.fits','rw')
+# Read a few columns at once. This is more efficient than separate read for
+# each column
+>>> data = fits[1]['x','y'][:]
 
- 
-    # create a rec array.  Note vstr
-    # is a variable length string
-    >>> nrows=35
-    >>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
-    >>> data['index'] = numpy.arange(nrows,dtype='i4')
-    >>> data['x'] = numpy.random.random(nrows)
-    >>> data['vstr'] = [str(i) for i in xrange(nrows)]
-    >>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
+# General column and row subsets.  As noted above, the data are returned
+# in row sorted order for efficiency reasons.
+>>> data = fits[1][columns][rows]
 
-    # create a new table extension and write the data
-    >>> fits.write(data)
+# iterate over rows in a table hdu
+# faster if we buffer some rows, let's buffer 1000 at a time
+fits=fitsio.FITS(filename,iter_row_buffer=1000)
+for row in fits[1]:
+    print row
 
-    # can also be a list of ordinary arrays if you send the names
-    array_list=[xarray,yarray,namearray]
-    names=['x','y','name']
-    >>> fits.write(array_list, names=names)
+# iterate over HDUs in a FITS object
+for hdu in fits:
+    data=hdu.read()
 
-    # similarly a dict of arrays
-    >>> fits.write(dict_of_arrays)
-    >>> fits.write(dict_of_arrays, names=names) # control name order
+# Note dvarr shows type varray[10] and svar shows type vstring[8]. These
+# are variable length columns and the number specified is the maximum size.
+# By default they are read into fixed-length fields in the output array.
+# You can over-ride this by constructing the FITS object with the vstorage
+# keyword or specifying vstorage when reading.  Sending vstorage='object'
+# will store the data in variable size object fields to save memory; the
+# default is vstorage='fixed'.  Object fields can also be written out to a
+# new FITS file as variable length to save disk space.
 
-    # note under the hood writing data to a HDU does the following
-    >>> fits.create_table_hdu(data=data)
-    >>> fits[-1].write(data)
-    >>> fits.update_hdu_list()
-
-    # append more rows to the table.  The fields in data2 should match columns
-    # in the table.  missing columns will be filled with zeros
-    >>> fits[-1].append(data2)
-
-    # insert a new column into a table
-    >>> fits[-1].insert_column('newcol', data)
-    # insert with a specific colnum
-    >>> fits[-1].insert_column('newcol', data, colnum=2)
+>>> fits = fitsio.FITS(filename,vstorage='object')
+# OR
+>>> data = fits[1].read(vstorage='object')
+>>> print data['dvarr'].dtype
+    dtype('object')
 
 
-    # create an image
-    >>> img=numpy.arange(20,30,dtype='i4')
+# you can grab a FITSHDU object to simplify notation
+>>> hdu1 = fits[1]
+>>> data = hdu1['x','y'][35:50]
 
-    # write an image in a new HDU (if this is a new file, the primary HDU)
-    >>> fits.write(img)
+# get rows that satisfy the input expression.  See "Row Filtering
+# Specification" in the cfitsio manual
+>>> w=fits[1].where("x > 0.25 && y < 35.0")
+>>> data = fits[1][w]
 
-    # write an image with rice compression
-    >>> fits.write(img, compress='rice')
+# read the header
+>>> h = fits[0].read_header()
+>>> h['BITPIX']
+-64
+
+>>> fits.close()
 
 
-    # add checksums for the data
-    >>> fits[-1].write_checksum()
+# now write some data
+>>> fits = FITS('test.fits','rw')
 
-    # you can also write a header at the same time.  The header can be 
-    #   - a simple dict (no comments)
-    #   - a list of dicts with 'name','value','comment' fields
-    #   - a FITSHDR object
 
-    >>> header = {'somekey': 35, 'location': 'kitt peak'}
-    >>> fits.write(data, header=header)
-   
-    # you can add individual keys to an existing HDU
-    >>> fits[1].write_key(name, value, comment="my comment")
+# create a rec array.  Note vstr
+# is a variable length string
+>>> nrows=35
+>>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),('arr','f4',(3,4))])
+>>> data['index'] = numpy.arange(nrows,dtype='i4')
+>>> data['x'] = numpy.random.random(nrows)
+>>> data['vstr'] = [str(i) for i in xrange(nrows)]
+>>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
-    # Write multiple header keys to an existing HDU. Here records is a dict of
-    # keyword-value pairs, a FITSHDR, or list of dicts with 'name','value', and
-    # optionally 'comment' fields
-    >>> fits[1].write_keys(records)
+# create a new table extension and write the data
+>>> fits.write(data)
 
-    >>> fits.close()
+# can also be a list of ordinary arrays if you send the names
+array_list=[xarray,yarray,namearray]
+names=['x','y','name']
+>>> fits.write(array_list, names=names)
 
-    # using a context, the file is closed automatically after leaving the block
-    with FITS('path/to/file') as fits:
-        data = fits[ext].read()
+# similarly a dict of arrays
+>>> fits.write(dict_of_arrays)
+>>> fits.write(dict_of_arrays, names=names) # control name order
 
-    # you can check if a header exists using "in":
-        f=fitsio.FITS(filename)
-        if 'blah' in f:
-            data=f['blah'].read()
-        if 2 in f:
-            data=f[2].read()
+# note under the hood writing data to a HDU does the following
+>>> fits.create_table_hdu(data=data)
+>>> fits[-1].write(data)
+>>> fits.update_hdu_list()
 
-    # how to get more information about an extension
-    f[1].get_info()             # lots of info about the extension
-    f[1].has_data()             # returns True if data is present in extension
-    f[1].get_extname()
-    f[1].get_extver()
-    f[1].get_extnum()           # return zero-offset extension number
-    f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
-    f[1].is_compressed()        # for images. True if tile-compressed
-    f[1].get_colnames()         # for tables
-    f[1].get_colname(colnum)    # for tables find the name from column number
-    f[1].get_nrows()            # for tables
-    f[1].get_rec_dtype()        # for tables
-    f[1].get_rec_column_descr() # for tables
-    f[1].get_vstorage()         # for tables, storage mechanism for variable 
-                                # length columns
+# append more rows to the table.  The fields in data2 should match columns
+# in the table.  missing columns will be filled with zeros
+>>> fits[-1].append(data2)
 
-    # public attributes you can feel free to change as needed
-    f[1].lower           # If True, lower case colnames on output
-    f[1].upper           # If True, upper case colnames on output
-    f[1].case_sensitive  # if True, names are matched case sensitive
+# insert a new column into a table
+>>> fits[-1].insert_column('newcol', data)
+# insert with a specific colnum
+>>> fits[-1].insert_column('newcol', data, colnum=2)
+
+
+# create an image
+>>> img=numpy.arange(20,30,dtype='i4')
+
+# write an image in a new HDU (if this is a new file, the primary HDU)
+>>> fits.write(img)
+
+# write an image with rice compression
+>>> fits.write(img, compress='rice')
+
+
+# add checksums for the data
+>>> fits[-1].write_checksum()
+
+# you can also write a header at the same time.  The header can be 
+#   - a simple dict (no comments)
+#   - a list of dicts with 'name','value','comment' fields
+#   - a FITSHDR object
+
+>>> header = {'somekey': 35, 'location': 'kitt peak'}
+>>> fits.write(data, header=header)
+
+# you can add individual keys to an existing HDU
+>>> fits[1].write_key(name, value, comment="my comment")
+
+# Write multiple header keys to an existing HDU. Here records is a dict of
+# keyword-value pairs, a FITSHDR, or list of dicts with 'name','value', and
+# optionally 'comment' fields
+>>> fits[1].write_keys(records)
+
+>>> fits.close()
+
+# using a context, the file is closed automatically after leaving the block
+with FITS('path/to/file') as fits:
+    data = fits[ext].read()
+
+# you can check if a header exists using "in":
+    f=fitsio.FITS(filename)
+    if 'blah' in f:
+        data=f['blah'].read()
+    if 2 in f:
+        data=f[2].read()
+
+# how to get more information about an extension
+f[1].get_info()             # lots of info about the extension
+f[1].has_data()             # returns True if data is present in extension
+f[1].get_extname()
+f[1].get_extver()
+f[1].get_extnum()           # return zero-offset extension number
+f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
+f[1].is_compressed()        # for images. True if tile-compressed
+f[1].get_colnames()         # for tables
+f[1].get_colname(colnum)    # for tables find the name from column number
+f[1].get_nrows()            # for tables
+f[1].get_rec_dtype()        # for tables
+f[1].get_rec_column_descr() # for tables
+f[1].get_vstorage()         # for tables, storage mechanism for variable 
+                            # length columns
+
+# public attributes you can feel free to change as needed
+f[1].lower           # If True, lower case colnames on output
+f[1].upper           # If True, upper case colnames on output
+f[1].case_sensitive  # if True, names are matched case sensitive
 ```
 Installation
 ------------
