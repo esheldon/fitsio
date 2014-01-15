@@ -90,6 +90,11 @@ extnum hdutype         hduname
 0      IMAGE_HDU
 1      BINARY_TBL      mytable
 
+# at the python prompt, you could just type fits and it will
+# automatically print itself.  Same for ipython.
+>>> fits
+...
+
 # explore the extensions, either by extension number or
 # extension name if available
 print fits[0]
