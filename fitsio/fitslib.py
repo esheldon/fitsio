@@ -2107,9 +2107,11 @@ class TableHDU(HDUBase):
 
                 name = array.dtype.names[wnotvar[i]]
                 colnum = thesecol[i]-1
-                self._rescale_array(array[name], 
-                                    self._info['colinfo'][colnum]['tscale'], 
-                                    self._info['colinfo'][colnum]['tzero'])
+                self._rescale_and_convert_field_inplace(array, 
+                                          name,
+                                          self._info['colinfo'][colnum]['tscale'], 
+                                          self._info['colinfo'][colnum]['tzero'])
+
 
         # now read the variable length arrays we may be able to speed this up
         # by storing directly instead of reading first into a list
