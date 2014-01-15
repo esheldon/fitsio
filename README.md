@@ -242,7 +242,7 @@ names=['x','y','name']
 
 
 # create an image
->>> img=numpy.arange(20,30,dtype='i4')
+>>> img=numpy.arange(2*3,dtype='i4').reshape(2,3)
 
 # write an image in a new HDU (if this is a new file, the primary HDU)
 >>> fits.write(img)
