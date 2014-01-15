@@ -307,15 +307,20 @@ Examples
 
 Installation
 ------------
-The easiest way is using pip
+
+The easiest way is using pip. To get the latest release
 
     pip install fitsio
 
-Also, you can download the source from github or use git clone
+You can also get the latest source tarball release from
+
+    https://pypi.python.org/pypi/fitsio
+
+or the bleeding edge source from github or use git clone
 
     git clone https://github.com/esheldon/fitsio.git
 
-Enter the fitsio directory and type
+Use tar xvfz to untar the file, enter the fitsio directory and type
 
     python setup.py install
 
