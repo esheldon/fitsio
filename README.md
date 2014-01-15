@@ -42,6 +42,7 @@ Examples
 
 ```python
 >>> import fitsio
+>>> from fitsio import FITS,FITSHDR
 
 # Often you just want to quickly read or write data without bothering to
 # create a FITS object.  In that case, you can use the read and write
@@ -259,15 +260,19 @@ names=['x','y','name']
 #   - a list of dicts with 'name','value','comment' fields
 #   - a FITSHDR object
 
->>> header = {'somekey': 35, 'location': 'kitt peak'}
->>> fits.write(data, header=header)
+>>> hdict = {'somekey': 35, 'location': 'kitt peak'}
+>>> fits.write(data, header=hdict)
+>>> hlist = [{'name':'observer', 'value':'ES', 'comment':'who'},
+             {'name':'location','value':'CTIO'}]
+>>> fits.write(data, header=hlist)
+>>> hdr=FITSHDR(hlist)
+>>> fits.write(data, header=hdr)
 
 # you can add individual keys to an existing HDU
 >>> fits[1].write_key(name, value, comment="my comment")
 
-# Write multiple header keys to an existing HDU. Here records is a dict of
-# keyword-value pairs, a FITSHDR, or list of dicts with 'name','value', and
-# optionally 'comment' fields
+# Write multiple header keys to an existing HDU. Here records 
+# is the same as sent with header= above
 >>> fits[1].write_keys(records)
 
 >>> fits.close()
