@@ -227,8 +227,8 @@ for hdu in fits:
 >>> fits.write(data)
 
 # can also be a list of ordinary arrays if you send the names
-array_list=[xarray,yarray,namearray]
-names=['x','y','name']
+>>> array_list=[xarray,yarray,namearray]
+>>> names=['x','y','name']
 >>> fits.write(array_list, names=names)
 
 # similarly a dict of arrays
