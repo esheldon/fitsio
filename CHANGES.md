@@ -5,7 +5,7 @@ New Features
     - Re-factored code to use sub-classes for each HDU type.  These are called
       ImageHDU, TableHDU, and AsciiTableHDU.
     - Write and read 32-bit and 64-bit complex table columns
-    - Write and read boolean values (author Dustin Lang)
+    - Write and read boolean table columns (contributed by Dustin Lang)
     - Specify tile dimensions for compressed images.
     - write_comment and write_history methods added.
     - is_compressed() for image HDUs, True if tile compressed.
