@@ -15,13 +15,13 @@ Some Features
 -------------
 
 - Read from and write to image, binary, and ascii table extensions.
-- Read arbitrary subsets of table columns and rows without loading all
-  the data to memory.
+- Read arbitrary subsets of table columns and rows without loading all the data
+  to memory.
 - Read image subsets without reading the whole image.
 - Write and read variable length table columns.  Can read into fixed length
   arrays with the maximum size, or object arrays to save memory.
-- Read data using slice notation similar to numpy arrays.  This is
-  like a more powerful memmap, since it is column-aware for tables.
+- Read data using slice notation similar to numpy arrays.  This is like a more
+  powerful memmap, since it is column-aware for tables.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
 - Read and write header keywords.
@@ -30,7 +30,7 @@ Some Features
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
-- Read and write complex, unsigned integer signed bytes types.
+- Read and write complex, bool (logical), unsigned integer, signed bytes types.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
