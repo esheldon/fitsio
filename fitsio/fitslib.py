@@ -284,6 +284,8 @@ class FITS(object):
     iter_row_buffer: integer
         Number of rows to buffer when iterating over table HDUs.
         Default is 1.
+
+    See the docs at https://github.com/esheldon/fitsio
     """
     def __init__(self, filename, mode='r', **keys):
         self.keys=keys
