@@ -49,6 +49,7 @@ from fitsio import FITS,FITSHDR
 # convienience functions.
 
 # read all data from the first hdu with data
+filename='data.fits'
 data = fitsio.read(filename)
 
 # read a subset of rows and columns from the specified extension
