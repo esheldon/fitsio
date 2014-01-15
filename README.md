@@ -192,7 +192,7 @@ for hdu in fits:
     dtype('object')
 
 
-# you can grab a FITSHDU object to simplify notation
+# you can grab a FITS HDU object to simplify notation
 >>> hdu1 = fits[1]
 >>> data = hdu1['x','y'][35:50]
 
