@@ -231,11 +231,6 @@ names=['x','y','name']
 >>> fits.write(dict_of_arrays)
 >>> fits.write(dict_of_arrays, names=names) # control name order
 
-# note under the hood writing data to a HDU does the following
->>> fits.create_table_hdu(data=data)
->>> fits[-1].write(data)
->>> fits.update_hdu_list()
-
 # append more rows to the table.  The fields in data2 should match columns
 # in the table.  missing columns will be filled with zeros
 >>> fits[-1].append(data2)
