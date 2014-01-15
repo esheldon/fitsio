@@ -1,7 +1,8 @@
-version 0.9.4
---------------
+version 0.9.4 (not yet released)
+--------------------------------
 
 New Features
+
     - Re-factored code to use sub-classes for each HDU type.  These are called
       ImageHDU, TableHDU, and AsciiTableHDU.
     - Write and read 32-bit and 64-bit complex table columns
@@ -11,6 +12,7 @@ New Features
     - is_compressed() for image HDUs, True if tile compressed.
 
 Bug Fixes
+
     - Correct appending to COMMENT and HISTORY fields when writing a full
       header object.
     - Correct conversion of boolean keywords, writing and reading.
