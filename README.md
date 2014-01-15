@@ -342,7 +342,7 @@ TODO
 ----
 
 - bit columns
-- HDU groups?
+- HDU groups: does anyone use these? If so open an issue!
 
 Notes on cfitsio bundling
 -------------------------
