@@ -41,31 +41,31 @@ Examples
 --------
 
 ```python
->>> import fitsio
->>> from fitsio import FITS,FITSHDR
+import fitsio
+from fitsio import FITS,FITSHDR
 
 # Often you just want to quickly read or write data without bothering to
 # create a FITS object.  In that case, you can use the read and write
 # convienience functions.
 
 # read all data from the first hdu with data
->>> data = fitsio.read(filename)
+data = fitsio.read(filename)
 
 # read a subset of rows and columns from the specified extension
->>> data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
 
 # read the header, or both at once
->>> h = fitsio.read_header(filename, extension)
->>> data,h = fitsio.read(filename, ext=ext, header=True)
+h = fitsio.read_header(filename, extension)
+data,h = fitsio.read(filename, ext=ext, header=True)
 
 # open the file, write a new binary table extension, and then write  the
 # data from "recarray" into the table. By default a new extension is
 # added to the file.  use clobber=True to overwrite an existing file
 # instead.  To append rows to an existing table, see below.
->>> fitsio.write(filename, recarray)
+fitsio.write(filename, recarray)
 
 # write an image
->>> fitsio.write(filename, image)
+fitsio.write(filename, image)
 
 # NOTE when reading row subsets, the data must still be read from disk.
 # This is most efficient if the data are read in the order they appear in
@@ -78,10 +78,10 @@ Examples
 #
 
 # open a FITS file for reading and explore
->>> fits=fitsio.FITS('data.fits')
+fits=fitsio.FITS('data.fits')
 
 # see what is in here; the FITS object prints itself
->>> fits
+print fits
 
 file: data.fits
 mode: READONLY
@@ -91,7 +91,7 @@ extnum hdutype         hduname
 
 # explore the extensions, either by extension number or
 # extension name if available
->>> fits[0]
+print fits[0]
 
 file: data.fits
 extension: 0
@@ -100,7 +100,7 @@ image info:
   data type: f8
   dims: [4096,2048]
 
->>> fits['mytable']  # can also use fits[1]
+print fits['mytable']  # can also use fits[1]
 
 file: data.fits
 extension: 1
@@ -121,7 +121,7 @@ column info:
 # See bottom for how to get more information for an extension
 
 # [-1] to refers the last HDU
->>> fits[-1]
+print fits[-1]
 ...
 
 # if there are multiple HDUs with the same name, and an EXTVER
@@ -130,41 +130,41 @@ column info:
 
 
 # read the image from extension zero
->>> img = fits[0].read()
->>> img = fits[0][:,:]
+img = fits[0].read()
+img = fits[0][:,:]
 
 # read a subset of the image without reading the whole image
->>> img = fits[0][25:35, 45:55]
+img = fits[0][25:35, 45:55]
 
 
 # read all rows and columns from a binary table extension
->>> data = fits[1].read()
->>> data = fits['mytable'].read()
->>> data = fits[1][:]
+data = fits[1].read()
+data = fits['mytable'].read()
+data = fits[1][:]
 
 # read a subset of rows and columns. By default uses a case-insensitive
 # match. The result retains the names with original case.  If columns is a
 # sequence, a recarray is returned
->>> data = fits[1].read(rows=[1,5], columns=['index','x','y'])
+data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
 # Similar but using slice notation
 # row subsets
->>> data = fits[1][10:20]
->>> data = fits[1][10:20:2]
->>> data = fits[1][[1,5,18]]
+data = fits[1][10:20]
+data = fits[1][10:20:2]
+data = fits[1][[1,5,18]]
 
 # all rows of column 'x'
->>> data = fits[1]['x'][:]
+data = fits[1]['x'][:]
 
 # Read a few columns at once. This is more efficient than separate read for
 # each column
->>> data = fits[1]['x','y'][:]
+data = fits[1]['x','y'][:]
 
 # General column and row subsets.  As noted above, the data are returned
 # in row sorted order for efficiency reasons.
->>> columns=['index','x','y']
->>> rows=[1,5]
->>> data = fits[1][columns][rows]
+columns=['index','x','y']
+rows=[1,5]
+data = fits[1][columns][rows]
 
 # iterate over rows in a table hdu
 # faster if we buffer some rows, let's buffer 1000 at a time
@@ -185,101 +185,102 @@ for hdu in fits:
 # default is vstorage='fixed'.  Object fields can also be written out to a
 # new FITS file as variable length to save disk space.
 
->>> fits = fitsio.FITS(filename,vstorage='object')
+fits = fitsio.FITS(filename,vstorage='object')
 # OR
->>> data = fits[1].read(vstorage='object')
->>> print data['dvarr'].dtype
+data = fits[1].read(vstorage='object')
+print data['dvarr'].dtype
     dtype('object')
 
 
 # you can grab a FITS HDU object to simplify notation
->>> hdu1 = fits[1]
->>> data = hdu1['x','y'][35:50]
+hdu1 = fits[1]
+data = hdu1['x','y'][35:50]
 
 # get rows that satisfy the input expression.  See "Row Filtering
 # Specification" in the cfitsio manual
->>> w=fits[1].where("x > 0.25 && y < 35.0")
->>> data = fits[1][w]
+w=fits[1].where("x > 0.25 && y < 35.0")
+data = fits[1][w]
 
 # read the header
->>> h = fits[0].read_header()
->>> h['BITPIX']
--64
+h = fits[0].read_header()
+print h['BITPIX']
+    -64
 
->>> fits.close()
+fits.close()
 
 
 # now write some data
->>> fits = FITS('test.fits','rw')
+fits = FITS('test.fits','rw')
 
 
 # create a rec array.  Note vstr
 # is a variable length string
->>> nrows=35
->>> data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
+nrows=35
+data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
                                      ('arr','f4',(3,4))])
->>> data['index'] = numpy.arange(nrows,dtype='i4')
->>> data['x'] = numpy.random.random(nrows)
->>> data['vstr'] = [str(i) for i in xrange(nrows)]
->>> data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
+data['index'] = numpy.arange(nrows,dtype='i4')
+data['x'] = numpy.random.random(nrows)
+data['vstr'] = [str(i) for i in xrange(nrows)]
+data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
 # create a new table extension and write the data
->>> fits.write(data)
+fits.write(data)
 
 # can also be a list of ordinary arrays if you send the names
->>> array_list=[xarray,yarray,namearray]
->>> names=['x','y','name']
->>> fits.write(array_list, names=names)
+array_list=[xarray,yarray,namearray]
+names=['x','y','name']
+fits.write(array_list, names=names)
 
 # similarly a dict of arrays
->>> fits.write(dict_of_arrays)
->>> fits.write(dict_of_arrays, names=names) # control name order
+fits.write(dict_of_arrays)
+fits.write(dict_of_arrays, names=names) # control name order
 
 # append more rows to the table.  The fields in data2 should match columns
 # in the table.  missing columns will be filled with zeros
->>> fits[-1].append(data2)
+fits[-1].append(data2)
 
 # insert a new column into a table
->>> fits[-1].insert_column('newcol', data)
+fits[-1].insert_column('newcol', data)
+
 # insert with a specific colnum
->>> fits[-1].insert_column('newcol', data, colnum=2)
+fits[-1].insert_column('newcol', data, colnum=2)
 
 
 # create an image
->>> img=numpy.arange(2*3,dtype='i4').reshape(2,3)
+img=numpy.arange(2*3,dtype='i4').reshape(2,3)
 
 # write an image in a new HDU (if this is a new file, the primary HDU)
->>> fits.write(img)
+fits.write(img)
 
 # write an image with rice compression
->>> fits.write(img, compress='rice')
+fits.write(img, compress='rice')
 
 
 # add checksums for the data
->>> fits[-1].write_checksum()
+fits[-1].write_checksum()
 
 # you can also write a header at the same time.  The header can be 
 #   - a simple dict (no comments)
 #   - a list of dicts with 'name','value','comment' fields
 #   - a FITSHDR object
 
->>> hdict = {'somekey': 35, 'location': 'kitt peak'}
->>> fits.write(data, header=hdict)
->>> hlist = [{'name':'observer', 'value':'ES', 'comment':'who'},
-             {'name':'location','value':'CTIO'},
-             {'name':'photometric','value':True}]
->>> fits.write(data, header=hlist)
->>> hdr=FITSHDR(hlist)
->>> fits.write(data, header=hdr)
+hdict = {'somekey': 35, 'location': 'kitt peak'}
+fits.write(data, header=hdict)
+hlist = [{'name':'observer', 'value':'ES', 'comment':'who'},
+         {'name':'location','value':'CTIO'},
+         {'name':'photometric','value':True}]
+fits.write(data, header=hlist)
+hdr=FITSHDR(hlist)
+fits.write(data, header=hdr)
 
 # you can add individual keys to an existing HDU
->>> fits[1].write_key(name, value, comment="my comment")
+fits[1].write_key(name, value, comment="my comment")
 
 # Write multiple header keys to an existing HDU. Here records 
 # is the same as sent with header= above
->>> fits[1].write_keys(records)
+fits[1].write_keys(records)
 
->>> fits.close()
+fits.close()
 
 # using a context, the file is closed automatically after leaving the block
 with FITS('path/to/file') as fits:
