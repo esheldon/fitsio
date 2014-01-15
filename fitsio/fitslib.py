@@ -1,16 +1,7 @@
 """
-fitslib
+fitslib, part of the fitsio package.
 
-See docs for the package, e.g.
-    import fitsio
-    help(fitsio)
-In ipython:
-    fitsio?
-
-Also see docs for the FITS class and its methods.
-    help(fitsio.FITS)
-In ipython:
-    fitsio.FITS?
+See the main docs at https://github.com/esheldon/fitsio
 
   Copyright (C) 2011  Erin Sheldon, BNL.  erin dot sheldon at gmail dot com
 
