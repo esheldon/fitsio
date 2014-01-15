@@ -1197,8 +1197,8 @@ class HDUBase(object):
 
         Notes
         -----
-        COMMENT and HISTORY are written using the write_comment and
-        write_history methods.
+        Input keys named COMMENT and HISTORY are written using the
+        write_comment and write_history methods.
         """
 
         hdr = FITSHDR(records_in)
