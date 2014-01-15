@@ -1938,6 +1938,7 @@ class TableHDU(HDUBase):
                     self._rescale_array(array[name], 
                                         self._info['colinfo'][colnum]['tscale'], 
                                         self._info['colinfo'][colnum]['tzero'])
+                    array[name] = self._filter_array(array[name])
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
