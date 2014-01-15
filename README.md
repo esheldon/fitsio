@@ -282,12 +282,11 @@ names=['x','y','name']
 with FITS('path/to/file') as fits:
     data = fits[ext].read()
 
-# you can check if a header exists using "in":
-    f=fitsio.FITS(filename)
-    if 'blah' in f:
-        data=f['blah'].read()
+    # you can check if a header exists using "in":
+    if 'blah' in fits:
+        data=fits['blah'].read()
     if 2 in f:
-        data=f[2].read()
+        data=fits[2].read()
 
 # how to get more information about an extension
 f[1].get_info()             # lots of info about the extension
