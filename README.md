@@ -316,9 +316,15 @@ You can also get the latest source tarball release from
 
     https://pypi.python.org/pypi/fitsio
 
-or the bleeding edge source from github or use git clone
+or the bleeding edge source from github or use git. To check out
+the code for the first time
 
     git clone https://github.com/esheldon/fitsio.git
+
+Or at a later time to update to the latest
+
+    cd fitsio
+    git update
 
 Use tar xvfz to untar the file, enter the fitsio directory and type
 
