@@ -158,6 +158,8 @@ column info:
 
 # General column and row subsets.  As noted above, the data are returned
 # in row sorted order for efficiency reasons.
+>>> columns=['index','x','y']
+>>> rows=[1,5]
 >>> data = fits[1][columns][rows]
 
 # iterate over rows in a table hdu
