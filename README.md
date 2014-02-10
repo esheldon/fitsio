@@ -204,7 +204,8 @@ hdu1 = fits[1]
 data = hdu1['x','y'][35:50]
 
 # get rows that satisfy the input expression.  See "Row Filtering
-# Specification" in the cfitsio manual
+# Specification" in the cfitsio manual (note no temporary table is
+# created in this case, contrary to the cfitsio docs)
 w=fits[1].where("x > 0.25 && y < 35.0")
 data = fits[1][w]
 
