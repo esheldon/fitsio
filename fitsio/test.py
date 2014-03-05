@@ -1211,6 +1211,44 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testBz2Read(self):
+        '''
+        Write a normal .fits file, run bzip2 on it, then read the bz2
+        file and verify that it's the same as what we put in; we don't
+        [currently support or] test *writing* bzip2.
+        '''
+        fname=tempfile.mktemp(prefix='fitsio-BZ2TableWrite-',suffix='.fits')
+        bzfname = fname + '.bz2'
+
+        try:
+            fits = fitsio.FITS(fname,'rw',clobber=True)
+            fits.write_table(self.data, header=self.keys, extname='mytable')
+            fits.close()
+    
+            os.system('bzip2 %s' % fname)
+            f2 = fitsio.FITS(bzfname)
+            d = f2[1].read()
+            self.compare_rec(self.data, d, "bzip2 read")
+    
+            h = f2[1].read_header()
+            for entry in self.keys:
+                name=entry['name'].upper()
+                value=entry['value']
+                hvalue = h[name]
+                if isinstance(hvalue,str):
+                    hvalue = hvalue.strip()
+                self.assertEqual(value,hvalue,"testing header key '%s'" % name)
+                if 'comment' in entry:
+                    self.assertEqual(entry['comment'].strip(),
+                                     h.get_comment(name).strip(),
+                                     "testing comment for header key '%s'" % name)
+        except:
+            self.assertTrue(False, 'Exception in testing bzip2 reading')
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+            if os.path.exists(bzfname):
+                os.remove(bzfname)
 
     def testChecksum(self):
         """
