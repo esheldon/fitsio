@@ -76,6 +76,7 @@ else:
     extra_link_args=[]
 ext=Extension("fitsio._fitsio_wrap", 
               sources,
+              libraries=['bz2'],
               extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
               extra_link_args=extra_link_args)

@@ -9,6 +9,8 @@
 #include <stddef.h>  /* apparently needed to define size_t */
 #include "fitsio2.h"
 
+#include "bzlib.h"
+
 /* prototype for .Z file uncompression function in zuncompress.c */
 int zuncompress2mem(char *filename, 
              FILE *diskfile, 
@@ -620,6 +622,8 @@ int mem_compress_open(char *filename, int rwmode, int *hdl)
         finalsize = 0;  /* for most methods we can't determine final size */
     else if (memcmp(buffer, "\037\240", 2) == 0)  /* LZH */
         finalsize = 0;  /* for most methods we can't determine final size */
+    else if (memcmp(buffer, "BZ", 2) == 0)        /* BZip2 */
+        finalsize = 0;  /* for most methods we can't determine final size */
     else
     {
         /* not a compressed file; this should never happen */
@@ -1025,6 +1029,50 @@ int mem_uncompress2mem(char *filename, FILE *diskfile, int hdl)
 		 memTable[hdl].memsizeptr,   /* pointer to size of memory */
 		 realloc,                     /* reallocation function */
 		 &finalsize, &status);        /* returned file size nd status*/
+    } else if (strstr(filename, ".bz2")) {
+        BZFILE* b;
+        char buf[8192];
+        int  bzerror;
+        // we read from the bzip stream into "buf" and then copy into
+        // the real memory-file buffer at this "offset".  Could do
+        // this in one shot, with somewhat more memory-file
+        // book-keeping.  Do it the easy way instead, for now.
+        size_t offset = 0;
+
+        b = BZ2_bzReadOpen(&bzerror, diskfile, 0, 0, NULL, 0);
+        if (bzerror != BZ_OK) {
+            BZ2_bzReadClose(&bzerror, b);
+            ffpmsg("failed to bzReadOpen a bzip2 file\n");
+            return 1;
+        }
+        bzerror = BZ_OK;
+        while (bzerror == BZ_OK) {
+            int     nread;
+            nread = BZ2_bzRead(&bzerror, b, buf, sizeof(buf));
+            if (bzerror == BZ_OK || bzerror == BZ_STREAM_END) {
+                char** ptrptr = memTable[hdl].memaddrptr;
+                size_t sz = *(memTable[hdl].memsizeptr);
+                if (offset + nread > sz) {
+                    // realloc the memory file 50% larger
+                    size_t newsize = sz + sz/2;
+                    *ptrptr = realloc(*ptrptr, newsize);
+                    if (*ptrptr == NULL) {
+                        BZ2_bzReadClose(&bzerror, b);
+                        ffpmsg("failed to realloc uncompressing bzip2");
+                        return 1;
+                    }
+                    *(memTable[hdl].memsizeptr) = newsize;
+                }
+                memcpy(*ptrptr + offset, buf, nread);
+                offset += nread;
+            }
+        }
+        BZ2_bzReadClose(&bzerror, b);
+        if (bzerror != BZ_STREAM_END) {
+            ffpmsg("failure reading bz2 file\n");
+            return 1;
+        }
+        finalsize = offset;
     } else {
          uncompress2mem(filename, diskfile,
 		 memTable[hdl].memaddrptr,   /* pointer to memory address */

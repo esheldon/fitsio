@@ -654,6 +654,11 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
       strcat(filename,".gz");
       if (file_openfile(filename, 0, &diskfile))
       {
+          // BZIP
+      strcpy(tmpfilename,filename);
+      strcat(filename,".bz2");
+      if (file_openfile(filename, 0, &diskfile))
+      {
         strcpy(filename, tmpfilename);
         strcat(filename,".Z");
         if (file_openfile(filename, 0, &diskfile))
@@ -683,6 +688,7 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
         }
       }
     }
+    }
 
     if (fread(buffer, 1, 2, diskfile) != 2)  /* read 2 bytes */
     {
@@ -697,7 +703,8 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
          (memcmp(buffer, "\120\113", 2) == 0) ||  /* PKZIP */
          (memcmp(buffer, "\037\036", 2) == 0) ||  /* PACK  */
          (memcmp(buffer, "\037\235", 2) == 0) ||  /* LZW   */
-         (memcmp(buffer, "\037\240", 2) == 0) )   /* LZH   */
+         (memcmp(buffer, "\037\240", 2) == 0) ||  /* LZH   */
+         (memcmp(buffer, "BZ",       2) == 0) )   /* BZip2 */
         {
             return(1);  /* this is a compressed file */
         }
