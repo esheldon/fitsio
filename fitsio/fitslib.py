@@ -3885,6 +3885,8 @@ _table_fits2npy_ascii = {16: 'S',
                          31: 'i8', # listed as TINT, reading as i8
                          41: 'i8', # listed as TLONG, reading as i8
                          81: 'i8',
+                         21: 'i8',
+                         42: 'f8',
                          82: 'f8'}
 
 
