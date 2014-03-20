@@ -2193,14 +2193,25 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
     void* data=NULL;
     char* cdata=NULL;
 
-    npy_intp i=0;
-
     npy_dtype = PyArray_TYPE(array);
     fits_dtype = npy_to_fits_table_type(npy_dtype);
 
     nelem = PyArray_SIZE(array);
 
     if (fits_dtype == TSTRING) {
+        npy_intp i=0;
+        LONGLONG rownum=0;
+
+        for (i=0; i<nelem; i++) {
+            cdata = PyArray_GETPTR1(array, i);
+            rownum = (LONGLONG) (1+i);
+            if (fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status) > 0) {
+                return 1;
+            }
+        }
+
+        /*
+
         LONGLONG twidth=0;
         char** strdata=NULL;
 
@@ -2214,9 +2225,12 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
 
         }
 
+
         twidth=fits->Fptr->tableptr[colnum-1].twidth;
         for (i=0; i<nelem; i++) {
-            strdata[i] = &cdata[twidth*i];
+            //strdata[i] = &cdata[twidth*i];
+            // this 1-d assumption works because array fields are not allowedin ascii
+            strdata[i] = (char*) PyArray_GETPTR1(array, i);
         }
 
         if (fits_read_col_str(fits,colnum,firstrow,firstelem,nelem,nulstr,strdata,anynul,status) > 0) {
@@ -2225,6 +2239,7 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
         }
 
         free(strdata);
+        */
 
     } else {
         data=PyArray_DATA(array);
