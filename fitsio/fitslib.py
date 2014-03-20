@@ -1288,6 +1288,9 @@ class TableHDU(HDUBase):
         self.case_sensitive=keys.get('case_sensitive',False)
         self._iter_row_buffer=keys.get('iter_row_buffer',1)
 
+        if self._iter_row_buffer > self.get_nrows:
+        	self._iter_row_buffer = self.get_nrows
+
         if self._info['hdutype'] == ASCII_TBL:
             self._table_type_str='ascii'
         else:
