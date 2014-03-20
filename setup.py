@@ -94,7 +94,7 @@ classifiers = ["Development Status :: 5 - Production/Stable"
 
 include_dirs=[cfitsio_dir,numpy.get_include()]
 setup(name="fitsio", 
-      version="0.9.3.1",
+      version="0.9.4",
       description=description,
       long_description=long_description,
       license = "GPL",
