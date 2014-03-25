@@ -2769,7 +2769,7 @@ class ImageHDU(HDUBase):
         self._FITS.write_image(self._ext+1, img_send)
         self._update_info()
 
-    def read(self):
+    def read(self, **keys):
         """
         Read the image.
 
