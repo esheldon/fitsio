@@ -88,7 +88,7 @@ def read(filename, ext=None, extver=None, **keys):
 
     with FITS(filename, **keys) as fits:
 
-        header=keys.get('header',False)
+        header=keys.pop('header',False)
 
         if ext is None:
             for i in xrange(len(fits)):
