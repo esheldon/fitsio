@@ -1,9 +1,10 @@
 version 0.9.5
 --------------------------------
 
-Note the version 0.9.4 was skipped because many people had been using the
-master in production, which had version 0.9.4 set.  This will allow automatic
-version detection to work
+Note the version 0.9.4 was skipped because some people had been using the
+master branch in production, which had version 0.9.4 set.  This will allow
+automatic version detection to work.  In the future master will not have
+the next version set until release.
 
 New Features
 
