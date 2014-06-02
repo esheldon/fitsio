@@ -1,5 +1,9 @@
-version 0.9.4 (not yet released)
+version 0.9.5
 --------------------------------
+
+Note the version 0.9.4 was skipped because many people had been using the
+master in production, which had version 0.9.4 set.  This will allow automatic
+version detection to work
 
 New Features
 
@@ -10,6 +14,8 @@ New Features
     - Specify tile dimensions for compressed images.
     - write_comment and write_history methods added.
     - is_compressed() for image HDUs, True if tile compressed.
+    - added **keys to the image hdu reading routines to provide a more uniform
+      interface for all hdu types
 
 Bug Fixes
 
