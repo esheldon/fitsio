@@ -331,6 +331,9 @@ The easiest way is using pip. To get the latest release
     # update fitsio (and everything else)
     pip install fitsio --upgrade
 
+    # if pip refuses to update to a newer version
+    pip install fitsio --upgrade --ignore-installed
+
     # if you only want to upgrade fitsio
     pip install fitsio --no-deps --upgrade --ignore-installed
 
