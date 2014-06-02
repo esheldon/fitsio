@@ -328,6 +328,12 @@ The easiest way is using pip. To get the latest release
 
     pip install fitsio
 
+    # update fitsio (and everything else)
+    pip install fitsio --upgrade
+
+    # if you only want to upgrade fitsio
+    pip install fitsio --no-deps --upgrade --ignore-installed
+
 You can also get the latest source tarball release from
 
     https://pypi.python.org/pypi/fitsio
