@@ -1061,17 +1061,13 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             dims[ndims-i-1] = PyArray_DIM(array, i);
         }
 
+        // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
         if (comptype > 0) {
             // exception strings are set internally
             if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
                 goto create_image_hdu_cleanup;
             }
         }
-        // can be NOCOMPRESS (0)
-        //if (fits_set_compression_type(self->fits, comptype, &status)) {
-        //    set_ioerr_string_from_status(status);
-        //    goto create_image_hdu_cleanup;
-        //}
 
         if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
             set_ioerr_string_from_status(status);
