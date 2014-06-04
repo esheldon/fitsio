@@ -3538,6 +3538,7 @@ class FITSHDR:
                    'ZQUANTIZ','ZDITHER0','ZIMAGE','ZCMPTYPE',
                    'ZSIMPLE','ZTENSION','ZPCOUNT','ZGCOUNT',
                    'ZBITPIX','ZEXTEND',
+                   'FZTILELN','FZALGOR',
                    'CHECKSUM','DATASUM']
         self.delete(rmnames)
 
@@ -3574,7 +3575,7 @@ class FITSHDR:
 
                 nbase = ['TFORM','TTYPE','TDIM','TUNIT','TSCAL','TZERO',
                          'TNULL','TDISP','TDMIN','TDMAX','TDESC','TROTA',
-                         'TRPIX','TRVAL','TDELT','TCUNI']
+                         'TRPIX','TRVAL','TDELT','TCUNI','FZALG']
                 for i in xrange(1,tfields+1):
                     names=['%s%d' % (n,i) for n in nbase]
                     self.delete(names)
