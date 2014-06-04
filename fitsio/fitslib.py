@@ -3464,7 +3464,7 @@ class FITSHDR:
         self.check_record(record)
         if isinstance(record['value'],basestring):
             try:
-                record['value'] = eval(record['value'])
+                record['value'] = eval(record['value'],{},{})
             except:
                 record['value'] = self._strip_quotes(record['value'])
         self._record_list.append(record)
