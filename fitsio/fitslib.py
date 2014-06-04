@@ -3492,6 +3492,9 @@ class FITSHDR:
         self._record_map[key] = record
 
     def check_record(self, record):
+        """
+        check the record is valid
+        """
         if not isinstance(record,dict):
             raise ValueError("each record must be a dictionary")
         if 'name' not in record:
@@ -3500,6 +3503,9 @@ class FITSHDR:
             raise ValueError("each record must have a 'value' field")
 
     def get_comment(self, item):
+        """
+        Get the comment for the requested entry
+        """
         key=item.upper()
         if key not in self._record_map:
             raise ValueError("unknown record: %s" % key)
@@ -3521,6 +3527,9 @@ class FITSHDR:
         return [e['name'] for e in self._record_list]
 
     def delete(self, name):
+        """
+        Delete the specified entry if it exists.
+        """
         if isinstance(name, (list,tuple)):
             for xx in name:
                 self.delete(xx)
@@ -3530,6 +3539,12 @@ class FITSHDR:
                 self._record_list = [r for r in self._record_list if r['name'] != name]
 
     def clean(self):
+        """
+        Remove reserved keywords from the header.
+        
+        These are keywords that the fits writer must write in order
+        to maintain consistency between header and data.
+        """
 
         rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT','GCOUNT',
                    'THEAP',
@@ -3588,6 +3603,9 @@ class FITSHDR:
         return item.upper() in self._record_map
 
     def get(self, item, default_value=None):
+        """
+        Get the requested header entry by keyword name
+        """
         key=item.upper()
         if key not in self._record_map:
             return default_value
@@ -3614,6 +3632,9 @@ class FITSHDR:
         return self
 
     def next(self):
+        """
+        for iteration over the header entries
+        """
         if self._current < len(self._record_list):
             rec=self._record_list[self._current]
             key=rec['name']
