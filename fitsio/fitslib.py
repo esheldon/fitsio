@@ -1201,7 +1201,10 @@ class HDUBase(object):
         write_comment and write_history methods.
         """
 
-        hdr = FITSHDR(records_in)
+        if isinstance(records_in,FITSHDR):
+            hdr = records_in
+        else:
+            hdr = FITSHDR(records_in)
         if clean:
             hdr.clean()
 
