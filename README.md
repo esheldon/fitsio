@@ -1,4 +1,4 @@
-A python library to read and write data to FITS files using cfitsio.
+A python library to read from and write to FITS files.
 
 Description
 -----------
@@ -53,7 +53,7 @@ filename='data.fits'
 data = fitsio.read(filename)
 
 # read a subset of rows and columns from the specified extension
-data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+data = fitsio.read(filename, rows=[35,1001], columns=['x','y'], ext=2)
 
 # read the header, or both at once
 h = fitsio.read_header(filename, extension)
