@@ -52,7 +52,7 @@ from fitsio import FITS,FITSHDR
 filename='data.fits'
 data = fitsio.read(filename)
 
-# read a subset of rows and columns from the specified extension
+# read a subset of rows and columns from a table
 data = fitsio.read(filename, rows=[35,1001], columns=['x','y'], ext=2)
 
 # read the header, or both at once
@@ -225,7 +225,7 @@ fits = FITS('test.fits','rw')
 # is a variable length string
 nrows=35
 data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
-                                     ('arr','f4',(3,4))])
+                                 ('arr','f4',(3,4))])
 data['index'] = numpy.arange(nrows,dtype='i4')
 data['x'] = numpy.random.random(nrows)
 data['vstr'] = [str(i) for i in xrange(nrows)]
