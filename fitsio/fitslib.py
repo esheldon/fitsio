@@ -3462,12 +3462,14 @@ class FITSHDR:
         Add a new record.  Strip quotes from around strings.
         """
         import copy
+        import ast
         record = copy.deepcopy(record_in)
          
         self.check_record(record)
         if isinstance(record['value'],basestring):
             try:
-                record['value'] = eval(record['value'],{},{})
+                #record['value'] = eval(record['value'],{},{})
+                record['value'] = ast.literal_eval(record['value'])
             except:
                 record['value'] = self._strip_quotes(record['value'])
         self._record_list.append(record)
