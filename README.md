@@ -300,7 +300,7 @@ with FITS('path/to/file') as fits:
     if 2 in f:
         data=fits[2].read()
 
-# how to get more information about an extension
+# methods to get more information about extension.  For extension 1:
 f[1].get_info()             # lots of info about the extension
 f[1].has_data()             # returns True if data is present in extension
 f[1].get_extname()
