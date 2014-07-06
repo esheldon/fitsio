@@ -1,5 +1,5 @@
-version 0.9.6 
---------------------------------
+version 0.9.6  (not yet released)
+----------------------------------
 
 New Features
     - use cfitsio 3370 to support new tile compression features
