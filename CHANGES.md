@@ -1,3 +1,14 @@
+version 0.9.6 
+--------------------------------
+
+New Features
+    - use cfitsio 3370 to support new tile compression features
+
+Bug Fixes
+    - use literal_eval instead of eval for evaluating header values
+    - If input to write_keys is a FITSHDR, just use it instead of
+    creating a new FITSHDR object.
+
 version 0.9.5
 --------------------------------
 
