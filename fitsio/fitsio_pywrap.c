@@ -3519,6 +3519,80 @@ PyFITS_cfitsio_version(void) {
     return PyFloat_FromDouble((double)version);
 }
 
+/*
+
+'C',              'L',     'I',     'F'             'X'
+character string, logical, integer, floating point, complex
+
+*/
+
+static PyObject *
+PyFITS_cfitsio_get_keytype(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char* card=NULL;
+    char dtype[2]={0};
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        return NULL;
+    }
+
+
+    if (fits_get_keytype(card, dtype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    } else {
+        return Py_BuildValue("s", dtype);
+    }
+}
+
+static PyObject *
+PyFITS_parse_card(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char name[FLEN_VALUE]={0};
+    char value[FLEN_VALUE]={0};
+    char comment[FLEN_COMMENT]={0};
+    int keylen=0;
+    int keyclass=0;
+
+    char* card=NULL;
+    char dtype[2]={0};
+    PyObject* output=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        goto bail;
+    }
+
+    keyclass=fits_get_keyclass(card);
+
+
+    // only proceed if not comment or history
+    if (keyclass != TYP_COMM_KEY && keyclass != TYP_CONT_KEY) {
+
+        if (fits_get_keyname(card, name, &keylen, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+        if (fits_parse_value(card, value, comment, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+        if (fits_get_keytype(value, dtype, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+    }
+
+bail:
+    if (status != 0) {
+        return NULL;
+    }
+
+    output=Py_BuildValue("issss", keyclass, name, value, dtype, comment);
+    return output;
+}
+
 
 
 static PyMethodDef PyFITSObject_methods[] = {
@@ -3616,6 +3690,7 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "cfitsio_parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {NULL}  /* Sentinel */
 };
 
