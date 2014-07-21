@@ -1229,7 +1229,8 @@ class HDUBase(object):
         The FITSHDR allows access to the values and comments by name and
         number.
         """
-        return FITSHDR(self.read_header_list())
+        # note converting strings
+        return FITSHDR(self.read_header_list(), convert=True)
 
 
     def read_header_list(self):
@@ -3435,77 +3436,71 @@ def npy_string2fits(d,table_type='binary'):
 
     return name, form, dim
 
-class FITSHDR:
+class FITSHDR(object):
     """
     A class representing a FITS header.
+
+    parameters
+    ----------
+    record_list: optional
+        A list of dicts, or dict, or another FITSHDR
+    convert: bool, optional
+        If True, convert strings.  E.g. '3' gets
+        converted to 3 and "'hello'" gets converted
+        to 'hello' and 'T'/'F' to True/False. Default
+        is False.
+
+        If the input is a card string, convert is implied True
+
     """
-    def __init__(self, record_list=None):
+    def __init__(self, record_list=None, convert=False):
+
         self._record_list = []
         self._record_map = {}
 
         if isinstance(record_list,FITSHDR):
             for r in record_list.records():
-                self.add_record(r)
+                self.add_record(r, convert=convert)
         elif isinstance(record_list, dict):
             for k in record_list:
                 r = {'name':k, 'value':record_list[k]}
-                self.add_record(r)
+                self.add_record(r, convert=convert)
         elif isinstance(record_list, list):
             for r in record_list:
-                self.add_record(r)
+                self.add_record(r, convert=convert)
         elif record_list is not None:
-                raise ValueError("expected a dict or list of dicts")
+                raise ValueError("expected a dict or list of dicts or FITSHDR")
 
 
-    def add_record(self, record_in):   
+    def add_record(self, record_in, convert=False):
         """
         Add a new record.  Strip quotes from around strings.
+
+        parameters
+        -----------
+        record:
+            The record, either a dict or a header card string
+            or a FITSRecord or FITSCard
+        convert: bool, optional
+            If True, convert strings.  E.g. '3' gets
+            converted to 3 and "'hello'" gets converted
+            to 'hello' and 'T'/'F' to True/False. Default
+            is False.
+
+            If the input is a card string, convert is implied True
         """
-        import copy
-        import ast
-        record = copy.deepcopy(record_in)
-         
-        self.check_record(record)
-        if isinstance(record['value'],basestring):
-            try:
-                #record['value'] = eval(record['value'],{},{})
-                record['value'] = ast.literal_eval(record['value'])
-            except:
-                record['value'] = self._strip_quotes(record['value'])
+        if isinstance(record_in, FITSRecord):
+            record=record_in
+        else:
+            record = FITSRecord(record_in, convert=convert)
+
         self._record_list.append(record)
         self._add_to_map(record)
-
-    def _strip_quotes(self, value):
-        """
-        Remove quotes around strings
-        """
-        # Strip extra quotes from strings if needed
-        if value.startswith("'") and value.endswith("'"):
-            val = value[1:-1]
-        elif value=='T':
-            val=True
-        elif value=='F':
-            val=False
-        else:
-            val=value
-
-        return val
 
     def _add_to_map(self, record):
         #self._record_map[record['name']] = record
         key=record['name'].upper()
         self._record_map[key] = record
-
-    def check_record(self, record):
-        """
-        check the record is valid
-        """
-        if not isinstance(record,dict):
-            raise ValueError("each record must be a dictionary")
-        if 'name' not in record:
-            raise ValueError("each record must have a 'name' field")
-        if 'value' not in record:
-            raise ValueError("each record must have a 'value' field")
 
     def get_comment(self, item):
         """
@@ -3678,7 +3673,10 @@ class FITSHDR:
 
         if name == 'COMMENT':
             comment = record.get('comment','')
-            card = 'COMMENT %s' % comment
+            card = 'COMMENT   %s' % comment
+        elif name=='HISTORY':
+            comment = record.get('comment','')
+            card = 'HISTORY   %s' % comment
         else:
             card = '%-8s= ' % name[0:8]
             # these may be string representations of data, or actual strings
@@ -3713,6 +3711,154 @@ class FITSHDR:
 
             rep.append(card)
         return '\n'.join(rep)
+
+
+class FITSRecord(dict):
+    """
+    Class to represent a FITS header record
+
+    parameters
+    ----------
+    record: string or dict
+        If a string, it should represent a FITS header card
+        If a dict it should have 'name' and 'value' fields.
+    """
+    def __init__(self, record, convert=False):
+        self.set_record(record, convert=convert)
+
+    def set_record(self, record_in, convert=False):
+        """
+        check the record is valid and convert to a dict
+
+        parameters
+        ----------
+        record: string
+            Dict representing a record or a string representing a FITS header
+            card
+        convert: bool, optional
+            If True, convert strings.  E.g. '3' gets
+            converted to 3 and "'hello'" gets converted
+            to 'hello' and 'T'/'F' to True/False. Default
+            is False.
+
+            If the input is a card string, convert is implied True
+        """
+        import copy
+
+        if isinstance(record_in, FITSRecord):
+            self.update(record_in)
+            self.verify()
+
+        elif isinstance(record_in, basestring):
+            card=FITSCard(record_in)
+            self.update(card)
+
+            self.verify()
+
+        else:
+            if not isinstance(record_in,dict):
+                raise ValueError("each record must be a string card or dictionary")
+            self.update(record_in)
+            self.verify()
+
+            if convert:
+                self['value_orig'] = copy.copy(self['value'])
+                if isinstance(self['value'],basestring):
+                    self['value'] = self._convert_value(self['value_orig'])
+
+    def verify(self):
+        if 'name' not in self:
+            raise ValueError("each record must have a 'name' field")
+        if 'value' not in self:
+            raise ValueError("each record must have a 'value' field")
+
+    def _convert_value(self, value_orig):
+        """
+        things like 6 and 1.25 are converted with ast.literal_value
+
+        Things like 'hello' are stripped of quotes
+        """
+        import ast
+        try:
+            value = ast.literal_eval(value_orig)
+        except:
+            value = self._convert_quoted_string(value_orig)
+        return value
+
+    def _convert_quoted_string(self, value):
+        """
+        Possibly remove quotes around strings.  Deal with bool
+        """
+        # Strip extra quotes from strings if needed
+        if value.startswith("'") and value.endswith("'"):
+            val = value[1:-1]
+        elif value=='T':
+            val=True
+        elif value=='F':
+            val=False
+        else:
+            val=value
+
+        return val
+
+class FITSCard(FITSRecord):
+    """
+    class to represent ordinary FITS cards.
+
+    COMMENT, HISTORY, CONTINUE not supported
+    """
+    def __init__(self, card_string):
+        self.set_card(card_string)
+
+    def set_card(self, card_string):
+        self['card_string']=card_string
+
+        self._check_type()
+        self._check_len()
+
+        res=_fitsio_wrap.parse_card(card_string)
+        keyclass, name, value, dtype, comment=res
+
+        if keyclass==140:
+            raise ValueError("CONTINUE not supported, please submit a request!")
+
+        if keyclass==130:
+            self._set_as_comment_or_history()
+        else:
+            self['keyclass'] = keyclass
+            self['name'] = name
+            self['value_orig'] = value
+            self['value'] = self._convert_value(value)
+            self['dtype'] = dtype
+            self['comment'] = comment
+
+    def _set_as_comment_or_history(self):
+        card_string=self['card_string']
+        if card_string[0:7]=='COMMENT':
+            value=card_string[7:].strip()
+            self['name']='COMMENT'
+            self['value_orig']=''
+            self['value']=''
+            self['comment']=value
+        elif card_string[0:7]=='HISTORY':
+            value=card_string[7:].strip()
+            self['name']='HISTORY'
+            self['value_orig']=''
+            self['value']=''
+            self['comment']=value
+        else:
+            raise ValueError("unexpected name for keyclass 130: %s" % card_string)
+
+    def _check_type(self):
+        card_string=self['card_string']
+        if not isinstance(card_string,basestring):
+            raise TypeError("card must be a string, got type %s" % type(card_string))
+
+    def _check_len(self):
+        ln=len(self['card_string'])
+        if ln > 80:
+            mess="len(card) is %d.  cards must have length < 80"
+            raise ValueError(mess)
 
 def get_tile_dims(tile_dims, img):
     """
