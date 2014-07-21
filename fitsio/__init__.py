@@ -7,8 +7,12 @@ usage.
 __version__='0.9.6rc1'
 
 from . import fitslib
+
 from .fitslib import FITS
 from .fitslib import FITSHDR
+from .fitslib import FITSRecord
+from .fitslib import FITSCard
+
 from .fitslib import read
 from .fitslib import read_header
 from .fitslib import write
