@@ -3,6 +3,13 @@ version 0.9.6  (not yet released)
 
 New Features
     - use cfitsio 3370 to support new tile compression features
+    - FITSRecord class to encapsulate all the ways one can represent header
+      records.  This is now used internally in the FITSHDR class instead of raw
+      dicts, but as FITSRecord inherits from dict this should be transparent.
+    - FITSCard class; inherits from FITSRecord and is a special case for header
+      card strings
+    - One can directly add a fits header card string to the FITSHDR object
+      using add_record
 
 Bug Fixes
     - use literal_eval instead of eval for evaluating header values
