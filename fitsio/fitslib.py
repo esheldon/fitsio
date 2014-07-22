@@ -3489,10 +3489,7 @@ class FITSHDR(object):
 
             If the input is a card string, convert is implied True
         """
-        if isinstance(record_in, FITSRecord):
-            record=record_in
-        else:
-            record = FITSRecord(record_in, convert=convert)
+        record = FITSRecord(record_in, convert=convert)
 
         self._record_list.append(record)
         self._add_to_map(record)
