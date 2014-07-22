@@ -3754,7 +3754,8 @@ class FITSRecord(dict):
 
         else:
             if not isinstance(record_in,dict):
-                raise ValueError("each record must be a string card or dictionary")
+                raise ValueError("record must be a string card or "
+                                 "dictionary or FITSRecord")
             self.update(record_in)
             self.verify()
 
