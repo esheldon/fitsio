@@ -67,6 +67,7 @@ set_ioerr_string_from_status(int status) {
     return;
 }
 
+static
 void add_double_to_dict(PyObject* dict, const char* key, double value) {
     PyObject* tobj=NULL;
     tobj=PyFloat_FromDouble(value);
@@ -74,12 +75,15 @@ void add_double_to_dict(PyObject* dict, const char* key, double value) {
     Py_XDECREF(tobj);
 }
 
+static
 void add_long_to_dict(PyObject* dict, const char* key, long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLong(value);
     PyDict_SetItemString(dict, key, tobj);
     Py_XDECREF(tobj);
 }
+
+static
 void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLongLong(value);
@@ -87,23 +91,28 @@ void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
     Py_XDECREF(tobj);
 }
 
+static
 void add_string_to_dict(PyObject* dict, const char* key, const char* str) {
     PyObject* tobj=NULL;
     tobj=PyString_FromString(str);
     PyDict_SetItemString(dict, key, tobj);
     Py_XDECREF(tobj);
 }
+
+static
 void add_none_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_None);
 }
 
-
+static
 void append_long_to_list(PyObject* list, long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLong(value);
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
+
+static
 void append_long_long_to_list(PyObject* list, long long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLongLong(value);
@@ -111,6 +120,7 @@ void append_long_long_to_list(PyObject* list, long long value) {
     Py_XDECREF(tobj);
 }
 
+static
 void append_string_to_list(PyObject* list, const char* str) {
     PyObject* tobj=NULL;
     tobj=PyString_FromString(str);
@@ -930,7 +940,7 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
 
 
 
-int create_empty_hdu(struct PyFITSObject* self)
+static int create_empty_hdu(struct PyFITSObject* self)
 {
     int status=0;
     int bitpix=SHORT_IMG;
@@ -2451,7 +2461,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
 /*
  * Free all the elements in the python list as well as the list itself
  */
-void free_all_python_list(PyObject* list) {
+static void free_all_python_list(PyObject* list) {
     if (PyList_Check(list)) {
         Py_ssize_t i=0;
         for (i=0; i<PyList_Size(list); i++) {
@@ -2461,7 +2471,8 @@ void free_all_python_list(PyObject* list) {
     Py_XDECREF(list);
 }
 
-PyObject* read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* status) {
+static PyObject*
+read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* status) {
     LONGLONG firstelem=1;
     char* str=NULL;
     char* strarr[1];
@@ -2492,8 +2503,9 @@ read_var_string_cleanup:
 
     return stringObj;
 }
-PyObject* read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
-                        int fits_dtype, int npy_dtype, int* status) {
+static PyObject*
+read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
+              int fits_dtype, int npy_dtype, int* status) {
     LONGLONG firstelem=1;
     PyObject* arrayObj=NULL;
     void* nulval=0;
@@ -3204,13 +3216,12 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 }
 
 
-int get_long_slices(
-        PyObject* fpix_arr,
-        PyObject* lpix_arr,
-        PyObject* step_arr,
-        long** fpix,
-        long** lpix,
-        long** step) {
+static int get_long_slices(PyObject* fpix_arr,
+                           PyObject* lpix_arr,
+                           PyObject* step_arr,
+                           long** fpix,
+                           long** lpix,
+                           long** step) {
 
     int i=0;
     long* ptr=NULL;
