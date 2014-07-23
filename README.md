@@ -7,8 +7,7 @@ This is a python extension written in c and python.  Data are read into
 numerical python arrays.
 
 A version of cfitsio is bundled with this package, there is no need to install
-your own, nor will this conflict with a version you have installed; see below
-for details.  
+your own, nor will this conflict with a version you have installed.
 
 
 Some Features
