@@ -73,7 +73,6 @@ build_libdir=glob.glob(os.path.join('build','lib*'))
 if len(build_libdir) > 0:
     shutil.rmtree(build_libdir[0])
 
-#sources = ["fitsio/fitsio_pywrap.c","fitsio/fitsio_pywrap_lists.c"]
 sources = ["fitsio/fitsio_pywrap.c"]
 
 extra_objects = glob.glob(os.path.join(cfitsio_build_dir,'*.o'))
