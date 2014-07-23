@@ -1205,20 +1205,20 @@ class HDUBase(object):
             hdr = records_in
         else:
             hdr = FITSHDR(records_in)
+
         if clean:
             hdr.clean()
 
         for r in hdr.records():
-            name=r['name']
+            name=r['name'].upper()
             value=r['value']
 
-            comment = r.get('comment','')
-
             if name=='COMMENT':
-                self.write_comment(comment)
+                self.write_comment(value)
             elif name=='HISTORY':
-                self.write_history(comment)
+                self.write_history(value)
             else:
+                comment=r.get('comment','')
                 self.write_key(name,value,comment=comment)
 
 
@@ -3669,11 +3669,9 @@ class FITSHDR(object):
 
 
         if name == 'COMMENT':
-            comment = record.get('comment','')
-            card = 'COMMENT   %s' % comment
+            card = 'COMMENT   %s' % value
         elif name=='HISTORY':
-            comment = record.get('comment','')
-            card = 'HISTORY   %s' % comment
+            card = 'HISTORY   %s' % value
         else:
             card = '%-8s= ' % name[0:8]
             # these may be string representations of data, or actual strings
@@ -3719,7 +3717,9 @@ class FITSRecord(dict):
     ----------
     record: string or dict
         If a string, it should represent a FITS header card
+
         If a dict it should have 'name' and 'value' fields.
+        
     """
     def __init__(self, record, convert=False):
         self.set_record(record, convert=convert)
@@ -3800,11 +3800,27 @@ class FITSRecord(dict):
 
         return val
 
+TYP_STRUC_KEY=10
+TYP_CMPRS_KEY=  20
+TYP_SCAL_KEY =  30
+TYP_NULL_KEY =  40
+TYP_DIM_KEY  =  50
+TYP_RANG_KEY =  60
+TYP_UNIT_KEY =  70
+TYP_DISP_KEY =  80
+TYP_HDUID_KEY=  90
+TYP_CKSUM_KEY= 100
+TYP_WCS_KEY  = 110
+TYP_REFSYS_KEY= 120
+TYP_COMM_KEY  = 130
+TYP_CONT_KEY  = 140
+TYP_USER_KEY  = 150
+
 class FITSCard(FITSRecord):
     """
     class to represent ordinary FITS cards.
 
-    COMMENT, HISTORY, CONTINUE not supported
+    CONTINUE not supported
     """
     def __init__(self, card_string):
         self.set_card(card_string)
@@ -3812,46 +3828,88 @@ class FITSCard(FITSRecord):
     def set_card(self, card_string):
         self['card_string']=card_string
 
+        self._check_equals()
+
         self._check_type()
         self._check_len()
 
-        front=card_string[0:9]
-        if front=='COMMENT  ' or front=='HISTORY  ':
-            self._set_as_comment_or_history()
-            return
+        front=card_string[0:7]
+        if (not self.has_equals() or front=='COMMENT' or front=='HISTORY'):
 
+            if front=='CONTINU':
+                raise ValueError("CONTINUE not supported")
+
+            if front=='HISTORY':
+                self._set_as_history()
+            else:
+                # note anything without an = and not history is
+                # treated as comment; this is built into cfitsio
+                # as well
+                self._set_as_comment()
+        else:
+            self._set_as_key()
+
+    def has_equals(self):
+        """
+        True if = is in position 8
+        """
+        return self._has_equals
+
+    def _check_equals(self):
+        """
+        check for = in position 8, set attribute _has_equals
+        """
+        card_string=self['card_string']
+        if len(card_string) < 9:
+            self._has_equals=False
+        elif card_string[8]=='=':
+            self._has_equals=True
+        else:
+            self._has_equals=False
+
+    def _set_as_key(self):
+        card_string=self['card_string']
         res=_fitsio_wrap.parse_card(card_string)
         keyclass, name, value, dtype, comment=res
 
         if keyclass==140:
-            raise ValueError("CONTINUE not supported, please submit a request!")
+            raise ValueError("bad card '%s'.  CONTINUE not "
+                             "supported" % card_string)
 
-        # should be accounted for above....
-        if keyclass==130:
-            self._set_as_comment_or_history()
-        else:
-            self['keyclass'] = keyclass
-            self['name'] = name
-            self['value_orig'] = value
-            self['value'] = self._convert_value(value)
-            self['dtype'] = dtype
-            self['comment'] = comment
+        self['class'] = keyclass
+        self['name'] = name
+        self['value_orig'] = value
+        self['value'] = self._convert_value(value)
+        self['dtype'] = dtype
+        self['comment'] = comment
 
-    def _set_as_comment_or_history(self):
+    def _set_as_comment(self):
+        comment=self._extract_comm_or_hist_value()
+
+        self['class'] = TYP_COMM_KEY
+        self['name']  = 'COMMENT'
+        self['value'] =  comment
+
+    def _set_as_history(self):
+        history=self._extract_comm_or_hist_value()
+
+        self['class'] = TYP_COMM_KEY
+        self['name']  = 'HISTORY'
+        self['value'] =  history
+
+    def _extract_comm_or_hist_value(self):
         card_string=self['card_string']
-        front=card_string[0:7]
-        if front=='COMMENT':
-            value=card_string[9:].strip()
-            self['name']='COMMENT'
-        elif front=='HISTORY':
-            value=card_string[9:].strip()
-            self['name']='HISTORY'
+        if self._has_equals:
+            if len(card_string) >= 9:
+                value=card_string[9:]
+            else:
+                value=''
         else:
-            raise ValueError("unexpected comment or history: %s" % card_string)
-
-        self['value_orig']=''
-        self['value']=''
-        self['comment']=value
+            if len(card_string) >= 8:
+                value=card_string[7:]
+            else:
+                value=''
+        return value
 
     def _check_type(self):
         card_string=self['card_string']
