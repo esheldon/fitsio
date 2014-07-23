@@ -1351,7 +1351,7 @@ class TableHDU(HDUBase):
         ----------
         expression: string
             A fits row selection expression.  E.g.
-
+            "x > 3 && y < 5"
         """
 
         return self._FITS.where(self._ext+1, expression)
