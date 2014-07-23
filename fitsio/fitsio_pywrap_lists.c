@@ -5,6 +5,7 @@
 #include <numpy/arrayobject.h> 
 #include "fitsio_pywrap_lists.h"
 
+/*
 struct i64list* i64list_new(void) {
     struct i64list* slist=NULL;
 
@@ -21,7 +22,6 @@ struct i64list* i64list_delete(struct i64list* list) {
     }
     return NULL;
 }
-
 // push a copy of the string onto the string list
 void i64list_push(struct i64list* list, int64_t val) {
     size_t newsize=0;
@@ -46,6 +46,7 @@ void i64list_print(struct i64list* list) {
     }
 }
 
+*/
 
 
 struct stringlist* stringlist_new(void) {

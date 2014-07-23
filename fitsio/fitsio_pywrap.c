@@ -24,7 +24,7 @@
 #include <Python.h>
 #include "fitsio.h"
 #include "fitsio2.h"
-#include "fitsio_pywrap_lists.h"
+//#include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h> 
 
 
@@ -67,6 +67,104 @@ set_ioerr_string_from_status(int status) {
     return;
 }
 
+/*
+   string list helper functions
+*/
+
+struct stringlist {
+    size_t size;
+    char** data;
+};
+
+static struct stringlist* stringlist_new(void) {
+    struct stringlist* slist=NULL;
+
+    slist = malloc(sizeof(struct stringlist));
+    slist->size = 0;
+    slist->data=NULL;
+    return slist;
+}
+// push a copy of the string onto the string list
+static void stringlist_push(struct stringlist* slist, const char* str) {
+    size_t newsize=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+
+    slist->data[i] = strdup(str);
+}
+
+static void stringlist_push_size(struct stringlist* slist, size_t slen) {
+    size_t newsize=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+
+    slist->data[i] = calloc(slen+1,sizeof(char));
+    //slist->data[i] = malloc(sizeof(char)*(slen+1));
+    //memset(slist->data[i], 0, slen+1);
+}
+static struct stringlist* stringlist_delete(struct stringlist* slist) {
+    if (slist != NULL) {
+        size_t i=0;
+        if (slist->data != NULL) {
+            for (i=0; i < slist->size; i++) {
+                free(slist->data[i]);
+            }
+        }
+        free(slist->data);
+        free(slist);
+    }
+    return NULL;
+}
+
+
+/*
+static void stringlist_print(struct stringlist* slist) {
+    size_t i=0;
+    if (slist == NULL) {
+        return;
+    }
+    for (i=0; i<slist->size; i++) {
+        printf("  slist[%ld]: %s\n", i, slist->data[i]);
+    }
+}
+*/
+
+
+static int stringlist_addfrom_listobj(struct stringlist* slist, 
+                                      PyObject* listObj, 
+                                      const char* listname) {
+    size_t size=0, i=0;
+
+    if (!PyList_Check(listObj)) {
+        PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
+        return 1;
+    }
+    size = PyList_Size(listObj);
+
+    for (i=0; i<size; i++) {
+        PyObject* tmp = PyList_GetItem(listObj, i);
+        const char* tmpstr;
+        if (!PyString_Check(tmp)) {
+            PyErr_Format(PyExc_ValueError, 
+                         "Expected only strings in %s list.", listname);
+            return 1;
+        }
+        tmpstr = (const char*) PyString_AsString(tmp);
+        stringlist_push(slist, tmpstr);
+    }
+    return 0;
+}
+
 static
 void add_double_to_dict(PyObject* dict, const char* key, double value) {
     PyObject* tobj=NULL;
@@ -104,6 +202,7 @@ void add_none_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_None);
 }
 
+/*
 static
 void append_long_to_list(PyObject* list, long value) {
     PyObject* tobj=NULL;
@@ -111,6 +210,7 @@ void append_long_to_list(PyObject* list, long value) {
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
+*/
 
 static
 void append_long_long_to_list(PyObject* list, long long value) {
@@ -120,6 +220,7 @@ void append_long_long_to_list(PyObject* list, long long value) {
     Py_XDECREF(tobj);
 }
 
+/*
 static
 void append_string_to_list(PyObject* list, const char* str) {
     PyObject* tobj=NULL;
@@ -127,6 +228,7 @@ void append_string_to_list(PyObject* list, const char* str) {
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
+*/
 
 
 
