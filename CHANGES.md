@@ -14,9 +14,9 @@ New Features
 
 Bug Fixes
 
-    - use literal_eval instead of eval for evaluating header values
-    - If input to write_keys is a FITSHDR, just use it instead of
-    creating a new FITSHDR object.
+    - use literal_eval instead of eval for evaluating header values (D. Lang)
+    - If input to write_keys is a FITSHDR, just use it instead of creating a
+      new FITSHDR object. (D. Lang)
 
 version 0.9.5
 --------------------------------
