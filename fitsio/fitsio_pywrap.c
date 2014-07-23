@@ -3527,7 +3527,7 @@ character string, logical, integer, floating point, complex
 */
 
 static PyObject *
-PyFITS_cfitsio_get_keytype(PyObject* self, PyObject* args) {
+PyFITS_get_keytype(PyObject* self, PyObject* args) {
 
     int status=0;
     char* card=NULL;
@@ -3545,6 +3545,30 @@ PyFITS_cfitsio_get_keytype(PyObject* self, PyObject* args) {
         return Py_BuildValue("s", dtype);
     }
 }
+static PyObject *
+PyFITS_get_key_meta(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char* card=NULL;
+    char dtype[2]={0};
+    int keyclass=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        return NULL;
+    }
+
+
+    keyclass=fits_get_keyclass(card);
+
+    if (fits_get_keytype(card, dtype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    return Py_BuildValue("is", keyclass, dtype);
+
+}
+
 
 static PyObject *
 PyFITS_parse_card(PyObject* self, PyObject* args) {
@@ -3690,7 +3714,9 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
-    {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "cfitsio_parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
+    {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
+    {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
+    {"get_key_meta",      (PyCFunction)PyFITS_get_key_meta,      METH_VARARGS,  "get_key_meta\n\nparse the card to get key metadata (keyclass,dtype)."},
     {NULL}  /* Sentinel */
 };
 

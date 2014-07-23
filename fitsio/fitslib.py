@@ -3814,12 +3814,18 @@ class FITSCard(FITSRecord):
         self._check_type()
         self._check_len()
 
+        front=card_string[0:7]
+        if front=='COMMENT' or front=='HISTORY':
+            self._set_as_comment_or_history()
+            return
+
         res=_fitsio_wrap.parse_card(card_string)
         keyclass, name, value, dtype, comment=res
 
         if keyclass==140:
             raise ValueError("CONTINUE not supported, please submit a request!")
 
+        # should be accounted for above....
         if keyclass==130:
             self._set_as_comment_or_history()
         else:
