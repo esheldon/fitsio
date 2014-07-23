@@ -266,6 +266,9 @@ fits.write(img, compress='rice')
 # add checksums for the data
 fits[-1].write_checksum()
 
+# can later verify data integridy
+fits[-1].verify_checksum()
+
 # you can also write a header at the same time.  The header can be 
 #   - a simple dict (no comments)
 #   - a list of dicts with 'name','value','comment' fields
