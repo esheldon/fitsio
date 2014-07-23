@@ -287,6 +287,14 @@ fits[1].write_key(name, value, comment="my comment")
 # is the same as sent with header= above
 fits[1].write_keys(records)
 
+# write special COMMENT fields
+fits[1].write_comment("observer JS")
+fits[1].write_comment("we had good weather")
+
+# write special history fields
+fits[1].write_history("processed with software X")
+fits[1].write_history("re-processed with software Y")
+
 fits.close()
 
 # using a context, the file is closed automatically after leaving the block
