@@ -3457,6 +3457,7 @@ class FITSHDR(object):
 
         self._record_list = []
         self._record_map = {}
+        self._index_map={}
 
         if isinstance(record_list,FITSHDR):
             for r in record_list.records():
@@ -3476,6 +3477,9 @@ class FITSHDR(object):
         """
         Add a new record.  Strip quotes from around strings.
 
+        This will over-write if the key already exists, except
+        for COMMENT and HISTORY fields
+
         parameters
         -----------
         record:
@@ -3491,11 +3495,25 @@ class FITSHDR(object):
         """
         record = FITSRecord(record_in, convert=convert)
 
-        self._record_list.append(record)
-        self._add_to_map(record)
+        # only append when this name already exists if it is
+        # a comment or history field, otherwise simply over-write
+        key=record['name'].upper()
+
+        key_exists = key in self._record_map
+
+        if not key_exists or key == 'COMMENT' or key == 'HISTORY':
+            # append new record
+            self._record_list.append(record)
+            index=len(self._record_list)-1
+            self._index_map[key] = index
+        else:
+            # over-write existing
+            index = self._index_map[key]
+            self._record_list[index] = record
+
+        self._record_map[key] = record
 
     def _add_to_map(self, record):
-        #self._record_map[record['name']] = record
         key=record['name'].upper()
         self._record_map[key] = record
 
@@ -3595,12 +3613,6 @@ class FITSHDR(object):
                     self.delete(names)
             
 
-    def __len__(self):
-        return len(self._record_list)
-
-    def __contains__(self, item):
-        return item.upper() in self._record_map
-
     def get(self, item, default_value=None):
         """
         Get the requested header entry by keyword name
@@ -3616,15 +3628,38 @@ class FITSHDR(object):
 
         return self._record_map[key]['value']
 
+    def __len__(self):
+        return len(self._record_list)
+
+    def __contains__(self, item):
+        if isinstance(item, FITSRecord):
+            name=item['name']
+        elif isinstance(item, dict):
+            name=item.get('name',None)
+            if name is None:
+                raise ValueError("dict record must have 'name' field")
+        else:
+            name=item
+        
+        name=name.upper()
+        return name in self._record_map
+
     def __setitem__(self, item, value):
-        new_rec = {'name':item, 'value':value}
-        self.add_record(new_rec)
+        if isinstance(value, (dict,FITSRecord)):
+            if item.upper() != value['name'].upper():
+                raise ValueError("when setting using a FITSRecord, the "
+                                 "name field must match")
+            rec=value
+        else:
+            rec = {'name':item, 'value':value}
+
+        self.add_record(rec)
 
     def __getitem__(self, item):
         key=item.upper()
         if key not in self._record_map:
             raise ValueError("unknown record: %s" % key)
-        return self.get(key)
+        return self._record_map[key]['value']
 
     def __iter__(self):
         self._current=0
@@ -3719,6 +3754,7 @@ class FITSRecord(dict):
         If a string, it should represent a FITS header card
 
         If a dict it should have 'name' and 'value' fields.
+        Can have a 'comment' field.
         
     """
     def __init__(self, record, convert=False):
@@ -3743,18 +3779,14 @@ class FITSRecord(dict):
         """
         import copy
 
-        if isinstance(record_in, FITSRecord):
-            self.update(record_in)
-            self.verify()
-
-        elif isinstance(record_in, basestring):
+        if isinstance(record_in, basestring):
             card=FITSCard(record_in)
             self.update(card)
 
             self.verify()
 
         else:
-            if not isinstance(record_in,dict):
+            if not isinstance(record_in, (FITSRecord,dict)):
                 raise ValueError("record must be a string card or "
                                  "dictionary or FITSRecord")
             self.update(record_in)
@@ -3766,6 +3798,9 @@ class FITSRecord(dict):
                     self['value'] = self._convert_value(self['value_orig'])
 
     def verify(self):
+        """
+        make sure name,value exist
+        """
         if 'name' not in self:
             raise ValueError("each record must have a 'name' field")
         if 'value' not in self:
