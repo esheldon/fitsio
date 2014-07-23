@@ -3677,7 +3677,7 @@ class FITSHDR(object):
         else:
             card = '%-8s= ' % name[0:8]
             # these may be string representations of data, or actual strings
-            if isinstance(value,(str,unicode)):
+            if isinstance(value,(basestring,unicode)):
                 value = str(value)
                 if len(value) > 0:
                     if value[0] != "'":
@@ -3686,8 +3686,9 @@ class FITSHDR(object):
                         value = "'" + value + "'"
                         vstr = '%-20s' % value
                     else:
-                        # this is a string representing a number
                         vstr = "%20s" % value
+                else:
+                    vstr="''"
             else:
                 vstr = '%20s' % value
                     
@@ -3699,7 +3700,7 @@ class FITSHDR(object):
         return card[0:80]
 
     def __repr__(self):
-        rep=[]
+        rep=['']
         for r in self._record_list:
             if 'card' not in r:
                 card = self._record2card(r)
@@ -3814,8 +3815,8 @@ class FITSCard(FITSRecord):
         self._check_type()
         self._check_len()
 
-        front=card_string[0:7]
-        if front=='COMMENT' or front=='HISTORY':
+        front=card_string[0:9]
+        if front=='COMMENT  ' or front=='HISTORY  ':
             self._set_as_comment_or_history()
             return
 
@@ -3838,20 +3839,19 @@ class FITSCard(FITSRecord):
 
     def _set_as_comment_or_history(self):
         card_string=self['card_string']
-        if card_string[0:7]=='COMMENT':
-            value=card_string[7:].strip()
+        front=card_string[0:7]
+        if front=='COMMENT':
+            value=card_string[9:].strip()
             self['name']='COMMENT'
-            self['value_orig']=''
-            self['value']=''
-            self['comment']=value
-        elif card_string[0:7]=='HISTORY':
-            value=card_string[7:].strip()
+        elif front=='HISTORY':
+            value=card_string[9:].strip()
             self['name']='HISTORY'
-            self['value_orig']=''
-            self['value']=''
-            self['comment']=value
         else:
-            raise ValueError("unexpected name for keyclass 130: %s" % card_string)
+            raise ValueError("unexpected comment or history: %s" % card_string)
+
+        self['value_orig']=''
+        self['value']=''
+        self['comment']=value
 
     def _check_type(self):
         card_string=self['card_string']

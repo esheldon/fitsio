@@ -3569,6 +3569,13 @@ PyFITS_get_key_meta(PyObject* self, PyObject* args) {
 
 }
 
+/*
+
+    note the special first four comment fields will not be called comment but
+    structural!  That will cause an exception to be raised, so the card should
+    be checked before calling this function
+
+*/
 
 static PyObject *
 PyFITS_parse_card(PyObject* self, PyObject* args) {
@@ -3590,8 +3597,11 @@ PyFITS_parse_card(PyObject* self, PyObject* args) {
 
     keyclass=fits_get_keyclass(card);
 
+    // only proceed if not comment or history, but note the special first four
+    // comment fields will not be called comment but structural!  That will
+    // cause an exception to be raised, so the card should be checked before
+    // calling this function
 
-    // only proceed if not comment or history
     if (keyclass != TYP_COMM_KEY && keyclass != TYP_CONT_KEY) {
 
         if (fits_get_keyname(card, name, &keylen, &status)) {
