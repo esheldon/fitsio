@@ -3621,11 +3621,6 @@ class FITSHDR(object):
         if key not in self._record_map:
             return default_value
 
-        if key == 'COMMENT':
-            # there could be many comments, just return one
-            v = self._record_map[key].get('comment','')
-            return v
-
         return self._record_map[key]['value']
 
     def __len__(self):
