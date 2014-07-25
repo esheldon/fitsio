@@ -3793,6 +3793,15 @@ class FITSRecord(dict):
         If a dict it should have 'name' and 'value' fields.
         Can have a 'comment' field.
         
+    examples
+    --------
+
+    # from a dict.  Can include a comment
+    rec=FITSRecord( {'name':'temp', 'value':35, 'comment':'temperature in C'} )
+
+    # from a card
+    card=FITSRecord('test    =                   77 / My comment')
+
     """
     def __init__(self, record, convert=False):
         self.set_record(record, convert=convert)
@@ -3893,6 +3902,12 @@ class FITSCard(FITSRecord):
     class to represent ordinary FITS cards.
 
     CONTINUE not supported
+
+    examples
+    --------
+
+    # from a card
+    card=FITSRecord('test    =                   77 / My comment')
     """
     def __init__(self, card_string):
         self.set_card(card_string)
