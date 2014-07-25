@@ -3452,6 +3452,48 @@ class FITSHDR(object):
 
         If the input is a card string, convert is implied True
 
+    examples:
+
+        hdr=FITSHDR()
+
+        # set a simple value
+        hdr['blah'] = 35
+
+        # set from a dict to include a comment.
+        rec={'name':'fromdict', 'value':3, 'comment':'my comment'}
+        hdr.add_record(rec)
+
+        # can do the same with a full FITSRecord
+        rec=FITSRecord( {'name':'temp', 'value':35, 'comment':'temp in C'} )
+        hdr.add_record(rec)
+
+        # in the above, the record is replaced if one with the same name
+        # exists, except for COMMENT and HISTORY, which can exist as 
+        # duplicates
+
+        # print the header
+        print hdr
+
+        # print a single record
+        print hdr['fromdict']
+        
+
+        # can also set from a card
+        hdr.add_record('test    =                   77')
+        # using a FITSRecord object (internally uses FITSCard)
+        card=FITSRecord('test    =                   77')
+        hdr.add_record(card)
+
+        # can also construct with a record list
+        recs=[{'name':'test', 'value':35, 'comment':'a comment'},
+              {'name':'blah', 'value':'some string'}]
+        hdr=FITSHDR(recs)
+
+        # if you have no comments, you can construct with a simple dict
+        recs={'day':'saturday',
+              'telescope':'blanco'}
+        hdr=FITSHDR(recs)
+    
     """
     def __init__(self, record_list=None, convert=False):
 
