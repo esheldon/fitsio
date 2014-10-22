@@ -24,7 +24,7 @@ class TestReadWrite(unittest.TestCase):
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
                ('i1scalar','i1'),
-               ('b1scalar','b1'),
+               ('b1scalar','b'),
                ('u2scalar','u2'),
                ('i2scalar','i2'),
                ('u4scalar','u4'),
@@ -37,7 +37,7 @@ class TestReadWrite(unittest.TestCase):
 
                ('u1vec','u1',nvec),
                ('i1vec','i1',nvec),
-               ('b1vec','b1',nvec),
+               ('b1vec','b',nvec),
                ('u2vec','u2',nvec),
                ('i2vec','i2',nvec),
                ('u4vec','u4',nvec),
@@ -50,7 +50,7 @@ class TestReadWrite(unittest.TestCase):
  
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
-               ('b1arr','b1',ashape),
+               ('b1arr','b',ashape),
                ('u2arr','u2',ashape),
                ('i2arr','i2',ashape),
                ('u4arr','u4',ashape),
