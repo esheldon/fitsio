@@ -17,6 +17,10 @@ Bug Fixes
     - use literal_eval instead of eval for evaluating header values (D. Lang)
     - If input to write_keys is a FITSHDR, just use it instead of creating a
       new FITSHDR object. (D. Lang)
+    - update existing keys when adding records to FITSHDR, except for
+      comment and history fields.
+    - fixed bug with empty string in header card
+    - deal with cfitsio treating first 4 comments specially
 
 version 0.9.5
 --------------------------------
