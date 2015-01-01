@@ -102,6 +102,12 @@ classifiers = ["Development Status :: 5 - Production/Stable"
                ,"Intended Audience :: Science/Research"
               ]
 
+try:
+    from distutils.command.build_py import build_py_2to3 as build_py
+except ImportError:
+    from distutils.command.build_py import build_py
+
+
 include_dirs=[cfitsio_dir,numpy.get_include()]
 setup(name="fitsio", 
       version="0.9.6",
@@ -116,6 +122,7 @@ setup(name="fitsio",
       packages=['fitsio'],
       data_files=data_files,
       ext_modules=[ext],
+      cmdclass = {"build_py":build_py},
       include_dirs=include_dirs)
 
 
