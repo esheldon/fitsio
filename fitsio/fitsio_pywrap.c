@@ -67,21 +67,26 @@ char* get_object_as_string(PyObject* obj)
 
 #if PY_MAJOR_VERSION >= 3
     // convert to bytes as needed
-    if (PyUnicode_Check(obj)) {
-        tmpobj1 = PyObject_CallMethod(obj,"encode",NULL);
+    if (PyBytes_Check(obj)) {
+        strdata = strdup( PyBytes_AsString(obj) );
     } else {
-        args=PyTuple_New(1);
+        if (PyUnicode_Check(obj)) {
+            tmpobj1 = PyObject_CallMethod(obj,"encode",NULL);
 
-        PyTuple_SetItem(args,0,obj);
-        tmpobj2 = PyUnicode_Format(format, args);
-        tmpobj1 = PyObject_CallMethod(tmpobj2,"encode",NULL);
+        } else {
+            args=PyTuple_New(1);
 
-        Py_XDECREF(args);
-        Py_XDECREF(tmpobj2);
+            PyTuple_SetItem(args,0,obj);
+            tmpobj2 = PyUnicode_Format(format, args);
+            tmpobj1 = PyObject_CallMethod(tmpobj2,"encode",NULL);
+
+            Py_XDECREF(args);
+            Py_XDECREF(tmpobj2);
+        }
+
+        strdata = strdup( PyBytes_AsString(tmpobj1) );
+        Py_XDECREF(tmpobj1);
     }
-
-    strdata = strdup( PyBytes_AsString(tmpobj1) );
-    Py_XDECREF(tmpobj1);
 
 #else
     // convert to a string as needed
@@ -2620,7 +2625,12 @@ read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* s
     if (fits_read_col(fits,TSTRING,colnum,row,firstelem,nchar,nulval,strarr,anynul,status) > 0) {
         goto read_var_string_cleanup;
     }
+#if PY_MAJOR_VERSION >= 3
+    // bytes
+    stringObj = Py_BuildValue("y",str);
+#else
     stringObj = Py_BuildValue("s",str);
+#endif
     if (NULL == stringObj) {
         PyErr_Format(PyExc_MemoryError, 
                      "Could not allocate py string of size %lld", nchar);
