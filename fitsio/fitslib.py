@@ -20,7 +20,7 @@ See the main docs at https://github.com/esheldon/fitsio
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
-from __future__ import with_statement
+from __future__ import with_statement, print_function
 import os
 import numpy
 from . import _fitsio_wrap
@@ -311,7 +311,7 @@ class FITS(object):
             if clobber:
                 create=1
                 if os.path.exists(filename):
-                    print 'Removing existing file'
+                    print('Removing existing file')
                     os.remove(filename)
             else:
                 if os.path.exists(filename):
@@ -1171,7 +1171,7 @@ class HDUBase(object):
             mess=("warning, keyword '%s' has non-standard "
                   "value type %s, "
                   "Converting to string: '%s'")
-            print mess % (keyname,type(value),sval)
+            print(mess % (keyname,type(value),sval))
             self._FITS.write_string_key(self._ext+1,
                                         str(keyname),
                                         sval,
@@ -2053,9 +2053,9 @@ class TableHDU(HDUBase):
                         name=self._info['colinfo'][colnum]['name']
                         mess='Will read as an object field'
                         if max_size < 0:
-                            print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
+                            print("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess))
                         else:
-                            print "Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess)
+                            print("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess))
 
                     # we are forced to read this as an object array
                     return self.get_rec_column_descr(colnum, 'object')
@@ -2375,9 +2375,9 @@ class TableHDU(HDUBase):
                 name=self._info['colinfo'][colnum]['name']
                 mess='Will read as an object field'
                 if max_size < 0:
-                    print "Column '%s': No maximum size: '%s'. %s" % (name,tform,mess)
+                    print("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess))
                 else:
-                    print "Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess)
+                    print("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess))
 
                 # we are forced to read this as an object array
                 return self._read_var_column(colnum, rows, 'object')
@@ -3472,10 +3472,10 @@ class FITSHDR(object):
         # duplicates
 
         # print the header
-        print hdr
+        print(hdr)
 
         # print a single record
-        print hdr['fromdict']
+        print(hdr['fromdict'])
         
 
         # can also set from a card

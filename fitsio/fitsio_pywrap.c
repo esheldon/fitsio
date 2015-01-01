@@ -40,6 +40,68 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
+
+// check unicode for python3, string for python2
+int is_python_string(const PyObject* obj)
+{
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_Check(obj);
+#else
+    return PyString_Check(obj);
+#endif
+}
+/*
+   get a string version of the object. New memory
+   is allocated and the receiver must clean it up.
+*/
+
+char* get_object_as_string(PyObject* obj)
+{
+    PyObject* format=NULL;
+    PyObject* args=NULL;
+    char* strdata=NULL;
+    PyObject* tmpobj1=NULL, *tmpobj2=NULL;
+
+    // must be cleaned up before exit
+    format = Py_BuildValue("s","%s");
+
+#if PY_MAJOR_VERSION >= 3
+    // convert to bytes as needed
+    if (PyUnicode_Check(obj)) {
+        tmpobj1 = PyObject_CallMethod(obj,"encode",NULL);
+    } else {
+        args=PyTuple_New(1);
+
+        PyTuple_SetItem(args,0,obj);
+        tmpobj2 = PyUnicode_Format(format, args);
+        tmpobj1 = PyObject_CallMethod(tmpobj2,"encode",NULL);
+
+        Py_XDECREF(args);
+        Py_XDECREF(tmpobj2);
+    }
+
+    strdata = strdup( PyBytes_AsString(tmpobj1) );
+    Py_XDECREF(tmpobj1);
+
+#else
+    // convert to a string as needed
+    if (PyString_Check(obj)) {
+        strdata = strdup( PyString_AsString(obj) );
+    } else {
+        args=PyTuple_New(1);
+
+        PyTuple_SetItem(args,0,obj);
+        tmpobj1= PyString_Format(format, args);
+
+        strdata = strdup( PyString_AsString(tmpobj1) );
+        Py_XDECREF(args);
+        Py_XDECREF(tmpobj1);
+    }
+#endif
+    Py_XDECREF(format);
+    return strdata;
+}
+
 static void 
 set_ioerr_string_from_status(int status) {
     char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
@@ -144,6 +206,7 @@ static int stringlist_addfrom_listobj(struct stringlist* slist,
                                       PyObject* listObj, 
                                       const char* listname) {
     size_t size=0, i=0;
+    char* tmpstr=NULL;
 
     if (!PyList_Check(listObj)) {
         PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
@@ -153,14 +216,14 @@ static int stringlist_addfrom_listobj(struct stringlist* slist,
 
     for (i=0; i<size; i++) {
         PyObject* tmp = PyList_GetItem(listObj, i);
-        const char* tmpstr;
-        if (!PyString_Check(tmp)) {
+        if (!is_python_string(tmp)) {
             PyErr_Format(PyExc_ValueError, 
                          "Expected only strings in %s list.", listname);
             return 1;
         }
-        tmpstr = (const char*) PyString_AsString(tmp);
+        tmpstr = get_object_as_string(tmp);
         stringlist_push(slist, tmpstr);
+        free(tmpstr);
     }
     return 0;
 }
@@ -192,7 +255,7 @@ void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
 static
 void add_string_to_dict(PyObject* dict, const char* key, const char* str) {
     PyObject* tobj=NULL;
-    tobj=PyString_FromString(str);
+    tobj=Py_BuildValue("s",str);
     PyDict_SetItemString(dict, key, tobj);
     Py_XDECREF(tobj);
 }
@@ -224,7 +287,7 @@ void append_long_long_to_list(PyObject* list, long long value) {
 static
 void append_string_to_list(PyObject* list, const char* str) {
     PyObject* tobj=NULL;
-    tobj=PyString_FromString(str);
+    tobj=Py_BuildValue("s",str);
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
@@ -260,6 +323,7 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
+
 static PyObject *
 PyFITSObject_repr(struct PyFITSObject* self) {
 
@@ -274,9 +338,9 @@ PyFITSObject_repr(struct PyFITSObject* self) {
         }
 
         sprintf(repr, "fits file: %s", filename);
-        return PyString_FromString(repr);
+        return Py_BuildValue("s",repr);
     }  else {
-        return PyString_FromString("");
+        return Py_BuildValue("s","none");
     }
 }
 
@@ -292,7 +356,7 @@ PyFITSObject_filename(struct PyFITSObject* self) {
             return NULL;
         }
 
-        fnameObj = PyString_FromString(filename);
+        fnameObj = Py_BuildValue("s",filename);
         return fnameObj;
     }  else {
         PyErr_SetString(PyExc_ValueError, "file is not open, cannot determine name");
@@ -333,35 +397,6 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 #endif
 }
 
-
-
-// if input is NULL or None, return NULL
-// if maxlen is 0, the full string is copied, else
-// it is maxlen+1 for the following null
-/*
-static char* copy_py_string(PyObject* obj, int maxlen, int* status) {
-    char* buffer=NULL;
-    int len=0;
-    if (obj != NULL && obj != Py_None) {
-        char* tmp;
-        if (!PyString_Check(obj)) {
-            PyErr_SetString(PyExc_ValueError, "Expected a string for extension name");
-            *status=99;
-            return NULL;
-        }
-        tmp = PyString_AsString(obj);
-        if (maxlen > 0) {
-            len = maxlen;
-        } else {
-            len = strlen(tmp);
-        }
-        buffer = malloc(sizeof(char)*(len+1));
-        strncpy(buffer, tmp, len);
-    }
-
-    return buffer;
-}
-*/
 
 // this will need to be updated for array string columns.
 // I'm using a tcolumn* here, could cause problems
@@ -1314,14 +1349,18 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
         colnum=i+1;
         tmp = PyList_GetItem(tdimObj, i);
         if (tmp != Py_None) {
-            if (!PyString_Check(tmp)) {
+            if (!is_python_string(tmp)) {
                 PyErr_SetString(PyExc_ValueError, "Expected only strings or None for tdim");
                 return 1;
             }
 
-            tdim = PyString_AsString(tmp);
             sprintf(keyname, "TDIM%d", colnum);
-            if (fits_write_key(fits, TSTRING, keyname, tdim, NULL, &status)) {
+
+            tdim = get_object_as_string(tmp);
+            fits_write_key(fits, TSTRING, keyname, tdim, NULL, &status);
+            free(tdim);
+
+            if (status) {
                 set_ioerr_string_from_status(status);
                 return 1;
             }
@@ -1466,10 +1505,15 @@ PyFITSObject_insert_col(struct PyFITSObject* self, PyObject* args, PyObject* kwd
         PyObject* tmp=NULL;
         char* tdim=NULL;
         char keyname[20];
-        tmp = PyList_GetItem(tdimObj, 0);
-        tdim = PyString_AsString(tmp);
+
         sprintf(keyname, "TDIM%d", colnum);
-        if (fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status)) {
+        tmp = PyList_GetItem(tdimObj, 0);
+
+        tdim = get_object_as_string(tmp);
+        fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status);
+        free(tdim);
+
+        if (status) {
             set_ioerr_string_from_status(status);
             return NULL;
         }
@@ -1710,7 +1754,11 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         }
 
         tmp_obj = PyList_GetItem(colnum_list,icol);
+#if PY_MAJOR_VERSION >= 3
+        colnums[icol] = 1+(int) PyLong_AsLong(tmp_obj);
+#else
         colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
+#endif
         array_ptrs[icol] = tmp_array;
 
         nperrow[icol] = 1;
@@ -1828,53 +1876,32 @@ int write_var_string_column(
     char* ptr=NULL;
     int res=0;
 
-    PyObject* format=NULL;
     PyObject* el=NULL;
-    PyObject* el_string=NULL;
     char* strdata=NULL;
     char* strarr[1];
-    int is_converted=0;
 
-    format = PyString_FromString("%s");
 
     nrows = PyArray_SIZE(array);
     for (i=0; i<nrows; i++) {
         ptr = PyArray_GetPtr((PyArrayObject*) array, &i);
         el = PyArray_GETITEM(array, ptr);
 
-        // convert to a string if needed
-        if (PyString_Check(el)) {
-            is_converted=0;
-            // Don't free!
-            strdata = PyString_AsString(el);
-        } else {
-            PyObject* args=PyTuple_New(1);
+        strdata=get_object_as_string(el);
 
-            PyTuple_SetItem(args,0,el);
-            el_string = PyString_Format(format, args);
-
-            Py_XDECREF(args);
-
-            is_converted=1;
-            // Don't free!
-            strdata = PyString_AsString(el_string);
-        }
-
+        // just a container
         strarr[0] = strdata;
         res=fits_write_col_str(fits, colnum, 
                                firstrow+i, firstelem, nelem, 
                                strarr, status);
-        if (is_converted) {
-            Py_XDECREF(el_string);
-        }
 
+        free(strdata);
         if(res > 0) {
             goto write_var_string_column_cleanup;
         }
     }
 
 write_var_string_column_cleanup:
-    Py_XDECREF(format);
+
     if (*status > 0) {
         return 1;
     }
@@ -2593,7 +2620,7 @@ read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* s
     if (fits_read_col(fits,TSTRING,colnum,row,firstelem,nchar,nulval,strarr,anynul,status) > 0) {
         goto read_var_string_cleanup;
     }
-    stringObj = PyString_FromString(str);
+    stringObj = Py_BuildValue("s",str);
     if (NULL == stringObj) {
         PyErr_Format(PyExc_MemoryError, 
                      "Could not allocate py string of size %lld", nchar);
@@ -3862,10 +3889,13 @@ static PyMethodDef fitstype_methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+PyInit__fitsio_pywrap(void) 
+#else
 init_fitsio_wrap(void) 
+#endif
 {
     PyObject* m;
-
 
     PyFITSType.tp_new = PyType_GenericNew;
 
@@ -3892,4 +3922,7 @@ init_fitsio_wrap(void)
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
 
     import_array();
+#if PY_MAJOR_VERSION >= 3
+    return m;
+#endif
 }
