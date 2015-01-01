@@ -1,11 +1,16 @@
-from __future__ import with_statement
-import os
+from __future__ import with_statement, print_function
+import sys, os
 import tempfile
 import numpy
 from numpy import arange, array
 import fitsio
 
 import unittest
+
+if sys.version_info > (3,0,0):
+    stype=(str,bytes)
+else:
+    stype=str
 
 
 def test():
@@ -1419,19 +1424,19 @@ class TestReadWrite(unittest.TestCase):
 
     def compare_object_array(self, arr1, arr2, name, rows=None): 
         """
-        The first must be object, the second might be
+        The first must be object
         """
         if rows is None:
             rows = arange(arr1.size)
 
         for i,row in enumerate(rows):
-            if isinstance(arr2[i],str):
+            if isinstance(arr2[i],stype):
                 self.assertEqual(arr1[row],arr2[i],
                                 "%s str el %d equal" % (name,i))
             else:
                 delement = arr2[i]
                 orig = arr1[row]
-                s=orig.size
+                s=len(orig)
                 self.compare_array(orig, delement[0:s], 
                                    "%s num el %d equal" % (name,i))
 
@@ -1445,7 +1450,7 @@ class TestReadWrite(unittest.TestCase):
             if fitsio.fitslib.is_object(rec2[f]):
 
                 for i in xrange(rec2.size):
-                    if isinstance(rec2[f][i],str):
+                    if isinstance(rec2[f][i],stype):
                         self.assertEqual(rec1[f][i],rec2[f][i],
                                         "testing '%s' str field '%s' el %d equal" % (name,f,i))
                     else:
