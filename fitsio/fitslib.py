@@ -21,7 +21,7 @@ See the main docs at https://github.com/esheldon/fitsio
 
 """
 from __future__ import with_statement, print_function
-import os
+import sys, os
 import numpy
 from . import _fitsio_wrap
 import copy
@@ -2142,7 +2142,11 @@ class TableHDU(HDUBase):
                             array[name][irow]= item
                         else:
                             ncopy = len(item)
-                            array[name][irow][0:ncopy] = item[:]
+
+                            if sys.version_info > (3,0,0):
+                                array[name][irow] = item
+                            else:
+                                array[name][irow][0:ncopy] = item[:]
 
         return array
 
@@ -2364,6 +2368,11 @@ class TableHDU(HDUBase):
 
         """
 
+        if sys.version_info > (3,0,0):
+            stype=bytes
+        else:
+            stype=str
+
         dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
 
         if vstorage == 'fixed':
@@ -2382,7 +2391,7 @@ class TableHDU(HDUBase):
                 # we are forced to read this as an object array
                 return self._read_var_column(colnum, rows, 'object')
 
-            if isinstance(dlist[0],str):
+            if isinstance(dlist[0],stype):
                 descr = 'S%d' % max_size
                 array = numpy.fromiter(dlist, descr)
             else:
@@ -3280,6 +3289,11 @@ def npy_obj2fits(data, name=None):
     # type and len is max length.  Each element must be convertible to
     # the same type as the first
 
+    if sys.version_info > (3,0,0):
+        stype=bytes
+    else:
+        stype=str
+
     if name is None:
         d = data.dtype.descr
         first=data[0]
@@ -3287,8 +3301,9 @@ def npy_obj2fits(data, name=None):
         d = data[name].dtype.descr
         first = data[name][0]
 
-    # note numpy._string is an instance of str, so str is good enough
-    if isinstance(first, str):
+    # note numpy._string is an instance of str in python2, bytes
+    # in python3
+    if isinstance(first, stype):
         fits_dtype = _table_npy2fits_form['S']
     else:
         arr0 = numpy.array(first,copy=False)
