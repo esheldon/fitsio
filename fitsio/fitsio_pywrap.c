@@ -3787,19 +3787,19 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec_byoffset",  (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset,  METH_VARARGS,  "read_columns_as_rec_byoffset\n\nRead the specified columns into the input rec array at the specified offsets.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
-    {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
+    {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS | METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
-    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
-    {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
-    {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_KEYWORDS, "insert_col\n\nInsert a new column."},
+    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_VARARGS | METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
+    {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_VARARGS | METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
+    {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_VARARGS | METH_KEYWORDS, "insert_col\n\nInsert a new column."},
 
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
     {"verify_checksum",      (PyCFunction)PyFITSObject_verify_checksum,      METH_VARARGS,  "verify_checksum\n\nReturn a dict with dataok and hduok."},
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
-    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
-    {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
-    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
+    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
+    {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
+    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 
@@ -3890,7 +3890,7 @@ static PyMethodDef fitstype_methods[] = {
 #endif
 PyMODINIT_FUNC
 #if PY_MAJOR_VERSION >= 3
-PyInit__fitsio_pywrap(void) 
+PyInit__fitsio_wrap(void) 
 #else
 init_fitsio_wrap(void) 
 #endif
