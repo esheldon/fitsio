@@ -45,7 +45,7 @@ struct PyFITSObject {
 int is_python_string(const PyObject* obj)
 {
 #if PY_MAJOR_VERSION >= 3
-    return PyUnicode_Check(obj);
+    return PyUnicode_Check(obj) || PyBytes_Check(obj);
 #else
     return PyString_Check(obj);
 #endif
