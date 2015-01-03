@@ -47,33 +47,50 @@ int is_python_string(const PyObject* obj)
 #if PY_MAJOR_VERSION >= 3
     return PyUnicode_Check(obj) || PyBytes_Check(obj);
 #else
-    return PyString_Check(obj);
+    return PyUnicode_Check(obj) || PyString_Check(obj);
 #endif
 }
 /*
+
    get a string version of the object. New memory
    is allocated and the receiver must clean it up.
+
 */
 
-char* get_object_as_string(PyObject* obj)
+// unicode is common to python 2 and 3
+static char* get_unicode_as_string(PyObject* obj)
+{
+    PyObject* tmp=NULL;
+    char* strdata=NULL;
+    tmp = PyObject_CallMethod(obj,"encode",NULL);
+
+    strdata = strdup( PyBytes_AsString(tmp) );
+    Py_XDECREF(tmp);
+
+    return strdata;
+}
+
+static char* get_object_as_string(PyObject* obj)
 {
     PyObject* format=NULL;
     PyObject* args=NULL;
     char* strdata=NULL;
-    PyObject* tmpobj1=NULL, *tmpobj2=NULL;
+    PyObject* tmpobj1=NULL;
 
-    // must be cleaned up before exit
-    format = Py_BuildValue("s","%s");
+    if (PyUnicode_Check(obj)) {
+
+        strdata=get_unicode_as_string(obj);
+
+    } else {
 
 #if PY_MAJOR_VERSION >= 3
-    // convert to bytes as needed
-    if (PyBytes_Check(obj)) {
-        strdata = strdup( PyBytes_AsString(obj) );
-    } else {
-        if (PyUnicode_Check(obj)) {
-            tmpobj1 = PyObject_CallMethod(obj,"encode",NULL);
 
+        if (PyBytes_Check(obj)) {
+            strdata = strdup( PyBytes_AsString(obj) );
         } else {
+            PyObject* tmpobj2=NULL;
+            format = Py_BuildValue("s","%s");
+            // this is not a string object
             args=PyTuple_New(1);
 
             PyTuple_SetItem(args,0,obj);
@@ -82,28 +99,31 @@ char* get_object_as_string(PyObject* obj)
 
             Py_XDECREF(args);
             Py_XDECREF(tmpobj2);
+
+            strdata = strdup( PyBytes_AsString(tmpobj1) );
+            Py_XDECREF(tmpobj1);
+            Py_XDECREF(format);
         }
 
-        strdata = strdup( PyBytes_AsString(tmpobj1) );
-        Py_XDECREF(tmpobj1);
-    }
-
 #else
-    // convert to a string as needed
-    if (PyString_Check(obj)) {
-        strdata = strdup( PyString_AsString(obj) );
-    } else {
-        args=PyTuple_New(1);
+        // convert to a string as needed
+        if (PyString_Check(obj)) {
+            strdata = strdup( PyString_AsString(obj) );
+        } else {
+            format = Py_BuildValue("s","%s");
+            args=PyTuple_New(1);
 
-        PyTuple_SetItem(args,0,obj);
-        tmpobj1= PyString_Format(format, args);
+            PyTuple_SetItem(args,0,obj);
+            tmpobj1= PyString_Format(format, args);
 
-        strdata = strdup( PyString_AsString(tmpobj1) );
-        Py_XDECREF(args);
-        Py_XDECREF(tmpobj1);
-    }
+            strdata = strdup( PyString_AsString(tmpobj1) );
+            Py_XDECREF(args);
+            Py_XDECREF(tmpobj1);
+            Py_XDECREF(format);
+        }
 #endif
-    Py_XDECREF(format);
+    }
+
     return strdata;
 }
 
