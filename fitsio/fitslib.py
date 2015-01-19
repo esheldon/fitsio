@@ -510,10 +510,7 @@ class FITS(object):
         if img is not None:
             self[-1].write(img)
 
-        self.update_hdu_list()
-
-        #if extname is not None or header is not None:
-        #    self.update_hdu_list()
+        #self.update_hdu_list()
 
 
     def create_image_hdu(self, img, extname=None, extver=None,
@@ -595,7 +592,10 @@ class FITS(object):
                                     tile_dims=tile_dims,
                                     extname=extname,
                                     extver=extver)
-        self.update_hdu_list()
+
+        # don't rebuild the whole list unless this is the first hdu
+        # to be created
+        self.update_hdu_list(rebuild=False)
 
 
     def _ensure_empty_image_ok(self):
@@ -804,58 +804,79 @@ class FITS(object):
                                     extname=extname, extver=extver)
         self.update_hdu_list()
 
-    def update_hdu_list(self):
+    def update_hdu_list(self, rebuild=True):
         """
-        Force an update of the HDU list
+        Force an update of the entire HDU list
 
         Normally you don't need to call this method directly
-        """
-        self.hdu_list = []
-        self.hdu_map={}
 
-        # we don't know how many hdus there are, so iterate
-        # until we can't open any more 
-        ext=0
+        if rebuild is false or the hdu_list is not yet set, the list is
+        rebuilt from scratch
+        """
+
+        if not hasattr(self,'hdu_list'):
+            rebuild=True
+
+        if rebuild:
+            self.hdu_list = []
+            self.hdu_map={}
+
+            # we don't know how many hdus there are, so iterate
+            # until we can't open any more 
+            ext_start=0
+        else:
+            # start from last
+            ext_start=len(self)
+
+        ext=ext_start
         while True:
             try:
-                # first make sure we have this extension
-                hdu_type=self._FITS.movabs_hdu(ext+1)
+                self._append_hdu_info(ext)
             except IOError:
                 break
-            try:
-                if hdu_type==IMAGE_HDU:
-                    hdu=ImageHDU(self._FITS, ext, **self.keys)
-                elif hdu_type==BINARY_TBL:
-                    hdu=TableHDU(self._FITS, ext, **self.keys)
-                elif hdu_type==ASCII_TBL:
-                    hdu=AsciiTableHDU(self._FITS, ext, **self.keys)
-                else:
-                    mess=("extension %s is of unknown type %s "
-                          "this is probably a bug")
-                    mess=mess % (ext,hdu_type)
-                    raise ValueError(mess)
-
-                self.hdu_list.append(hdu)
-                self.hdu_map[ext] = hdu
-
-                extname=hdu.get_extname()
-                if not self.case_sensitive:
-                    extname=extname.lower()
-                if extname != '':
-                    # this will guarantee we default to *first* version,
-                    # if version is not requested, using __getitem__
-                    if extname not in self.hdu_map:
-                        self.hdu_map[extname] = hdu
-                    
-                    ver=hdu.get_extver()
-                    if ver > 0:
-                        key='%s-%s' % (extname,ver)
-                        self.hdu_map[key] = hdu
-
             except RuntimeError:
                 break
             
-            ext += 1
+            ext = ext + 1
+
+    def _append_hdu_info(self, ext):
+        """
+        internal routine
+
+        append info for indiciated extension
+        """
+
+        # raised IOError if not found
+        hdu_type=self._FITS.movabs_hdu(ext+1)
+
+        if hdu_type==IMAGE_HDU:
+            hdu=ImageHDU(self._FITS, ext, **self.keys)
+        elif hdu_type==BINARY_TBL:
+            hdu=TableHDU(self._FITS, ext, **self.keys)
+        elif hdu_type==ASCII_TBL:
+            hdu=AsciiTableHDU(self._FITS, ext, **self.keys)
+        else:
+            mess=("extension %s is of unknown type %s "
+                  "this is probably a bug")
+            mess=mess % (ext,hdu_type)
+            raise ValueError(mess)
+
+        self.hdu_list.append(hdu)
+        self.hdu_map[ext] = hdu
+
+        extname=hdu.get_extname()
+        if not self.case_sensitive:
+            extname=extname.lower()
+        if extname != '':
+            # this will guarantee we default to *first* version,
+            # if version is not requested, using __getitem__
+            if extname not in self.hdu_map:
+                self.hdu_map[extname] = hdu
+            
+            ver=hdu.get_extver()
+            if ver > 0:
+                key='%s-%s' % (extname,ver)
+                self.hdu_map[key] = hdu
 
 
     def __iter__(self):
