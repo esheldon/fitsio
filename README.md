@@ -252,10 +252,10 @@ fits[-1].insert_column('newcol', data)
 # insert with a specific colnum
 fits[-1].insert_column('newcol', data, colnum=2)
 
-# over-write rows
+# overwrite rows
 fits[-1].write(data)
 
-# over-write starting at a particular row. The table will grow if needed
+# overwrite starting at a particular row. The table will grow if needed
 fits[-1].write(data, firstrow=350)
 
 
