@@ -16,10 +16,9 @@ Some Features
 - Read from and write to image, binary, and ascii table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
   to memory.
-- Read image subsets without reading the whole image.
-- Write and read variable length table columns.  Can read into fixed length
-  arrays with the maximum size, or object arrays to save memory.
-- Read data using slice notation similar to numpy arrays.  This is like a more
+- Read image subsets without reading the whole image.  Write subsets to existing images.
+- Write and read variable length table columns.
+- Read images and tables using slice notation similar to numpy arrays.  This is like a more
   powerful memmap, since it is column-aware for tables.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
