@@ -1303,7 +1303,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
     LONGLONG nelements=1;
-    LONGLONG firstpixel=1;
+    PY_LONG_LONG firstpixel_py=0;
+    LONGLONG firstpixel=0;
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
@@ -1317,7 +1318,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOL", &hdunum, &array, &firstpixel_py)) {
         return NULL;
     }
 
@@ -1339,6 +1340,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
     nelements = PyArray_SIZE(array);
+    firstpixel = (LONGLONG) firstpixel_py;
     if (fits_write_img(self->fits, datatype, firstpixel, nelements, data, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;

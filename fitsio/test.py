@@ -322,6 +322,62 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
  
+    def testImageWriteReadFromDimsChunks(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in dtypes:
+                    data = numpy.arange(5*3,dtype=dtype).reshape(5,3)
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    chunk1 = data[0:2, :].copy()
+                    chunk2 = data[2: , :].copy()
+
+                    # first using pixel offset
+                    fits[-1].write(chunk1)
+
+                    start=chunk1.size
+                    fits[-1].write(chunk2, start=start)
+
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "images")
+
+
+                    # now using sequence, easier on the eye
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    # first using pixel offset
+                    fits[-1].write(chunk1)
+
+                    start=[2,0]
+                    fits[-1].write(chunk2, start=start)
+
+                    rdata2 = fits[-1].read()
+
+                    self.compare_array(data, rdata2, "images")
+
+
+
+            with fitsio.FITS(fname) as fits:
+                for i in xrange(len(dtypes)):
+                    self.assertEqual(fits[i].is_compressed(), False, "not compressed")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+ 
 
     def testImageSlice(self):
         fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')

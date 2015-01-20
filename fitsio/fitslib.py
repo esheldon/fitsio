@@ -2823,7 +2823,18 @@ class ImageHDU(HDUBase):
         """
         return self._info['comptype']
 
-    def write(self, img, **keys):
+    def get_dims(self):
+        """
+        get the shape of the image.  Returns () for empty
+        """
+        if self._info['ndims'] != 0:
+            dims = self._info['dims']
+        else:
+            dims = ()
+
+        return dims
+
+    def write(self, img, start=0, **keys):
         """
         Write the image into this HDU
 
@@ -2833,6 +2844,10 @@ class ImageHDU(HDUBase):
         ----------
         img: ndarray
             A simple numpy ndarray
+        start: integer or sequence
+            Where to start writing data.  Can be an integer offset
+            into the entire array, or a sequence determining where
+            in N-dimensional space to start.
         """
 
         if img.dtype.fields is not None:
@@ -2848,7 +2863,14 @@ class ImageHDU(HDUBase):
         else:
             img_send = array_to_native(img, inplace=False)
 
-        self._FITS.write_image(self._ext+1, img_send)
+        if not numpy.isscalar(start):
+            # convert to scalar offset
+            # note we use the on-disk data type to get itemsize
+
+            dims=self.get_dims()
+            start = _convert_full_start_to_offset(dims, start)
+
+        self._FITS.write_image(self._ext+1, img_send, start+1)
         self._update_info()
 
     def read(self, **keys):
@@ -2865,6 +2887,7 @@ class ImageHDU(HDUBase):
         array = numpy.zeros(shape, dtype=dtype)
         self._FITS.read_image(self._ext+1, array)
         return array
+
 
     def _get_dtype_and_shape(self):
         """
@@ -4241,6 +4264,28 @@ def _names_to_lower_if_recarray(data):
 def _names_to_upper_if_recarray(data):
     if data.dtype.names is not None:
         data.dtype.names = [n.upper() for n in data.dtype.names]
+
+def _convert_full_start_to_offset(dims, start):
+    # convert to scalar offset
+    # note we use the on-disk data type to get itemsize
+    ndim=len(dims)
+
+    # convert sequence to pixel start
+    if len(start) != ndim:
+        m="start has len %d, which does not match requested dims %d"
+        raise ValueError(m % (len(start),ndim))
+
+    # this is really strides / itemsize
+    strides=[1]
+    for i in xrange(1,ndim):
+        strides.append( strides[i-1] * dims[ndim-i] )
+
+    strides.reverse()
+    s=start
+    start_index = sum( [s[i]*strides[i] for i in xrange(ndim)] )
+
+    return start_index
+
 
 # this doesn't work
 #GZIP_2 = 22
