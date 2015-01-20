@@ -4,7 +4,7 @@ version 0.9.7  (not yet released)
 New Features
 
     - python 3 compatibility
-    - Faster update of HDU list when writing new extensions
+    - Adding a new HDU is now near constant time
 
 version 0.9.6 
 --------------

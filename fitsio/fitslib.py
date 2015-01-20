@@ -510,8 +510,6 @@ class FITS(object):
         if img is not None:
             self[-1].write(img)
 
-        #self.update_hdu_list()
-
 
     def create_image_hdu(self, img, extname=None, extver=None,
                          compress=None,tile_dims=None):
@@ -678,8 +676,6 @@ class FITS(object):
 
         self[-1].write(data,names=names)
 
-        self.update_hdu_list()
-
     def create_table_hdu(self, data=None, dtype=None, 
                          names=None, formats=None,
                          units=None, dims=None, extname=None, extver=None, 
@@ -802,7 +798,10 @@ class FITS(object):
         self._FITS.create_table_hdu(table_type_int,
                                     names, formats, tunit=units, tdim=dims, 
                                     extname=extname, extver=extver)
-        self.update_hdu_list()
+
+        # don't rebuild the whole list unless this is the first hdu
+        # to be created
+        self.update_hdu_list(rebuild=False)
 
     def update_hdu_list(self, rebuild=True):
         """
