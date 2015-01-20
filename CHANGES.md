@@ -5,6 +5,11 @@ New Features
 
     - python 3 compatibility
     - Adding a new HDU is now near constant time
+    - Can now create an empty image extension using create_image_hdu
+        and sending the dims= and dtype= keywords
+    - Can now write into a sub-section of an existing image using the
+        start= keyword.
+
 
 version 0.9.6 
 --------------
