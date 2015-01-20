@@ -342,7 +342,10 @@ class TestReadWrite(unittest.TestCase):
                     chunk1 = data[0:2, :].copy()
                     chunk2 = data[2: , :].copy()
 
-                    # first using pixel offset
+                    #
+                    # first using scalar pixel offset
+                    #
+
                     fits[-1].write(chunk1)
 
                     start=chunk1.size
@@ -353,7 +356,9 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data, rdata, "images")
 
 
-                    # now using sequence, easier on the eye
+                    # 
+                    # now using sequence, easier to calculate
+                    #
 
                     fits.create_image_hdu(dims=data.shape,
                                           dtype=data.dtype)
@@ -367,7 +372,6 @@ class TestReadWrite(unittest.TestCase):
                     rdata2 = fits[-1].read()
 
                     self.compare_array(data, rdata2, "images")
-
 
 
             with fitsio.FITS(fname) as fits:
