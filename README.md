@@ -252,6 +252,12 @@ fits[-1].insert_column('newcol', data)
 # insert with a specific colnum
 fits[-1].insert_column('newcol', data, colnum=2)
 
+# over-write rows
+fits[-1].write(data)
+
+# over-write starting at a particular row. The table will grow if needed
+fits[-1].write(data, firstrow=350)
+
 
 # create an image
 img=numpy.arange(2*3,dtype='i4').reshape(2,3)
@@ -262,6 +268,11 @@ fits.write(img)
 # write an image with rice compression
 fits.write(img, compress='rice')
 
+# overwrite the image
+fits[ext].write(img2)
+
+# write into an existing image, starting at the location [300,400]
+fits[ext].write(img3, start=[300,400])
 
 # add checksums for the data
 fits[-1].write_checksum()
