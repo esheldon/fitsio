@@ -339,8 +339,8 @@ class TestReadWrite(unittest.TestCase):
                     fits.create_image_hdu(dims=data.shape,
                                           dtype=data.dtype)
 
-                    chunk1 = data[0:2, :].copy()
-                    chunk2 = data[2: , :].copy()
+                    chunk1 = data[0:2, :]
+                    chunk2 = data[2: , :]
 
                     #
                     # first using scalar pixel offset
