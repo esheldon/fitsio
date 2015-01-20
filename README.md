@@ -33,6 +33,7 @@ Some Features
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
+- python 3 support
 - data are guaranteed to conform to the FITS standard.
 
 
@@ -81,7 +82,7 @@ fitsio.write(filename, image)
 fits=fitsio.FITS('data.fits')
 
 # see what is in here; the FITS object prints itself
-print fits
+print(fits)
 
 file: data.fits
 mode: READONLY
@@ -97,7 +98,7 @@ file: data.fits
 
 # explore the extensions, either by extension number or
 # extension name if available
-print fits[0]
+print(fits[0])
 
 file: data.fits
 extension: 0
@@ -106,7 +107,7 @@ image info:
   data type: f8
   dims: [4096,2048]
 
-print fits['mytable']  # can also use fits[1]
+print(fits['mytable']  # can also use fits[1])
 
 file: data.fits
 extension: 1
@@ -127,7 +128,7 @@ column info:
 # See bottom for how to get more information for an extension
 
 # [-1] to refers the last HDU
-print fits[-1]
+print(fits[-1])
 ...
 
 # if there are multiple HDUs with the same name, and an EXTVER
@@ -176,7 +177,7 @@ data = fits[1][columns][rows]
 # faster if we buffer some rows, let's buffer 1000 at a time
 fits=fitsio.FITS(filename,iter_row_buffer=1000)
 for row in fits[1]:
-    print row
+    print(row)
 
 # iterate over HDUs in a FITS object
 for hdu in fits:
@@ -194,7 +195,7 @@ for hdu in fits:
 fits = fitsio.FITS(filename,vstorage='object')
 # OR
 data = fits[1].read(vstorage='object')
-print data['dvarr'].dtype
+print(data['dvarr'].dtype)
     dtype('object')
 
 
@@ -210,7 +211,7 @@ data = fits[1][w]
 
 # read the header
 h = fits[0].read_header()
-print h['BITPIX']
+print(h['BITPIX'])
     -64
 
 fits.close()
@@ -372,9 +373,8 @@ optionally with a prefix
 Requirements
 ------------
 
+    - python 2 or python 3
     - you need a c compiler and build tools like Make
-    - You need a recent python, probably >= 2.5, but this has not been
-      extensively tested.
     - You need numerical python (numpy).
 
 test
