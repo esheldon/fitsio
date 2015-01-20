@@ -511,16 +511,28 @@ class FITS(object):
             self[-1].write(img)
 
 
-    def create_image_hdu(self, img, extname=None, extver=None,
-                         compress=None,tile_dims=None):
+    def create_image_hdu(self,
+                         img=None,
+                         dims=None,
+                         dtype=None,
+                         extname=None,
+                         extver=None,
+                         compress=None,
+                         tile_dims=None):
         """
-        Create a new, empty image HDU and reload the hdu list.
+        Create a new, empty image HDU and reload the hdu list.  Either
+        create from an input image or from input dims and dtype
+
+            fits.create_image_hdu(image, ...)
+            fits.create_image_hdu(dims=dims, dtype=dtype)
 
         You can write data into the new extension using
             fits[extension].write(image)
 
-        typically you will instead just use 
+        Alternatively you can skip calling this function and instead just use 
 
+            fits.write(image)
+            or
             fits.write_image(image)
 
         which will create the new image extension for you with the appropriate
@@ -528,8 +540,15 @@ class FITS(object):
 
         parameters
         ----------
-        img: ndarray
+        img: ndarray, optional
             An image with which to determine the properties of the HDU
+        dims: sequence, optional
+            A sequence describing the dimensions of the image to be created
+            on disk.  You must also send a dtype=
+        dtype: numpy data type
+            When sending dims= also send the data type.  Can be of the
+            various numpy data type declaration styles, e.g. 'f8',
+            numpy.float64.
         extname: string, optional
             An optional extension name.
         extver: integer, optional
@@ -563,14 +582,42 @@ class FITS(object):
         The File must be opened READWRITE
         """
 
-        if img is None:
-            self._ensure_empty_image_ok()
-            compress=None
+        if (img is not None) or (img is None and dims is None):
+            from_image=True
+        elif dims is not None:
+            from_image=False
+
+        if from_image:
+            img2send=img
+            if img is not None:
+                dims=img.shape
+                dtstr = img.dtype.descr[0][1][1:]
+                if img.size == 0:
+                    raise ValueError("data must have at least 1 row")
+            else:
+                self._ensure_empty_image_ok()
+                compress=None
+                tile_dims=None
+
+            # we get dims from the input image
+            dims2send=None
         else:
-            if img.dtype.fields is not None:
-                raise ValueError("got recarray, expected regular ndarray")
-            if img.size == 0:
-                raise ValueError("data must have at least 1 row")
+            # img was None and dims was sent
+            if dtype is None:
+                raise ValueError("send dtype= with dims=")
+
+            # this must work!
+            dtype=numpy.dtype(dtype)
+            dtstr = dtype.descr[0][1][1:]
+            # use the example image to build the type in C
+            img2send=numpy.zeros(1, dtype=dtype)
+
+            # sending an array simplifies access
+            dims2send = numpy.array(dims,dtype='i8',ndmin=1)
+
+        if img2send is not None:
+            if img2send.dtype.fields is not None:
+                raise ValueError("got record data type, expected regular ndarray")
 
         if extname is not None and extver is not None:
             extver = check_extver(extver)
@@ -582,14 +629,16 @@ class FITS(object):
             extname=""
 
         comptype = get_compress_type(compress)
-        tile_dims = get_tile_dims(tile_dims, img)
+        tile_dims = get_tile_dims(tile_dims, dims)
+        check_comptype_img(comptype, dtstr)
 
-        check_comptype_img(comptype, img)
-        self._FITS.create_image_hdu(img,
+        self._FITS.create_image_hdu(img2send,
+                                    dims=dims2send,
                                     comptype=comptype, 
                                     tile_dims=tile_dims,
                                     extname=extname,
                                     extver=extver)
+
 
         # don't rebuild the whole list unless this is the first hdu
         # to be created
@@ -4044,7 +4093,7 @@ class FITSCard(FITSRecord):
             mess="len(card) is %d.  cards must have length < 80"
             raise ValueError(mess)
 
-def get_tile_dims(tile_dims, img):
+def get_tile_dims(tile_dims, imshape):
     """
     Just make sure the tile dims has the appropriate number of dimensions
     """
@@ -4053,7 +4102,7 @@ def get_tile_dims(tile_dims, img):
         td=None
     else:
         td = numpy.array(tile_dims, dtype='i8')
-        nd=len(img.shape)
+        nd=len(imshape)
         if td.size != nd:
             msg="expected tile_dims to have %d dims, got %d" % (td.size,nd)
             raise ValueError(msg)
@@ -4066,18 +4115,19 @@ def get_compress_type(compress):
     if compress not in _compress_map:
         raise ValueError("compress must be one of %s" % list(_compress_map.keys()))
     return _compress_map[compress]
-def check_comptype_img(comptype, img):
+
+def check_comptype_img(comptype, dtype_str):
 
     if comptype == NOCOMPRESS:
         return
 
-    if img.dtype.descr[0][1][1:] == 'i8':
+    if dtype_str == 'i8':
         # no i8 allowed for tile-compressed images
         raise ValueError("8-byte integers not supported when  using tile compression")
 
     if comptype == PLIO_1:
         # no unsigned for plio
-        if img.dtype.descr[0][1][1] == 'u':
+        if dtype_str[0] == 'u':
             raise ValueError("unsigned integers not allowed when using PLIO tile compression")
 
 def isstring(arg):

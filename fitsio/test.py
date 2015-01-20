@@ -292,6 +292,37 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
  
 
+    def testImageWriteReadFromDims(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in dtypes:
+                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    fits[-1].write(data)
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "images")
+
+            with fitsio.FITS(fname) as fits:
+                for i in xrange(len(dtypes)):
+                    self.assertEqual(fits[i].is_compressed(), False, "not compressed")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+ 
+
     def testImageSlice(self):
         fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
         try:

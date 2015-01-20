@@ -1177,6 +1177,9 @@ static int pyarray_get_ndim(PyObject* obj) {
  * It is useful to create the extension first so we can write keywords into the
  * header before adding data.  This avoids moving the data if the header grows
  * too large.
+ *
+ * also we allow creating from dimensions rather than from the input image shape,
+ * writing into the HDU later
  */
 
 static PyObject *
@@ -1185,11 +1188,11 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     long *dims=NULL;
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
-    //int comptype=NOCOMPRESS;
+
     int comptype=0; // same as NOCOMPRESS in newer cfitsio
     PyObject* tile_dims_obj=NULL;
 
-    PyObject* array;
+    PyObject* array, *dims_obj;
     int npy_dtype=0;
     int i=0;
     int status=0;
@@ -1203,9 +1206,9 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
     static char *kwlist[] = 
-        {"array","comptype","tile_dims","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iOsi", kwlist,
-                          &array, &comptype, &tile_dims_obj,
+        {"array","dims","comptype","tile_dims","extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OiOsi", kwlist,
+                          &array, &dims_obj, &comptype, &tile_dims_obj,
                           &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
@@ -1226,11 +1229,23 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             goto create_image_hdu_cleanup;
         }
 
-        // order must be reversed for FITS
-        ndims = pyarray_get_ndim(array);
-        dims = calloc(ndims,sizeof(long));
-        for (i=0; i<ndims; i++) {
-            dims[ndims-i-1] = PyArray_DIM(array, i);
+        if (PyArray_Check(dims_obj)) {
+            // get dims from input, which must be of type 'i8'
+            npy_intp *tptr=NULL, tmp=0;
+            ndims = PyArray_SIZE(dims_obj);
+            dims = calloc(ndims,sizeof(long));
+            for (i=0; i<ndims; i++) {
+                tptr = (npy_intp *) PyArray_GETPTR1(dims_obj, i);
+                tmp = *tptr;
+                dims[ndims-i-1] = (long) tmp;
+            }
+        } else {
+            // order must be reversed for FITS
+            ndims = pyarray_get_ndim(array);
+            dims = calloc(ndims,sizeof(long));
+            for (i=0; i<ndims; i++) {
+                dims[ndims-i-1] = PyArray_DIM(array, i);
+            }
         }
 
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
