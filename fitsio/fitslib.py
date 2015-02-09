@@ -96,7 +96,7 @@ def read(filename, ext=None, extver=None, **keys):
                     ext=i
                     break
             if ext is None:
-                raise ValueError("No extensions have data")
+                raise IOError("No extensions have data")
 
         item=_make_item(ext, extver=extver)
 
@@ -300,7 +300,7 @@ class FITS(object):
         clobber = keys.get('clobber',False)
 
         if self.mode not in _int_modemap:
-            raise ValueError("mode should be one of 'r','rw',"
+            raise IOError("mode should be one of 'r','rw',"
                              "READONLY,READWRITE")
 
         self.charmode = _char_modemap[self.mode]
@@ -320,7 +320,7 @@ class FITS(object):
                     create=1
         else:
             if not os.path.exists(filename):
-                raise ValueError("File not found: '%s'" % filename)
+                raise IOError("File not found: '%s'" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
@@ -907,7 +907,7 @@ class FITS(object):
             mess=("extension %s is of unknown type %s "
                   "this is probably a bug")
             mess=mess % (ext,hdu_type)
-            raise ValueError(mess)
+            raise IOError(mess)
 
         self.hdu_list.append(hdu)
         self.hdu_map[ext] = hdu
@@ -996,12 +996,12 @@ class FITS(object):
             if ver > 0:
                 key = '%s-%s' % (ext,ver)
                 if key not in self.hdu_map:
-                    raise ValueError("extension not found: %s, "
-                                     "version %s %s" % (ext,ver,mess))
+                    raise IOError("extension not found: %s, "
+                                  "version %s %s" % (ext,ver,mess))
                 hdu = self.hdu_map[key]
             else:
                 if ext not in self.hdu_map:
-                    raise ValueError("extension not found: %s %s" % (ext,mess))
+                    raise IOError("extension not found: %s %s" % (ext,mess))
                 hdu = self.hdu_map[ext]
 
         return hdu
@@ -2898,7 +2898,7 @@ class ImageHDU(HDUBase):
         if self._info['ndims'] != 0:
             shape = self._info['dims']
         else:
-            raise ValueError("no image present in HDU")
+            raise IOError("no image present in HDU")
 
         return npy_dtype, shape
 
