@@ -2929,79 +2929,86 @@ class ImageHDU(HDUBase):
         if 'ndims' not in self._info:
             raise ValueError("Attempt to slice empty extension")
 
-        if isinstance(arg, tuple):
-            # should be a tuple of slices, one for each dimension
-            # e.g. [2:3, 8:100]
-            nd = len(arg)
-            if nd != self._info['ndims']:
-                raise ValueError("Got slice dimensions %d, "
-                                 "expected %d" % (nd,self._info['ndims']))
-
-
-            for a in arg:
-                if not isinstance(a, slice):
-                    raise ValueError("arguments must be slices, e.g. 2:12")
-
-            dims=self._info['dims']
-            arrdims = []
-            first = []
-            last = []
-            steps = []
-
-            # check the args and reverse dimensions since
-            # fits is backwards from numpy
-            dim=0
-            for slc in arg:
-                start = slc.start
-                stop = slc.stop
-                step = slc.step
-
-                if start is None:
-                    start=0
-                if stop is None:
-                    stop = dims[dim]
-                if step is None:
-                    step=1
-                if step < 1:
-                    raise ValueError("slice steps must be >= 1")
-
-                if start < 0:
-                    start = dims[dim] + start
-                    if start < 0:
-                        raise IndexError("Index out of bounds")
-
-                if stop < 0:
-                    stop = dims[dim] + start + 1
-
-                # move to 1-offset
-                start = start + 1
-
-                if stop < start:
-                    raise ValueError("python slices but include at least one "
-                                     "element, got %s" % slc)
-                if stop > dims[dim]:
-                    stop = dims[dim]
-
-                first.append(start)
-                last.append(stop)
-                steps.append(step)
-                arrdims.append(stop-start+1)
-
-                dim += 1
-
-            first.reverse()
-            last.reverse()
-            steps.reverse()
-            first = numpy.array(first, dtype='i8')
-            last  = numpy.array(last, dtype='i8')
-            steps = numpy.array(steps, dtype='i8')
-
-        elif isinstance(arg, slice):
+        if isinstance(arg, slice):
             # one-dimensional, e.g. 2:20
             return self._read_image_slice((arg,))
-        else:
+
+        if not isinstance(arg, tuple):
             raise ValueError("arguments must be slices, one for each "
                              "dimension, e.g. [2:5] or [2:5,8:25] etc.")
+
+        # should be a tuple of slices, one for each dimension
+        # e.g. [2:3, 8:100]
+        nd = len(arg)
+        if nd != self._info['ndims']:
+            raise ValueError("Got slice dimensions %d, "
+                             "expected %d" % (nd,self._info['ndims']))
+
+
+        targ=arg
+        arg=[]
+        for a in targ:
+            if isinstance(a,slice):
+                arg.append(a)
+            elif isinstance(a,int):
+                arg.append( slice(a,a+1,1) )
+            else:
+                raise ValueError("arguments must be slices, e.g. 2:12")
+
+        dims=self._info['dims']
+        arrdims = []
+        first = []
+        last = []
+        steps = []
+
+        # check the args and reverse dimensions since
+        # fits is backwards from numpy
+        dim=0
+        for slc in arg:
+            start = slc.start
+            stop = slc.stop
+            step = slc.step
+
+            if start is None:
+                start=0
+            if stop is None:
+                stop = dims[dim]
+            if step is None:
+                step=1
+            if step < 1:
+                raise ValueError("slice steps must be >= 1")
+
+            if start < 0:
+                start = dims[dim] + start
+                if start < 0:
+                    raise IndexError("Index out of bounds")
+
+            if stop < 0:
+                stop = dims[dim] + start + 1
+
+            # move to 1-offset
+            start = start + 1
+
+            if stop < start:
+                raise ValueError("python slices but include at least one "
+                                 "element, got %s" % slc)
+            if stop > dims[dim]:
+                stop = dims[dim]
+
+            first.append(start)
+            last.append(stop)
+            steps.append(step)
+            arrdims.append(stop-start+1)
+
+            dim += 1
+
+        first.reverse()
+        last.reverse()
+        steps.reverse()
+        first = numpy.array(first, dtype='i8')
+        last  = numpy.array(last, dtype='i8')
+        steps = numpy.array(steps, dtype='i8')
+
         npy_dtype = self._get_image_numpy_dtype()
         array = numpy.zeros(arrdims, dtype=npy_dtype)
         self._FITS.read_image_slice(self._ext+1, first, last, steps, array)
