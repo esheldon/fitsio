@@ -23,10 +23,10 @@ See the main docs at https://github.com/esheldon/fitsio
 from __future__ import with_statement, print_function
 import sys, os
 import numpy
-from . import _fitsio_wrap
 import copy
 import pprint
 
+import _fitsio_wrap
 def cfitsio_version(asfloat=False):
     """
     Return the cfitsio version as a string.
@@ -311,7 +311,7 @@ class FITS(object):
             if clobber:
                 create=1
                 if os.path.exists(filename):
-                    print('Removing existing file')
+                    # print('Removing existing file')
                     os.remove(filename)
             else:
                 if os.path.exists(filename):
@@ -3152,8 +3152,12 @@ class TableColumnSubset(object):
         pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
         for colnum,c in enumerate(info['colinfo']):
-            if c['name'] not in self.columns:
-                continue
+            if isstring(self.columns):
+                if c['name'] != self.columns:
+                    continue
+            else:
+                if c['name'] not in self.columns:
+                    continue
 
             if len(c['name']) > nname:
                 f = pformat
