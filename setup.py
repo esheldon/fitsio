@@ -37,7 +37,7 @@ def copy_update(dir1,dir2):
 
 def configure_cfitsio():
     os.chdir(cfitsio_build_dir)
-    ret=os.system('sh ./configure')
+    ret=os.system('sh ./configure  --enable-reentrant')
     if ret != 0:
         raise ValueError("could not configure cfitsio %s" % cfitsio_version)
     os.chdir(package_basedir)
