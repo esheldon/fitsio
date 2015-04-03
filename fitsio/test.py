@@ -792,6 +792,45 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableWriteReadScalar(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        data = self.data[0]
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                try:
+                    fits.write_table(self.data[:1], header=self.keys, extname='mytable')
+                    write_success=True
+                except:
+                    write_success=False
+
+                self.assertTrue(write_success,"testing write does not raise an error")
+                if not write_success:
+                    skipTest("cannot test result if write failed")
+
+                d = fits[1].read()
+                print(len(d))
+
+                h = fits[1].read_header()
+                self.compare_headerlist_header(self.keys, h)
+
+            # now test read_column
+            with fitsio.FITS(fname) as fits:
+
+                for f in data.dtype.names:
+                    d = fits[1].read_column(f)
+                    self.compare_array(data[f], d, "table 1 single field read '%s'" % f)
+
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
 
     def testTableWriteDictOfArraysScratch(self):
         """
