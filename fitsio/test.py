@@ -792,6 +792,25 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableFormatColumnSubset(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+        import urllib2 
+        f = urllib2.urlopen('http://dr12.sdss3.org/sas/dr12/sdss/spectro/redux/26/spectra/0556/spec-0556-51991-0009.fits')
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+        with open(fname, 'w') as file:
+            file.write(f.read())
+
+        try:
+            with fitsio.FITS(fname,'r',clobber=True) as fits:
+                # assert we do not have an extra row of 'Z'
+                assert(len(str(fits[2]['Z_PERSON']).split('\n')) == 6)
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
 
     def testTableWriteDictOfArraysScratch(self):
         """
