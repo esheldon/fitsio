@@ -2760,6 +2760,7 @@ read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem,
     int fortran=0;
     void* data=NULL;
 
+
     dims[0] = nelem;
     arrayObj=PyArray_ZEROS(1, dims, npy_dtype, fortran);
     if (arrayObj==NULL) {
