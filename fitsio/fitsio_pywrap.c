@@ -35,8 +35,19 @@
 // not sure where this is defined in numpy...
 #define NUMPY_MAX_DIMS 32
 
-#define ALLOW_NOGIL //PyThreadState *_save; int _evaltmp123_;
+#ifdef __GNUC__
+// GNUC supports statement expression 
+// this detection is probably not perfect.
+#define ALLOW_NOGIL
 #define NOGIL(x) ({PyThreadState * _save1=PyEval_SaveThread(); int _evaltmp123_ = (x); PyEval_RestoreThread(_save1); _evaltmp123_;})
+
+#else
+// Fall back to comma expresions
+// this may give R-value unused warnings
+#define ALLOW_NOGIL PyThreadState *_save1_; int _evaltmp123_;
+#define NOGIL(x) ((void)(_save1_=PyEval_SaveThread()), (void) (_evaltmp123_ = (x)), (void) (PyEval_RestoreThread(_save1_)), _evaltmp123_)
+
+#endif
 
 struct PyFITSObject {
     PyObject_HEAD
@@ -2002,6 +2013,7 @@ int write_var_num_column(
         int fits_dtype, 
         PyObject* array,
         int  *status) {   /* IO - error status                           */
+    ALLOW_NOGIL
 
     LONGLONG firstelem=1;
     npy_intp nelem=0;
@@ -2327,6 +2339,8 @@ PyFITSObject_write_logical_key(struct PyFITSObject* self, PyObject* args) {
 // let python do the conversions
 static PyObject *
 PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
+    ALLOW_NOGIL
+
     int status=0;
     int hdunum=0;
     int hdutype=0;
@@ -2405,6 +2419,7 @@ PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
  */
 
 static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, int* status) {
+    ALLOW_NOGIL
 
     int npy_dtype=0;
     int fits_dtype=0;
@@ -2430,7 +2445,7 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
         for (i=0; i<nelem; i++) {
             cdata = PyArray_GETPTR1(array, i);
             rownum = (LONGLONG) (1+i);
-            if (fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status) > 0) {
+            if (NOGIL(fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status)) > 0) {
                 return 1;
             }
         }
