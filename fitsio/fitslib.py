@@ -3136,13 +3136,13 @@ class TableColumnSubset(object):
 
         hdu = self.fitshdu
         info = self.fitshdu._info
-
+        atomic = isstring(self.columns)
         text = []
         text.append("%sfile: %s" % (spacing,hdu._filename))
         text.append("%sextension: %d" % (spacing,info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[info['hdutype']]))
         text.append('%srows: %d' % (spacing,info['nrows']))
-        text.append("%scolumn subset:" %  spacing)
+        text.append("%scolumn subset%s:" %  (spacing, ['', '(atomic)'][atomic]))
 
         cspacing = ' '*4
         nspace = 4
@@ -3151,10 +3151,12 @@ class TableColumnSubset(object):
         format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
         pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
-        for colnum,c in enumerate(info['colinfo']):
-            if c['name'] not in self.columns:
-                continue
+        mycolumns = [self.columns] if atomic else self.columns
 
+        for colnum,c in enumerate(info['colinfo']):
+            if c['name'] not in mycolumns:
+                continue
+                
             if len(c['name']) > nname:
                 f = pformat
             else:
