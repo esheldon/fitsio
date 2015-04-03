@@ -1327,6 +1327,7 @@ create_image_hdu_cleanup:
 }
 
 
+
 // write the image to an existing HDU created using create_image_hdu
 // dims are not checked
 static PyObject *
@@ -3739,6 +3740,7 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
     npy_intp dims[1];
     npy_intp* data=NULL;
     long i=0;
+
 
     if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &expression)) {
         return NULL;
