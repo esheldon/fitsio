@@ -14,9 +14,40 @@ else:
 
 
 def test():
+    suite_threading  = unittest.TestLoader().loadTestsFromTestCase(TestThreading)
+    unittest.TextTestRunner(verbosity=2).run(suite_threading)
+
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
+class TestThreading(unittest.TestCase):
+    def setUp(self):
+        from multiprocessing.pool import ThreadPool
+        self.pool = ThreadPool(32)
+
+    def testImageWriteRead(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+        filenames = [ tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')  
+                    for i in range(32) ]
+        
+        # create files for reading in serial
+        def create_file(i):
+            fname = filenames[i]
+            data = numpy.zeros((32, 32), dtype='f8')
+            data[:] = i
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_image(data)
+
+        def read_file(i):
+            fname = filenames[i]
+            with fitsio.FITS(fname,'r') as fits:
+                assert (fits[0].read() == i).all()
+             
+        self.pool.map(create_file, range(32))     
+        self.pool.map(read_file, range(32))     
 
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
