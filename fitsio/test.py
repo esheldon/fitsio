@@ -805,6 +805,7 @@ class TestReadWrite(unittest.TestCase):
 
         try:
             with fitsio.FITS(fname,'r',clobber=True) as fits:
+                # this shall not segfault.
                 x = fits[2]['CLASS_PERSON']['CLASS'][:]
         finally:
             if os.path.exists(fname):
