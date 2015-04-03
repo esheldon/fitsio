@@ -1612,7 +1612,6 @@ int write_string_column(
         LONGLONG  nelem,     /* I - number of strings to write              */
         char  *data,
         int  *status) {   /* IO - error status                           */
-    ALLOW_NOGIL
 
     LONGLONG i=0;
     LONGLONG twidth=0;
@@ -1635,7 +1634,7 @@ int write_string_column(
         strdata[i] = &cdata[twidth*i];
     }
 
-    if (NOGIL(fits_write_col_str(fits, colnum, firstrow, firstelem, nelem, strdata, status))) {
+    if (fits_write_col_str(fits, colnum, firstrow, firstelem, nelem, strdata, status)) {
         free(strdata);
         return 1;
     }
