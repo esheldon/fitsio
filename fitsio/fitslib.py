@@ -2126,9 +2126,13 @@ class TableHDU(HDUBase):
                         name=self._info['colinfo'][colnum]['name']
                         mess='Will read as an object field'
                         if max_size < 0:
-                            warnings.warn("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
+                            mess="Column '%s': No maximum size: '%s'. %s"
+                            mess=mess % (name,tform,mess)
+                            warnings.warn(mess, FITSRuntimeWarning)
                         else:
-                            warnings.warn("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
+                            mess="Column '%s': Max size is zero: '%s'. %s"
+                            mess=mess % (name,tform,mess)
+                            warnings.warn(mess, FITSRuntimeWarning)
 
                     # we are forced to read this as an object array
                     return self.get_rec_column_descr(colnum, 'object')
@@ -2457,9 +2461,13 @@ class TableHDU(HDUBase):
                 name=self._info['colinfo'][colnum]['name']
                 mess='Will read as an object field'
                 if max_size < 0:
-                    warnings.warn("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
+                    mess="Column '%s': No maximum size: '%s'. %s"
+                    mess=mess % (name,tform,mess)
+                    warnings.warn(mess, FITSRuntimeWarning)
                 else:
-                    warnings.warn("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
+                    mess="Column '%s': Max size is zero: '%s'. %s"
+                    mess=mess % (name,tform,mess)
+                    warnings.warn(mess, FITSRuntimeWarning)
 
                 # we are forced to read this as an object array
                 return self._read_var_column(colnum, rows, 'object')
