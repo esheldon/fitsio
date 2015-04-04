@@ -22,5 +22,6 @@ from .fitslib import cfitsio_version
 
 from .fitslib import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
+from .fitslib import FITSRuntimeWarning
 
 from . import test

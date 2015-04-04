@@ -25,7 +25,11 @@ import sys, os
 import numpy
 from . import _fitsio_wrap
 import copy
+import warnings
 import pprint
+
+class FITSRuntimeWarning(RuntimeWarning):
+    pass
 
 def cfitsio_version(asfloat=False):
     """
@@ -311,7 +315,7 @@ class FITS(object):
             if clobber:
                 create=1
                 if os.path.exists(filename):
-                    print('Removing existing file')
+                    warnings.warn('Removing existing file', FITSRuntimeWarning)
                     os.remove(filename)
             else:
                 if os.path.exists(filename):
@@ -1240,7 +1244,7 @@ class HDUBase(object):
             mess=("warning, keyword '%s' has non-standard "
                   "value type %s, "
                   "Converting to string: '%s'")
-            print(mess % (keyname,type(value),sval))
+            warnings.warn(mess % (keyname,type(value),sval), FITSRuntimeWarning)
             self._FITS.write_string_key(self._ext+1,
                                         str(keyname),
                                         sval,
@@ -2122,9 +2126,9 @@ class TableHDU(HDUBase):
                         name=self._info['colinfo'][colnum]['name']
                         mess='Will read as an object field'
                         if max_size < 0:
-                            print("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess))
+                            warnings.warn("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
                         else:
-                            print("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess))
+                            warnings.warn("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
 
                     # we are forced to read this as an object array
                     return self.get_rec_column_descr(colnum, 'object')
@@ -2453,9 +2457,9 @@ class TableHDU(HDUBase):
                 name=self._info['colinfo'][colnum]['name']
                 mess='Will read as an object field'
                 if max_size < 0:
-                    print("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess))
+                    warnings.warn("Column '%s': No maximum size: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
                 else:
-                    print("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess))
+                    warnings.warn("Column '%s': Max size is zero: '%s'. %s" % (name,tform,mess), FITSRuntimeWarning)
 
                 # we are forced to read this as an object array
                 return self._read_var_column(colnum, rows, 'object')

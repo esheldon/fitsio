@@ -1,6 +1,7 @@
 from __future__ import with_statement, print_function
 import sys, os
 import tempfile
+import warnings
 import numpy
 from numpy import arange, array
 import fitsio
@@ -14,10 +15,32 @@ else:
 
 
 def test():
+    suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
+    unittest.TextTestRunner(verbosity=2).run(suite_warnings)
+
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
+class TestWarnings(unittest.TestCase):
+    def setUp(self):
+        pass
+    def testclobber(self):
+        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')
 
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            # note mixing up byte orders a bit
+            data = numpy.arange(5*20,dtype='f8').reshape(5,20)
+            fits.write_image(data)
+        
+        with warnings.catch_warnings(record=True) as w:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                data = numpy.arange(5*20,dtype='f8').reshape(5,20)
+                fits.write_image(data)
+            assert len(w) == 1
+            assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
+    # FIXME: write test cases for non-standard keywords and bad column size
+        
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
 
