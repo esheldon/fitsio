@@ -797,16 +797,22 @@ class TestReadWrite(unittest.TestCase):
         Test a basic table write, data and a header, then reading back in to
         check the values
         """
-        import urllib2 
-        f = urllib2.urlopen('http://dr12.sdss3.org/sas/dr12/sdss/spectro/redux/26/spectra/0556/spec-0556-51991-0009.fits')
-        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
-        with open(fname, 'w') as file:
-            file.write(f.read())
 
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            data = numpy.empty(1, dtype=[('Z', 'f8'), ('Z_PERSON', 'f8')])
+            data['Z'][:] = 1.0
+            data['Z_PERSON'][:] = 1.0
+            fits.write_table(data)
+            fits.write_table(data)
+            fits.write_table(data)
         try:
             with fitsio.FITS(fname,'r',clobber=True) as fits:
                 # assert we do not have an extra row of 'Z'
-                assert(len(str(fits[2]['Z_PERSON']).split('\n')) == 6)
+                sz = str(fits[2]['Z_PERSON']).split('\n')
+                s  = str(fits[2][('Z_PERSON', 'Z')]).split('\n')
+                assert len(sz) == len(s) - 1
         finally:
             if os.path.exists(fname):
                 #pass
