@@ -797,12 +797,14 @@ class TestReadWrite(unittest.TestCase):
         Test a basic table write, data and a header, then reading back in to
         check the values
         """
-        import urllib2 
-        f = urllib2.urlopen('http://dr12.sdss3.org/sas/dr12/sdss/spectro/redux/26/spectra/0556/spec-0556-51991-0009.fits')
         fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
-        with open(fname, 'w') as file:
-            file.write(f.read())
 
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            data = numpy.empty(1, dtype=[('CLASS', 'S6')])
+            data['CLASS'] = 'GALAXY'
+            fits.write_table(data)
+            fits.write_table(data)
+            fits.write_table(data)
         try:
             with fitsio.FITS(fname,'r',clobber=True) as fits:
                 # this shall not segfault.
