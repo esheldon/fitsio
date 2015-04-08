@@ -110,7 +110,7 @@ except ImportError:
 
 include_dirs=[cfitsio_dir,numpy.get_include()]
 setup(name="fitsio", 
-      version="0.9.6",
+      version="0.9.7",
       description=description,
       long_description=long_description,
       license = "GPL",
