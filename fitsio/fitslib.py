@@ -28,7 +28,7 @@ import warnings
 import pprint
 
 from . import _fitsio_wrap
-from .util import FITSRuntimeWarning
+from .util import FITSRuntimeWarning, cfitsio_version
 
 def read(filename, ext=None, extver=None, **keys):
     """
