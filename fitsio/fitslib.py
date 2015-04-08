@@ -315,7 +315,6 @@ class FITS(object):
             if clobber:
                 create=1
                 if os.path.exists(filename):
-                    warnings.warn('Removing existing file', FITSRuntimeWarning)
                     os.remove(filename)
             else:
                 if os.path.exists(filename):
