@@ -23,25 +23,12 @@ See the main docs at https://github.com/esheldon/fitsio
 from __future__ import with_statement, print_function
 import sys, os
 import numpy
-from . import _fitsio_wrap
 import copy
 import warnings
 import pprint
 
-class FITSRuntimeWarning(RuntimeWarning):
-    pass
-
-def cfitsio_version(asfloat=False):
-    """
-    Return the cfitsio version as a string.
-    """
-    # use string version to avoid roundoffs
-    ver= '%0.3f' % _fitsio_wrap.cfitsio_version()
-    if asfloat:
-        return float(ver)
-    else:
-        return ver
-
+from . import _fitsio_wrap
+from .util import FITSRuntimeWarning
 
 def read(filename, ext=None, extver=None, **keys):
     """
