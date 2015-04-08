@@ -1,4 +1,4 @@
-version 0.9.7  (not yet released)
+version 0.9.7
 ----------------------------------
 
 New Features
@@ -9,10 +9,12 @@ New Features
         and sending the dims= and dtype= keywords
     - Can now write into a sub-section of an existing image using the
         start= keyword.
-    - can now use a scalar slice for reading images, e.g.
+    - Can now use a scalar slice for reading images, e.g.
         hdu[row1:row2, col]
       although this still currently retains the extra dimension
     - Use warnings instead of printing to stdout
+    - IOError is now used to indicate a number of errors that
+        were previously ValueError
 
 
 version 0.9.6 
