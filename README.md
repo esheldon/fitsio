@@ -33,7 +33,6 @@ Some Features
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
 - python 3 support
-- data are guaranteed to conform to the FITS standard.
 
 
 Examples
