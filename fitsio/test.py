@@ -22,24 +22,27 @@ def test():
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 class TestWarnings(unittest.TestCase):
+    """
+    tests of warnings
+
+    TODO: write test cases for bad column size
+    """
     def setUp(self):
         pass
-    def testclobber(self):
-        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')
 
-        with fitsio.FITS(fname,'rw',clobber=True) as fits:
-            # note mixing up byte orders a bit
-            data = numpy.arange(5*20,dtype='f8').reshape(5,20)
-            fits.write_image(data)
-        
+    def testNonStandardKeyValue(self):
+        fname=tempfile.mktemp(prefix='fitsio-TestWarning-',suffix='.fits')
+
+        im=numpy.zeros( (3,3) )
         with warnings.catch_warnings(record=True) as w:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note mixing up byte orders a bit
-                data = numpy.arange(5*20,dtype='f8').reshape(5,20)
-                fits.write_image(data)
+                fits.write(im)
+                # now write a key with a non-standard value
+                value={'test':3}
+                fits[-1].write_key("odd",value)
+            
             assert len(w) == 1
             assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
-    # FIXME: write test cases for non-standard keywords and bad column size
         
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
