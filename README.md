@@ -1,4 +1,4 @@
-A python library to read and write data to FITS files using cfitsio.
+A python library to read from and write to FITS files.
 
 Description
 -----------
@@ -6,9 +6,8 @@ Description
 This is a python extension written in c and python.  Data are read into
 numerical python arrays.
 
-A patched version of cfitsio is bundled with this package, there is no need to
-install your own, nor will this conflict with a version you have installed; see
-below for details.  
+A version of cfitsio is bundled with this package, there is no need to install
+your own, nor will this conflict with a version you have installed.
 
 
 Some Features
@@ -17,10 +16,9 @@ Some Features
 - Read from and write to image, binary, and ascii table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
   to memory.
-- Read image subsets without reading the whole image.
-- Write and read variable length table columns.  Can read into fixed length
-  arrays with the maximum size, or object arrays to save memory.
-- Read data using slice notation similar to numpy arrays.  This is like a more
+- Read image subsets without reading the whole image.  Write subsets to existing images.
+- Write and read variable length table columns.
+- Read images and tables using slice notation similar to numpy arrays.  This is like a more
   powerful memmap, since it is column-aware for tables.
 - Append rows to an existing table.
 - Query the columns and rows in a table.
@@ -34,7 +32,7 @@ Some Features
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
-- data are guaranteed to conform to the FITS standard.
+- python 3 support
 
 
 Examples
@@ -52,8 +50,8 @@ from fitsio import FITS,FITSHDR
 filename='data.fits'
 data = fitsio.read(filename)
 
-# read a subset of rows and columns from the specified extension
-data = fitsio.read(filename, rows=rows, columns=columns, ext=ext)
+# read a subset of rows and columns from a table
+data = fitsio.read(filename, rows=[35,1001], columns=['x','y'], ext=2)
 
 # read the header, or both at once
 h = fitsio.read_header(filename, extension)
@@ -82,7 +80,7 @@ fitsio.write(filename, image)
 fits=fitsio.FITS('data.fits')
 
 # see what is in here; the FITS object prints itself
-print fits
+print(fits)
 
 file: data.fits
 mode: READONLY
@@ -98,7 +96,7 @@ file: data.fits
 
 # explore the extensions, either by extension number or
 # extension name if available
-print fits[0]
+print(fits[0])
 
 file: data.fits
 extension: 0
@@ -107,7 +105,7 @@ image info:
   data type: f8
   dims: [4096,2048]
 
-print fits['mytable']  # can also use fits[1]
+print(fits['mytable']  # can also use fits[1])
 
 file: data.fits
 extension: 1
@@ -128,7 +126,7 @@ column info:
 # See bottom for how to get more information for an extension
 
 # [-1] to refers the last HDU
-print fits[-1]
+print(fits[-1])
 ...
 
 # if there are multiple HDUs with the same name, and an EXTVER
@@ -177,7 +175,7 @@ data = fits[1][columns][rows]
 # faster if we buffer some rows, let's buffer 1000 at a time
 fits=fitsio.FITS(filename,iter_row_buffer=1000)
 for row in fits[1]:
-    print row
+    print(row)
 
 # iterate over HDUs in a FITS object
 for hdu in fits:
@@ -195,7 +193,7 @@ for hdu in fits:
 fits = fitsio.FITS(filename,vstorage='object')
 # OR
 data = fits[1].read(vstorage='object')
-print data['dvarr'].dtype
+print(data['dvarr'].dtype)
     dtype('object')
 
 
@@ -211,7 +209,7 @@ data = fits[1][w]
 
 # read the header
 h = fits[0].read_header()
-print h['BITPIX']
+print(h['BITPIX'])
     -64
 
 fits.close()
@@ -225,7 +223,7 @@ fits = FITS('test.fits','rw')
 # is a variable length string
 nrows=35
 data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
-                                     ('arr','f4',(3,4))])
+                                 ('arr','f4',(3,4))])
 data['index'] = numpy.arange(nrows,dtype='i4')
 data['x'] = numpy.random.random(nrows)
 data['vstr'] = [str(i) for i in xrange(nrows)]
@@ -253,6 +251,12 @@ fits[-1].insert_column('newcol', data)
 # insert with a specific colnum
 fits[-1].insert_column('newcol', data, colnum=2)
 
+# overwrite rows
+fits[-1].write(data)
+
+# overwrite starting at a particular row. The table will grow if needed
+fits[-1].write(data, firstrow=350)
+
 
 # create an image
 img=numpy.arange(2*3,dtype='i4').reshape(2,3)
@@ -263,9 +267,17 @@ fits.write(img)
 # write an image with rice compression
 fits.write(img, compress='rice')
 
+# overwrite the image
+fits[ext].write(img2)
+
+# write into an existing image, starting at the location [300,400]
+fits[ext].write(img3, start=[300,400])
 
 # add checksums for the data
 fits[-1].write_checksum()
+
+# can later verify data integridy
+fits[-1].verify_checksum()
 
 # you can also write a header at the same time.  The header can be 
 #   - a simple dict (no comments)
@@ -288,6 +300,14 @@ fits[1].write_key(name, value, comment="my comment")
 # is the same as sent with header= above
 fits[1].write_keys(records)
 
+# write special COMMENT fields
+fits[1].write_comment("observer JS")
+fits[1].write_comment("we had good weather")
+
+# write special history fields
+fits[1].write_history("processed with software X")
+fits[1].write_history("re-processed with software Y")
+
 fits.close()
 
 # using a context, the file is closed automatically after leaving the block
@@ -300,7 +320,7 @@ with FITS('path/to/file') as fits:
     if 2 in f:
         data=fits[2].read()
 
-# how to get more information about an extension
+# methods to get more information about extension.  For extension 1:
 f[1].get_info()             # lots of info about the extension
 f[1].has_data()             # returns True if data is present in extension
 f[1].get_extname()
@@ -362,9 +382,8 @@ optionally with a prefix
 Requirements
 ------------
 
+    - python 2 or python 3
     - you need a c compiler and build tools like Make
-    - You need a recent python, probably >= 2.5, but this has not been
-      extensively tested.
     - You need numerical python (numpy).
 
 test
@@ -385,10 +404,7 @@ Notes on cfitsio bundling
 
 We bundle partly because many deployed versions of cfitsio in the wild do not
 have support for interesting features like tiled image compression.   Bundling
-a version that meets our needs is a safe alternative.  The patches to 3.28 fix
-the ability to read float and double images from tile-compressed HDUs, support
-to read very large compressed images, and add back support for tile-compressed
-byte and unsigned byte images.
+a version that meets our needs is a safe alternative.
 
 Note on array ordering
 ----------------------

@@ -24,7 +24,7 @@
 #include <Python.h>
 #include "fitsio.h"
 #include "fitsio2.h"
-#include "fitsio_pywrap_lists.h"
+//#include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h> 
 
 
@@ -39,6 +39,93 @@ struct PyFITSObject {
     PyObject_HEAD
     fitsfile* fits;
 };
+
+
+// check unicode for python3, string for python2
+int is_python_string(const PyObject* obj)
+{
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_Check(obj) || PyBytes_Check(obj);
+#else
+    return PyUnicode_Check(obj) || PyString_Check(obj);
+#endif
+}
+/*
+
+   get a string version of the object. New memory
+   is allocated and the receiver must clean it up.
+
+*/
+
+// unicode is common to python 2 and 3
+static char* get_unicode_as_string(PyObject* obj)
+{
+    PyObject* tmp=NULL;
+    char* strdata=NULL;
+    tmp = PyObject_CallMethod(obj,"encode",NULL);
+
+    strdata = strdup( PyBytes_AsString(tmp) );
+    Py_XDECREF(tmp);
+
+    return strdata;
+}
+
+static char* get_object_as_string(PyObject* obj)
+{
+    PyObject* format=NULL;
+    PyObject* args=NULL;
+    char* strdata=NULL;
+    PyObject* tmpobj1=NULL;
+
+    if (PyUnicode_Check(obj)) {
+
+        strdata=get_unicode_as_string(obj);
+
+    } else {
+
+#if PY_MAJOR_VERSION >= 3
+
+        if (PyBytes_Check(obj)) {
+            strdata = strdup( PyBytes_AsString(obj) );
+        } else {
+            PyObject* tmpobj2=NULL;
+            format = Py_BuildValue("s","%s");
+            // this is not a string object
+            args=PyTuple_New(1);
+
+            PyTuple_SetItem(args,0,obj);
+            tmpobj2 = PyUnicode_Format(format, args);
+            tmpobj1 = PyObject_CallMethod(tmpobj2,"encode",NULL);
+
+            Py_XDECREF(args);
+            Py_XDECREF(tmpobj2);
+
+            strdata = strdup( PyBytes_AsString(tmpobj1) );
+            Py_XDECREF(tmpobj1);
+            Py_XDECREF(format);
+        }
+
+#else
+        // convert to a string as needed
+        if (PyString_Check(obj)) {
+            strdata = strdup( PyString_AsString(obj) );
+        } else {
+            format = Py_BuildValue("s","%s");
+            args=PyTuple_New(1);
+
+            PyTuple_SetItem(args,0,obj);
+            tmpobj1= PyString_Format(format, args);
+
+            strdata = strdup( PyString_AsString(tmpobj1) );
+            Py_XDECREF(args);
+            Py_XDECREF(tmpobj1);
+            Py_XDECREF(format);
+        }
+#endif
+    }
+
+    return strdata;
+}
 
 static void 
 set_ioerr_string_from_status(int status) {
@@ -67,6 +154,106 @@ set_ioerr_string_from_status(int status) {
     return;
 }
 
+/*
+   string list helper functions
+*/
+
+struct stringlist {
+    size_t size;
+    char** data;
+};
+
+static struct stringlist* stringlist_new(void) {
+    struct stringlist* slist=NULL;
+
+    slist = malloc(sizeof(struct stringlist));
+    slist->size = 0;
+    slist->data=NULL;
+    return slist;
+}
+// push a copy of the string onto the string list
+static void stringlist_push(struct stringlist* slist, const char* str) {
+    size_t newsize=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+
+    slist->data[i] = strdup(str);
+}
+
+static void stringlist_push_size(struct stringlist* slist, size_t slen) {
+    size_t newsize=0;
+    size_t i=0;
+
+    newsize = slist->size+1;
+    slist->data = realloc(slist->data, sizeof(char*)*newsize);
+    slist->size += 1;
+
+    i = slist->size-1;
+
+    slist->data[i] = calloc(slen+1,sizeof(char));
+    //slist->data[i] = malloc(sizeof(char)*(slen+1));
+    //memset(slist->data[i], 0, slen+1);
+}
+static struct stringlist* stringlist_delete(struct stringlist* slist) {
+    if (slist != NULL) {
+        size_t i=0;
+        if (slist->data != NULL) {
+            for (i=0; i < slist->size; i++) {
+                free(slist->data[i]);
+            }
+        }
+        free(slist->data);
+        free(slist);
+    }
+    return NULL;
+}
+
+
+/*
+static void stringlist_print(struct stringlist* slist) {
+    size_t i=0;
+    if (slist == NULL) {
+        return;
+    }
+    for (i=0; i<slist->size; i++) {
+        printf("  slist[%ld]: %s\n", i, slist->data[i]);
+    }
+}
+*/
+
+
+static int stringlist_addfrom_listobj(struct stringlist* slist, 
+                                      PyObject* listObj, 
+                                      const char* listname) {
+    size_t size=0, i=0;
+    char* tmpstr=NULL;
+
+    if (!PyList_Check(listObj)) {
+        PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
+        return 1;
+    }
+    size = PyList_Size(listObj);
+
+    for (i=0; i<size; i++) {
+        PyObject* tmp = PyList_GetItem(listObj, i);
+        if (!is_python_string(tmp)) {
+            PyErr_Format(PyExc_ValueError, 
+                         "Expected only strings in %s list.", listname);
+            return 1;
+        }
+        tmpstr = get_object_as_string(tmp);
+        stringlist_push(slist, tmpstr);
+        free(tmpstr);
+    }
+    return 0;
+}
+
+static
 void add_double_to_dict(PyObject* dict, const char* key, double value) {
     PyObject* tobj=NULL;
     tobj=PyFloat_FromDouble(value);
@@ -74,12 +261,15 @@ void add_double_to_dict(PyObject* dict, const char* key, double value) {
     Py_XDECREF(tobj);
 }
 
+static
 void add_long_to_dict(PyObject* dict, const char* key, long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLong(value);
     PyDict_SetItemString(dict, key, tobj);
     Py_XDECREF(tobj);
 }
+
+static
 void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLongLong(value);
@@ -87,23 +277,30 @@ void add_long_long_to_dict(PyObject* dict, const char* key, long long value) {
     Py_XDECREF(tobj);
 }
 
+static
 void add_string_to_dict(PyObject* dict, const char* key, const char* str) {
     PyObject* tobj=NULL;
-    tobj=PyString_FromString(str);
+    tobj=Py_BuildValue("s",str);
     PyDict_SetItemString(dict, key, tobj);
     Py_XDECREF(tobj);
 }
+
+static
 void add_none_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_None);
 }
 
-
+/*
+static
 void append_long_to_list(PyObject* list, long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLong(value);
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
+*/
+
+static
 void append_long_long_to_list(PyObject* list, long long value) {
     PyObject* tobj=NULL;
     tobj=PyLong_FromLongLong(value);
@@ -111,12 +308,15 @@ void append_long_long_to_list(PyObject* list, long long value) {
     Py_XDECREF(tobj);
 }
 
+/*
+static
 void append_string_to_list(PyObject* list, const char* str) {
     PyObject* tobj=NULL;
-    tobj=PyString_FromString(str);
+    tobj=Py_BuildValue("s",str);
     PyList_Append(list, tobj);
     Py_XDECREF(tobj);
 }
+*/
 
 
 
@@ -148,6 +348,7 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
+
 static PyObject *
 PyFITSObject_repr(struct PyFITSObject* self) {
 
@@ -162,9 +363,9 @@ PyFITSObject_repr(struct PyFITSObject* self) {
         }
 
         sprintf(repr, "fits file: %s", filename);
-        return PyString_FromString(repr);
+        return Py_BuildValue("s",repr);
     }  else {
-        return PyString_FromString("");
+        return Py_BuildValue("s","none");
     }
 }
 
@@ -180,7 +381,7 @@ PyFITSObject_filename(struct PyFITSObject* self) {
             return NULL;
         }
 
-        fnameObj = PyString_FromString(filename);
+        fnameObj = Py_BuildValue("s",filename);
         return fnameObj;
     }  else {
         PyErr_SetString(PyExc_ValueError, "file is not open, cannot determine name");
@@ -221,35 +422,6 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 #endif
 }
 
-
-
-// if input is NULL or None, return NULL
-// if maxlen is 0, the full string is copied, else
-// it is maxlen+1 for the following null
-/*
-static char* copy_py_string(PyObject* obj, int maxlen, int* status) {
-    char* buffer=NULL;
-    int len=0;
-    if (obj != NULL && obj != Py_None) {
-        char* tmp;
-        if (!PyString_Check(obj)) {
-            PyErr_SetString(PyExc_ValueError, "Expected a string for extension name");
-            *status=99;
-            return NULL;
-        }
-        tmp = PyString_AsString(obj);
-        if (maxlen > 0) {
-            len = maxlen;
-        } else {
-            len = strlen(tmp);
-        }
-        buffer = malloc(sizeof(char)*(len+1));
-        strncpy(buffer, tmp, len);
-    }
-
-    return buffer;
-}
-*/
 
 // this will need to be updated for array string columns.
 // I'm using a tcolumn* here, could cause problems
@@ -930,7 +1102,7 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
 
 
 
-int create_empty_hdu(struct PyFITSObject* self)
+static int create_empty_hdu(struct PyFITSObject* self)
 {
     int status=0;
     int bitpix=SHORT_IMG;
@@ -1005,6 +1177,9 @@ static int pyarray_get_ndim(PyObject* obj) {
  * It is useful to create the extension first so we can write keywords into the
  * header before adding data.  This avoids moving the data if the header grows
  * too large.
+ *
+ * also we allow creating from dimensions rather than from the input image shape,
+ * writing into the HDU later
  */
 
 static PyObject *
@@ -1013,11 +1188,11 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     long *dims=NULL;
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
-    //int comptype=NOCOMPRESS;
+
     int comptype=0; // same as NOCOMPRESS in newer cfitsio
     PyObject* tile_dims_obj=NULL;
 
-    PyObject* array;
+    PyObject* array, *dims_obj;
     int npy_dtype=0;
     int i=0;
     int status=0;
@@ -1031,9 +1206,9 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
     static char *kwlist[] = 
-        {"array","comptype","tile_dims","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iOsi", kwlist,
-                          &array, &comptype, &tile_dims_obj,
+        {"array","dims","comptype","tile_dims","extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OiOsi", kwlist,
+                          &array, &dims_obj, &comptype, &tile_dims_obj,
                           &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
@@ -1054,11 +1229,23 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             goto create_image_hdu_cleanup;
         }
 
-        // order must be reversed for FITS
-        ndims = pyarray_get_ndim(array);
-        dims = calloc(ndims,sizeof(long));
-        for (i=0; i<ndims; i++) {
-            dims[ndims-i-1] = PyArray_DIM(array, i);
+        if (PyArray_Check(dims_obj)) {
+            // get dims from input, which must be of type 'i8'
+            npy_intp *tptr=NULL, tmp=0;
+            ndims = PyArray_SIZE(dims_obj);
+            dims = calloc(ndims,sizeof(long));
+            for (i=0; i<ndims; i++) {
+                tptr = (npy_intp *) PyArray_GETPTR1(dims_obj, i);
+                tmp = *tptr;
+                dims[ndims-i-1] = (long) tmp;
+            }
+        } else {
+            // order must be reversed for FITS
+            ndims = pyarray_get_ndim(array);
+            dims = calloc(ndims,sizeof(long));
+            for (i=0; i<ndims; i++) {
+                dims[ndims-i-1] = PyArray_DIM(array, i);
+            }
         }
 
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
@@ -1116,7 +1303,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
     LONGLONG nelements=1;
-    LONGLONG firstpixel=1;
+    PY_LONG_LONG firstpixel_py=0;
+    LONGLONG firstpixel=0;
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
@@ -1130,7 +1318,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOL", &hdunum, &array, &firstpixel_py)) {
         return NULL;
     }
 
@@ -1152,6 +1340,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
     nelements = PyArray_SIZE(array);
+    firstpixel = (LONGLONG) firstpixel_py;
     if (fits_write_img(self->fits, datatype, firstpixel, nelements, data, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
@@ -1202,14 +1391,18 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
         colnum=i+1;
         tmp = PyList_GetItem(tdimObj, i);
         if (tmp != Py_None) {
-            if (!PyString_Check(tmp)) {
+            if (!is_python_string(tmp)) {
                 PyErr_SetString(PyExc_ValueError, "Expected only strings or None for tdim");
                 return 1;
             }
 
-            tdim = PyString_AsString(tmp);
             sprintf(keyname, "TDIM%d", colnum);
-            if (fits_write_key(fits, TSTRING, keyname, tdim, NULL, &status)) {
+
+            tdim = get_object_as_string(tmp);
+            fits_write_key(fits, TSTRING, keyname, tdim, NULL, &status);
+            free(tdim);
+
+            if (status) {
                 set_ioerr_string_from_status(status);
                 return 1;
             }
@@ -1354,10 +1547,15 @@ PyFITSObject_insert_col(struct PyFITSObject* self, PyObject* args, PyObject* kwd
         PyObject* tmp=NULL;
         char* tdim=NULL;
         char keyname[20];
-        tmp = PyList_GetItem(tdimObj, 0);
-        tdim = PyString_AsString(tmp);
+
         sprintf(keyname, "TDIM%d", colnum);
-        if (fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status)) {
+        tmp = PyList_GetItem(tdimObj, 0);
+
+        tdim = get_object_as_string(tmp);
+        fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status);
+        free(tdim);
+
+        if (status) {
             set_ioerr_string_from_status(status);
             return NULL;
         }
@@ -1598,7 +1796,11 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         }
 
         tmp_obj = PyList_GetItem(colnum_list,icol);
+#if PY_MAJOR_VERSION >= 3
+        colnums[icol] = 1+(int) PyLong_AsLong(tmp_obj);
+#else
         colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
+#endif
         array_ptrs[icol] = tmp_array;
 
         nperrow[icol] = 1;
@@ -1716,53 +1918,32 @@ int write_var_string_column(
     char* ptr=NULL;
     int res=0;
 
-    PyObject* format=NULL;
     PyObject* el=NULL;
-    PyObject* el_string=NULL;
     char* strdata=NULL;
     char* strarr[1];
-    int is_converted=0;
 
-    format = PyString_FromString("%s");
 
     nrows = PyArray_SIZE(array);
     for (i=0; i<nrows; i++) {
         ptr = PyArray_GetPtr((PyArrayObject*) array, &i);
         el = PyArray_GETITEM(array, ptr);
 
-        // convert to a string if needed
-        if (PyString_Check(el)) {
-            is_converted=0;
-            // Don't free!
-            strdata = PyString_AsString(el);
-        } else {
-            PyObject* args=PyTuple_New(1);
+        strdata=get_object_as_string(el);
 
-            PyTuple_SetItem(args,0,el);
-            el_string = PyString_Format(format, args);
-
-            Py_XDECREF(args);
-
-            is_converted=1;
-            // Don't free!
-            strdata = PyString_AsString(el_string);
-        }
-
+        // just a container
         strarr[0] = strdata;
         res=fits_write_col_str(fits, colnum, 
                                firstrow+i, firstelem, nelem, 
                                strarr, status);
-        if (is_converted) {
-            Py_XDECREF(el_string);
-        }
 
+        free(strdata);
         if(res > 0) {
             goto write_var_string_column_cleanup;
         }
     }
 
 write_var_string_column_cleanup:
-    Py_XDECREF(format);
+
     if (*status > 0) {
         return 1;
     }
@@ -2451,7 +2632,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
 /*
  * Free all the elements in the python list as well as the list itself
  */
-void free_all_python_list(PyObject* list) {
+static void free_all_python_list(PyObject* list) {
     if (PyList_Check(list)) {
         Py_ssize_t i=0;
         for (i=0; i<PyList_Size(list); i++) {
@@ -2461,7 +2642,8 @@ void free_all_python_list(PyObject* list) {
     Py_XDECREF(list);
 }
 
-PyObject* read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* status) {
+static PyObject*
+read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* status) {
     LONGLONG firstelem=1;
     char* str=NULL;
     char* strarr[1];
@@ -2480,7 +2662,12 @@ PyObject* read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nch
     if (fits_read_col(fits,TSTRING,colnum,row,firstelem,nchar,nulval,strarr,anynul,status) > 0) {
         goto read_var_string_cleanup;
     }
-    stringObj = PyString_FromString(str);
+#if PY_MAJOR_VERSION >= 3
+    // bytes
+    stringObj = Py_BuildValue("y",str);
+#else
+    stringObj = Py_BuildValue("s",str);
+#endif
     if (NULL == stringObj) {
         PyErr_Format(PyExc_MemoryError, 
                      "Could not allocate py string of size %lld", nchar);
@@ -2492,8 +2679,9 @@ read_var_string_cleanup:
 
     return stringObj;
 }
-PyObject* read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
-                        int fits_dtype, int npy_dtype, int* status) {
+static PyObject*
+read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
+              int fits_dtype, int npy_dtype, int* status) {
     LONGLONG firstelem=1;
     PyObject* arrayObj=NULL;
     void* nulval=0;
@@ -3204,13 +3392,12 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 }
 
 
-int get_long_slices(
-        PyObject* fpix_arr,
-        PyObject* lpix_arr,
-        PyObject* step_arr,
-        long** fpix,
-        long** lpix,
-        long** step) {
+static int get_long_slices(PyObject* fpix_arr,
+                           PyObject* lpix_arr,
+                           PyObject* step_arr,
+                           long** fpix,
+                           long** lpix,
+                           long** step) {
 
     int i=0;
     long* ptr=NULL;
@@ -3519,6 +3706,114 @@ PyFITS_cfitsio_version(void) {
     return PyFloat_FromDouble((double)version);
 }
 
+/*
+
+'C',              'L',     'I',     'F'             'X'
+character string, logical, integer, floating point, complex
+
+*/
+
+static PyObject *
+PyFITS_get_keytype(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char* card=NULL;
+    char dtype[2]={0};
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        return NULL;
+    }
+
+
+    if (fits_get_keytype(card, dtype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    } else {
+        return Py_BuildValue("s", dtype);
+    }
+}
+static PyObject *
+PyFITS_get_key_meta(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char* card=NULL;
+    char dtype[2]={0};
+    int keyclass=0;
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        return NULL;
+    }
+
+
+    keyclass=fits_get_keyclass(card);
+
+    if (fits_get_keytype(card, dtype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    return Py_BuildValue("is", keyclass, dtype);
+
+}
+
+/*
+
+    note the special first four comment fields will not be called comment but
+    structural!  That will cause an exception to be raised, so the card should
+    be checked before calling this function
+
+*/
+
+static PyObject *
+PyFITS_parse_card(PyObject* self, PyObject* args) {
+
+    int status=0;
+    char name[FLEN_VALUE]={0};
+    char value[FLEN_VALUE]={0};
+    char comment[FLEN_COMMENT]={0};
+    int keylen=0;
+    int keyclass=0;
+
+    char* card=NULL;
+    char dtype[2]={0};
+    PyObject* output=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"s", &card)) {
+        goto bail;
+    }
+
+    keyclass=fits_get_keyclass(card);
+
+    // only proceed if not comment or history, but note the special first four
+    // comment fields will not be called comment but structural!  That will
+    // cause an exception to be raised, so the card should be checked before
+    // calling this function
+
+    if (keyclass != TYP_COMM_KEY && keyclass != TYP_CONT_KEY) {
+
+        if (fits_get_keyname(card, name, &keylen, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+        if (fits_parse_value(card, value, comment, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+        if (fits_get_keytype(value, dtype, &status)) {
+            set_ioerr_string_from_status(status);
+            goto bail;
+        }
+    }
+
+bail:
+    if (status != 0) {
+        return NULL;
+    }
+
+    output=Py_BuildValue("issss", keyclass, name, value, dtype, comment);
+    return output;
+}
+
 
 
 static PyMethodDef PyFITSObject_methods[] = {
@@ -3539,19 +3834,19 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_columns_as_rec_byoffset",  (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset,  METH_VARARGS,  "read_columns_as_rec_byoffset\n\nRead the specified columns into the input rec array at the specified offsets.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
-    {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
+    {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS | METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
 
-    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
-    {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
-    {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_KEYWORDS, "insert_col\n\nInsert a new column."},
+    {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_VARARGS | METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
+    {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_VARARGS | METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
+    {"insert_col",           (PyCFunction)PyFITSObject_insert_col,           METH_VARARGS | METH_KEYWORDS, "insert_col\n\nInsert a new column."},
 
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
     {"verify_checksum",      (PyCFunction)PyFITSObject_verify_checksum,      METH_VARARGS,  "verify_checksum\n\nReturn a dict with dataok and hduok."},
 
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
-    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
-    {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
-    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
+    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
+    {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
+    {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 
@@ -3616,6 +3911,9 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
+    {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
+    {"get_key_meta",      (PyCFunction)PyFITS_get_key_meta,      METH_VARARGS,  "get_key_meta\n\nparse the card to get key metadata (keyclass,dtype)."},
     {NULL}  /* Sentinel */
 };
 
@@ -3638,10 +3936,13 @@ static PyMethodDef fitstype_methods[] = {
 #define PyMODINIT_FUNC void
 #endif
 PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+PyInit__fitsio_wrap(void) 
+#else
 init_fitsio_wrap(void) 
+#endif
 {
     PyObject* m;
-
 
     PyFITSType.tp_new = PyType_GenericNew;
 
@@ -3668,4 +3969,7 @@ init_fitsio_wrap(void)
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
 
     import_array();
+#if PY_MAJOR_VERSION >= 3
+    return m;
+#endif
 }

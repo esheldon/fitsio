@@ -1,18 +1,49 @@
-from __future__ import with_statement
-import os
+from __future__ import with_statement, print_function
+import sys, os
 import tempfile
+import warnings
 import numpy
 from numpy import arange, array
 import fitsio
 
 import unittest
 
+if sys.version_info > (3,0,0):
+    stype=(str,bytes)
+else:
+    stype=str
+
 
 def test():
+    suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
+    unittest.TextTestRunner(verbosity=2).run(suite_warnings)
+
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
+class TestWarnings(unittest.TestCase):
+    """
+    tests of warnings
 
+    TODO: write test cases for bad column size
+    """
+    def setUp(self):
+        pass
+
+    def testNonStandardKeyValue(self):
+        fname=tempfile.mktemp(prefix='fitsio-TestWarning-',suffix='.fits')
+
+        im=numpy.zeros( (3,3) )
+        with warnings.catch_warnings(record=True) as w:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write(im)
+                # now write a key with a non-standard value
+                value={'test':3}
+                fits[-1].write_key("odd",value)
+            
+            assert len(w) == 1
+            assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
+        
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
 
@@ -24,7 +55,7 @@ class TestReadWrite(unittest.TestCase):
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
                ('i1scalar','i1'),
-               ('b1scalar','b1'),
+               ('b1scalar','b'),
                ('u2scalar','u2'),
                ('i2scalar','i2'),
                ('u4scalar','u4'),
@@ -37,7 +68,7 @@ class TestReadWrite(unittest.TestCase):
 
                ('u1vec','u1',nvec),
                ('i1vec','i1',nvec),
-               ('b1vec','b1',nvec),
+               ('b1vec','b',nvec),
                ('u2vec','u2',nvec),
                ('i2vec','i2',nvec),
                ('u4vec','u4',nvec),
@@ -50,7 +81,7 @@ class TestReadWrite(unittest.TestCase):
  
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
-               ('b1arr','b1',ashape),
+               ('b1arr','b',ashape),
                ('u2arr','u2',ashape),
                ('i2arr','i2',ashape),
                ('u4arr','u4',ashape),
@@ -277,6 +308,97 @@ class TestReadWrite(unittest.TestCase):
                             v = v.strip()
                             rv = rv.strip()
                         self.assertEqual(v,rv,"testing equal key '%s'" % k)
+
+            with fitsio.FITS(fname) as fits:
+                for i in xrange(len(dtypes)):
+                    self.assertEqual(fits[i].is_compressed(), False, "not compressed")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+ 
+
+    def testImageWriteReadFromDims(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in dtypes:
+                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    fits[-1].write(data)
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "images")
+
+            with fitsio.FITS(fname) as fits:
+                for i in xrange(len(dtypes)):
+                    self.assertEqual(fits[i].is_compressed(), False, "not compressed")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+ 
+    def testImageWriteReadFromDimsChunks(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in dtypes:
+                    data = numpy.arange(5*3,dtype=dtype).reshape(5,3)
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    chunk1 = data[0:2, :]
+                    chunk2 = data[2: , :]
+
+                    #
+                    # first using scalar pixel offset
+                    #
+
+                    fits[-1].write(chunk1)
+
+                    start=chunk1.size
+                    fits[-1].write(chunk2, start=start)
+
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "images")
+
+
+                    # 
+                    # now using sequence, easier to calculate
+                    #
+
+                    fits.create_image_hdu(dims=data.shape,
+                                          dtype=data.dtype)
+
+                    # first using pixel offset
+                    fits[-1].write(chunk1)
+
+                    start=[2,0]
+                    fits[-1].write(chunk2, start=start)
+
+                    rdata2 = fits[-1].read()
+
+                    self.compare_array(data, rdata2, "images")
+
 
             with fitsio.FITS(fname) as fits:
                 for i in xrange(len(dtypes)):
@@ -1419,19 +1541,19 @@ class TestReadWrite(unittest.TestCase):
 
     def compare_object_array(self, arr1, arr2, name, rows=None): 
         """
-        The first must be object, the second might be
+        The first must be object
         """
         if rows is None:
             rows = arange(arr1.size)
 
         for i,row in enumerate(rows):
-            if isinstance(arr2[i],str):
+            if isinstance(arr2[i],stype):
                 self.assertEqual(arr1[row],arr2[i],
                                 "%s str el %d equal" % (name,i))
             else:
                 delement = arr2[i]
                 orig = arr1[row]
-                s=orig.size
+                s=len(orig)
                 self.compare_array(orig, delement[0:s], 
                                    "%s num el %d equal" % (name,i))
 
@@ -1445,7 +1567,7 @@ class TestReadWrite(unittest.TestCase):
             if fitsio.fitslib.is_object(rec2[f]):
 
                 for i in xrange(rec2.size):
-                    if isinstance(rec2[f][i],str):
+                    if isinstance(rec2[f][i],stype):
                         self.assertEqual(rec1[f][i],rec2[f][i],
                                         "testing '%s' str field '%s' el %d equal" % (name,f,i))
                     else:

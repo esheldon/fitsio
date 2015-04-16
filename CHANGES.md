@@ -1,3 +1,46 @@
+version 0.9.7
+----------------------------------
+
+New Features
+
+    - python 3 compatibility
+    - Adding a new HDU is now near constant time
+    - Can now create an empty image extension using create_image_hdu
+        and sending the dims= and dtype= keywords
+    - Can now write into a sub-section of an existing image using the
+        start= keyword.
+    - Can now use a scalar slice for reading images, e.g.
+        hdu[row1:row2, col]
+      although this still currently retains the extra dimension
+    - Use warnings instead of printing to stdout
+    - IOError is now used to indicate a number of errors that
+        were previously ValueError
+
+
+version 0.9.6 
+--------------
+
+New Features
+
+    - use cfitsio 3370 to support new tile compression features
+    - FITSRecord class to encapsulate all the ways one can represent header
+      records.  This is now used internally in the FITSHDR class instead of raw
+      dicts, but as FITSRecord inherits from dict this should be transparent.
+    - FITSCard class; inherits from FITSRecord and is a special case for header
+      card strings
+    - One can directly add a fits header card string to the FITSHDR object
+      using add_record
+
+Bug Fixes
+
+    - use literal_eval instead of eval for evaluating header values (D. Lang)
+    - If input to write_keys is a FITSHDR, just use it instead of creating a
+      new FITSHDR object. (D. Lang)
+    - update existing keys when adding records to FITSHDR, except for
+      comment and history fields.
+    - fixed bug with empty string in header card
+    - deal with cfitsio treating first 4 comments specially
+
 version 0.9.5
 --------------------------------
 
