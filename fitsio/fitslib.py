@@ -2344,7 +2344,7 @@ class TableHDU(HDUBase):
         If input is a fits bool, convert to numpy boolean
         """
 
-        output = (array.astype(numpy.int8) == ord('T')).astype(numpy.bool)
+        output = (array.view(numpy.int8) == ord('T')).astype(numpy.bool)
         return output
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
