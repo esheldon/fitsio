@@ -55,7 +55,7 @@ class TestReadWrite(unittest.TestCase):
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
                ('i1scalar','i1'),
-               ('b1scalar','b'),
+               ('b1scalar','?'),
                ('u2scalar','u2'),
                ('i2scalar','i2'),
                ('u4scalar','u4'),
