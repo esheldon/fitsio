@@ -139,8 +139,8 @@ def read_scamp_head(fname, header=None):
         The path to the SCAMP .head file
 
     header: FITSHDR, optional
-        Optionally add to the scamp keywods directly to this input FITSHDR
-        object rather than creating a new one
+        Optionally combine the header with the input one. The input can
+        be anything object convertable to a FITSHDR object
 
     returns
     -------
