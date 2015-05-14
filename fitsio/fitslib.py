@@ -620,7 +620,9 @@ class FITS(object):
 
         comptype = get_compress_type(compress)
         tile_dims = get_tile_dims(tile_dims, dims)
-        check_comptype_img(comptype, dtstr)
+
+        if img2send is not None:
+            check_comptype_img(comptype, dtstr)
 
         self._FITS.create_image_hdu(img2send,
                                     dims=dims2send,
