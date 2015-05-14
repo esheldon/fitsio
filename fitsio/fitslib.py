@@ -129,14 +129,26 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     with FITS(filename, case_sensitive=case_sensitive) as fits:
         return fits[item].read_header()
 
-def _make_item(ext, extver=None):
-    if extver is not None:
-        # e
-        item=(ext,extver)
-    else:
-        item=ext
-    return item
+def read_scamp_head(fname):
+    """
+    read a SCAMP .head file as a fits header FITSHDR object
 
+    parameters
+    ----------
+    fname: string
+        The path to the SCAMP .head file
+    """
+
+    with open(fname) as fobj:
+        lines=fobj.readlines()
+
+    lines=[l.strip() for l in lines if l[0:3] != 'END']
+
+    hdr=FITSHDR()
+    for l in lines:
+        hdr.add_record(l)
+
+    return hdr
 
 
 def write(filename, data, extname=None, extver=None, units=None, 
