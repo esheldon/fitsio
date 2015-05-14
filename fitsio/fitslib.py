@@ -140,7 +140,7 @@ def read_scamp_head(fname, header=None):
 
     header: FITSHDR, optional
         Optionally combine the header with the input one. The input can
-        be anything object convertable to a FITSHDR object
+        be any object convertable to a FITSHDR object
 
     returns
     -------
