@@ -153,17 +153,13 @@ def read_scamp_head(fname, header=None):
 
     lines=[l.strip() for l in lines if l[0:3] != 'END']
 
-    if header is not None:
-        if not isinstance(header,FITSHDR):
-            raise ValueError("input header must be of "
-                             "type FITSHDR, got %s" % type(header))
-    else:
-        header=FITSHDR()
+    # if header is None an empty FITSHDR is created
+    hdr=FITSHDR(header)
 
     for l in lines:
-        header.add_record(l)
+        hdr.add_record(l)
 
-    return header
+    return hdr
 
 
 def write(filename, data, extname=None, extver=None, units=None, 
