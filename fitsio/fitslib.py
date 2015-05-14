@@ -129,7 +129,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     with FITS(filename, case_sensitive=case_sensitive) as fits:
         return fits[item].read_header()
 
-def read_scamp_head(fname):
+def read_scamp_head(fname, header=None):
     """
     read a SCAMP .head file as a fits header FITSHDR object
 
@@ -137,6 +137,15 @@ def read_scamp_head(fname):
     ----------
     fname: string
         The path to the SCAMP .head file
+
+    header: FITSHDR, optional
+        Optionally add to the scamp keywods directly to this input FITSHDR
+        object rather than creating a new one
+
+    returns
+    -------
+    header: FITSHDR
+        A fits header object of type FITSHDR
     """
 
     with open(fname) as fobj:
@@ -144,11 +153,17 @@ def read_scamp_head(fname):
 
     lines=[l.strip() for l in lines if l[0:3] != 'END']
 
-    hdr=FITSHDR()
-    for l in lines:
-        hdr.add_record(l)
+    if header is not None:
+        if not isinstance(header,FITSHDR):
+            raise ValueError("input header must be of "
+                             "type FITSHDR, got %s" % type(header))
+    else:
+        header=FITSHDR()
 
-    return hdr
+    for l in lines:
+        header.add_record(l)
+
+    return header
 
 
 def write(filename, data, extname=None, extver=None, units=None, 
