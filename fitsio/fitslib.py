@@ -161,6 +161,14 @@ def read_scamp_head(fname, header=None):
 
     return hdr
 
+def _make_item(ext, extver=None):
+    if extver is not None:
+        # e
+        item=(ext,extver)
+    else:
+        item=ext
+
+    return item
 
 def write(filename, data, extname=None, extver=None, units=None, 
           compress=None, table_type='binary', header=None, 
