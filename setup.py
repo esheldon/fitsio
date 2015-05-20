@@ -79,8 +79,8 @@ extra_objects = glob.glob(os.path.join(cfitsio_build_dir,'*.o'))
 extra_objects += glob.glob(os.path.join(cfitsio_zlib_dir,'*.o'))
 
 if platform.system()=='Darwin':
-    extra_compile_args=['-arch','i386','-arch','x86_64']
-    extra_link_args=['-arch','i386','-arch','x86_64']
+    extra_compile_args=['-arch','x86_64']
+    extra_link_args=['-arch','x86_64']
 else:
     extra_compile_args=[]
     extra_link_args=[]
