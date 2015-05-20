@@ -1,3 +1,17 @@
+version 0.9.8 (not yet released)
+----------------------------------
+
+New Featurees
+
+    - added read_scamp_head function to read the .head files output
+        by SCAMP and return a FITSHDR object
+
+Bug Fixes
+
+    - Fixed broken boolean fields in new versions of numpy (rainwoodman)
+    - removed -iarch in setup.py for mac OS X.  This should
+        work for versions Mavericks and Snow Leapard (Christopher Bonnett)
+
 version 0.9.7
 ----------------------------------
 
