@@ -55,7 +55,7 @@ class TestReadWrite(unittest.TestCase):
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
                ('i1scalar','i1'),
-               ('b1scalar','b'),
+               ('b1scalar','?'),
                ('u2scalar','u2'),
                ('i2scalar','i2'),
                ('u4scalar','u4'),
@@ -68,7 +68,7 @@ class TestReadWrite(unittest.TestCase):
 
                ('u1vec','u1',nvec),
                ('i1vec','i1',nvec),
-               ('b1vec','b',nvec),
+               ('b1vec','?',nvec),
                ('u2vec','u2',nvec),
                ('i2vec','i2',nvec),
                ('u4vec','u4',nvec),
@@ -81,7 +81,7 @@ class TestReadWrite(unittest.TestCase):
  
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
-               ('b1arr','b',ashape),
+               ('b1arr','?',ashape),
                ('u2arr','u2',ashape),
                ('i2arr','i2',ashape),
                ('u4arr','u4',ashape),
@@ -126,9 +126,9 @@ class TestReadWrite(unittest.TestCase):
                 data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
 
         for t in ['b1']:
-            data[t+'scalar'] = (numpy.arange(nrows) % 2 == 0).astype(t)
-            data[t+'vec'] = (numpy.arange(nrows*nvec) % 2 == 0).astype(t).reshape(nrows,nvec)
-            arr = (numpy.arange(nrows*ashape[0]*ashape[1]) % 2 == 0).astype(t)
+            data[t+'scalar'] = (numpy.arange(nrows) % 2 == 0).astype('?')
+            data[t+'vec'] = (numpy.arange(nrows*nvec) % 2 == 0).astype('?').reshape(nrows,nvec)
+            arr = (numpy.arange(nrows*ashape[0]*ashape[1]) % 2 == 0).astype('?')
             data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
 
 

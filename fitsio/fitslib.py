@@ -129,15 +129,46 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     with FITS(filename, case_sensitive=case_sensitive) as fits:
         return fits[item].read_header()
 
+def read_scamp_head(fname, header=None):
+    """
+    read a SCAMP .head file as a fits header FITSHDR object
+
+    parameters
+    ----------
+    fname: string
+        The path to the SCAMP .head file
+
+    header: FITSHDR, optional
+        Optionally combine the header with the input one. The input can
+        be any object convertable to a FITSHDR object
+
+    returns
+    -------
+    header: FITSHDR
+        A fits header object of type FITSHDR
+    """
+
+    with open(fname) as fobj:
+        lines=fobj.readlines()
+
+    lines=[l.strip() for l in lines if l[0:3] != 'END']
+
+    # if header is None an empty FITSHDR is created
+    hdr=FITSHDR(header)
+
+    for l in lines:
+        hdr.add_record(l)
+
+    return hdr
+
 def _make_item(ext, extver=None):
     if extver is not None:
         # e
         item=(ext,extver)
     else:
         item=ext
+
     return item
-
-
 
 def write(filename, data, extname=None, extver=None, units=None, 
           compress=None, table_type='binary', header=None, 
@@ -620,7 +651,9 @@ class FITS(object):
 
         comptype = get_compress_type(compress)
         tile_dims = get_tile_dims(tile_dims, dims)
-        check_comptype_img(comptype, dtstr)
+
+        if img2send is not None:
+            check_comptype_img(comptype, dtstr)
 
         self._FITS.create_image_hdu(img2send,
                                     dims=dims2send,
@@ -2344,7 +2377,7 @@ class TableHDU(HDUBase):
         If input is a fits bool, convert to numpy boolean
         """
 
-        output = (array.astype(numpy.int8) == ord('T')).astype(numpy.bool)
+        output = (array.view(numpy.int8) == ord('T')).astype(numpy.bool)
         return output
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
