@@ -1175,12 +1175,18 @@ static int pyarray_get_ndim(PyObject* obj) {
 }
 
 /*
- * It is useful to create the extension first so we can write keywords into the
- * header before adding data.  This avoids moving the data if the header grows
- * too large.
- *
- * also we allow creating from dimensions rather than from the input image shape,
- * writing into the HDU later
+   Create an image extension, possible writing data as well.
+
+   We allow creating from dimensions rather than from the input image shape,
+   writing into the HDU later
+
+   It is useful to create the extension first so we can write keywords into the
+   header before adding data.  This avoids moving the data if the header grows
+   too large.
+
+   However, on distributed file systems it can be more efficient to write
+   the data at this time due to slowness with updating the file in place.
+
  */
 
 static PyObject *
