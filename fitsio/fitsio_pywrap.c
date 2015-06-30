@@ -1194,7 +1194,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     PyObject* tile_dims_obj=NULL;
 
     PyObject* array, *dims_obj;
-    int npy_dtype=0, nkeys=0;
+    int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
     int status=0;
 
@@ -1232,6 +1232,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
         if (PyArray_Check(dims_obj)) {
             // get dims from input, which must be of type 'i8'
+            // this means we are not writing the array that was input,
+            // it is only used to determine the data type
             npy_intp *tptr=NULL, tmp=0;
             ndims = PyArray_SIZE(dims_obj);
             dims = calloc(ndims,sizeof(long));
@@ -1240,13 +1242,16 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 tmp = *tptr;
                 dims[ndims-i-1] = (long) tmp;
             }
+            write_data=0;
         } else {
-            // order must be reversed for FITS
+            // we get the dimensions from the array, which means we are going
+            // to write it as well
             ndims = pyarray_get_ndim(array);
             dims = calloc(ndims,sizeof(long));
             for (i=0; i<ndims; i++) {
                 dims[ndims-i-1] = PyArray_DIM(array, i);
             }
+            write_data=1;
         }
 
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
@@ -1261,6 +1266,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             set_ioerr_string_from_status(status);
             goto create_image_hdu_cleanup;
         }
+
 
     }
     if (extname != NULL) {
@@ -1287,6 +1293,17 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         }
     }
 
+    if (write_data) {
+        int firstpixel=1;
+        LONGLONG nelements = 0;
+        void* data=NULL;
+        nelements = PyArray_SIZE(array);
+        data = PyArray_DATA(array);
+        if (fits_write_img(self->fits, datatype, firstpixel, nelements, data, &status)) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
+    }
 
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {

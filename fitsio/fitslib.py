@@ -530,8 +530,8 @@ class FITS(object):
             self[-1].write_keys(header)
             self[-1]._update_info()
 
-        if img is not None:
-            self[-1].write(img)
+        #if img is not None:
+        #    self[-1].write(img)
 
 
     def create_image_hdu(self,
@@ -550,6 +550,8 @@ class FITS(object):
             fits.create_image_hdu(image, ...)
             fits.create_image_hdu(dims=dims, dtype=dtype)
 
+        If an image is sent, the data are also written.
+
         You can write data into the new extension using
             fits[extension].write(image)
 
@@ -560,12 +562,13 @@ class FITS(object):
             fits.write_image(image)
 
         which will create the new image extension for you with the appropriate
-        structure.
+        structure, and write the data.
 
         parameters
         ----------
         img: ndarray, optional
-            An image with which to determine the properties of the HDU
+            An image with which to determine the properties of the HDU. The
+            data will be written.
         dims: sequence, optional
             A sequence describing the dimensions of the image to be created
             on disk.  You must also send a dtype=
