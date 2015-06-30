@@ -1,7 +1,7 @@
 version 0.9.8 (not yet released)
 ----------------------------------
 
-New Featurees
+New Features
 
     - added read_scamp_head function to read the .head files output
         by SCAMP and return a FITSHDR object
