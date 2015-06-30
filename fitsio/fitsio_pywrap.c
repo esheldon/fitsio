@@ -1112,6 +1112,7 @@ static int create_empty_hdu(struct PyFITSObject* self)
         set_ioerr_string_from_status(status);
         return 1;
     }
+
     return 0;
 }
 
@@ -1193,7 +1194,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     PyObject* tile_dims_obj=NULL;
 
     PyObject* array, *dims_obj;
-    int npy_dtype=0;
+    int npy_dtype=0, nkeys=0;
     int i=0;
     int status=0;
 
@@ -1206,9 +1207,9 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
     static char *kwlist[] = 
-        {"array","dims","comptype","tile_dims","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OiOsi", kwlist,
-                          &array, &dims_obj, &comptype, &tile_dims_obj,
+        {"array","nkeys","dims","comptype","tile_dims","extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOsi", kwlist,
+                          &array, &nkeys, &dims_obj, &comptype, &tile_dims_obj,
                           &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
@@ -1260,6 +1261,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             set_ioerr_string_from_status(status);
             goto create_image_hdu_cleanup;
         }
+
     }
     if (extname != NULL) {
         if (strlen(extname) > 0) {
@@ -1277,6 +1279,15 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             }
         }
     }
+
+    if (nkeys > 0) {
+        if (fits_set_hdrsize(self->fits, nkeys, &status) ) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
+    }
+
+
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
@@ -1418,11 +1429,13 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
 static PyObject *
 PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
     int status=0;
-    int table_type=0;
+    int table_type=0, nkeys=0;
     int nfields=0;
     LONGLONG nrows=0; // start empty
 
-    static char *kwlist[] = {"table_type","ttyp","tform","tunit", "tdim", "extname", "extver", NULL};
+    static char *kwlist[] = {
+        "table_type","nkeys", "ttyp","tform",
+        "tunit", "tdim", "extname", "extver", NULL};
     // these are all strings
     PyObject* ttypObj=NULL;
     PyObject* tformObj=NULL;
@@ -1438,8 +1451,8 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     char* extname_use=NULL;
     int extver=0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOO|OOsi", kwlist,
-                          &table_type, &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOO|OOsi", kwlist,
+                          &table_type, &nkeys, &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
         return NULL;
     }
 
@@ -1487,6 +1500,13 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 set_ioerr_string_from_status(status);
                 goto create_table_cleanup;
             }
+        }
+    }
+
+    if (nkeys > 0) {
+        if (fits_set_hdrsize(self->fits, nkeys, &status) ) {
+            set_ioerr_string_from_status(status);
+            goto create_table_cleanup;
         }
     }
 
