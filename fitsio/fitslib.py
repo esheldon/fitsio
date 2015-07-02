@@ -616,6 +616,15 @@ class FITS(object):
                 dtstr = img.dtype.descr[0][1][1:]
                 if img.size == 0:
                     raise ValueError("data must have at least 1 row")
+
+                # data must be c-contiguous and native byte order
+                if not img.flags['C_CONTIGUOUS']:
+                    # this always makes a copy
+                    img2send = numpy.ascontiguousarray(img)
+                    array_to_native(img2send, inplace=True)
+                else:
+                    img2send = array_to_native(img, inplace=False)
+
             else:
                 self._ensure_empty_image_ok()
                 compress=None
