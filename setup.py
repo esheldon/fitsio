@@ -13,6 +13,15 @@ else:
     compile_fitsio_package = False
     sys.argv.remove("--use-system-fitsio")
 
+extra_objects = None
+include_dirs=[numpy.get_include()]
+if platform.system()=='Darwin':
+    extra_compile_args=['-arch','x86_64']
+    extra_link_args=['-arch','x86_64']
+else:
+    extra_compile_args=[]
+    extra_link_args=[]
+    
 if compile_fitsio_package:
     package_basedir = os.path.abspath(os.curdir)
 
@@ -81,23 +90,10 @@ if compile_fitsio_package:
     extra_objects = glob.glob(os.path.join(cfitsio_build_dir,'*.o'))
     extra_objects += glob.glob(os.path.join(cfitsio_zlib_dir,'*.o'))
 
-    include_dirs=[cfitsio_dir,numpy.get_include()]
+    include_dirs.append(cfitsio_dir)
 
-    if platform.system()=='Darwin':
-        extra_compile_args=['-arch','x86_64']
-        extra_link_args=['-arch','x86_64']
-    else:
-        extra_compile_args=[]
-        extra_link_args=[]
-else:
-    extra_objects = None
-    include_dirs=[numpy.get_include()]
-    if platform.system()=='Darwin':
-        extra_compile_args=['-arch','x86_64']
-        extra_link_args=['-arch','x86_64','-lcfitsio']
-    else:
-        extra_compile_args=[]
-        extra_link_args=['-lcfitsio']
+if not compile_fitsio_package:
+    extra_link_args.append('-lcfitsio')
 
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files=[]
@@ -106,7 +102,8 @@ ext=Extension("fitsio._fitsio_wrap",
               sources,
               extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
-              extra_link_args=extra_link_args)
+              extra_link_args=extra_link_args,
+              include_dirs=include_dirs)
 
 description = ("A full featured python library to read from and "
                "write to FITS files.")
@@ -137,9 +134,7 @@ setup(name="fitsio",
       packages=['fitsio'],
       data_files=data_files,
       ext_modules=[ext],
-      cmdclass = {"build_py":build_py},
-      include_dirs=include_dirs)
-
+      cmdclass = {"build_py":build_py})
 
 
 
