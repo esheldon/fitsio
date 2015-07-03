@@ -88,7 +88,8 @@ ext=Extension("fitsio._fitsio_wrap",
               sources,
               extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
-              extra_link_args=extra_link_args)
+              extra_link_args=extra_link_args,
+              include_dirs=[cfitsio_dir,numpy.get_include()])
 
 
 description = ("A full featured python library to read from and "
