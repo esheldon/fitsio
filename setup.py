@@ -123,8 +123,8 @@ setup(name="fitsio",
       packages=['fitsio'],
       data_files=data_files,
       ext_modules=[ext],
-      cmdclass = {"build_py":build_py},
-      include_dirs=include_dirs)
+      cmdclass = {"build_py":build_py})
+
 
 
 
