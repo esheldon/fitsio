@@ -45,16 +45,29 @@ build_libdir=glob.glob(os.path.join('build','lib*'))
 if len(build_libdir) > 0:
     shutil.rmtree(build_libdir[0])
 
+# Sub-class the "clean" command to also remove the 
+# cfitsio build dir
 class CleanCfitsio(clean):
     def run(self):
         if os.path.exists(cfitsio_build_dir):
             remove_tree(cfitsio_build_dir)
         return clean.run(self)
 
+#Sub-class the build_ext command to also
+#build CFITSIO.  Only used if --use-system-fitsio 
+#is not specified: then the original build_ext is used.
 class BuildExtCfitsio(build_ext):
     def run(self):
         print "Custom builder"
         self.build_cfitsio()
+
+        #Add the extra files build as part of CFITSIO
+        #to the extension object
+        ext = self.distribution.ext_modules[0]
+        ext.extra_objects += glob.glob(
+            os.path.join(cfitsio_build_dir,'*.o'))
+        ext.extra_objects += glob.glob(
+            os.path.join(cfitsio_zlib_dir,'*.o'))
         return build_ext.run(self)
 
     def build_cfitsio(self):
@@ -114,8 +127,6 @@ class BuildExtCfitsio(build_ext):
 
 
 if compile_fitsio_package:
-    extra_objects = glob.glob(os.path.join(cfitsio_build_dir,'*.o'))
-    extra_objects += glob.glob(os.path.join(cfitsio_zlib_dir,'*.o'))
     include_dirs.append(cfitsio_dir)
     builder_class = BuildExtCfitsio
 else:
@@ -127,7 +138,6 @@ data_files=[]
 
 ext=Extension("fitsio._fitsio_wrap", 
               sources,
-              extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
               extra_link_args=extra_link_args,
               include_dirs=include_dirs)
