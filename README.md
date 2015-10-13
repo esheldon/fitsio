@@ -1,5 +1,10 @@
 A python library to read from and write to FITS files.
 
+Do not use numpy 1.10
+---------------------
+There is a serious performance regression in numpy 1.10 that results
+in fitsio running tens to hundreds of times slower.
+
 Description
 -----------
 
