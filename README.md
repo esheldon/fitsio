@@ -4,7 +4,8 @@ Do not use numpy 1.10.0 or 1.10.1
 ----------------------------------
 There is a serious performance regression in numpy 1.10 that results
 in fitsio running tens to hundreds of times slower.  A fix may be
-forthcoming in a later release.
+forthcoming in a later release.  Please comment here if this
+has already impacted your work https://github.com/numpy/numpy/issues/6467
 
 Description
 -----------
