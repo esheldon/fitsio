@@ -20,7 +20,7 @@
 #endif
 
 #ifdef HAVE_FTRUNCATE
-#if defined(unix) || defined(__unix__)  || defined(__unix)
+#if defined(unix) || defined(__unix__)  || defined(__unix) || defined(HAVE_UNISTD_H)
 #include <unistd.h>  /* needed for getcwd prototype on unix machines */
 #endif
 #endif
@@ -772,6 +772,13 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
       strcat(filename,".gz");
       if (file_openfile(filename, 0, &diskfile))
       {
+#if HAVE_BZIP2
+        strcpy(tmpfilename,filename);
+        strcat(filename,".bz2");
+        printf("Trying to open file %s\n", filename);
+        if (file_openfile(filename, 0, &diskfile))
+        {
+#endif
         strcpy(filename, tmpfilename);
         strcat(filename,".Z");
         if (file_openfile(filename, 0, &diskfile))
@@ -799,6 +806,9 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
             }
           }
         }
+#if HAVE_BZIP2
+        }
+#endif
       }
     }
 
@@ -815,7 +825,8 @@ int file_is_compressed(char *filename) /* I - FITS file name          */
          (memcmp(buffer, "\120\113", 2) == 0) ||  /* PKZIP */
          (memcmp(buffer, "\037\036", 2) == 0) ||  /* PACK  */
          (memcmp(buffer, "\037\235", 2) == 0) ||  /* LZW   */
-         (memcmp(buffer, "\037\240", 2) == 0) )   /* LZH   */
+         (memcmp(buffer, "\037\240", 2) == 0) ||  /* LZH   */
+         (memcmp(buffer, "BZ",       2) == 0) )   /* BZip2 */
         {
             return(1);  /* this is a compressed file */
         }
