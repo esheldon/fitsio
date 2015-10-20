@@ -54,7 +54,7 @@ if compile_fitsio_package:
 
     def configure_cfitsio():
         os.chdir(cfitsio_build_dir)
-        ret=os.system('sh ./configure')
+        ret=os.system('sh ./configure --with-bzip2')
         if ret != 0:
             raise ValueError("could not configure cfitsio %s" % cfitsio_version)
         os.chdir(package_basedir)
@@ -100,6 +100,7 @@ data_files=[]
 
 ext=Extension("fitsio._fitsio_wrap", 
               sources,
+              libraries=['bz2'],
               extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
               extra_link_args=extra_link_args,
