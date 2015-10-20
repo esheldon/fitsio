@@ -1,10 +1,16 @@
 version 0.9.8 (not yet released)
 ----------------------------------
 
-New Featurees
+New Features
 
     - added read_scamp_head function to read the .head files output
         by SCAMP and return a FITSHDR object
+    - reserved header space when creating image and table extensions
+        and a header is being written.  This can improve performance
+        substantially, especially on distributed file systems.
+    - When possible write image data at HDU creation.  This can
+        be a big performance improvement, especially on distributed file
+        systems.
 
 Bug Fixes
 

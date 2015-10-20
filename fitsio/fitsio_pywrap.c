@@ -1112,6 +1112,7 @@ static int create_empty_hdu(struct PyFITSObject* self)
         set_ioerr_string_from_status(status);
         return 1;
     }
+
     return 0;
 }
 
@@ -1174,12 +1175,18 @@ static int pyarray_get_ndim(PyObject* obj) {
 }
 
 /*
- * It is useful to create the extension first so we can write keywords into the
- * header before adding data.  This avoids moving the data if the header grows
- * too large.
- *
- * also we allow creating from dimensions rather than from the input image shape,
- * writing into the HDU later
+   Create an image extension, possible writing data as well.
+
+   We allow creating from dimensions rather than from the input image shape,
+   writing into the HDU later
+
+   It is useful to create the extension first so we can write keywords into the
+   header before adding data.  This avoids moving the data if the header grows
+   too large.
+
+   However, on distributed file systems it can be more efficient to write
+   the data at this time due to slowness with updating the file in place.
+
  */
 
 static PyObject *
@@ -1193,7 +1200,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     PyObject* tile_dims_obj=NULL;
 
     PyObject* array, *dims_obj;
-    int npy_dtype=0;
+    int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
     int status=0;
 
@@ -1206,9 +1213,9 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
     static char *kwlist[] = 
-        {"array","dims","comptype","tile_dims","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|OiOsi", kwlist,
-                          &array, &dims_obj, &comptype, &tile_dims_obj,
+        {"array","nkeys","dims","comptype","tile_dims","extname", "extver", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOsi", kwlist,
+                          &array, &nkeys, &dims_obj, &comptype, &tile_dims_obj,
                           &extname, &extver)) {
         goto create_image_hdu_cleanup;
     }
@@ -1231,6 +1238,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
         if (PyArray_Check(dims_obj)) {
             // get dims from input, which must be of type 'i8'
+            // this means we are not writing the array that was input,
+            // it is only used to determine the data type
             npy_intp *tptr=NULL, tmp=0;
             ndims = PyArray_SIZE(dims_obj);
             dims = calloc(ndims,sizeof(long));
@@ -1239,13 +1248,16 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 tmp = *tptr;
                 dims[ndims-i-1] = (long) tmp;
             }
+            write_data=0;
         } else {
-            // order must be reversed for FITS
+            // we get the dimensions from the array, which means we are going
+            // to write it as well
             ndims = pyarray_get_ndim(array);
             dims = calloc(ndims,sizeof(long));
             for (i=0; i<ndims; i++) {
                 dims[ndims-i-1] = PyArray_DIM(array, i);
             }
+            write_data=1;
         }
 
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
@@ -1260,6 +1272,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             set_ioerr_string_from_status(status);
             goto create_image_hdu_cleanup;
         }
+
+
     }
     if (extname != NULL) {
         if (strlen(extname) > 0) {
@@ -1277,6 +1291,26 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             }
         }
     }
+
+    if (nkeys > 0) {
+        if (fits_set_hdrsize(self->fits, nkeys, &status) ) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
+    }
+
+    if (write_data) {
+        int firstpixel=1;
+        LONGLONG nelements = 0;
+        void* data=NULL;
+        nelements = PyArray_SIZE(array);
+        data = PyArray_DATA(array);
+        if (fits_write_img(self->fits, datatype, firstpixel, nelements, data, &status)) {
+            set_ioerr_string_from_status(status);
+            goto create_image_hdu_cleanup;
+        }
+    }
+
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
@@ -1418,11 +1452,13 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
 static PyObject *
 PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
     int status=0;
-    int table_type=0;
+    int table_type=0, nkeys=0;
     int nfields=0;
     LONGLONG nrows=0; // start empty
 
-    static char *kwlist[] = {"table_type","ttyp","tform","tunit", "tdim", "extname", "extver", NULL};
+    static char *kwlist[] = {
+        "table_type","nkeys", "ttyp","tform",
+        "tunit", "tdim", "extname", "extver", NULL};
     // these are all strings
     PyObject* ttypObj=NULL;
     PyObject* tformObj=NULL;
@@ -1438,8 +1474,8 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     char* extname_use=NULL;
     int extver=0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOO|OOsi", kwlist,
-                          &table_type, &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOO|OOsi", kwlist,
+                          &table_type, &nkeys, &ttypObj, &tformObj, &tunitObj, &tdimObj, &extname, &extver)) {
         return NULL;
     }
 
@@ -1487,6 +1523,13 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 set_ioerr_string_from_status(status);
                 goto create_table_cleanup;
             }
+        }
+    }
+
+    if (nkeys > 0) {
+        if (fits_set_hdrsize(self->fits, nkeys, &status) ) {
+            set_ioerr_string_from_status(status);
+            goto create_table_cleanup;
         }
     }
 

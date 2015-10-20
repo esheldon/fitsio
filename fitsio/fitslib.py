@@ -521,15 +521,17 @@ class FITS(object):
         The File must be opened READWRITE
         """
 
-        self.create_image_hdu(img, extname=extname, extver=extver,
+        self.create_image_hdu(img, 
+                              header=header,
+                              extname=extname, extver=extver,
                               compress=compress, tile_dims=tile_dims)
 
         if header is not None:
             self[-1].write_keys(header)
             self[-1]._update_info()
 
-        if img is not None:
-            self[-1].write(img)
+        #if img is not None:
+        #    self[-1].write(img)
 
 
     def create_image_hdu(self,
@@ -539,13 +541,16 @@ class FITS(object):
                          extname=None,
                          extver=None,
                          compress=None,
-                         tile_dims=None):
+                         tile_dims=None,
+                         header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
         create from an input image or from input dims and dtype
 
             fits.create_image_hdu(image, ...)
             fits.create_image_hdu(dims=dims, dtype=dtype)
+
+        If an image is sent, the data are also written.
 
         You can write data into the new extension using
             fits[extension].write(image)
@@ -557,12 +562,13 @@ class FITS(object):
             fits.write_image(image)
 
         which will create the new image extension for you with the appropriate
-        structure.
+        structure, and write the data.
 
         parameters
         ----------
         img: ndarray, optional
-            An image with which to determine the properties of the HDU
+            An image with which to determine the properties of the HDU. The
+            data will be written.
         dims: sequence, optional
             A sequence describing the dimensions of the image to be created
             on disk.  You must also send a dtype=
@@ -589,13 +595,8 @@ class FITS(object):
             (case-insensitive) See the cfitsio manual for details.
 
         header: FITSHDR, list, dict, optional
-            A set of header keys to write. Can be one of these:
-                - FITSHDR object
-                - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
-                - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
-            Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
+            This is only used to determine how many slots to reserve for
+            header keywords
 
 
         restrictions
@@ -615,6 +616,15 @@ class FITS(object):
                 dtstr = img.dtype.descr[0][1][1:]
                 if img.size == 0:
                     raise ValueError("data must have at least 1 row")
+
+                # data must be c-contiguous and native byte order
+                if not img.flags['C_CONTIGUOUS']:
+                    # this always makes a copy
+                    img2send = numpy.ascontiguousarray(img)
+                    array_to_native(img2send, inplace=True)
+                else:
+                    img2send = array_to_native(img, inplace=False)
+
             else:
                 self._ensure_empty_image_ok()
                 compress=None
@@ -655,7 +665,13 @@ class FITS(object):
         if img2send is not None:
             check_comptype_img(comptype, dtstr)
 
+        if header is not None:
+            nkeys=len(header)
+        else:
+            nkeys=0
+
         self._FITS.create_image_hdu(img2send,
+                                    nkeys,
                                     dims=dims2send,
                                     comptype=comptype, 
                                     tile_dims=tile_dims,
@@ -736,6 +752,7 @@ class FITS(object):
         """
 
         self.create_table_hdu(data=data, 
+                              header=header,
                               names=names,
                               units=units, 
                               extname=extname,
@@ -749,6 +766,7 @@ class FITS(object):
         self[-1].write(data,names=names)
 
     def create_table_hdu(self, data=None, dtype=None, 
+                         header=None,
                          names=None, formats=None,
                          units=None, dims=None, extname=None, extver=None, 
                          table_type='binary'):
@@ -815,6 +833,11 @@ class FITS(object):
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
 
+        header: FITSHDR, list, dict, optional
+            This is only used to determine how many slots to reserve for
+            header keywords
+
+
         restrictions
         ------------
         The File must be opened READWRITE
@@ -866,8 +889,13 @@ class FITS(object):
             # will be ignored
             extname=""
 
+        if header is not None:
+            nkeys=len(header)
+        else:
+            nkeys=0
+
         # note we can create extname in the c code for tables, but not images
-        self._FITS.create_table_hdu(table_type_int,
+        self._FITS.create_table_hdu(table_type_int, nkeys,
                                     names, formats, tunit=units, tdim=dims, 
                                     extname=extname, extver=extver)
 
