@@ -7,6 +7,8 @@ import glob
 import shutil
 import platform
 
+libs = []
+
 if "--use-system-fitsio" not in sys.argv:
     compile_fitsio_package = True
 else:
@@ -98,9 +100,17 @@ if not compile_fitsio_package:
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files=[]
 
+if compile_fitsio_package:
+    # If configure detected bzlib.h, we have to link to libbz2.so
+    if '-DHAVE_BZIP2=1' in open(os.path.join(cfitsio_build_dir, 'Makefile')).read():
+        libs.append('bz2')
+else:
+    # Include bz2 by default?  Depends on how system cfitsio was built.
+    pass
+
 ext=Extension("fitsio._fitsio_wrap", 
               sources,
-              libraries=['bz2'],
+              libraries=libs,
               extra_objects=extra_objects,
               extra_compile_args=extra_compile_args, 
               extra_link_args=extra_link_args,
