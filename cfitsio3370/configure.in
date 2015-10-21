@@ -84,19 +84,22 @@ AC_ARG_WITH(
 AC_ARG_WITH(
   bzip2,
   [AS_HELP_STRING([--with-bzip2[[=PATH]]],[Enable bzip2. Optional path to the header file bzlib.h])],
+  # user specified --with-bzip2 or --without-bzip2
   [ if test "x$withval" != "xno"; then
         if test "x$withval" != "xyes" ; then
-            CFLAGS="$CFLAGS -I${withval}"
+            CPPFLAGS="$CPPFLAGS -I${withval}"
         fi
-        AC_CHECK_HEADERS(bzlib.h)
-        HAVE_BZIP2=yes
-        AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])
+        AC_CHECK_HEADERS(bzlib.h,
+            HAVE_BZIP2=yes
+            AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])
+        )
     fi
   ],
-  [AC_CHECK_HEADERS(bzlib.h)
-   HAVE_BZIP2=yes
-   AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])
-  ]
+  # default; --with[out]-bzip2 not given; check by default
+  [AC_CHECK_HEADERS(bzlib.h,
+       HAVE_BZIP2=yes
+       AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])
+   )]
 )
 
 #--------------------------------------------------------------------

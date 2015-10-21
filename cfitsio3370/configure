@@ -3487,9 +3487,10 @@ done
 
 # Check whether --with-bzip2 was given.
 if test "${with_bzip2+set}" = set; then :
-  withval=$with_bzip2;  if test "x$withval" != "xno"; then
+  withval=$with_bzip2; # user specified --with-bzip2 or --without-bzip2
+   if test "x$withval" != "xno"; then
         if test "x$withval" != "xyes" ; then
-            CFLAGS="$CFLAGS -I${withval}"
+            CPPFLAGS="$CPPFLAGS -I${withval}"
         fi
         for ac_header in bzlib.h
 do :
@@ -3498,18 +3499,19 @@ if test "x$ac_cv_header_bzlib_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_BZLIB_H 1
 _ACEOF
+ HAVE_BZIP2=yes
+
+$as_echo "#define HAVE_BZIP2 1" >>confdefs.h
+
 
 fi
 
 done
 
-        HAVE_BZIP2=yes
-
-$as_echo "#define HAVE_BZIP2 1" >>confdefs.h
-
     fi
 
 else
+  # default; --with[out]-bzip2 not given; check by default
   for ac_header in bzlib.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
@@ -3517,15 +3519,14 @@ if test "x$ac_cv_header_bzlib_h" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_BZLIB_H 1
 _ACEOF
+ HAVE_BZIP2=yes
+
+$as_echo "#define HAVE_BZIP2 1" >>confdefs.h
+
 
 fi
 
 done
-
-   HAVE_BZIP2=yes
-
-$as_echo "#define HAVE_BZIP2 1" >>confdefs.h
-
 
 
 fi
