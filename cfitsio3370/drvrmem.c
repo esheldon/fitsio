@@ -1071,13 +1071,9 @@ int mem_uncompress2mem(char *filename, FILE *diskfile, int hdl)
 #if HAVE_BZIP2
     } else if (strstr(filename, ".bz2")) {
         BZFILE* b;
-        char buf[8192];
         int  bzerror;
-        // we read from the bzip stream into "buf" and then copy into
-        // the real memory-file buffer at this "offset".  Could do
-        // this in one shot, with somewhat more memory-file
-        // book-keeping.  Do it the easy way instead, for now.
-        size_t offset = 0;
+        char buf[8192];
+        size_t total_read = 0;
 
         b = BZ2_bzReadOpen(&bzerror, diskfile, 0, 0, NULL, 0);
         if (bzerror != BZ_OK) {
@@ -1087,24 +1083,15 @@ int mem_uncompress2mem(char *filename, FILE *diskfile, int hdl)
         }
         bzerror = BZ_OK;
         while (bzerror == BZ_OK) {
-            int     nread;
+            int nread;
             nread = BZ2_bzRead(&bzerror, b, buf, sizeof(buf));
             if (bzerror == BZ_OK || bzerror == BZ_STREAM_END) {
-                char** ptrptr = memTable[hdl].memaddrptr;
-                size_t sz = *(memTable[hdl].memsizeptr);
-                if (offset + nread > sz) {
-                    // realloc the memory file 50% larger
-                    size_t newsize = ((sz + nread) * 3) / 2;
-                    *ptrptr = realloc(*ptrptr, newsize);
-                    if (*ptrptr == NULL) {
-                        BZ2_bzReadClose(&bzerror, b);
-                        ffpmsg("failed to realloc uncompressing bzip2");
-                        return 1;
-                    }
-                    *(memTable[hdl].memsizeptr) = newsize;
+                if (mem_write(hdl, buf, nread)) {
+                    BZ2_bzReadClose(&bzerror, b);
+                    ffpmsg("failed to realloc uncompressing bzip2");
+                    return 1;
                 }
-                memcpy(*ptrptr + offset, buf, nread);
-                offset += nread;
+                total_read += nread;
             }
         }
         BZ2_bzReadClose(&bzerror, b);
@@ -1112,7 +1099,7 @@ int mem_uncompress2mem(char *filename, FILE *diskfile, int hdl)
             ffpmsg("failure closing bz2 file with BZ2_bzReadClose()\n");
             return 1;
         }
-        finalsize = offset;
+        finalsize = total_read;
 #endif
     } else {
          uncompress2mem(filename, diskfile,

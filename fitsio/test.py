@@ -1365,13 +1365,15 @@ class TestReadWrite(unittest.TestCase):
                                      h.get_comment(name).strip(),
                                      "testing comment for header key '%s'" % name)
         except:
+            import traceback
+            traceback.print_exc()
             self.assertTrue(False, 'Exception in testing bzip2 reading')
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
             if os.path.exists(bzfname):
                 os.remove(bzfname)
-
+            pass
     def testChecksum(self):
         """
         Test a basic table write, data and a header, then reading back in to
