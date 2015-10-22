@@ -1094,7 +1094,7 @@ int mem_uncompress2mem(char *filename, FILE *diskfile, int hdl)
                 size_t sz = *(memTable[hdl].memsizeptr);
                 if (offset + nread > sz) {
                     // realloc the memory file 50% larger
-                    size_t newsize = sz + sz/2;
+                    size_t newsize = ((sz + nread) * 3) / 2;
                     *ptrptr = realloc(*ptrptr, newsize);
                     if (*ptrptr == NULL) {
                         BZ2_bzReadClose(&bzerror, b);
