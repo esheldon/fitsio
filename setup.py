@@ -28,7 +28,7 @@ if compile_fitsio_package:
     package_basedir = os.path.abspath(os.curdir)
 
     #cfitsio_version = '3280patch'
-    cfitsio_version = '3370'
+    cfitsio_version = '3370patch'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
     cfitsio_build_dir = os.path.join('build',cfitsio_dir)
     cfitsio_zlib_dir = os.path.join(cfitsio_build_dir,'zlib')
