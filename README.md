@@ -400,6 +400,10 @@ The unit tests should all pass for full support.
     import fitsio
     fitsio.test.test()
 
+Some tests may fail if certain libraries are not available, such
+as bzip2.  This failure only implies that bzipped files cannot
+be read, without affecting other functionality.
+
 TODO
 ----
 
