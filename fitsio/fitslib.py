@@ -3160,9 +3160,15 @@ class TableColumnSubset(object):
 
         self.columns = columns
         if isinstance(columns,(basestring,int,long)):
+            # this is to check if it exists
+            self.colnums = [fitshdu._extract_colnum(columns)]
+
             self.is_scalar=True
             self.columns_list = [columns]
         else:
+            # this is to check if it exists
+            self.colnums = fitshdu._extract_colnums(columns)
+
             self.is_scalar=False
             self.columns_list = columns
 
@@ -3215,6 +3221,7 @@ class TableColumnSubset(object):
 
         hdu = self.fitshdu
         info = self.fitshdu._info
+        colinfo = info['colinfo']
 
         text = []
         text.append("%sfile: %s" % (spacing,hdu._filename))
@@ -3230,27 +3237,26 @@ class TableColumnSubset(object):
         format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
         pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
-        for colnum,c in enumerate(info['colinfo']):
-            if c['name'] not in self.columns_list:
-                continue
+        for colnum in self.colnums:
+            cinfo = colinfo[colnum]
 
-            if len(c['name']) > nname:
+            if len(cinfo['name']) > nname:
                 f = pformat
             else:
                 f = format
 
             dt,isvar = hdu._get_tbl_numpy_dtype(colnum, include_endianness=False)
             if isvar:
-                tform = info['colinfo'][colnum]['tform']
+                tform = cinfo['tform']
                 if dt[0] == 'S':
                     dt = 'S0'
                     dimstr='vstring[%d]' % extract_vararray_max(tform)
                 else:
                     dimstr = 'varray[%s]' % extract_vararray_max(tform)
             else:
-                dimstr = _get_col_dimstr(c['tdim'])
+                dimstr = _get_col_dimstr(cinfo['tdim'])
 
-            s = f % (c['name'],dt,dimstr)
+            s = f % (cinfo['name'],dt,dimstr)
             text.append(s)
 
 
