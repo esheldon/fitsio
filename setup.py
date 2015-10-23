@@ -26,6 +26,7 @@ class build_ext_subclass(build_ext):
         self.cfitsio_dir = 'cfitsio%s' % self.cfitsio_version
         self.cfitsio_build_dir = os.path.join('build', self.cfitsio_dir)
         self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir,'zlib')
+
         build_ext.initialize_options(self)    
         self.link_objects = []
         self.extra_link_args = []
@@ -33,8 +34,6 @@ class build_ext_subclass(build_ext):
     def finalize_options(self):
 
         build_ext.finalize_options(self)    
-
-        self.force = True
 
         if self.use_system_fitsio:
             # Include bz2 by default?  Depends on how system cfitsio was built.
@@ -70,6 +69,11 @@ class build_ext_subclass(build_ext):
             link_objects = glob.glob(os.path.join(self.cfitsio_build_dir,'*.a'))
 
             self.compiler.set_link_objects(link_objects)
+
+            # Ultimate hack: append the .a files to the dependency list
+            # so they will be properly rebuild if cfitsio source is updated.
+            for ext in self.extensions:
+                ext.depends += link_objects
 
         # call the original build_extensions
 
