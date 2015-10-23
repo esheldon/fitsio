@@ -34,6 +34,8 @@ class build_ext_subclass(build_ext):
 
         build_ext.finalize_options(self)    
 
+        self.force = True
+
         if self.use_system_fitsio:
             # Include bz2 by default?  Depends on how system cfitsio was built.
             # FIXME: use pkg-config to tell if bz2 shall be included ?
@@ -60,12 +62,6 @@ class build_ext_subclass(build_ext):
                 self.compiler.add_library('bz2')
 
             self.compile_cfitsio()
-
-            # when using "extra_objects" in Extension, changes in the objects do *not*
-            # cause a re-link!  The only way I know is to force a recompile by removing the
-            # directory
-            for sofile in glob.glob(os.path.join('build','lib*/fitsio/*_fitsio_wrap*.so*')):
-                os.unlink(sofile)
 
             # link against the .a library in cfitsio; 
             # It should have been a 'static' library of relocatable objects (-fPIC), 
