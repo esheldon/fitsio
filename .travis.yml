@@ -25,10 +25,11 @@ install:
     - source activate test
     - conda install --yes numpy=$NUMPY_VERSION nose cython mpi4py
     - if [ $TRAVIS_PYTHON_VERSION == 2.6 ]; then conda install --yes argparse; fi
-    - python setup.py install |tee build.log | tail
+    - python setup.py install
 
 script:
-    - echo OK # run the tests, later
+    - python setup.py build
+    - python setup.py build_ext
 
 #notifications:
 #  email: false
