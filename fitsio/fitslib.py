@@ -3254,14 +3254,6 @@ class TableColumnSubset(object):
             text.append(s)
 
 
-
-
-        """
-        c=pprint.pformat(self.columns, indent=4)
-        c = c.split('\n')
-        for r in c:
-            text.append('%s%s' % (cspacing, r))
-        """
         s = "\n".join(text)
         return s
 
