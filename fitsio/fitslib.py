@@ -1841,6 +1841,13 @@ class TableHDU(HDUBase):
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
+        res = self.read_columns([col], **keys)
+        colname = res.dtype.names[0]
+        return res[colname]
+
+        '''
+        # deprecated
+
         rows=keys.get('rows',None)
         colnum = self._extract_colnum(col)
         # ensures unique, contiguous
@@ -1861,6 +1868,7 @@ class TableHDU(HDUBase):
                                             self._info['colinfo'][colnum]['tzero'])
 
         return array
+        '''
 
     def read_rows(self, rows, **keys):
         """
@@ -3150,18 +3158,30 @@ class TableColumnSubset(object):
         Input is the SFile instance and a list of column names.
         """
 
-        self.fitshdu = fitshdu 
         self.columns = columns
+        if isinstance(columns,(basestring,int,long)):
+            self.is_scalar=True
+            self.columns_list = [columns]
+        else:
+            self.is_scalar=False
+            self.columns_list = columns
+
+        self.fitshdu = fitshdu 
 
     def read(self, **keys):
         """
         Read the data from disk and return as a numpy array
         """
 
-        c=keys.get('columns',None)
-        if c is None:
-            keys['columns'] = self.columns
-        return self.fitshdu.read(**keys)
+        if self.is_scalar:
+            data = self.fitshdu.read_column(self.columns, **keys)
+        else:
+            c=keys.get('columns',None)
+            if c is None:
+                keys['columns'] = self.columns
+            data = self.fitshdu.read(**keys)
+
+        return data
 
     def __getitem__(self, arg):
         """
@@ -3211,7 +3231,7 @@ class TableColumnSubset(object):
         pformat = cspacing + "%-" + str(nname) + "s\n %" + str(nspace+nname+ntype) + "s  %s"
 
         for colnum,c in enumerate(info['colinfo']):
-            if c['name'] not in self.columns:
+            if c['name'] not in self.columns_list:
                 continue
 
             if len(c['name']) > nname:
