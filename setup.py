@@ -64,9 +64,8 @@ class build_ext_subclass(build_ext):
             # when using "extra_objects" in Extension, changes in the objects do *not*
             # cause a re-link!  The only way I know is to force a recompile by removing the
             # directory
-            build_libdir=glob.glob(os.path.join('build','lib*'))
-            if len(build_libdir) > 0:
-                shutil.rmtree(build_libdir[0])
+            for sofile in glob.glob(os.path.join('build','lib*/fitsio/*_fitsio_wrap*.so*')):
+                os.unlink(sofile)
 
             # link against the .a library in cfitsio; 
             # It should have been a 'static' library of relocatable objects (-fPIC), 
