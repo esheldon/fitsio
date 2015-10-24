@@ -1,5 +1,7 @@
 A python library to read from and write to FITS files.
 
+![](https://travis-ci.org/esheldon/fitsio.svg)
+
 Do not use numpy 1.10.0 or 1.10.1
 ----------------------------------
 There is a serious performance regression in numpy 1.10 that results
