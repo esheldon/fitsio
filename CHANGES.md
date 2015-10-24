@@ -36,6 +36,9 @@ Bug Fixes
         creation
     - Corrected the repr for single column subsets
 
+Dev features
+    - added travis ci
+
 version 0.9.7
 ----------------------------------
 
