@@ -25,7 +25,6 @@ import sys, os
 import numpy
 import copy
 import warnings
-import pprint
 
 from . import _fitsio_wrap
 from .util import FITSRuntimeWarning, cfitsio_version
