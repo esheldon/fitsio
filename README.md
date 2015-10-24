@@ -33,7 +33,7 @@ Some Features
 - Query the columns and rows in a table.
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
-- Read/write gzip files directly.  Read unix compress files (.Z,.zip).
+- Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
