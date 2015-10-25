@@ -15,33 +15,27 @@ class build_ext_subclass(build_ext):
     user_options = build_ext.user_options + \
             [('use-system-fitsio', None, 
               "Use the cfitsio installed in the system")]
+    #cfitsio_version = '3280patch'
+    cfitsio_version = '3370patch'
+    cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
         self.use_system_fitsio = False
-
-
         build_ext.initialize_options(self)    
-        self.link_objects = []
-        self.extra_link_args = []
 
     def finalize_options(self):
 
         build_ext.finalize_options(self)    
 
-        #cfitsio_version = '3280patch'
-        self.cfitsio_version = '3370patch'
-        self.cfitsio_dir = 'cfitsio%s' % self.cfitsio_version
         self.cfitsio_build_dir = os.path.join(self.build_temp, self.cfitsio_dir)
         self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir,'zlib')
 
         if self.use_system_fitsio:
-            # Include bz2 by default?  Depends on how system cfitsio was built.
-            # FIXME: use pkg-config to tell if bz2 shall be included ?
-            self.extra_link_args.append('-lcfitsio')
+            pass
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.
-            self.include_dirs.append(self.cfitsio_dir)
+            self.include_dirs.append(self.cfitsio_build_dir)
 
 
     def build_extensions(self):
@@ -73,6 +67,11 @@ class build_ext_subclass(build_ext):
             # so they will be properly rebuild if cfitsio source is updated.
             for ext in self.extensions:
                 ext.depends += link_objects
+        else:
+            # Include bz2 by default?  Depends on how system cfitsio was built.
+            # FIXME: use pkg-config to tell if bz2 shall be included ?
+            self.compiler.add_library('cfitsio')
+            pass
 
         # call the original build_extensions
 
