@@ -242,6 +242,7 @@ class TestReadWrite(unittest.TestCase):
 
                ('Sscalar',Sdtype),
                ('Sobj','O'),
+               ('Sobj2','O'),
                ('Svec',   Sdtype, nvec),
                ('Sarr',   Sdtype, ashape)]
 
@@ -278,6 +279,7 @@ class TestReadWrite(unittest.TestCase):
 
         for i in xrange(nrows):
             data['Sobj'][i] = data['Sscalar'][i].rstrip()
+            data['Sobj2'][i] = ('-'*1507) + '    blah%d' % numpy.random.randint(0,2**31-1)
 
         self.vardata = data
 
