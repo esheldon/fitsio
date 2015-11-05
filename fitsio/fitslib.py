@@ -3296,6 +3296,7 @@ def check_extver(extver):
     return extver
 
 def extract_filename(filename):
+    filename=filename.strip()
     if filename[0] == "!":
         filename=filename[1:]
     filename = os.path.expandvars(filename)
