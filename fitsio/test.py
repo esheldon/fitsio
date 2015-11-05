@@ -488,6 +488,7 @@ class TestReadWrite(unittest.TestCase):
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 # note i8 not supported for compressed!
+                # also no writing unsigned, need to address
                 dtypes = ['i1','i2','i4','f4','f8']
 
                 for dtype in dtypes:

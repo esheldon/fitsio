@@ -4235,7 +4235,9 @@ def check_comptype_img(comptype, dtype_str):
     if comptype == PLIO_1:
         # no unsigned for plio
         if dtype_str[0] == 'u':
-            raise ValueError("unsigned integers not allowed when using PLIO tile compression")
+            raise ValueError("unsigned integers currently not "
+                             "allowed when writing using PLIO "
+                             "tile compression")
 
 def isstring(arg):
     return isinstance(arg, (str,unicode))
