@@ -19,16 +19,23 @@ before_install:
     - ./miniconda.sh -b -p $HOME/miniconda
     - export PATH=$HOME/miniconda/bin:$PATH
     - conda update --yes conda
+    - wget ftp://heasarc.gsfc.nasa.gov/software/fitsio/c/cfitsio3370.tar.gz
+    - tar -xzvf cfitsio3370.tar.gz
+    - (cd cfitsio; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
 
 install:
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
-    - conda install --yes numpy=$NUMPY_VERSION nose cython mpi4py
+    - conda install --yes numpy=$NUMPY_VERSION nose cython
     - if [ $TRAVIS_PYTHON_VERSION == 2.6 ]; then conda install --yes argparse; fi
-    - python setup.py install
 
 script:
-    - python setup.py build
+    - python setup.py install --prefix=$HOME/fitsio-install-bundle
+    - python setup.py clean -a 
+    - python setup.py install --prefix=$HOME/fitsio-install-static build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
+    - python setup.py clean -a
+    - python setup.py build 
+    - python setup.py clean -a
     - python setup.py build_ext
 
 #notifications:
