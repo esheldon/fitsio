@@ -20,6 +20,9 @@ New Features
         official cfitsio release
     - Sped up image writing
     - Added reserving keyword space on HDU creation
+    - proper support for reading unsigned images compressed with PLIO.
+        This is a patch directly on the cfitsio code base.  The same
+        code is in the upstream, but not yet released.
 
 Bug Fixes
 
@@ -35,8 +38,10 @@ Bug Fixes
     - make sure to convert correct endianness when writing during image HDU
         creation
     - Corrected the repr for single column subsets
+    - only clean bzero,bscale,bunit from headers for TableHDU
 
 Dev features
+
     - added travis ci
 
 version 0.9.7
