@@ -759,7 +759,7 @@ class FITS(object):
                               table_type=table_type)
 
         if header is not None:
-            self[-1].write_keys(header, is_table=True)
+            self[-1].write_keys(header)
             self[-1]._update_info()
 
         self[-1].write(data,names=names)
@@ -1296,7 +1296,7 @@ class HDUBase(object):
                                         sval,
                                         str(comment))
 
-    def write_keys(self, records_in, clean=True, is_table=False):
+    def write_keys(self, records_in, clean=True):
         """
         Write the keywords to the header.
 
@@ -1313,8 +1313,6 @@ class HDUBase(object):
             If True, trim out the standard fits header keywords that are
             created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
             TDIM, XTENSION, BITPIX, NAXIS, etc.
-        is_table: bool, optional
-            If set to True, more keywords will be cleaned
 
         Notes
         -----
@@ -1328,6 +1326,7 @@ class HDUBase(object):
             hdr = FITSHDR(records_in)
 
         if clean:
+            is_table = isinstance(self, TableHDU)
             hdr.clean(is_table=is_table)
 
         for r in hdr.records():
