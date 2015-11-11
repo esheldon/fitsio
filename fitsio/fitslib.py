@@ -729,7 +729,7 @@ class FITS(object):
         header: FITSHDR, list, dict, optional
             A set of header keys to write. The keys are written before the data
             is written to the table, preventing a resizing of the table area.
-            
+
             Can be one of these:
                 - FITSHDR object
                 - list of dictionaries containing 'name','value' and optionally
@@ -759,7 +759,7 @@ class FITS(object):
                               table_type=table_type)
 
         if header is not None:
-            self[-1].write_keys(header)
+            self[-1].write_keys(header, is_table=True)
             self[-1]._update_info()
 
         self[-1].write(data,names=names)
@@ -1296,7 +1296,7 @@ class HDUBase(object):
                                         sval,
                                         str(comment))
 
-    def write_keys(self, records_in, clean=True):
+    def write_keys(self, records_in, clean=True, is_table=False):
         """
         Write the keywords to the header.
 
@@ -1313,6 +1313,8 @@ class HDUBase(object):
             If True, trim out the standard fits header keywords that are
             created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
             TDIM, XTENSION, BITPIX, NAXIS, etc.
+        is_table: bool, optional
+            If set to True, more keywords will be cleaned
 
         Notes
         -----
@@ -1326,7 +1328,7 @@ class HDUBase(object):
             hdr = FITSHDR(records_in)
 
         if clean:
-            hdr.clean()
+            hdr.clean(is_table=is_table)
 
         for r in hdr.records():
             name=r['name'].upper()
@@ -3786,23 +3788,35 @@ class FITSHDR(object):
                 del self._record_map[name]
                 self._record_list = [r for r in self._record_list if r['name'] != name]
 
-    def clean(self):
+    def clean(self, is_table=False):
         """
         Remove reserved keywords from the header.
-        
+
         These are keywords that the fits writer must write in order
         to maintain consistency between header and data.
+
+        keywords
+        --------
+        is_table: bool, optional
+            Set True if this is a table, so extra keywords will be cleaned
         """
 
         rmnames = ['SIMPLE','EXTEND','XTENSION','BITPIX','PCOUNT','GCOUNT',
                    'THEAP',
                    'EXTNAME',
-                   'BUNIT','BSCALE','BZERO','BLANK',
+                   'BLANK',
                    'ZQUANTIZ','ZDITHER0','ZIMAGE','ZCMPTYPE',
                    'ZSIMPLE','ZTENSION','ZPCOUNT','ZGCOUNT',
                    'ZBITPIX','ZEXTEND',
                    #'FZTILELN','FZALGOR',
                    'CHECKSUM','DATASUM']
+
+        if is_table:
+            # these are not allowed in tables
+            rmnames += [
+                'BUNIT','BSCALE','BZERO',
+            ]
+
         self.delete(rmnames)
 
         r = self._record_map.get('NAXIS',None)
