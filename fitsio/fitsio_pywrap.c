@@ -1329,6 +1329,54 @@ create_image_hdu_cleanup:
 }
 
 
+// reshape the image to specified dims
+// the input array must be of type int64
+static PyObject *
+PyFITSObject_reshape_image(struct PyFITSObject* self, PyObject* args) {
+
+    int status=0;
+    int hdunum=0, hdutype=0;
+    PyObject* dims_obj=NULL;
+    LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS]={0};
+    LONGLONG dims_orig[CFITSIO_MAX_ARRAY_DIMS]={0};
+    int ndims=0, ndims_orig=0;
+    npy_int64 dim=0;
+    npy_intp i=0;
+    int bitpix=0, maxdim=CFITSIO_MAX_ARRAY_DIMS;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &dims_obj)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+ 
+    // existing image params, just to get bitpix
+    if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims_orig, dims_orig, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    ndims = PyArray_SIZE(dims_obj);
+    for (i=0; i<ndims; i++) {
+        dim= *(npy_int64 *) PyArray_GETPTR1(dims_obj, i);
+        dims[i] = (LONGLONG) dim;
+    }
+
+    if (fits_resize_imgll(self->fits, bitpix, ndims, dims, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
 
 // write the image to an existing HDU created using create_image_hdu
 // dims are not checked
@@ -3886,6 +3934,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_checksum",       (PyCFunction)PyFITSObject_write_checksum,       METH_VARARGS,  "write_checksum\n\nCompute and write the checksums into the header."},
     {"verify_checksum",      (PyCFunction)PyFITSObject_verify_checksum,      METH_VARARGS,  "verify_checksum\n\nReturn a dict with dataok and hduok."},
 
+    {"reshape_image",          (PyCFunction)PyFITSObject_reshape_image,          METH_VARARGS,  "reshape_image\n\nReshape the image."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},

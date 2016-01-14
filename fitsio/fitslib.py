@@ -2901,6 +2901,19 @@ class ImageHDU(HDUBase):
 
         return dims
 
+    def reshape(self, dims):
+        """
+        reshape an existing image to the requested dimensions
+
+        parameters
+        ----------
+        dims: sequence
+            Any sequence convertible to i8
+        """
+
+        adims = numpy.array(dims, ndmin=1, dtype='i8')
+        self._FITS.reshape_image(self._ext+1, adims)
+
     def write(self, img, start=0, **keys):
         """
         Write the image into this HDU
@@ -2916,6 +2929,8 @@ class ImageHDU(HDUBase):
             into the entire array, or a sequence determining where
             in N-dimensional space to start.
         """
+
+        dims=self.get_dims()
 
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
@@ -2934,11 +2949,61 @@ class ImageHDU(HDUBase):
             # convert to scalar offset
             # note we use the on-disk data type to get itemsize
 
-            dims=self.get_dims()
-            start = _convert_full_start_to_offset(dims, start)
+            offset = _convert_full_start_to_offset(dims, start)
+        else:
+            offset = start
 
-        self._FITS.write_image(self._ext+1, img_send, start+1)
+        # see if we need to resize the image
+        if self.has_data():
+            self._expand_if_needed(dims, img.shape, start, offset)
+
+        self._FITS.write_image(self._ext+1, img_send, offset+1)
         self._update_info()
+
+    def _expand_if_needed(self, dims, write_dims, start, offset):
+
+        if numpy.isscalar(start):
+            start_is_scalar=True
+        else:
+            start_is_scalar=False
+
+        existing_size=sum(dims)
+        required_size = offset + sum(write_dims)
+
+        if required_size > existing_size:
+            # we need to expand the image
+            ndim=len(dims)
+            idim=len(write_dims)
+
+            if start_is_scalar:
+                if start == 0:
+                    start=[0]*ndim
+                else:
+                    raise ValueError("When expanding "
+                                     "an existing image while writing, the start keyword "
+                                     "must have the same number of dimensions "
+                                     "as the image or be exactly 0, got %s " % start)
+
+            if idim != ndim:
+                raise ValueError("When expanding "
+                                 "an existing image while writing, the input image "
+                                 "must have the same number of dimensions "
+                                 "as the original.  "
+                                 "Got %d instead of %d" % (idim,ndim))
+            new_dims = []
+            for i in xrange(ndim):
+                required_dim = start[i] + write_dims[i]
+
+                if required_dim < dims[i]:
+                    # careful not to shrink the image!
+                    dimsize=dims[i]
+                else:
+                    dimsize=required_dim
+
+                new_dims.append(dimsize)
+
+            print("    reshaping image to:",new_dims)
+            self.reshape(new_dims)
 
     def read(self, **keys):
         """
@@ -3668,7 +3733,7 @@ class FITSHDR(object):
 
         # print a single record
         print(hdr['fromdict'])
-        
+
 
         # can also set from a card
         hdr.add_record('test    =                   77')
@@ -3685,7 +3750,7 @@ class FITSHDR(object):
         recs={'day':'saturday',
               'telescope':'blanco'}
         hdr=FITSHDR(recs)
-    
+
     """
     def __init__(self, record_list=None, convert=False):
 
