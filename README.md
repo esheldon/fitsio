@@ -280,7 +280,11 @@ fits.write(img, compress='rice')
 fits[ext].write(img2)
 
 # write into an existing image, starting at the location [300,400]
+# the image will be expanded if needed
 fits[ext].write(img3, start=[300,400])
+
+# change the shape of the image on disk
+fits[ext].reshape([250,100])
 
 # add checksums for the data
 fits[-1].write_checksum()

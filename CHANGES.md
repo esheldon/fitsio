@@ -23,6 +23,9 @@ New Features
     - proper support for reading unsigned images compressed with PLIO.
         This is a patch directly on the cfitsio code base.  The same
         code is in the upstream, but not yet released.
+    - New method reshape(dims) for images
+    - When writing into an existing image HDU, and larger dimensions
+        are required, the image is automatically expanded.
 
 Bug Fixes
 

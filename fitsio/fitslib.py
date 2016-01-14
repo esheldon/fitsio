@@ -2918,7 +2918,10 @@ class ImageHDU(HDUBase):
         """
         Write the image into this HDU
 
-        If data already exist in this HDU, they will be overwritten.
+        If data already exist in this HDU, they will be overwritten.  If the
+        image to write is larger than the image on disk, or if the start 
+        position is such that the write would extend beyond the existing
+        dimensions, the on-disk image is expanded.
 
         parameters
         ----------
@@ -2960,52 +2963,6 @@ class ImageHDU(HDUBase):
         self._FITS.write_image(self._ext+1, img_send, offset+1)
         self._update_info()
 
-    def _expand_if_needed(self, dims, write_dims, start, offset):
-        from operator import mul
-
-        if numpy.isscalar(start):
-            start_is_scalar=True
-        else:
-            start_is_scalar=False
-
-        existing_size=reduce(mul, dims, 1)
-        required_size = offset + reduce(mul, write_dims, 1)
-
-        if required_size > existing_size:
-            print("    required size:",required_size,"existing size:",existing_size)
-            # we need to expand the image
-            ndim=len(dims)
-            idim=len(write_dims)
-
-            if start_is_scalar:
-                if start == 0:
-                    start=[0]*ndim
-                else:
-                    raise ValueError("When expanding "
-                                     "an existing image while writing, the start keyword "
-                                     "must have the same number of dimensions "
-                                     "as the image or be exactly 0, got %s " % start)
-
-            if idim != ndim:
-                raise ValueError("When expanding "
-                                 "an existing image while writing, the input image "
-                                 "must have the same number of dimensions "
-                                 "as the original.  "
-                                 "Got %d instead of %d" % (idim,ndim))
-            new_dims = []
-            for i in xrange(ndim):
-                required_dim = start[i] + write_dims[i]
-
-                if required_dim < dims[i]:
-                    # careful not to shrink the image!
-                    dimsize=dims[i]
-                else:
-                    dimsize=required_dim
-
-                new_dims.append(dimsize)
-
-            print("    reshaping image to:",new_dims)
-            self.reshape(new_dims)
 
     def read(self, **keys):
         """
@@ -3050,8 +3007,8 @@ class ImageHDU(HDUBase):
 
     def __getitem__(self, arg):
         """
-        Get data from an image using python [] slice notation.  
-        
+        Get data from an image using python [] slice notation.
+
         e.g., [2:25, 4:45].
         """
         return self._read_image_slice(arg)
@@ -3147,6 +3104,57 @@ class ImageHDU(HDUBase):
         array = numpy.zeros(arrdims, dtype=npy_dtype)
         self._FITS.read_image_slice(self._ext+1, first, last, steps, array)
         return array
+
+    def _expand_if_needed(self, dims, write_dims, start, offset):
+        """
+        expand the on-disk image if the indended write will extend
+        beyond the existing dimensions
+        """
+        from operator import mul
+
+        if numpy.isscalar(start):
+            start_is_scalar=True
+        else:
+            start_is_scalar=False
+
+        existing_size=reduce(mul, dims, 1)
+        required_size = offset + reduce(mul, write_dims, 1)
+
+        if required_size > existing_size:
+            print("    required size:",required_size,"existing size:",existing_size)
+            # we need to expand the image
+            ndim=len(dims)
+            idim=len(write_dims)
+
+            if start_is_scalar:
+                if start == 0:
+                    start=[0]*ndim
+                else:
+                    raise ValueError("When expanding "
+                                     "an existing image while writing, the start keyword "
+                                     "must have the same number of dimensions "
+                                     "as the image or be exactly 0, got %s " % start)
+
+            if idim != ndim:
+                raise ValueError("When expanding "
+                                 "an existing image while writing, the input image "
+                                 "must have the same number of dimensions "
+                                 "as the original.  "
+                                 "Got %d instead of %d" % (idim,ndim))
+            new_dims = []
+            for i in xrange(ndim):
+                required_dim = start[i] + write_dims[i]
+
+                if required_dim < dims[i]:
+                    # careful not to shrink the image!
+                    dimsize=dims[i]
+                else:
+                    dimsize=required_dim
+
+                new_dims.append(dimsize)
+
+            print("    reshaping image to:",new_dims)
+            self.reshape(new_dims)
 
     def __repr__(self):
         """
