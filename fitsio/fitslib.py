@@ -2961,16 +2961,18 @@ class ImageHDU(HDUBase):
         self._update_info()
 
     def _expand_if_needed(self, dims, write_dims, start, offset):
+        from operator import mul
 
         if numpy.isscalar(start):
             start_is_scalar=True
         else:
             start_is_scalar=False
 
-        existing_size=sum(dims)
-        required_size = offset + sum(write_dims)
+        existing_size=reduce(mul, dims, 1)
+        required_size = offset + reduce(mul, write_dims, 1)
 
         if required_size > existing_size:
+            print("    required size:",required_size,"existing size:",existing_size)
             # we need to expand the image
             ndim=len(dims)
             idim=len(write_dims)
