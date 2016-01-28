@@ -35,6 +35,9 @@
 // not sure where this is defined in numpy...
 #define NUMPY_MAX_DIMS 32
 
+#define MIN(a,b) (a < b ? a : b)
+#define MAX(a,b) (a > b ? a : b)
+
 struct PyFITSObject {
     PyObject_HEAD
     fitsfile* fits;
@@ -2216,6 +2219,7 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
+    LONGLONG num_rows = 0;
     Py_ssize_t start = 0, number = 0, end = 0;
 
     static char *kwlist[] = {
@@ -2231,6 +2235,14 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
                 &hdunum, &start, &end)) {
         return NULL;
     }
+
+    /* Check that start and end are bounded within the array */
+    if (fits_get_num_rowsll(self->fits, &num_rows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    start = MAX(start, 1);
+    end = MIN(end, num_rows);
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status);

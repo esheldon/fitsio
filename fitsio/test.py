@@ -1769,13 +1769,12 @@ class TestTableEditing(unittest.TestCase):
         self.f.close()
         self.assertDataMatches(array([0, 1, 5, 6, 7, 8, 9]))
 
-        with fitsio.FITS(self.fname) as infile:
-            data = infile[self.hdu_name][self.column_name].read()
+    def test_supplying_endpoint_beyond_end(self):
+        self.hdu._FITS.delete_rows(self.hdu._ext+1, start=2, end=1000)
 
-        self.compare_array(data,
-                           array([0, 1, 5, 6, 7, 8, 9]),
-                           "testing data is equal")
-
+        # Have to close the file to flush to disc
+        self.f.close()
+        self.assertDataMatches(array([0, 1]))
 
 
 if __name__ == '__main__':
