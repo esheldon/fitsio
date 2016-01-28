@@ -1776,6 +1776,14 @@ class TestTableEditing(unittest.TestCase):
         self.f.close()
         self.assertDataMatches(array([0, 1]))
 
+    def test_passing_none_to_end_deletes_the_end(self):
+        self.hdu._FITS.delete_rows(self.hdu._ext+1, start=5)
+        # Have to close the file to flush to disc
+        self.f.close()
+        self.assertDataMatches(array([0, 1, 2, 3, 4]))
+
+
+
 
 if __name__ == '__main__':
     test()

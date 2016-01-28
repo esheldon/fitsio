@@ -2231,7 +2231,7 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "inn", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "in|n", kwlist,
                 &hdunum, &start, &end)) {
         return NULL;
     }
@@ -2242,7 +2242,12 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
         return NULL;
     }
     start = MAX(start, 1);
-    end = MIN(end, num_rows);
+
+    if (end == 0) {
+        end = num_rows;
+    } else {
+        end = MIN(end, num_rows);
+    }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status);
