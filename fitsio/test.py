@@ -3,7 +3,7 @@ import sys, os
 import tempfile
 import warnings
 import numpy
-from numpy import arange, array
+from numpy import arange, array, allclose
 import fitsio
 
 import unittest
@@ -54,35 +54,8 @@ class TestWarnings(unittest.TestCase):
             assert len(w) == 1
             assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
 
-class ArrayComparisonBase(unittest.TestCase):
-    def compare_array(self, arr1, arr2, name):
-        self.assertEqual(arr1.shape, arr2.shape,
-                         "testing arrays '%s' shapes are equal: "
-                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
-
-        res=numpy.where(arr1 != arr2)
-        for i,w in enumerate(res):
-            self.assertEqual(w.size,0,"testing array '%s' dim %d are equal" % (name,i))
-
-    def compare_array_tol(self, arr1, arr2, tol, name):
-        self.assertEqual(arr1.shape, arr2.shape,
-                         "testing arrays '%s' shapes are equal: "
-                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
-
-        adiff = numpy.abs( (arr1-arr2)/arr1 )
-        maxdiff = adiff.max()
-        res=numpy.where(adiff  > tol)
-        for i,w in enumerate(res):
-            self.assertEqual(w.size,0,
-                             "testing array '%s' dim %d are "
-                             "equal within tolerance %e, found "
-                             "max diff %e" % (name,i,tol,maxdiff))
-        
-class TestReadWrite(ArrayComparisonBase):
+class TestReadWrite(unittest.TestCase):
     def setUp(self):
-
-
-
         nvec = 2
         ashape=(21,21)
         Sdtype = 'S6'
@@ -318,6 +291,7 @@ class TestReadWrite(ArrayComparisonBase):
             data['Sobj'][i] = data['Sscalar'][i].rstrip()
 
         self.vardata = data
+
 
 
     def testImageWriteRead(self):
@@ -1651,6 +1625,28 @@ class TestReadWrite(ArrayComparisonBase):
 
 
 
+    def compare_array_tol(self, arr1, arr2, tol, name):
+        self.assertEqual(arr1.shape, arr2.shape,
+                         "testing arrays '%s' shapes are equal: "
+                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
+
+        adiff = numpy.abs( (arr1-arr2)/arr1 )
+        maxdiff = adiff.max()
+        res=numpy.where(adiff  > tol)
+        for i,w in enumerate(res):
+            self.assertEqual(w.size,0,
+                             "testing array '%s' dim %d are "
+                             "equal within tolerance %e, found "
+                             "max diff %e" % (name,i,tol,maxdiff))
+        
+    def compare_array(self, arr1, arr2, name):
+        self.assertEqual(arr1.shape, arr2.shape,
+                         "testing arrays '%s' shapes are equal: "
+                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
+
+        res=numpy.where(arr1 != arr2)
+        for i,w in enumerate(res):
+            self.assertEqual(w.size,0,"testing array '%s' dim %d are equal" % (name,i))
 
     def compare_rec(self, rec1, rec2, name):
         for f in rec1.dtype.names:
@@ -1744,9 +1740,9 @@ class TestReadWrite(ArrayComparisonBase):
                                    "testing '%s' num field '%s' equal" % (name,f))
 
 
-class TestTableEditing(ArrayComparisonBase):
+class TestTableEditing(unittest.TestCase):
     def setUp(self):
-        self.fname=tempfile.mktemp(prefix='fitsio-TestWarning-',suffix='.fits')
+        self.fname=tempfile.mktemp(prefix='fitsio-TestTableEditing-',suffix='.fits')
         self.f = fitsio.FITS(self.fname, 'rw', clobber=True)
         self.hdu_name = 'data'
         self.column_name = 'x'
@@ -1756,12 +1752,22 @@ class TestTableEditing(ArrayComparisonBase):
         self.f.write(self.data, extname=self.hdu_name)
         self.hdu = self.f[self.hdu_name]
 
+    def tearDown(self):
+        os.remove(self.fname)
+
+    def assertDataMatches(self, expected):
+        with fitsio.FITS(self.fname) as infile:
+            data = infile[self.hdu_name][self.column_name].read()
+
+        self.assertTrue(allclose(data, expected),
+                       'expected %s, got %s' % (expected, data))
 
     def test_supplying_endpoint(self):
         self.hdu._FITS.delete_rows(self.hdu._ext+1, start=2, end=5)
 
         # Have to close the file to flush to disc
         self.f.close()
+        self.assertDataMatches(array([0, 1, 5, 6, 7, 8, 9]))
 
         with fitsio.FITS(self.fname) as infile:
             data = infile[self.hdu_name][self.column_name].read()
