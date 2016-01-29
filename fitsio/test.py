@@ -1782,6 +1782,16 @@ class TestTableEditing(unittest.TestCase):
         self.f.close()
         self.assertDataMatches(array([0, 1, 2, 3, 4]))
 
+    # High level interface
+    def test_resize_table(self):
+        test_data = array([1, 2])
+        self.hdu.write({
+            self.column_name: test_data
+        })
+        self.hdu._shrink_to(test_data.size)
+        self.f.close()
+
+        self.assertDataMatches(array([1, 2]))
 
 
 

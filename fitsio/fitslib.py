@@ -2441,6 +2441,18 @@ class TableHDU(HDUBase):
         if self.trim_strings or trim_strings:
             _trim_strings(array)
 
+    def _shrink_to(self, target_nrows):
+        """
+        Delete the last rows of the table, leaving 'nrows' remaining
+        """
+        current_nrows = self._info['nrows']
+        if current_nrows > target_nrows:
+            start = target_nrows
+            self._FITS.delete_rows(self._ext+1, start=start)
+        else:
+            raise ValueError("Target number of rows greater than the table "
+                             "contains")
+
     def _convert_bool_array(self, array):
         """
         cfitsio reads as characters 'T' and 'F' -- convert to real boolean
