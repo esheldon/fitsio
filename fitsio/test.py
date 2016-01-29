@@ -1793,7 +1793,14 @@ class TestTableEditing(unittest.TestCase):
 
         self.assertDataMatches(array([1, 2]))
 
+    def test_resize_with_write_keyword(self):
+        test_data = array([1, 2])
+        self.hdu.write({
+            self.column_name: test_data
+        }, resize=True)
+        self.f.close()
 
+        self.assertDataMatches(array([1, 2]))
 
 if __name__ == '__main__':
     test()

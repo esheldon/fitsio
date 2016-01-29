@@ -1535,6 +1535,9 @@ class TableHDU(HDUBase):
             You can also send names=
         names: list, optional
             same as columns=
+        resize: boolean, optional
+            If less data is being written to the table than already exists,
+            then automatically resize the number of rows to match the new data.
         """
 
         slow = keys.get('slow',False)
@@ -1607,6 +1610,10 @@ class TableHDU(HDUBase):
                 self._FITS.write_columns(self._ext+1, nonobj_colnums, nonobj_arrays, 
                                          firstrow=firstrow+1)
 
+
+        # Assume all of the columns are the same length
+        nrows = len(data_list[0])
+
         # writing the object arrays always occurs the same way
         # need to make sure this works for array fields
         for i,name in enumerate(names):
@@ -1614,6 +1621,9 @@ class TableHDU(HDUBase):
                 self.write_var_column(name, data_list[i], **keys)
 
         self._update_info()
+
+        if keys.get('resize'):
+            self._shrink_to(nrows)
 
     def write_column(self, column, data, **keys):
         """
