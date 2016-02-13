@@ -4491,7 +4491,7 @@ _hdu_type_map = {IMAGE_HDU:'IMAGE_HDU',
                  'BINARY_TBL':BINARY_TBL}
 
 # no support yet for complex
-_table_fits2npy = {1: 'b1',
+_table_fits2npy = {#1: 'b1',
                    11: 'u1',
                    12: 'i1',
                    14: 'b1', # logical. Note pyfits uses this for i1, cfitsio casts to char*
