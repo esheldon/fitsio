@@ -18,8 +18,6 @@ New Features
         that are as new as the bundled one.  Also note the bundled cfitsio
         sometimes contains patches that are not yet upstream in an
         official cfitsio release
-    - Sped up image writing
-    - Added reserving keyword space on HDU creation
     - proper support for reading unsigned images compressed with PLIO.
         This is a patch directly on the cfitsio code base.  The same
         code is in the upstream, but not yet released.
