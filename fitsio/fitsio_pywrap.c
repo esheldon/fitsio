@@ -1131,7 +1131,8 @@ static int set_compression(fitsfile *fits,
                            PyObject* tile_dims_obj,
                            int *status) {
 
-    npy_int64 *tile_dims_py=NULL, *tile_dims_fits=NULL;
+    npy_int64 *tile_dims_py=NULL;
+    long *tile_dims_fits=NULL;
     npy_intp ndims=0, i=0;
 
     // can be NOCOMPRESS (0)
