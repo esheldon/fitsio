@@ -1241,11 +1241,11 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             // get dims from input, which must be of type 'i8'
             // this means we are not writing the array that was input,
             // it is only used to determine the data type
-            npy_intp *tptr=NULL, tmp=0;
+            npy_int64 *tptr=NULL, tmp=0;
             ndims = PyArray_SIZE(dims_obj);
             dims = calloc(ndims,sizeof(long));
             for (i=0; i<ndims; i++) {
-                tptr = (npy_intp *) PyArray_GETPTR1(dims_obj, i);
+                tptr = (npy_int64 *) PyArray_GETPTR1(dims_obj, i);
                 tmp = *tptr;
                 dims[ndims-i-1] = (long) tmp;
             }
@@ -3492,7 +3492,7 @@ static int get_long_slices(PyObject* fpix_arr,
                            long** step) {
 
     int i=0;
-    long* ptr=NULL;
+    npy_int64* ptr=NULL;
     npy_intp fsize=0, lsize=0, ssize=0;
 
     fsize=PyArray_SIZE(fpix_arr);
