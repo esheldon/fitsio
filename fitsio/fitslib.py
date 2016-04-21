@@ -3426,6 +3426,8 @@ def array2tabledef(data, table_type='binary'):
             # the same type as the first
             name=d[0]
             form, dim = npy_obj2fits(data,name)
+        elif npy_dtype[0] == "V":
+            continue
         else:
             name, form, dim = npy2fits(d,table_type=table_type)
 
