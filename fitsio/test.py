@@ -182,7 +182,8 @@ class TestReadWrite(unittest.TestCase):
                 ('f8scalar','f8'),
                 ('Sscalar',Sdtype)]
         nrows=4
-        adata=numpy.zeros(nrows, dtype=adtype)
+        # For armhf and sparc64, we need alignment here:
+        adata=numpy.zeros(nrows, dtype=numpy.dtype(adtype, align=True))
 
         adata['i2scalar'][:] = -32222  + numpy.arange(nrows,dtype='i2')
         adata['i4scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i4')
