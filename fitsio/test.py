@@ -182,7 +182,11 @@ class TestReadWrite(unittest.TestCase):
                 ('f8scalar','f8'),
                 ('Sscalar',Sdtype)]
         nrows=4
-        adata=numpy.zeros(nrows, dtype=adtype)
+        try:
+            tdt = numpy.dtype(adtype, align=True)
+        except TypeError: # older numpy may not understand `align` argument
+            tdt = numpy.dtype(adtype)
+        adata=numpy.zeros(nrows, dtype=tdt)
 
         adata['i2scalar'][:] = -32222  + numpy.arange(nrows,dtype='i2')
         adata['i4scalar'][:] = -1353423423 + numpy.arange(nrows,dtype='i4')
