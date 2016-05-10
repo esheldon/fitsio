@@ -1,5 +1,100 @@
-version 0.9.4 (not yet released)
+version 0.9.8
+----------------------------------
+
+New Features
+
+    - added read_scamp_head function to read the .head files output
+        by SCAMP and return a FITSHDR object
+    - reserved header space when creating image and table extensions
+        and a header is being written.  This can improve performance
+        substantially, especially on distributed file systems.
+    - When possible write image data at HDU creation.  This can
+        be a big performance improvement, especially on distributed file
+        systems.
+    - Support for reading bzipped FITS files.  (Dustin Lang)
+
+    - Added option to use the system CFITSIO instead of the bundled one,
+        by sending --use-system-fitsio. Strongly recommend only use cfitsio
+        that are as new as the bundled one.  Also note the bundled cfitsio
+        sometimes contains patches that are not yet upstream in an
+        official cfitsio release
+    - proper support for reading unsigned images compressed with PLIO.
+        This is a patch directly on the cfitsio code base.  The same
+        code is in the upstream, but not yet released.
+    - New method reshape(dims) for images
+    - When writing into an existing image HDU, and larger dimensions
+        are required, the image is automatically expanded.
+
+Bug Fixes
+
+    - Fixed broken boolean fields in new versions of numpy (rainwoodman) Fixed
+    - bug when image was None (for creating empty first HDU) removed -iarch in
+    - setup.py for mac OS X.  This should
+        work for versions Mavericks and Snow Leapard (Christopher Bonnett)
+    - Reading a single string column was failing in some cases, this
+        has been fixed
+    - When creating a TableColumnSubset using [cols], the existence
+        of the columns is checked immediately, rather than waiting for the
+        check in the read()
+    - make sure to convert correct endianness when writing during image HDU
+        creation
+    - Corrected the repr for single column subsets
+    - only clean bzero,bscale,bunit from headers for TableHDU
+
+Dev features
+
+    - added travis ci
+
+version 0.9.7
+----------------------------------
+
+New Features
+
+    - python 3 compatibility
+    - Adding a new HDU is now near constant time
+    - Can now create an empty image extension using create_image_hdu
+        and sending the dims= and dtype= keywords
+    - Can now write into a sub-section of an existing image using the
+        start= keyword.
+    - Can now use a scalar slice for reading images, e.g.
+        hdu[row1:row2, col]
+      although this still currently retains the extra dimension
+    - Use warnings instead of printing to stdout
+    - IOError is now used to indicate a number of errors that
+        were previously ValueError
+
+
+version 0.9.6 
+--------------
+
+New Features
+
+    - use cfitsio 3370 to support new tile compression features
+    - FITSRecord class to encapsulate all the ways one can represent header
+      records.  This is now used internally in the FITSHDR class instead of raw
+      dicts, but as FITSRecord inherits from dict this should be transparent.
+    - FITSCard class; inherits from FITSRecord and is a special case for header
+      card strings
+    - One can directly add a fits header card string to the FITSHDR object
+      using add_record
+
+Bug Fixes
+
+    - use literal_eval instead of eval for evaluating header values (D. Lang)
+    - If input to write_keys is a FITSHDR, just use it instead of creating a
+      new FITSHDR object. (D. Lang)
+    - update existing keys when adding records to FITSHDR, except for
+      comment and history fields.
+    - fixed bug with empty string in header card
+    - deal with cfitsio treating first 4 comments specially
+
+version 0.9.5
 --------------------------------
+
+Note the version 0.9.4 was skipped because some people had been using the
+master branch in production, which had version 0.9.4 set.  This will allow
+automatic version detection to work.  In the future master will not have
+the next version set until release.
 
 New Features
 
@@ -10,6 +105,8 @@ New Features
     - Specify tile dimensions for compressed images.
     - write_comment and write_history methods added.
     - is_compressed() for image HDUs, True if tile compressed.
+    - added **keys to the image hdu reading routines to provide a more uniform
+      interface for all hdu types
 
 Bug Fixes
 
@@ -18,6 +115,13 @@ Bug Fixes
     - Correct conversion of boolean keywords, writing and reading.
     - Strip out compression related reserved keywords when writing a
       user-provided header.
+    - Simplified reading string columns in ascii tables so that certain
+      incorrectly formatted tables from  CASUTools are now read accurately.
+      The change was minimal and did not affect reading well formatted tables,
+      so seemed worth it. 
+    - Support non-standard TSHORT and TFLOAT columns in ascii tables as
+      generated by CASUTools.  They are non-standard but supporting them
+      does not seem to break anything (pulled from Simon Walker).
 
 All changes E. Sheldon except where noted.
 

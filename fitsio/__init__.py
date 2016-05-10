@@ -4,19 +4,27 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__='0.9.4'
+__version__='0.9.8'
 
 from . import fitslib
+from . import util
+
 from .fitslib import FITS
 from .fitslib import FITSHDR
+from .fitslib import FITSRecord
+from .fitslib import FITSCard
+
 from .fitslib import read
 from .fitslib import read_header
+from .fitslib import read_scamp_head
 from .fitslib import write
 from .fitslib import READONLY
 from .fitslib import READWRITE
-from .fitslib import cfitsio_version
 
 from .fitslib import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
+from .fitslib import FITSRuntimeWarning
+
+from .util import cfitsio_version
 
 from . import test
