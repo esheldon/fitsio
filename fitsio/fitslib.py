@@ -1195,7 +1195,14 @@ class HDUBase(object):
         Get a copy of the filename for this fits file
         """
         return copy.copy(self._filename)
-
+    
+    @property
+    def byte_offsets(self):
+	    """
+	    Return the byte offsets of the header start, data start, and data end of HDU as tuple.
+	    """
+	    return self._FITS.byte_offsets(self._ext+1)
+    
     def write_checksum(self):
         """
         Write the checksum into the header for this HDU.
