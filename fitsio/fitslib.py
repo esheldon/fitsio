@@ -1184,6 +1184,31 @@ class HDUBase(object):
             name=_hdu_type_map[self._info['hdutype']]
             return name
 
+    def get_offsets(self):
+        """
+        returns
+        -------
+        a dictionary with these entries
+
+        header_start:
+            byte offset from beginning of the file to the start
+            of the header
+        data_start:
+            byte offset from beginning of the file to the start
+            of the data section
+        data_end:
+            byte offset from beginning of the file to the end
+            of the data section
+
+        Note these are also in the information dictionary, which
+        you can access with get_info()
+        """
+        return dict(
+            header_start=self._info['header_start'],
+            data_start=self._info['data_start'],
+            data_end=self._info['data_end'],
+        )
+
     def get_info(self):
         """
         Get a copy of the internal dictionary holding extension information

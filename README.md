@@ -340,6 +340,7 @@ f[1].get_extname()
 f[1].get_extver()
 f[1].get_extnum()           # return zero-offset extension number
 f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
+f[1].get_offsets()          # byte offsets (header_start, data_start, data_end)
 f[1].is_compressed()        # for images. True if tile-compressed
 f[1].get_colnames()         # for tables
 f[1].get_colname(colnum)    # for tables find the name from column number

@@ -533,6 +533,10 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     char hduname[FLEN_VALUE];
     int extver=0, hduver=0;
 
+    long long header_start;
+    long long data_start;
+    long long data_end;
+ 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
@@ -590,6 +594,19 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     tstatus=0;
     is_compressed=fits_is_compressed_image(self->fits, &tstatus);
     add_long_to_dict(dict, "is_compressed_image", (long)is_compressed);
+
+
+    // get byte offsets
+    if (0==fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end, &tstatus)) {
+        add_long_long_to_dict(dict, "header_start", (long)header_start);
+        add_long_long_to_dict(dict, "data_start", (long)data_start);
+        add_long_long_to_dict(dict, "data_end", (long)data_end);
+    } else {
+        add_long_long_to_dict(dict, "header_start", -1);
+        add_long_long_to_dict(dict, "data_start", -1);
+        add_long_long_to_dict(dict, "data_end", -1);
+    }
+ 
 
     int ndims=0;
     int maxdim=CFITSIO_MAX_ARRAY_DIMS;
