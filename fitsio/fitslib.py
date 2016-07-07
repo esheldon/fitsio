@@ -4078,10 +4078,10 @@ class FITSHDR(object):
     def __repr__(self):
         rep=['']
         for r in self._record_list:
-            if 'card' not in r:
+            if 'card_string' not in r:
                 card = self._record2card(r)
             else:
-                card = r['card']
+                card = r['card_string']
 
             rep.append(card)
         return '\n'.join(rep)
@@ -4112,7 +4112,7 @@ class FITSRecord(dict):
     def __init__(self, record, convert=False):
         self.set_record(record, convert=convert)
 
-    def set_record(self, record_in, convert=False):
+    def set_record(self, record, convert=False):
         """
         check the record is valid and convert to a dict
 
@@ -4131,17 +4131,27 @@ class FITSRecord(dict):
         """
         import copy
 
-        if isinstance(record_in, basestring):
-            card=FITSCard(record_in)
+        if isinstance(record, basestring):
+            card=FITSCard(record)
             self.update(card)
 
             self.verify()
 
         else:
-            if not isinstance(record_in, (FITSRecord,dict)):
+
+            if isinstance(record,FITSRecord):
+                self.update(record)
+            elif isinstance(record,dict):
+                # if the card is present, always construct the record from that
+                if 'card_string' in record:
+                    self.set_record(record['card_string'])
+                else:
+                    # we will need to verify it
+                    self.update(record)
+            else:
                 raise ValueError("record must be a string card or "
                                  "dictionary or FITSRecord")
-            self.update(record_in)
+
             self.verify()
 
             if convert:

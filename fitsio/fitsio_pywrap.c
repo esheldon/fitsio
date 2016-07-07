@@ -3655,7 +3655,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         }
 
         dict = PyDict_New();
-        add_string_to_dict(dict,"card",card);
+        add_string_to_dict(dict,"card_string",card);
         add_string_to_dict(dict,"name",keyname);
         add_string_to_dict(dict,"value",value);
         add_string_to_dict(dict,"comment",comment);
