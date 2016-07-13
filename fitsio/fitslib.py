@@ -4309,7 +4309,8 @@ class FITSCard(FITSRecord):
                 value=''
         else:
             if len(card_string) >= 8:
-                value=card_string[7:]
+                #value=card_string[7:]
+                value=card_string[8:]
             else:
                 value=''
         return value
