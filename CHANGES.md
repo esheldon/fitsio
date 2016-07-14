@@ -1,3 +1,30 @@
+version 0.9.9
+----------------------------------
+
+New Features 
+
+    - header_start, data_start, data_end now available in the
+      info dictionary, as well as the new get_offsets() method
+      to access these in a new dict.
+      (thanks Dimitri Muna for the initial version of this)
+
+Bug Fixes
+
+    - Fix bug when writing new COMMENT fields (thanks Alex Drlica-Wagner for
+      initial fix)
+    - deal correctly with aligned data in some scenarios
+      (thanks Ole Streicher)
+    - use correct data type long for tile_dims_fits in
+      the set_compression C code.  This avoids a crash
+      on 32 but systems. (thanks Ole Streicher)
+    - use correct data type npy_int64 for pointer in
+      get_long_slices (this function is not not correctly
+      named).  Avoids crash on some 32 bit systems.
+      (thanks Ole Streicher)
+    - use correct data type npy_int64 for pointer in
+      PyFITSObject_create_image_hdu, rather than npy_intp.
+      (thanks Ole Streicher)
+
 version 0.9.8
 ----------------------------------
 
