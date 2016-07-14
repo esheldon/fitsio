@@ -176,7 +176,7 @@ except ImportError:
     from distutils.command.build_py import build_py
 
 setup(name="fitsio", 
-      version="0.9.8",
+      version="0.9.9",
       description=description,
       long_description=long_description,
       license = "GPL",
