@@ -1,3 +1,8 @@
+version 0.9.9.1
+----------------------------------
+
+New tag so that pypi will accept the updated version
+
 version 0.9.9
 ----------------------------------
 
