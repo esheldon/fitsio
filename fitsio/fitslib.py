@@ -1557,6 +1557,9 @@ class TableHDU(HDUBase):
                                  "write_column to write to a single column, "
                                  "or instead write to an image hdu")
 
+            if data.shape is ():
+                raise ValueError("cannot write data with shape ()")
+
             isrec=True
             names=data.dtype.names
             # only write object types (variable-length columns) after
