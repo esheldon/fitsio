@@ -2204,18 +2204,17 @@ class TableHDU(HDUBase):
                 tform = self._info['colinfo'][colnum]['tform']
                 max_size = extract_vararray_max(tform)
 
-                if max_size == 0:
-                    if max_size <= 0:
-                        name=self._info['colinfo'][colnum]['name']
-                        mess='Will read as an object field'
-                        if max_size < 0:
-                            mess="Column '%s': No maximum size: '%s'. %s"
-                            mess=mess % (name,tform,mess)
-                            warnings.warn(mess, FITSRuntimeWarning)
-                        else:
-                            mess="Column '%s': Max size is zero: '%s'. %s"
-                            mess=mess % (name,tform,mess)
-                            warnings.warn(mess, FITSRuntimeWarning)
+                if max_size <= 0:
+                    name=self._info['colinfo'][colnum]['name']
+                    mess='Will read as an object field'
+                    if max_size < 0:
+                        mess="Column '%s': No maximum size: '%s'. %s"
+                        mess=mess % (name,tform,mess)
+                        warnings.warn(mess, FITSRuntimeWarning)
+                    else:
+                        mess="Column '%s': Max size is zero: '%s'. %s"
+                        mess=mess % (name,tform,mess)
+                        warnings.warn(mess, FITSRuntimeWarning)
 
                     # we are forced to read this as an object array
                     return self.get_rec_column_descr(colnum, 'object')
