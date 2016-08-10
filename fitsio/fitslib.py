@@ -2303,7 +2303,11 @@ class TableHDU(HDUBase):
                             ncopy = len(item)
 
                             if sys.version_info > (3,0,0):
-                                array[name][irow] = item
+                                ts = array[name].dtype.descr[0][1][1]
+                                if ts != 'S':
+                                    array[name][irow][0:ncopy] = item[:]
+                                else:
+                                    array[name][irow] = item
                             else:
                                 array[name][irow][0:ncopy] = item[:]
 

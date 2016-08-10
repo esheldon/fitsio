@@ -57,9 +57,25 @@ class build_ext_subclass(build_ext):
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
 
-            self.configure_cfitsio(CC=self.compiler.compiler, 
-                              ARCHIVE=self.compiler.archiver, 
-                               RANLIB=self.compiler.ranlib)
+            # there is some issue with non-aligned data with optimizations
+            # set to '-O3' on some versions of gcc.  It appears to be
+            # a disagreement between gcc 4 and gcc 5
+
+            CCold=self.compiler.compiler
+            
+            CC=[]
+            for val in CCold:
+                if val=='-O3':
+                    print("replacing '-O3' with '-O2' to address "
+                          "gcc bug")
+                    val='-O2'
+                CC.append(val) 
+                    
+            self.configure_cfitsio(
+                CC=CC, 
+                ARCHIVE=self.compiler.archiver, 
+                RANLIB=self.compiler.ranlib,
+            )
 
             # If configure detected bzlib.h, we have to link to libbz2
 
