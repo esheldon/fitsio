@@ -20,10 +20,13 @@ except:
 
 def test():
     suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
-    unittest.TextTestRunner(verbosity=2).run(suite_warnings)
+    res1=unittest.TextTestRunner(verbosity=2).run(suite_warnings).wasSuccessful()
 
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    res2=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
+    if not res1 or not res2:
+        sys.exit(1)
 
 class TestWarnings(unittest.TestCase):
     """
@@ -1352,7 +1355,12 @@ class TestReadWrite(unittest.TestCase):
         '''
 
         if 'SKIP_BZIP_TEST' in os.environ:
-            self.skipTest("skipping bzip tests")
+            if sys.version_info >= (2,7,0):
+                self.skipTest("skipping bzip tests")
+            else:
+                # skipTest only works for python 2.7+
+                # just return
+                return
 
         fname=tempfile.mktemp(prefix='fitsio-BZ2TableWrite-',suffix='.fits')
         bzfname = fname + '.bz2'
