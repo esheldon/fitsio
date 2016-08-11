@@ -44,8 +44,10 @@ install:
 
 script:
     - python setup.py install --prefix=$HOME/fitsio-install-bundle
+    - pushd /tmp; SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"; popd
     - python setup.py clean -a 
     - python setup.py install --prefix=$HOME/fitsio-install-static build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
+    - pushd /tmp; SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"; popd
     - python setup.py clean -a
     - python setup.py build 
     - python setup.py clean -a
