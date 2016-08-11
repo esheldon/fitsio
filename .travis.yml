@@ -43,11 +43,24 @@ install:
     - if [ $PYTHON_VERSION == 2.6 ]; then conda install --yes argparse; fi
 
 script:
-    - python setup.py install --prefix=$HOME/fitsio-install-bundle
-    - pushd /tmp; SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"; popd
+    - FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
+    - export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages:$PYTHONPATH
+
+    - python setup.py install --prefix=$FITSIO_INSTALL_DIR
+
+    - pushd /tmp
+    - SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
+    - popd
+    - rm -rf $FITSIO_INSTALL_DIR
+
     - python setup.py clean -a 
-    - python setup.py install --prefix=$HOME/fitsio-install-static build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
-    - pushd /tmp; SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"; popd
+    - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
+
+    - pushd /tmp
+    - SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
+    - popd
+    - rm -rf $FITSIO_INSTALL_DIR
+
     - python setup.py clean -a
     - python setup.py build 
     - python setup.py clean -a
