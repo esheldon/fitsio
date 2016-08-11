@@ -4,10 +4,12 @@ python:
     - 2.7
     - 3.3
     - 3.4
+    - 3.5
 
 env:
     - NUMPY_VERSION=1.8 
     - NUMPY_VERSION=1.9
+    - NUMPY_VERSION=1.11
 
 #cache:
 #    directories:
