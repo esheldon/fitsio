@@ -13,6 +13,10 @@ if sys.version_info > (3,0,0):
 else:
     stype=str
 
+try:
+    xrange=xrange
+except:
+    xrange=range
 
 def test():
     suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
@@ -306,7 +310,8 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data, rdata, "images")
 
                     rh = fits[-1].read_header()
-                    for k,v in header.iteritems():
+                    for k in header:
+                        v = header[k]
                         rv = rh[k]
                         if isinstance(rv,str):
                             v = v.strip()
@@ -427,7 +432,8 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data[4:12,9:17], rdata, "images")
 
                     rh = fits[-1].read_header()
-                    for k,v in header.iteritems():
+                    for k in header:
+                        v = header[k]
                         rv = rh[k]
                         if isinstance(rv,str):
                             v = v.strip()
