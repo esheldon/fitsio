@@ -29,6 +29,14 @@ import warnings
 from . import _fitsio_wrap
 from .util import FITSRuntimeWarning, cfitsio_version
 
+# for python3 compat
+try:
+    xrange=xrange
+except:
+    xrange=range
+
+from functools import reduce
+
 def read(filename, ext=None, extver=None, **keys):
     """
     Convenience function to read data from the specified FITS HDU
@@ -995,6 +1003,7 @@ class FITS(object):
         hdu=self.hdu_list[self._iter_index]
         self._iter_index += 1
         return hdu
+    __next__=next
 
     def __len__(self):
         """
@@ -1539,7 +1548,7 @@ class TableHDU(HDUBase):
                         raise ValueError("you must send columns with a list of arrays")
 
             else:
-                columns_all=data.keys()
+                columns_all=list(data.keys())
                 data_list=[data[n] for n in columns_all]
 
             colnums_all = [self._extract_colnum(c) for c in columns_all]
@@ -2598,7 +2607,7 @@ class TableHDU(HDUBase):
         """
         Get the column number for the input column
         """
-        if isinstance(col,(int,long)):
+        if isinteger(col):
             colnum = col
 
             if (colnum < 0) or (colnum > (self._ncol-1)):
@@ -2709,7 +2718,7 @@ class TableHDU(HDUBase):
         efficient buffering.
         """
         return self._get_next_buffered_row()
-
+    __next__=next
 
     def _get_next_buffered_row(self):
         """
@@ -3265,7 +3274,7 @@ class TableColumnSubset(object):
         """
 
         self.columns = columns
-        if isinstance(columns,(basestring,int,long)):
+        if isstring(columns) or isinteger(columns):
             # this is to check if it exists
             self.colnums = [fitshdu._extract_colnum(columns)]
 
@@ -4025,6 +4034,7 @@ class FITSHDR(object):
             return key
         else:
             raise StopIteration
+    __next__=next
 
     def _record2card(self, record):
         """
@@ -4059,7 +4069,7 @@ class FITSHDR(object):
         else:
             card = '%-8s= ' % name[0:8]
             # these may be string representations of data, or actual strings
-            if isinstance(value,(basestring,unicode)):
+            if isstring(value):
                 value = str(value)
                 if len(value) > 0:
                     if value[0] != "'":
@@ -4137,7 +4147,7 @@ class FITSRecord(dict):
         """
         import copy
 
-        if isinstance(record, basestring):
+        if isstring(record):
             card=FITSCard(record)
             self.update(card)
 
@@ -4162,7 +4172,7 @@ class FITSRecord(dict):
 
             if convert:
                 self['value_orig'] = copy.copy(self['value'])
-                if isinstance(self['value'],basestring):
+                if isstring(self['value']):
                     self['value'] = self._convert_value(self['value_orig'])
 
     def verify(self):
@@ -4323,7 +4333,7 @@ class FITSCard(FITSRecord):
 
     def _check_type(self):
         card_string=self['card_string']
-        if not isinstance(card_string,basestring):
+        if not isstring(card_string):
             raise TypeError("card must be a string, got type %s" % type(card_string))
 
     def _check_len(self):
@@ -4372,8 +4382,10 @@ def check_comptype_img(comptype, dtype_str):
                              "tile compression")
 
 def isstring(arg):
-    return isinstance(arg, (str,unicode))
+    return isinstance(arg, _stypes)
 
+def isinteger(arg):
+    return isinstance(arg, _itypes)
 
 def fields_are_object(arr):
     isobj=numpy.zeros(len(arr.dtype.names),dtype=numpy.bool)
@@ -4604,11 +4616,19 @@ _image_bitpix2npy = {8: 'u1',
                      -64: 'f8'}
 
 # for header keywords
-_stypes = (str,unicode,numpy.string_)
 _ftypes = (float,numpy.float32,numpy.float64)
-_itypes = (int,long,
-          numpy.uint8,numpy.int8,
-          numpy.uint16,numpy.int16,
-          numpy.uint32,numpy.int32,
-          numpy.uint64,numpy.int64)
+
+if sys.version_info > (3,0,0):
+    _itypes=(int,)
+    _stypes = (str,)
+else:
+    _itypes=(int,long)
+    _stypes = (basestring,unicode,)
+
+_itypes += (numpy.uint8,numpy.int8,
+            numpy.uint16,numpy.int16,
+            numpy.uint32,numpy.int32,
+            numpy.uint64,numpy.int64)
+
+_stypes += (numpy.string_,)
 

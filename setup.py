@@ -186,11 +186,6 @@ classifiers = ["Development Status :: 5 - Production/Stable"
                ,"Intended Audience :: Science/Research"
               ]
 
-try:
-    from distutils.command.build_py import build_py_2to3 as build_py
-except ImportError:
-    from distutils.command.build_py import build_py
-
 setup(name="fitsio", 
       version="0.9.9.1",
       description=description,
@@ -205,8 +200,8 @@ setup(name="fitsio",
       data_files=data_files,
       ext_modules=[ext],
       cmdclass = {
-        "build_py":build_py,
-        "build_ext": build_ext_subclass}
+        "build_ext": build_ext_subclass,
+      }
      )
 
 
