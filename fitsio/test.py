@@ -786,7 +786,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"testing write does not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
                 d = fits[1].read()
                 self.compare_rec(self.data, d, "table read/write")
@@ -853,7 +853,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
             self.compare_rec(self.data, d, "list of dicts, scratch")
@@ -888,7 +888,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
             self.compare_rec(self.data, d, "list of dicts")
@@ -922,7 +922,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
             self.compare_rec_with_var(self.vardata,d,"dict of arrays, var")
@@ -954,7 +954,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
             self.compare_rec(self.data, d, "list of arrays, scratch")
@@ -988,7 +988,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname, ext='mytable')
             self.compare_rec(self.data, d, "list of arrays")
@@ -1020,7 +1020,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"write should not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             d = fitsio.read(fname)
             self.compare_rec_with_var(self.vardata,d,"list of arrays, var")
@@ -1047,7 +1047,7 @@ class TestReadWrite(unittest.TestCase):
 
                 self.assertTrue(write_success,"testing write does not raise an error")
                 if not write_success:
-                    skipTest("cannot test result if write failed")
+                    self.skipTest("cannot test result if write failed")
 
             # one row at a time
             with fitsio.FITS(fname) as fits:
@@ -1350,6 +1350,10 @@ class TestReadWrite(unittest.TestCase):
         file and verify that it's the same as what we put in; we don't
         [currently support or] test *writing* bzip2.
         '''
+
+        if 'SKIP_BZIP_TEST' in os.environ:
+            self.skipTest("skipping bzip tests")
+
         fname=tempfile.mktemp(prefix='fitsio-BZ2TableWrite-',suffix='.fits')
         bzfname = fname + '.bz2'
 
