@@ -1,19 +1,28 @@
 language: python
-python:
-    - 2.6
-    - 2.7
-    - 3.3
-    - 3.4
-    - 3.5
+
+
+# these combos do not work, so specify the matrix that does work
+# python 2.6* numpy 1.11*
+# python 3.3* numpy 1.11*
+# python 3.5* numpy 1.8*
 
 env:
-    - NUMPY_VERSION=1.8 
-    - NUMPY_VERSION=1.9
-    - NUMPY_VERSION=1.11
+	- PYTHON_VERSION=2.6 NUMPY_VERSION=1.8
+	- PYTHON_VERSION=2.6 NUMPY_VERSION=1.9
 
-#cache:
-#    directories:
-#        - $HOME/build/rainwoodman/pfft-python/build/depends
+	- PYTHON_VERSION=2.7 NUMPY_VERSION=1.8
+	- PYTHON_VERSION=2.7 NUMPY_VERSION=1.9
+	- PYTHON_VERSION=2.7 NUMPY_VERSION=1.11
+
+	- PYTHON_VERSION=3.3 NUMPY_VERSION=1.8
+	- PYTHON_VERSION=3.3 NUMPY_VERSION=1.9
+
+	- PYTHON_VERSION=3.4 NUMPY_VERSION=1.8
+	- PYTHON_VERSION=3.4 NUMPY_VERSION=1.9
+	- PYTHON_VERSION=3.4 NUMPY_VERSION=1.11
+
+	- PYTHON_VERSION=3.5 NUMPY_VERSION=1.9
+	- PYTHON_VERSION=3.5 NUMPY_VERSION=1.11
 
 before_install:
     - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -26,10 +35,10 @@ before_install:
     - (cd cfitsio; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
 
 install:
-    - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
+    - conda create --yes -n test python=$PYTHON_VERSION
     - source activate test
     - conda install --yes numpy=$NUMPY_VERSION nose cython
-    - if [ $TRAVIS_PYTHON_VERSION == 2.6 ]; then conda install --yes argparse; fi
+    - if [ $PYTHON_VERSION == 2.6 ]; then conda install --yes argparse; fi
 
 script:
     - python setup.py install --prefix=$HOME/fitsio-install-bundle
