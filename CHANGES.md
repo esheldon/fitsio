@@ -1,3 +1,35 @@
+version 0.9.10
+---------------
+
+Bug Fixes
+
+    - Fix variable length string column copying in python 3
+    - Fix bug checking for max size in a variable length table column.
+    - Raise an exception when writing to a table with data
+      that has shape ()
+
+Continuous integration
+
+    - the travis ci now runs unit tests, ignoring those that may fail
+      when certain libraries/headers are not installed on the users system (for
+      now this is only bzip2 support)
+    - only particular pairs of python version/numpy version are tested
+
+python3 compatibility
+
+    - the compatibility is now built into the code rather than
+      using 2to3 to modify code at install time.
+
+Workarounds
+
+    - It turns out that when python, numpy etc. are compiled with gcc 4*
+      and fitsio is compiled with gcc 5* there is a problem, in some cases,
+      reading from an array with not aligned memory.  This has to do with using
+      the -O3 optimization flag when compiling cfitsio.  For replacing -O3 with
+      -O2 fixes the issue.  This was an issue on linux in both anaconda python2
+      and python3.
+
+
 version 0.9.9.1
 ----------------------------------
 

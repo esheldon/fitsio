@@ -187,7 +187,7 @@ classifiers = ["Development Status :: 5 - Production/Stable"
               ]
 
 setup(name="fitsio", 
-      version="0.9.9.1",
+      version="0.9.10",
       description=description,
       long_description=long_description,
       license = "GPL",
