@@ -7,6 +7,7 @@ Bug Fixes
     - Fix bug checking for max size in a variable length table column.
     - Raise an exception when writing to a table with data
       that has shape ()
+    - exit test suite with non-zero exit code if a test fails
 
 Continuous integration
 
