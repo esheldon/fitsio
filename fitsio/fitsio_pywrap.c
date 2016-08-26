@@ -2760,7 +2760,7 @@ read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* s
     void* nulval=0;
     int* anynul=NULL;
 
-    str=calloc(nchar,sizeof(char));
+    str=calloc(nchar+1,sizeof(char));
     if (str == NULL) {
         PyErr_Format(PyExc_MemoryError, 
                      "Could not allocate string of size %lld", nchar);
