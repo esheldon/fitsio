@@ -4076,15 +4076,20 @@ class FITSHDR(object):
         name = record['name']
         value = record['value']
 
+        v_isstring=isstring(value)
 
         if name == 'COMMENT':
             card = 'COMMENT   %s' % value
         elif name=='HISTORY':
             card = 'HISTORY   %s' % value
         else:
-            card = '%-8s= ' % name[0:8]
+            if len(name) > 8:
+                card = 'HIERARCH %s= ' % name
+            else:
+                card = '%-8s= ' % name[0:8]
+
             # these may be string representations of data, or actual strings
-            if isstring(value):
+            if v_isstring:
                 value = str(value)
                 if len(value) > 0:
                     if value[0] != "'":
@@ -4104,7 +4109,12 @@ class FITSHDR(object):
             if 'comment' in record:
                 card += ' / %s' % record['comment']
 
-        return card[0:80]
+        if v_isstring and len(card) > 80:
+            card=card[0:79] + "'"
+        else:
+            card=card[0:80]
+
+        return card
 
     def __repr__(self):
         rep=['']
