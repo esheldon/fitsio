@@ -3980,16 +3980,22 @@ class FITSHDR(object):
         """
         Get the requested header entry by keyword name
         """
-        key=item.upper()
-        if key not in self._record_map:
-            return default_value
 
-        return self._record_map[key]['value']
+        found, name = self._contains_and_name(item)
+        if found:
+            return self._record_map[name]['value']
+        else:
+            return default_value
 
     def __len__(self):
         return len(self._record_list)
 
     def __contains__(self, item):
+        found, _ = self._contains(item)
+        return found
+
+    def _contains_and_name(self, item):
+
         if isinstance(item, FITSRecord):
             name=item['name']
         elif isinstance(item, dict):
@@ -3999,8 +4005,17 @@ class FITSHDR(object):
         else:
             name=item
         
+        found=False
         name=name.upper()
-        return name in self._record_map
+        if name in self._record_map:
+            found=True
+        elif name[0:8] == 'HIERARCH':
+            if len(name) > 9:
+                name = name[9:]
+                if name in self._record_map:
+                    found=True
+
+        return found, name
 
     def __setitem__(self, item, value):
         if isinstance(value, (dict,FITSRecord)):
@@ -4014,10 +4029,10 @@ class FITSHDR(object):
         self.add_record(rec)
 
     def __getitem__(self, item):
-        key=item.upper()
-        if key not in self._record_map:
+        val = self.get(item,None)
+        if val is None:
             raise ValueError("unknown record: %s" % key)
-        return self._record_map[key]['value']
+        return val
 
     def __iter__(self):
         self._current=0
@@ -4247,26 +4262,31 @@ class FITSCard(FITSRecord):
     def set_card(self, card_string):
         self['card_string']=card_string
 
-        self._check_equals()
+        self._check_hierarch()
 
-        self._check_type()
-        self._check_len()
-
-        front=card_string[0:7]
-        if (not self.has_equals() or front=='COMMENT' or front=='HISTORY'):
-
-            if front=='CONTINU':
-                raise ValueError("CONTINUE not supported")
-
-            if front=='HISTORY':
-                self._set_as_history()
-            else:
-                # note anything without an = and not history is
-                # treated as comment; this is built into cfitsio
-                # as well
-                self._set_as_comment()
-        else:
+        if self._is_hierarch:
             self._set_as_key()
+        else:
+            self._check_equals()
+
+            self._check_type()
+            self._check_len()
+
+            front=card_string[0:7]
+            if (not self.has_equals() or front=='COMMENT' or front=='HISTORY'):
+
+                if front=='CONTINU':
+                    raise ValueError("CONTINUE not supported")
+
+                if front=='HISTORY':
+                    self._set_as_history()
+                else:
+                    # note anything without an = and not history is
+                    # treated as comment; this is built into cfitsio
+                    # as well
+                    self._set_as_comment()
+            else:
+                self._set_as_key()
 
     def has_equals(self):
         """
@@ -4274,6 +4294,13 @@ class FITSCard(FITSRecord):
         """
         return self._has_equals
 
+    def _check_hierarch(self):
+        card_string=self['card_string']
+        if card_string[0:8].upper() == 'HIERARCH':
+            self._is_hierarch=True
+        else:
+            self._is_hierarch=False
+        
     def _check_equals(self):
         """
         check for = in position 8, set attribute _has_equals
