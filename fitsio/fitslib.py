@@ -3991,7 +3991,7 @@ class FITSHDR(object):
         return len(self._record_list)
 
     def __contains__(self, item):
-        found, _ = self._contains(item)
+        found, _ = self._contains_and_name(item)
         return found
 
     def _contains_and_name(self, item):
