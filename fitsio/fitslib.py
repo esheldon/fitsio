@@ -1442,6 +1442,8 @@ class TableHDU(HDUBase):
 
         self.lower=keys.get('lower',False)
         self.upper=keys.get('upper',False)
+        self.trim_strings=keys.get('trim_strings',False)
+
         self._vstorage=keys.get('vstorage','fixed')
         self.case_sensitive=keys.get('case_sensitive',False)
         self._iter_row_buffer=keys.get('iter_row_buffer',1)
@@ -1851,6 +1853,7 @@ class TableHDU(HDUBase):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array, **keys)
         return array
 
     def read_column(self, col, **keys):
@@ -1880,32 +1883,10 @@ class TableHDU(HDUBase):
 
         res = self.read_columns([col], **keys)
         colname = res.dtype.names[0]
-        return res[colname]
+        data = res[colname]
 
-        '''
-        # deprecated
-
-        rows=keys.get('rows',None)
-        colnum = self._extract_colnum(col)
-        # ensures unique, contiguous
-        rows = self._extract_rows(rows)
-
-        if self._info['colinfo'][colnum]['eqtype'] < 0:
-            vstorage=keys.get('vstorage',self._vstorage)
-            return self._read_var_column(colnum, rows, vstorage)
-        else:
-            npy_type, shape = self._get_simple_dtype_and_shape(colnum, rows=rows)
-
-            array = numpy.zeros(shape, dtype=npy_type)
-
-            self._FITS.read_column(self._ext+1,colnum+1, array, rows)
-            
-            array=self._rescale_and_convert(array, 
-                                            self._info['colinfo'][colnum]['tscale'], 
-                                            self._info['colinfo'][colnum]['tzero'])
-
-        return array
-        '''
+        self._maybe_trim_strings(data, **keys)
+        return data
 
     def read_rows(self, rows, **keys):
         """
@@ -1958,6 +1939,7 @@ class TableHDU(HDUBase):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array, **keys)
 
         return array
 
@@ -2040,6 +2022,8 @@ class TableHDU(HDUBase):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array, **keys)
+
         return array
 
     def read_slice(self, firstrow, lastrow, step=1, **keys):
@@ -2116,6 +2100,7 @@ class TableHDU(HDUBase):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array, **keys)
 
 
         return array
@@ -2447,6 +2432,15 @@ class TableHDU(HDUBase):
             zval=numpy.array(zero,dtype=array.dtype)
             array += zval
 
+    def _maybe_trim_strings(self, array, **keys):
+        """
+        if requested, trim trailing white space from 
+        all string fields in the input array
+        """
+        trim_strings = keys.get('trim_strings',False)
+        if self.trim_strings or trim_strings:
+            _trim_strings(array)
+
     def _convert_bool_array(self, array):
         """
         cfitsio reads as characters 'T' and 'F' -- convert to real boolean
@@ -2682,6 +2676,8 @@ class TableHDU(HDUBase):
         elif self.upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array)
+
         return array
 
     def __iter__(self):
@@ -2882,6 +2878,7 @@ class AsciiTableHDU(TableHDU):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+        self._maybe_trim_strings(array, **keys)
 
         return array
     read_ascii=read
@@ -4531,6 +4528,18 @@ def _names_to_lower_if_recarray(data):
 def _names_to_upper_if_recarray(data):
     if data.dtype.names is not None:
         data.dtype.names = [n.upper() for n in data.dtype.names]
+
+def _trim_strings(data):
+    names=data.dtype.names
+    if names is not None:
+        # run through each field separately
+        for n in names:
+            if data[n].dtype.descr[0][1][1] == 'S':
+                data[n] = numpy.char.rstrip(data[n])
+
+    else:
+        if data.dtype.descr[0][1][1] == 'S':
+            data[:] = numpy.char.rstrip(data[:])
 
 def _convert_full_start_to_offset(dims, start):
     # convert to scalar offset

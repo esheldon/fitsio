@@ -1414,6 +1414,100 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTrimStrings(self):
+        fname=tempfile.mktemp(prefix='fitsio-Trim-',suffix='.fits')
+        dt=[('fval','f8'),('name','S15'),('vec','f4',2)]
+        n=3
+        data=numpy.zeros(n, dtype=dt)
+        data['fval'] = numpy.random.random(n)
+        data['vec'] = numpy.random.random(n*2).reshape(n,2)
+
+        data['name'] = ['mike','really_long_name_to_fill','jan']
+
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write(data)
+
+            for onconstruct in [True,False]:
+                if onconstruct:
+                    ctrim=True
+                    otrim=False
+                else:
+                    ctrim=False
+                    otrim=True
+
+                with fitsio.FITS(fname,'rw', trim_strings=ctrim) as fits:
+
+                    if ctrim:
+                        dread=fits[1][:]
+                        self.compare_rec(
+                            data,
+                            dread,
+                            "trimmed strings constructor",
+                        )
+
+                        dname=fits[1]['name'][:]
+                        self.compare_array(
+                            data['name'],
+                            dname,
+                            "trimmed strings col read, constructor",
+                        )
+                        dread=fits[1][ ['name'] ][:]
+                        self.compare_array(
+                            data['name'],
+                            dread['name'],
+                            "trimmed strings col read, constructor",
+                        )
+
+
+
+                    dread=fits[1].read(trim_strings=otrim)
+                    self.compare_rec(
+                        data,
+                        dread,
+                        "trimmed strings keyword",
+                    )
+                    dname=fits[1].read(columns='name', trim_strings=otrim)
+                    self.compare_array(
+                        data['name'],
+                        dname,
+                        "trimmed strings col keyword",
+                    )
+                    dread=fits[1].read(columns=['name'], trim_strings=otrim)
+                    self.compare_array(
+                        data['name'],
+                        dread['name'],
+                        "trimmed strings col keyword",
+                    )
+
+
+
+            # convenience function
+            dread=fitsio.read(fname, trim_strings=True)
+            self.compare_rec(
+                data,
+                dread,
+                "trimmed strings convenience function",
+            )
+            dname=fitsio.read(fname, columns='name', trim_strings=True)
+            self.compare_array(
+                data['name'],
+                dname,
+                "trimmed strings col convenience function",
+            )
+            dread=fitsio.read(fname, columns=['name'], trim_strings=True)
+            self.compare_array(
+                data['name'],
+                dread['name'],
+                "trimmed strings col convenience function",
+            )
+
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
 
     def testLowerUpper(self):
         fname=tempfile.mktemp(prefix='fitsio-LowerUpper-',suffix='.fits')
