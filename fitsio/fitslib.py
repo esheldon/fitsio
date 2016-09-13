@@ -220,9 +220,9 @@ def write(filename, data, extname=None, extver=None, units=None,
         Can be one of these:
             - FITSHDR object
             - list of dictionaries containing 'name','value' and optionally
-              a 'comment' field.
+              a 'comment' field; the order is preserved.
             - a dictionary of keyword-value pairs; no comments are written
-              in this case, and the order is arbitrary
+              in this case, and the order is arbitrary.
         Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
     clobber: bool, optional
@@ -442,9 +442,9 @@ class FITS(object):
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
                 - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
+                  a 'comment' field; the order is preserved.
                 - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
+                  in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
         Image-only keywords:
@@ -517,9 +517,9 @@ class FITS(object):
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
                 - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
+                  a 'comment' field; the order is preserved.
                 - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
+                  in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
 
@@ -741,9 +741,9 @@ class FITS(object):
             Can be one of these:
                 - FITSHDR object
                 - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
+                  a 'comment' field; the order is preserved.
                 - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
+                  in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
         restrictions
@@ -1340,9 +1340,9 @@ class HDUBase(object):
             Can be one of these:
                 - FITSHDR object
                 - list of dictionaries containing 'name','value' and optionally
-                  a 'comment' field.
+                  a 'comment' field; the order is preserved.
                 - a dictionary of keyword-value pairs; no comments are written
-                  in this case, and the order is arbitrary
+                  in this case, and the order is arbitrary.
         clean: boolean
             If True, trim out the standard fits header keywords that are
             created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
@@ -3750,6 +3750,11 @@ class FITSHDR(object):
     ----------
     record_list: optional
         A list of dicts, or dict, or another FITSHDR
+          - list of dictionaries containing 'name','value' and optionally
+            a 'comment' field; the order is preserved.
+          - a dictionary of keyword-value pairs; no comments are written
+            in this case, and the order is arbitrary.
+          - another FITSHDR object; the order is preserved.
     convert: bool, optional
         If True, convert strings.  E.g. '3' gets
         converted to 3 and "'hello'" gets converted
