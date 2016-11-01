@@ -25,11 +25,12 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     res2=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
-    if not res1 or not res2:
+    suite_extra = unittest.TestLoader().loadTestsFromTestCase(TestTableEditing)
+    res3=unittest.TextTestRunner(verbosity=2).run(suite_extra)
+
+    if not res1 or not res2 or not res3:
         sys.exit(1)
 
-    suite_extra = unittest.TestLoader().loadTestsFromTestCase(TestTableEditing)
-    unittest.TextTestRunner(verbosity=2).run(suite_extra)
 
 class TestWarnings(unittest.TestCase):
     """
