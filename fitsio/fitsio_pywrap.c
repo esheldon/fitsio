@@ -3501,6 +3501,86 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 }
 
 
+static PyObject *
+PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    fitsfile* fits = self->fits;
+    FITSfile* FITS = fits->Fptr;
+    // -> filehandle, driver
+    // -> filesize
+    // -> bytepos, io_pos
+    // cfileio.c : ffseek
+    // -> filesize, logfilesize
+
+    // memory driver: uses static memTable (drvrmem.c)
+    // file driver: uses static handleTable (drvrfile.c)
+
+    // mem_size etc get passed in fits_register_driver() calls
+    // -> populates driverTable[].size
+
+    int status = 0;
+
+    // Flush
+    //status = ffflushx(FITS);
+    // Flush, more vigorously
+    printf("ffflus\n");
+    ffflus(FITS, &status);
+    if (status) {
+        printf("Failed to flush FITS file data to disk; code %i\n", status);
+        Py_RETURN_NONE;
+    }
+
+    // ffflus
+    // ffflsh
+    // ffclos
+
+    LONGLONG sz = FITS->filesize;
+    printf("malloc %i\n", (int)sz);
+    // Allocate buffer for string
+    char* filedata = malloc(sz);
+    if (!filedata) {
+        printf("Failed to allocate memory (%i bytes) to copy file data\n", (int)sz);
+        Py_RETURN_NONE;
+    }
+
+    // Remember old file position
+    LONGLONG io_pos = FITS->io_pos;
+
+    // Seek to beginning of file
+    printf("seek\n");
+    if (ffseek(FITS, 0)) {
+        printf("Failed to seek to beginning of FITS file\n");
+        free(filedata);
+        Py_RETURN_NONE;
+    }
+
+    // Read into filedata
+    printf("read\n");
+    if (ffread(FITS, sz, filedata, &status)) {
+        printf("Failed to read file data into memory: code %i\n", status);
+        free(filedata);
+        Py_RETURN_NONE;
+    }
+
+    // Seek back to where we were
+    printf("seek %i\n", (int)io_pos);
+    if (ffseek(FITS, io_pos)) {
+        printf("Failed to seek back to original position\n");
+        free(filedata);
+        Py_RETURN_NONE;
+    }
+
+    return PyString_FromStringAndSize(filedata, sz);
+    // return PyByteArray_FromStringAndSize(filedata, sz);
+}
+
+
+
+
+
 static int get_long_slices(PyObject* fpix_arr,
                            PyObject* lpix_arr,
                            PyObject* step_arr,
@@ -3934,6 +4014,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
 
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
+
+    {"read_raw",             (PyCFunction)PyFITSObject_read_raw,             METH_NOARGS,  "read_raw\n\nRead the entire raw contents of the FITS file, returning a python string OR 1-d numpy array of bytes."},
 
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
     {"read_image_slice",     (PyCFunction)PyFITSObject_read_image_slice,     METH_VARARGS,  "read_image_slice\n\nRead an image slice."},
