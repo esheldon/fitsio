@@ -3541,14 +3541,14 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     io_pos = FITS->io_pos;
     // Seek to beginning of file
     if (ffseek(FITS, 0)) {
-        free(filedata);
+        Py_DECREF(stringobj);
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to seek to beginning of FITS file");
         return NULL;
     }
     // Read into filedata
     if (ffread(FITS, sz, filedata, &status)) {
-        free(filedata);
+        Py_DECREF(stringobj);
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to read file data into memory: CFITSIO code %i",
                      status);
@@ -3556,7 +3556,7 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     }
     // Seek back to where we were
     if (ffseek(FITS, io_pos)) {
-        free(filedata);
+        Py_DECREF(stringobj);
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to seek back to original FITS file position");
         return NULL;
