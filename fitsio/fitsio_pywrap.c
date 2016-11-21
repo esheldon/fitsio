@@ -3525,7 +3525,7 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     // Allocate buffer for string
     sz = FITS->filesize;
     // Create python string object of requested size, unitialized
-    stringobj = PyString_FromStringAndSize(NULL, sz);
+    stringobj = PyBytes_FromStringAndSize(NULL, sz);
     if (!stringobj) {
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to allocate python string object to hold FITS file data: %i bytes",
@@ -3533,8 +3533,9 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
     // Grab pointer to the memory buffer of the python string object
-    filedata = PyString_AsString(stringobj);
+    filedata = PyBytes_AsString(stringobj);
     if (!filedata) {
+        Py_DECREF(stringobj);
         return NULL;
     }
     // Remember old file position
