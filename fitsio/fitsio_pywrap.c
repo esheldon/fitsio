@@ -3509,9 +3509,11 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     //fitsfile* fits = self->fits;
     FITSfile* FITS = self->fits->Fptr;
     int status = 0;
-    char* filedata = NULL;
+    char* filedata;
     LONGLONG sz;
     LONGLONG io_pos;
+    PyObject *stringobj;
+
     // Flush (close & reopen HDU) to make everything consistent
     ffflus(self->fits, &status);
     if (status) {
@@ -3522,11 +3524,17 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     }
     // Allocate buffer for string
     sz = FITS->filesize;
-    filedata = malloc(sz);
-    if (!filedata) {
+    // Create python string object of requested size, unitialized
+    stringobj = PyString_FromStringAndSize(NULL, sz);
+    if (!stringobj) {
         PyErr_Format(PyExc_RuntimeError,
-                     "Failed to allocate memory (%i bytes) to copy FITS file data",
+                     "Failed to allocate python string object to hold FITS file data: %i bytes",
                      (int)sz);
+        return NULL;
+    }
+    // Grab pointer to the memory buffer of the python string object
+    filedata = PyString_AsString(stringobj);
+    if (!filedata) {
         return NULL;
     }
     // Remember old file position
@@ -3553,8 +3561,7 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
                      "Failed to seek back to original FITS file position");
         return NULL;
     }
-    return PyString_FromStringAndSize(filedata, sz);
-    // return PyByteArray_FromStringAndSize(filedata, sz);
+    return stringobj;
 }
 
 static int get_long_slices(PyObject* fpix_arr,
