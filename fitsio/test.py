@@ -1611,7 +1611,7 @@ class TestReadWrite(unittest.TestCase):
                 fits.write(data)
                 raw2 = fits.read_raw()
 
-            f = open(fname, 'r')
+            f = open(fname, 'rb')
             raw3 = f.read()
             f.close()
 
