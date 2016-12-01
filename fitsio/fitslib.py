@@ -772,6 +772,12 @@ class FITS(object):
 
         self[-1].write(data,names=names)
 
+    def read_raw(self):
+        """
+        Reads the raw FITS file contents, returning a Python string.
+        """
+        return self._FITS.read_raw()
+        
     def create_table_hdu(self, data=None, dtype=None, 
                          header=None,
                          names=None, formats=None,
@@ -1385,7 +1391,6 @@ class HDUBase(object):
         """
         # note converting strings
         return FITSHDR(self.read_header_list(), convert=True)
-
 
     def read_header_list(self):
         """

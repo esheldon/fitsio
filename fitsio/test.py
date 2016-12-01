@@ -1593,6 +1593,34 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testReadRaw(self):
+        fname=tempfile.mktemp(prefix='fitsio-readraw-',suffix='.fits')
+
+        dt=[('MyName','f8'),('StuffThings','i4'),('Blah','f4')]
+        data=numpy.zeros(3, dtype=dt)
+        data['MyName'] = numpy.random.random(data.size)
+        data['StuffThings'] = numpy.random.random(data.size)
+        data['Blah'] = numpy.random.random(data.size)
+
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write(data)
+                raw1 = fits.read_raw()
+
+            with fitsio.FITS('mem://', 'rw') as fits:
+                fits.write(data)
+                raw2 = fits.read_raw()
+
+            f = open(fname, 'rb')
+            raw3 = f.read()
+            f.close()
+
+            self.assertEqual(raw1, raw2)
+            self.assertEqual(raw1, raw3)
+        except:
+            import traceback
+            traceback.print_exc()
+            self.assertTrue(False, 'Exception in testing read_raw')
 
     def compare_names(self, read_names, true_names, lower=False, upper=False):
         for nread,ntrue in zip(read_names,true_names):

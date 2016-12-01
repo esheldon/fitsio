@@ -3500,6 +3500,70 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject *
+PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    //fitsfile* fits = self->fits;
+    FITSfile* FITS = self->fits->Fptr;
+    int status = 0;
+    char* filedata;
+    LONGLONG sz;
+    LONGLONG io_pos;
+    PyObject *stringobj;
+
+    // Flush (close & reopen HDU) to make everything consistent
+    ffflus(self->fits, &status);
+    if (status) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to flush FITS file data to disk; CFITSIO code %i",
+                     status);
+        return NULL;
+    }
+    // Allocate buffer for string
+    sz = FITS->filesize;
+    // Create python string object of requested size, unitialized
+    stringobj = PyBytes_FromStringAndSize(NULL, sz);
+    if (!stringobj) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to allocate python string object to hold FITS file data: %i bytes",
+                     (int)sz);
+        return NULL;
+    }
+    // Grab pointer to the memory buffer of the python string object
+    filedata = PyBytes_AsString(stringobj);
+    if (!filedata) {
+        Py_DECREF(stringobj);
+        return NULL;
+    }
+    // Remember old file position
+    io_pos = FITS->io_pos;
+    // Seek to beginning of file
+    if (ffseek(FITS, 0)) {
+        Py_DECREF(stringobj);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to seek to beginning of FITS file");
+        return NULL;
+    }
+    // Read into filedata
+    if (ffread(FITS, sz, filedata, &status)) {
+        Py_DECREF(stringobj);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to read file data into memory: CFITSIO code %i",
+                     status);
+        return NULL;
+    }
+    // Seek back to where we were
+    if (ffseek(FITS, io_pos)) {
+        Py_DECREF(stringobj);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to seek back to original FITS file position");
+        return NULL;
+    }
+    return stringobj;
+}
 
 static int get_long_slices(PyObject* fpix_arr,
                            PyObject* lpix_arr,
@@ -3934,7 +3998,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
 
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
-
+    {"read_raw",             (PyCFunction)PyFITSObject_read_raw,             METH_NOARGS,  "read_raw\n\nRead the entire raw contents of the FITS file, returning a python string."},
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
     {"read_image_slice",     (PyCFunction)PyFITSObject_read_image_slice,     METH_VARARGS,  "read_image_slice\n\nRead an image slice."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
