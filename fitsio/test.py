@@ -3,7 +3,7 @@ import sys, os
 import tempfile
 import warnings
 import numpy
-from numpy import arange, array
+from numpy import arange, array, allclose
 import fitsio
 
 import unittest
@@ -25,8 +25,12 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     res2=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
-    if not res1 or not res2:
+    suite_extra = unittest.TestLoader().loadTestsFromTestCase(TestTableEditing)
+    res3=unittest.TextTestRunner(verbosity=2).run(suite_extra)
+
+    if not res1 or not res2 or not res3:
         sys.exit(1)
+
 
 class TestWarnings(unittest.TestCase):
     """
@@ -47,15 +51,12 @@ class TestWarnings(unittest.TestCase):
                 # now write a key with a non-standard value
                 value={'test':3}
                 fits[-1].write_key("odd",value)
-            
+
             assert len(w) == 1
             assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
-        
+
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
-
-
-
         nvec = 2
         ashape=(21,21)
         Sdtype = 'S6'
@@ -85,7 +86,7 @@ class TestReadWrite(unittest.TestCase):
                ('f8vec','f8',nvec),
                ('c8vec','c8',nvec),
                ('c16vec','c16',nvec),
- 
+
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
                ('b1arr','?',ashape),
@@ -141,7 +142,7 @@ class TestReadWrite(unittest.TestCase):
 
         # strings get padded when written to the fits file.  And the way I do
         # the read, I read all bytes (ala mrdfits) so the spaces are preserved.
-        # 
+        #
         # so we need to pad out the strings with blanks so we can compare
 
         data['Sscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
@@ -240,7 +241,7 @@ class TestReadWrite(unittest.TestCase):
                ('i8vec','i8',nvec),
                ('f4vec','f4',nvec),
                ('f8vec','f8',nvec),
- 
+
                ('u1arr','u1',ashape),
                ('i1arr','i1',ashape),
                ('u2arr','u2',ashape),
@@ -275,7 +276,7 @@ class TestReadWrite(unittest.TestCase):
 
         # strings get padded when written to the fits file.  And the way I do
         # the read, I real all bytes (ala mrdfits) so the spaces are preserved.
-        # 
+        #
         # so for comparisons, we need to pad out the strings with blanks so we
         # can compare
 
@@ -291,6 +292,7 @@ class TestReadWrite(unittest.TestCase):
             data['Sobj'][i] = data['Sscalar'][i].rstrip()
 
         self.vardata = data
+
 
 
     def testImageWriteRead(self):
@@ -328,7 +330,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
 
     def testImageWriteReadFromDims(self):
         """
@@ -359,7 +361,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
     def testImageWriteReadFromDimsChunks(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -394,7 +396,7 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data, rdata, "images")
 
 
-                    # 
+                    #
                     # now using sequence, easier to calculate
                     #
 
@@ -419,7 +421,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
 
     def testImageSlice(self):
         fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
@@ -515,7 +517,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
     def testGZIPTileCompressedWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -539,7 +541,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
     def testHCompressTileCompressedWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -564,7 +566,7 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
 
 
 
@@ -691,7 +693,7 @@ class TestReadWrite(unittest.TestCase):
                     for f in self.vardata.dtype.names:
                         d = fits[1].read_column(f)
                         if fitsio.fitslib.is_object(self.vardata[f]):
-                            self.compare_object_array(self.vardata[f], d, 
+                            self.compare_object_array(self.vardata[f], d,
                                                       "read all field '%s'" % f)
 
                     # same as above with slices
@@ -706,10 +708,10 @@ class TestReadWrite(unittest.TestCase):
                     for f in self.vardata.dtype.names:
                         d = fits[1][f][:]
                         if fitsio.fitslib.is_object(self.vardata[f]):
-                            self.compare_object_array(self.vardata[f], d, 
+                            self.compare_object_array(self.vardata[f], d,
                                                       "read all field '%s'" % f)
 
- 
+
 
                     #
                     # now same with sub rows
@@ -718,47 +720,47 @@ class TestReadWrite(unittest.TestCase):
                     # reading multiple columns
                     rows = numpy.array([0,2])
                     d = fits[1].read(rows=rows)
-                    self.compare_rec_with_var(self.vardata,d,"read subrows test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subrows test '%s'" % vstorage,
                                               rows=rows)
 
                     d = fits[1].read(columns=cols, rows=rows)
-                    self.compare_rec_with_var(self.vardata,d,"read subrows test subcols '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subrows test subcols '%s'" % vstorage,
                                               rows=rows)
 
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1].read_column(f,rows=rows)
                         if fitsio.fitslib.is_object(self.vardata[f]):
-                            self.compare_object_array(self.vardata[f], d, 
+                            self.compare_object_array(self.vardata[f], d,
                                                       "read subrows field '%s'" % f,
                                                       rows=rows)
 
                     # same as above with slices
                     # reading multiple columns
                     d = fits[1][rows]
-                    self.compare_rec_with_var(self.vardata,d,"read subrows slice test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subrows slice test '%s'" % vstorage,
                                               rows=rows)
                     d = fits[1][2:4]
-                    self.compare_rec_with_var(self.vardata,d,"read slice test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read slice test '%s'" % vstorage,
                                               rows=numpy.array([2,3]))
 
                     d = fits[1][cols][rows]
-                    self.compare_rec_with_var(self.vardata,d,"read subcols subrows slice test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subcols subrows slice test '%s'" % vstorage,
                                               rows=rows)
                     d = fits[1][cols][2:4]
-                    self.compare_rec_with_var(self.vardata,d,"read subcols slice test '%s'" % vstorage, 
+                    self.compare_rec_with_var(self.vardata,d,"read subcols slice test '%s'" % vstorage,
                                               rows=numpy.array([2,3]))
 
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1][f][rows]
                         if fitsio.fitslib.is_object(self.vardata[f]):
-                            self.compare_object_array(self.vardata[f], d, 
+                            self.compare_object_array(self.vardata[f], d,
                                                       "read subrows field '%s'" % f,
                                                       rows=rows)
                         d = fits[1][f][2:4]
                         if fitsio.fitslib.is_object(self.vardata[f]):
-                            self.compare_object_array(self.vardata[f], d, 
+                            self.compare_object_array(self.vardata[f], d,
                                                       "read slice field '%s'" % f,
                                                       rows=numpy.array([2,3]))
 
@@ -798,8 +800,8 @@ class TestReadWrite(unittest.TestCase):
                 self.compare_headerlist_header(self.keys, h)
 
             # see if our convenience functions are working
-            fitsio.write(fname, self.data2, 
-                         extname="newext", 
+            fitsio.write(fname, self.data2,
+                         extname="newext",
                          header={'ra':335.2,'dec':-25.2})
             d = fitsio.read(fname, ext='newext')
             self.compare_rec(self.data2, d, "table data2")
@@ -818,13 +820,13 @@ class TestReadWrite(unittest.TestCase):
                 for cols in [['u2scalar','f4vec','Sarr'],
                              ['f8scalar','u2arr','Sscalar']]:
                     d = fits[1].read(columns=cols)
-                    for f in d.dtype.names: 
+                    for f in d.dtype.names:
                         self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
 
 
                     rows = [1,3]
                     d = fits[1].read(columns=cols, rows=rows)
-                    for f in d.dtype.names: 
+                    for f in d.dtype.names:
                         self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
 
         finally:
@@ -1076,7 +1078,7 @@ class TestReadWrite(unittest.TestCase):
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
                 fits.write_table(self.ascii_data, table_type='ascii', header=self.keys, extname='mytable')
-                
+
                 # cfitsio always reports type as i4 and f8, period, even if if
                 # written with higher precision.  Need to fix that somehow
                 for f in self.ascii_data.dtype.names:
@@ -1092,10 +1094,10 @@ class TestReadWrite(unittest.TestCase):
                 for f in self.ascii_data.dtype.names:
                     d = fits[1].read_column(f,rows=rows)
                     if d.dtype == numpy.float64:
-                        self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                        self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16,
                                                "table field read subrows '%s'" % f)
                     else:
-                        self.compare_array(self.ascii_data[f][rows], d, 
+                        self.compare_array(self.ascii_data[f][rows], d,
                                            "table field read subrows '%s'" % f)
 
                 beg=1
@@ -1103,10 +1105,10 @@ class TestReadWrite(unittest.TestCase):
                 for f in self.ascii_data.dtype.names:
                     d = fits[1][f][beg:end]
                     if d.dtype == numpy.float64:
-                        self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16, 
+                        self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16,
                                                "table field read slice '%s'" % f)
                     else:
-                        self.compare_array(self.ascii_data[f][beg:end], d, 
+                        self.compare_array(self.ascii_data[f][beg:end], d,
                                            "table field read slice '%s'" % f)
 
                 cols = ['i2scalar','f4scalar']
@@ -1133,20 +1135,20 @@ class TestReadWrite(unittest.TestCase):
                     for f in data.dtype.names:
                         d=data[f]
                         if d.dtype == numpy.float64:
-                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16,
                                                    "table subcol, '%s'" % f)
                         else:
-                            self.compare_array(self.ascii_data[f][rows], d, 
+                            self.compare_array(self.ascii_data[f][rows], d,
                                                "table subcol, '%s'" % f)
 
                     data = fits[1][cols][rows]
                     for f in data.dtype.names:
                         d=data[f]
                         if d.dtype == numpy.float64:
-                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16, 
+                            self.compare_array_tol(self.ascii_data[f][rows], d, 2.15e-16,
                                                    "table subcol/row, '%s'" % f)
                         else:
-                            self.compare_array(self.ascii_data[f][rows], d, 
+                            self.compare_array(self.ascii_data[f][rows], d,
                                                "table subcol/row, '%s'" % f)
 
                 for f in self.ascii_data.dtype.names:
@@ -1155,10 +1157,10 @@ class TestReadWrite(unittest.TestCase):
                     for f in data.dtype.names:
                         d=data[f]
                         if d.dtype == numpy.float64:
-                            self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16, 
+                            self.compare_array_tol(self.ascii_data[f][beg:end], d, 2.15e-16,
                                                    "table subcol/slice, '%s'" % f)
                         else:
-                            self.compare_array(self.ascii_data[f][beg:end], d, 
+                            self.compare_array(self.ascii_data[f][beg:end], d,
                                                "table subcol/slice, '%s'" % f)
 
 
@@ -1225,18 +1227,18 @@ class TestReadWrite(unittest.TestCase):
                 # now list of columns
                 cols=['u2scalar','f4vec','Sarr']
                 d = fits[1][cols][:]
-                for f in d.dtype.names: 
+                for f in d.dtype.names:
                     self.compare_array(self.data[f][:], d[f], "test column list %s" % f)
 
 
                 cols=['u2scalar','f4vec','Sarr']
                 d = fits[1][cols][rows]
-                for f in d.dtype.names: 
+                for f in d.dtype.names:
                     self.compare_array(self.data[f][rows], d[f], "test column list %s row subset" % f)
 
                 cols=['u2scalar','f4vec','Sarr']
                 d = fits[1][cols][1:3]
-                for f in d.dtype.names: 
+                for f in d.dtype.names:
                     self.compare_array(self.data[f][1:3], d[f], "test column list %s row slice" % f)
 
 
@@ -1369,12 +1371,12 @@ class TestReadWrite(unittest.TestCase):
             fits = fitsio.FITS(fname,'rw',clobber=True)
             fits.write_table(self.data, header=self.keys, extname='mytable')
             fits.close()
-    
+
             os.system('bzip2 %s' % fname)
             f2 = fitsio.FITS(bzfname)
             d = f2[1].read()
             self.compare_rec(self.data, d, "bzip2 read")
-    
+
             h = f2[1].read_header()
             for entry in self.keys:
                 name=entry['name'].upper()
@@ -1650,6 +1652,8 @@ class TestReadWrite(unittest.TestCase):
                                  header.get_comment(name).strip(),
                                  "testing comment for header key '%s'" % name)
 
+
+
     def compare_array_tol(self, arr1, arr2, tol, name):
         self.assertEqual(arr1.shape, arr2.shape,
                          "testing arrays '%s' shapes are equal: "
@@ -1663,7 +1667,6 @@ class TestReadWrite(unittest.TestCase):
                              "testing array '%s' dim %d are "
                              "equal within tolerance %e, found "
                              "max diff %e" % (name,i,tol,maxdiff))
-
 
     def compare_array(self, arr1, arr2, name):
         self.assertEqual(arr1.shape, arr2.shape,
@@ -1717,14 +1720,14 @@ class TestReadWrite(unittest.TestCase):
 
             # f1 will have the objects
             if fitsio.fitslib.is_object(rec1[f]):
-                self.compare_object_array(rec1[f], rec2[f], 
+                self.compare_object_array(rec1[f], rec2[f],
                                           "testing '%s' field '%s'" % (name,f),
                                           rows=rows)
-            else:                    
-                self.compare_array(rec1[f][rows], rec2[f], 
+            else:
+                self.compare_array(rec1[f][rows], rec2[f],
                                    "testing '%s' num field '%s' equal" % (name,f))
 
-    def compare_object_array(self, arr1, arr2, name, rows=None): 
+    def compare_object_array(self, arr1, arr2, name, rows=None):
         """
         The first must be object
         """
@@ -1739,7 +1742,7 @@ class TestReadWrite(unittest.TestCase):
                 delement = arr2[i]
                 orig = arr1[row]
                 s=len(orig)
-                self.compare_array(orig, delement[0:s], 
+                self.compare_array(orig, delement[0:s],
                                    "%s num el %d equal" % (name,i))
 
     def compare_rec_with_var_subrows(self, rec1, rec2, name, rows):
@@ -1759,15 +1762,74 @@ class TestReadWrite(unittest.TestCase):
                         delement = rec1[f][i]
                         orig = rec2[f][i]
                         s=orig.size
-                        self.compare_array(orig, delement[0:s], 
+                        self.compare_array(orig, delement[0:s],
                                            "testing '%s' num field '%s' el %d equal" % (name,f,i))
-            else:                    
-                self.compare_array(rec1[f], rec2[f], 
+            else:
+                self.compare_array(rec1[f], rec2[f],
                                    "testing '%s' num field '%s' equal" % (name,f))
 
 
+class TestTableEditing(unittest.TestCase):
+    def setUp(self):
+        self.fname=tempfile.mktemp(prefix='fitsio-TestTableEditing-',suffix='.fits')
+        self.f = fitsio.FITS(self.fname, 'rw', clobber=True)
+        self.hdu_name = 'data'
+        self.column_name = 'x'
+        self.data = {
+            self.column_name: arange(10),
+        }
+        self.f.write(self.data, extname=self.hdu_name)
+        self.hdu = self.f[self.hdu_name]
 
+    def tearDown(self):
+        os.remove(self.fname)
 
+    def assertDataMatches(self, expected):
+        with fitsio.FITS(self.fname) as infile:
+            data = infile[self.hdu_name][self.column_name].read()
+
+        self.assertTrue(allclose(data, expected),
+                       'expected %s, got %s' % (expected, data))
+
+    def test_supplying_endpoint(self):
+        self.hdu._FITS.delete_rows(self.hdu._ext+1, start=2, end=5)
+
+        # Have to close the file to flush to disc
+        self.f.close()
+        self.assertDataMatches(array([0, 1, 5, 6, 7, 8, 9]))
+
+    def test_supplying_endpoint_beyond_end(self):
+        self.hdu._FITS.delete_rows(self.hdu._ext+1, start=2, end=1000)
+
+        # Have to close the file to flush to disc
+        self.f.close()
+        self.assertDataMatches(array([0, 1]))
+
+    def test_passing_none_to_end_deletes_the_end(self):
+        self.hdu._FITS.delete_rows(self.hdu._ext+1, start=5)
+        # Have to close the file to flush to disc
+        self.f.close()
+        self.assertDataMatches(array([0, 1, 2, 3, 4]))
+
+    # High level interface
+    def test_resize_table(self):
+        test_data = array([1, 2])
+        self.hdu.write({
+            self.column_name: test_data
+        })
+        self.hdu._shrink_to(test_data.size)
+        self.f.close()
+
+        self.assertDataMatches(array([1, 2]))
+
+    def test_resize_with_write_keyword(self):
+        test_data = array([1, 2])
+        self.hdu.write({
+            self.column_name: test_data
+        }, resize=True)
+        self.f.close()
+
+        self.assertDataMatches(array([1, 2]))
 
 if __name__ == '__main__':
     test()

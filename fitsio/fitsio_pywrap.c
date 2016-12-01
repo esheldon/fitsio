@@ -35,6 +35,9 @@
 // not sure where this is defined in numpy...
 #define NUMPY_MAX_DIMS 32
 
+#define MIN(a,b) (a < b ? a : b)
+#define MAX(a,b) (a > b ? a : b)
+
 struct PyFITSObject {
     PyObject_HEAD
     fitsfile* fits;
@@ -2210,6 +2213,55 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
     Py_RETURN_NONE;
 }
 
+// function to delete rows from a table
+static PyObject *
+PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status = 0;
+    int hdunum = 0;
+    int hdutype = 0;
+    LONGLONG num_rows = 0;
+    Py_ssize_t start = 0, number = 0, end = 0;
+
+    static char *kwlist[] = {
+        "hdunum", "start", "end", NULL,
+    };
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "in|n", kwlist,
+                &hdunum, &start, &end)) {
+        return NULL;
+    }
+
+    /* Check that start and end are bounded within the array */
+    if (fits_get_num_rowsll(self->fits, &num_rows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    start = MAX(start, 1);
+
+    if (end == 0) {
+        end = num_rows;
+    } else {
+        end = MIN(end, num_rows);
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    number = end - start;
+    if (fits_delete_rows(self->fits, start + 1, number, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
 
  
 
@@ -4021,6 +4073,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specifed hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specifed hdu."},
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specifed hdu from an object array."},
+    {"delete_rows",    (PyCFunction)PyFITSObject_delete_rows,    METH_VARARGS | METH_KEYWORDS,
+        "delete_rows\nDelete rows from a table extension"},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 
