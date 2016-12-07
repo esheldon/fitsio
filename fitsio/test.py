@@ -292,7 +292,36 @@ class TestReadWrite(unittest.TestCase):
 
         self.vardata = data
 
+    def testHeaderWriteRead(self):
+        """
+        Test a basic header write and read
+        """
 
+        fname=tempfile.mktemp(prefix='fitsio-HeaderWrite-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data=numpy.zeros(10)
+                header={
+                    'x':35,
+                    'y':88.215,
+                    'funky':'35-8', # test old bug when strings look 
+                                    #like expressions
+                    'name':'J. Smith',
+                }
+                fits.write_image(data, header=header)
+
+                rh = fits[0].read_header()
+                self.check_header(header, rh)
+
+            with fitsio.FITS(fname) as fits:
+                rh = fits[0].read_header()
+                self.check_header(header, rh)
+
+        finally:
+            if os.path.exists(fname):
+                pass
+                #os.remove(fname)
+ 
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
@@ -313,13 +342,7 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data, rdata, "images")
 
                     rh = fits[-1].read_header()
-                    for k in header:
-                        v = header[k]
-                        rv = rh[k]
-                        if isinstance(rv,str):
-                            v = v.strip()
-                            rv = rv.strip()
-                        self.assertEqual(v,rv,"testing equal key '%s'" % k)
+                    self.check_header(header, rh)
 
             with fitsio.FITS(fname) as fits:
                 for i in xrange(len(dtypes)):
@@ -435,13 +458,8 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data[4:12,9:17], rdata, "images")
 
                     rh = fits[-1].read_header()
-                    for k in header:
-                        v = header[k]
-                        rv = rh[k]
-                        if isinstance(rv,str):
-                            v = v.strip()
-                            rv = rv.strip()
-                        self.assertEqual(v,rv,"testing equal key '%s'" % k)
+                    self.check_header(header, rh)
+
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
@@ -1631,6 +1649,15 @@ class TestReadWrite(unittest.TestCase):
                 tname = ntrue.upper()
                 mess="upper: '%s' vs '%s'" % (nread,tname)
             self.assertEqual(nread, tname, mess)
+
+    def check_header(self, header, rh):
+        for k in header:
+            v = header[k]
+            rv = rh[k]
+            if isinstance(rv,str):
+                v = v.strip()
+                rv = rv.strip()
+            self.assertEqual(v,rv,"testing equal key '%s'" % k)
 
 
     def compare_headerlist_header(self, header_list, header):
