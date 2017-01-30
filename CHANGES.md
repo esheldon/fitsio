@@ -1,3 +1,26 @@
+version 0.9.11 (not yet released)
+---------------------------------
+
+New Features
+
+    - Added trim_strings option to constructor and as keyword for read methods.
+      If trim_strings=True is set, white space is trimmed from the end
+      of all string columns upon reading.  This was introduced because
+      cfitsio internally pads strings out with spaces to the full column
+      width when writing, against the FITS standard.
+
+    - Added read_raw() method to the FITS class, to read the raw underlying data
+      from the file (Dustin Lang)
+
+Bug Fixes
+
+    - Fix bug reading hierarch keywords. recent changes to keyword parsing had
+      broken reading of hierarch keywords
+    - Fix for strings that look like expressions, e.g. '3-4' which were
+      being evaluated rather than returned as strings.
+    - Fix bug for missing key in FITSHDR object using the hdr[key]
+      notation.  Also raise KeyError rather than ValueError
+
 version 0.9.10
 ---------------
 
