@@ -4038,7 +4038,7 @@ class FITSHDR(object):
     def __getitem__(self, item):
         val = self.get(item,None)
         if val is None:
-            raise ValueError("unknown record: %s" % key)
+            raise KeyError("unknown record: %s" % item)
         return val
 
     def __iter__(self):
