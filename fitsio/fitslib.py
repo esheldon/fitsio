@@ -1819,73 +1819,6 @@ class TableHDU(HDUBase):
         return data
 
 
-    def _read_align(self, **keys):
-        """
-        slower reading when we must use aligned data
-        """
-
-        columns = keys.get('columns',None)
-        rows    = keys.get('rows',None)
-
-        colnums = self._extract_colnums(columns=columns)
-        if isinstance(colnums,int):
-            scalar_column=True
-            colnums = numpy.array([colnums], dtype='i8')
-        else:
-            scalar_column=False
-
-        colnumsp = colnums[:].copy()
-        colnumsp[:] += 1
-
-        # if rows is None still returns None, and is correctly interpreted
-        # by the reader to mean all
-        rows = self._extract_rows(rows)
-        if rows is None:
-            nrows = self._info['nrows']
-        else:
-            nrows = rows.size
-
-        # this is the full dtype for all columns
-        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
-
-        array = numpy.zeros(nrows, dtype=dtype)
-
-        col_list = [array[n] for n in array.dtype.names]
-
-        wnotvar,=numpy.where(isvar == False)
-        if wnotvar.size > 0:
-            self._read_fixed(
-                array,
-                colnumsp,
-                wnotvar,
-                rows,
-            )
-
-        wvar,=numpy.where(isvar == True)
-        if wvar.size > 0:
-            self._read_var(
-                array,
-                colnumsp,
-                wvar,
-                rows,
-            )
-
-        if scalar_column:
-            colname = self.get_colname(colnums[0])
-            array = array[colname]
-
-        lower=keys.get('lower',False)
-        upper=keys.get('upper',False)
-        if self.lower or lower:
-            _names_to_lower_if_recarray(array)
-        elif self.upper or upper:
-            _names_to_upper_if_recarray(array)
-
-
-        self._maybe_trim_strings(array, **keys)
-
-        return array
-
 
     def _read_all(self, **keys):
         """
@@ -2120,48 +2053,20 @@ class TableHDU(HDUBase):
 
         return array
 
-
-    def read_columns_test(self, columns, **keys):
+    def _read_align(self, **keys):
         """
-        temporary test code
-
-        read a subset of columns from this binary table HDU
-
-        By default, all rows are read.  Send rows= to select subsets of the
-        data.  Table data are read into a recarray for multiple columns,
-        plain array for a single column.
-
-        parameters
-        ----------
-        columns: list/array
-            An optional set of columns to read from table HDUs.  Can be string
-            or number. If a sequence, a recarray is always returned.  If a
-            scalar, an ordinary array is returned.
-        rows: list/array, optional
-            An optional list of rows to read from table HDUS.  Default is to
-            read all.
-        vstorage: string, optional
-            Over-ride the default method to store variable length columns.  Can
-            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
-        lower: bool, optional
-            If True, force all columns names to lower case in output. Will over
-            ride the lower= keyword from construction.
-        upper: bool, optional
-            If True, force all columns names to upper case in output. Will over
-            ride the lower= keyword from construction.
+        slower reading when we must use aligned data
         """
 
-        if self._info['hdutype'] == ASCII_TBL:
-            keys['columns'] = columns
-            return self.read(**keys)
+        columns = keys.get('columns',None)
+        rows    = keys.get('rows',None)
 
-        rows = keys.get('rows',None)
-
-        # if columns is None, returns all.  Guaranteed to be unique and sorted
-        colnums = self._extract_colnums(columns)
+        colnums = self._extract_colnums(columns=columns)
         if isinstance(colnums,int):
-            # scalar sent, don't read as a recarray
-            return self.read_column(columns, **keys)
+            scalar_column=True
+            colnums = numpy.array([colnums], dtype='i8')
+        else:
+            scalar_column=False
 
         colnumsp = colnums[:].copy()
         colnumsp[:] += 1
@@ -2183,7 +2088,7 @@ class TableHDU(HDUBase):
 
         wnotvar,=numpy.where(isvar == False)
         if wnotvar.size > 0:
-            self._read_fixed(
+            self._read_align_fixed(
                 array,
                 colnumsp,
                 wnotvar,
@@ -2192,13 +2097,16 @@ class TableHDU(HDUBase):
 
         wvar,=numpy.where(isvar == True)
         if wvar.size > 0:
-            self._read_var(
+            self._read_align_var(
                 array,
                 colnumsp,
                 wvar,
                 rows,
             )
 
+        if scalar_column:
+            colname = self.get_colname(colnums[0])
+            array = array[colname]
 
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
@@ -2207,11 +2115,13 @@ class TableHDU(HDUBase):
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
+
         self._maybe_trim_strings(array, **keys)
 
         return array
 
-    def _read_fixed(self, array, all_colnumsp, col_indices, rows):
+
+    def _read_align_fixed(self, array, all_colnumsp, col_indices, rows):
         """
         read data from fixed length columns
         """
@@ -2237,7 +2147,7 @@ class TableHDU(HDUBase):
                 self._info['colinfo'][colnum]['tzero'],
             )
 
-    def _read_var(self, array, all_colnumsp, col_indices, rows):
+    def _read_align_var(self, array, all_colnumsp, col_indices, rows):
         """
         read data from variable length columns
         """

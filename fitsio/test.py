@@ -18,19 +18,24 @@ try:
 except:
     xrange=range
 
-align=False
-
 def test():
     suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
     res1=unittest.TextTestRunner(verbosity=2).run(suite_warnings).wasSuccessful()
 
+    print("testing unaligned (default)")
+    TestReadWrite.align=False
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
-
     res2=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
 
-    if not res1 or not res2:
+    print("testing with alignment")
+    TestReadWrite.align=True
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
+    res3=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
+    if not res1 or not res2 or not res3:
         sys.exit(1)
+
 
 class TestWarnings(unittest.TestCase):
     """
@@ -56,6 +61,7 @@ class TestWarnings(unittest.TestCase):
             assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
         
 class TestReadWrite(unittest.TestCase):
+    align=False
     def setUp(self):
 
 
@@ -193,7 +199,7 @@ class TestReadWrite(unittest.TestCase):
                 ('Sscalar',Sdtype)]
         nrows=4
         try:
-            tdt = numpy.dtype(adtype, align=align)
+            tdt = numpy.dtype(adtype, align=self.align)
         except TypeError: # older numpy may not understand `align` argument
             tdt = numpy.dtype(adtype)
         adata=numpy.zeros(nrows, dtype=tdt)
@@ -302,7 +308,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-HeaderWrite-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 data=numpy.zeros(10)
                 header={
                     'x':35,
@@ -316,7 +322,7 @@ class TestReadWrite(unittest.TestCase):
                 rh = fits[0].read_header()
                 self.check_header(header, rh)
 
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 rh = fits[0].read_header()
                 self.check_header(header, rh)
 
@@ -334,7 +340,7 @@ class TestReadWrite(unittest.TestCase):
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits')
         dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note mixing up byte orders a bit
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
@@ -347,7 +353,7 @@ class TestReadWrite(unittest.TestCase):
                     rh = fits[-1].read_header()
                     self.check_header(header, rh)
 
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 for i in xrange(len(dtypes)):
                     self.assertEqual(fits[i].is_compressed(), False, "not compressed")
 
@@ -365,7 +371,7 @@ class TestReadWrite(unittest.TestCase):
         fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
         dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note mixing up byte orders a bit
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
@@ -378,7 +384,7 @@ class TestReadWrite(unittest.TestCase):
 
                     self.compare_array(data, rdata, "images")
 
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 for i in xrange(len(dtypes)):
                     self.assertEqual(fits[i].is_compressed(), False, "not compressed")
 
@@ -395,7 +401,7 @@ class TestReadWrite(unittest.TestCase):
         fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
         dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note mixing up byte orders a bit
                 for dtype in dtypes:
                     data = numpy.arange(5*3,dtype=dtype).reshape(5,3)
@@ -438,7 +444,7 @@ class TestReadWrite(unittest.TestCase):
                     self.compare_array(data, rdata2, "images")
 
 
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 for i in xrange(len(dtypes)):
                     self.assertEqual(fits[i].is_compressed(), False, "not compressed")
 
@@ -450,7 +456,7 @@ class TestReadWrite(unittest.TestCase):
     def testImageSlice(self):
         fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note mixing up byte orders a bit
                 for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
                     data = numpy.arange(16*20,dtype=dtype).reshape(16,20)
@@ -481,7 +487,7 @@ class TestReadWrite(unittest.TestCase):
         dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note i8 not supported for compressed!
 
                 for dtype in dtypes:
@@ -502,7 +508,7 @@ class TestReadWrite(unittest.TestCase):
                                        ("%s tile dims compressed images "
                                         "('%s')" % (compress,dtype)))
 
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 for ii in xrange(len(dtypes)):
                     i=ii+1
                     self.assertEqual(fits[i].is_compressed(), True, "is compressed")
@@ -520,7 +526,7 @@ class TestReadWrite(unittest.TestCase):
         compress='plio'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note i8 not supported for compressed!
                 # also no writing unsigned, need to address
                 dtypes = ['i1','i2','i4','f4','f8']
@@ -546,7 +552,7 @@ class TestReadWrite(unittest.TestCase):
         compress='gzip'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note i8 not supported for compressed!
                 dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
@@ -570,7 +576,7 @@ class TestReadWrite(unittest.TestCase):
         compress='hcompress'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 # note i8 not supported for compressed!
                 dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
@@ -599,7 +605,7 @@ class TestReadWrite(unittest.TestCase):
         fname=tempfile.mktemp(prefix='fitsio-MoveByName-',suffix='.fits')
         nrows=3
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 data1=numpy.zeros(nrows,dtype=[('ra','f8'),('dec','f8')])
                 data1['ra'] = numpy.random.random(nrows)
@@ -631,7 +637,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-ExtVer-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 img1=numpy.arange(2*3,dtype='i4').reshape(2,3) + 5
                 img2=numpy.arange(2*3,dtype='i4').reshape(2,3) + 6
@@ -696,7 +702,7 @@ class TestReadWrite(unittest.TestCase):
         for vstorage in ['fixed','object']:
             fname=tempfile.mktemp(prefix='fitsio-VarCol-',suffix='.fits')
             try:
-                with fitsio.FITS(fname,'rw',clobber=True,vstorage=vstorage,align=align) as fits:
+                with fitsio.FITS(fname,'rw',clobber=True,vstorage=vstorage,align=self.align) as fits:
                     fits.write(self.vardata)
 
 
@@ -800,7 +806,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     fits.write_table(self.data, header=self.keys, extname='mytable')
@@ -822,10 +828,10 @@ class TestReadWrite(unittest.TestCase):
             fitsio.write(fname, self.data2, 
                          extname="newext", 
                          header={'ra':335.2,'dec':-25.2})
-            d = fitsio.read(fname, ext='newext',align=align)
+            d = fitsio.read(fname, ext='newext',align=self.align)
             self.compare_rec(self.data2, d, "table data2")
             # now test read_column
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
 
                 for f in self.data.dtype.names:
                     d = fits[1].read_column(f)
@@ -863,7 +869,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableDict-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     d={}
@@ -879,7 +885,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname,align=align)
+            d = fitsio.read(fname,align=self.align)
             self.compare_rec(self.data, d, "list of dicts, scratch")
 
         finally:
@@ -896,7 +902,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableDict-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     fits.create_table_hdu(self.data, extname='mytable')
@@ -914,7 +920,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname,align=align)
+            d = fitsio.read(fname,align=self.align)
             self.compare_rec(self.data, d, "list of dicts")
 
         finally:
@@ -932,7 +938,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableDictVar-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     d={}
@@ -948,7 +954,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname,align=align)
+            d = fitsio.read(fname,align=self.align)
             self.compare_rec_with_var(self.vardata,d,"dict of arrays, var")
 
         finally:
@@ -966,7 +972,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableListScratch-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     names = [n for n in self.data.dtype.names]
@@ -980,7 +986,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname,align=align)
+            d = fitsio.read(fname,align=self.align)
             self.compare_rec(self.data, d, "list of arrays, scratch")
 
         finally:
@@ -998,7 +1004,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableWriteList-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     fits.create_table_hdu(self.data, extname='mytable')
@@ -1014,7 +1020,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname, ext='mytable',align=align)
+            d = fitsio.read(fname, ext='mytable',align=self.align)
             self.compare_rec(self.data, d, "list of arrays")
 
         finally:
@@ -1032,7 +1038,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableListScratch-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     names = [n for n in self.vardata.dtype.names]
@@ -1046,7 +1052,7 @@ class TestReadWrite(unittest.TestCase):
                 if not write_success:
                     self.skipTest("cannot test result if write failed")
 
-            d = fitsio.read(fname,align=align)
+            d = fitsio.read(fname,align=self.align)
             self.compare_rec_with_var(self.vardata,d,"list of arrays, var")
 
         finally:
@@ -1061,7 +1067,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableIter-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 try:
                     fits.write_table(self.data, header=self.keys, extname='mytable')
@@ -1074,7 +1080,7 @@ class TestReadWrite(unittest.TestCase):
                     self.skipTest("cannot test result if write failed")
 
             # one row at a time
-            with fitsio.FITS(fname,align=align) as fits:
+            with fitsio.FITS(fname,align=self.align) as fits:
                 hdu = fits["mytable"]
                 i=0
                 for row_data in hdu:
@@ -1094,7 +1100,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-AsciiTableWrite-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 fits.write_table(self.ascii_data, table_type='ascii', header=self.keys, extname='mytable')
                 
@@ -1196,7 +1202,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableInsertColumn-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 fits.write_table(self.data, header=self.keys, extname='mytable')
 
@@ -1224,7 +1230,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableAppend-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 # initial write
                 fits.write_table(self.data)
@@ -1276,7 +1282,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableAppend-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 # initial write
                 fits.write_table(self.data, header=self.keys, extname='mytable')
@@ -1308,7 +1314,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 fits.write_table(self.data, header=self.keys, extname='mytable')
 
@@ -1342,7 +1348,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-GZTableWrite-',suffix='.fits.gz')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 fits.write_table(self.data, header=self.keys, extname='mytable')
 
@@ -1387,12 +1393,12 @@ class TestReadWrite(unittest.TestCase):
         bzfname = fname + '.bz2'
 
         try:
-            fits = fitsio.FITS(fname,'rw',clobber=True,align=align)
+            fits = fitsio.FITS(fname,'rw',clobber=True,align=self.align)
             fits.write_table(self.data, header=self.keys, extname='mytable')
             fits.close()
     
             os.system('bzip2 %s' % fname)
-            f2 = fitsio.FITS(bzfname,align=align)
+            f2 = fitsio.FITS(bzfname,align=self.align)
             d = f2[1].read()
             self.compare_rec(self.data, d, "bzip2 read")
     
@@ -1426,7 +1432,7 @@ class TestReadWrite(unittest.TestCase):
 
         fname=tempfile.mktemp(prefix='fitsio-Checksum-',suffix='.fits')
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
 
                 fits.write_table(self.data, header=self.keys, extname='mytable')
                 fits[1].write_checksum()
@@ -1446,7 +1452,7 @@ class TestReadWrite(unittest.TestCase):
         data['name'] = ['mike','really_long_name_to_fill','jan']
 
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 fits.write(data)
 
             for onconstruct in [True,False]:
@@ -1457,7 +1463,7 @@ class TestReadWrite(unittest.TestCase):
                     ctrim=False
                     otrim=True
 
-                with fitsio.FITS(fname,'rw', trim_strings=ctrim,align=align) as fits:
+                with fitsio.FITS(fname,'rw', trim_strings=ctrim,align=self.align) as fits:
 
                     if ctrim:
                         dread=fits[1][:]
@@ -1504,19 +1510,19 @@ class TestReadWrite(unittest.TestCase):
 
 
             # convenience function
-            dread=fitsio.read(fname, trim_strings=True,align=align)
+            dread=fitsio.read(fname, trim_strings=True,align=self.align)
             self.compare_rec(
                 data,
                 dread,
                 "trimmed strings convenience function",
             )
-            dname=fitsio.read(fname, columns='name', trim_strings=True,align=align)
+            dname=fitsio.read(fname, columns='name', trim_strings=True,align=self.align)
             self.compare_array(
                 data['name'],
                 dname,
                 "trimmed strings col convenience function",
             )
-            dread=fitsio.read(fname, columns=['name'], trim_strings=True,align=align)
+            dread=fitsio.read(fname, columns=['name'], trim_strings=True,align=self.align)
             self.compare_array(
                 data['name'],
                 dread['name'],
@@ -1542,7 +1548,7 @@ class TestReadWrite(unittest.TestCase):
         unames = [n.upper() for n in data.dtype.names]
 
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 fits.write(data)
 
             for i in [1,2]:
@@ -1553,7 +1559,7 @@ class TestReadWrite(unittest.TestCase):
                     lower=False
                     upper=True
 
-                with fitsio.FITS(fname,'rw', lower=lower, upper=upper,align=align) as fits:
+                with fitsio.FITS(fname,'rw', lower=lower, upper=upper,align=self.align) as fits:
                     for rows in [None, [1,2]]:
 
                         d=fits[1].read(rows=rows)
@@ -1584,7 +1590,7 @@ class TestReadWrite(unittest.TestCase):
                                            lower=lower,upper=upper)
 
                 # using overrides
-                with fitsio.FITS(fname,'rw',align=align) as fits:
+                with fitsio.FITS(fname,'rw',align=self.align) as fits:
                     for rows in [None, [1,2]]:
 
                         d=fits[1].read(rows=rows, lower=lower, upper=upper)
@@ -1600,12 +1606,12 @@ class TestReadWrite(unittest.TestCase):
 
 
                 for rows in [None, [1,2]]:
-                    d=fitsio.read(fname, rows=rows, lower=lower, upper=upper,align=align)
+                    d=fitsio.read(fname, rows=rows, lower=lower, upper=upper,align=self.align)
                     self.compare_names(d.dtype.names,data.dtype.names,
                                        lower=lower,upper=upper)
 
                     d=fitsio.read(fname, rows=rows, columns=['MyName','stuffthings'],
-                                  lower=lower, upper=upper,align=align)
+                                  lower=lower, upper=upper,align=self.align)
                     self.compare_names(d.dtype.names,data.dtype.names[0:2],
                                        lower=lower,upper=upper)
 
@@ -1624,11 +1630,11 @@ class TestReadWrite(unittest.TestCase):
         data['Blah'] = numpy.random.random(data.size)
 
         try:
-            with fitsio.FITS(fname,'rw',clobber=True,align=align) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True,align=self.align) as fits:
                 fits.write(data)
                 raw1 = fits.read_raw()
 
-            with fitsio.FITS('mem://', 'rw',align=align) as fits:
+            with fitsio.FITS('mem://', 'rw',align=self.align) as fits:
                 fits.write(data)
                 raw2 = fits.read_raw()
 
