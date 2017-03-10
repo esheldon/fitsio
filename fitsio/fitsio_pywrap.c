@@ -1463,7 +1463,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
  * The keys are written as TDIM{colnum}
  */
 static int 
-add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
+add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, size_t ncols) {
     int status=0;
     size_t size=0, i=0;
     char keyname[20];
@@ -1811,7 +1811,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     int status=0;
     int hdunum=0;
     int hdutype=0;
-    //void **data_ptrs=NULL;
+
     PyObject* colnum_list=NULL;
     PyObject* array_list=NULL;
     PyObject *tmp_array=NULL, *tmp_obj=NULL;
@@ -1856,7 +1856,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         return NULL;
     }
     if (!PyList_Check(array_list)) {
-        PyErr_SetString(PyExc_ValueError,"colnums must be a list");
+        PyErr_SetString(PyExc_ValueError,"arraylist must be a list");
         return NULL;
     }
     ncols = PyList_Size(colnum_list);
@@ -1874,7 +1874,9 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     array_ptrs = calloc(ncols, sizeof(void*));
     nperrow = calloc(ncols, sizeof(LONGLONG));
     fits_dtypes = calloc(ncols, sizeof(int));
+
     for (icol=0; icol<ncols; icol++) {
+
         tmp_array = PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
         fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype);
@@ -1886,11 +1888,11 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         if (fits_dtypes[icol]==TSTRING) {
             is_string[icol] = 1;
         }
+
         ndim = PyArray_NDIM(tmp_array);
         dims = PyArray_DIMS(tmp_array);
         if (icol==0) {
             nelem = dims[0];
-            //fprintf(stderr,"nelem: %ld\n", (long)nelem);
         } else {
             if (dims[0] != nelem) {
                 PyErr_Format(PyExc_ValueError,
@@ -1899,9 +1901,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                 status=1;
                 goto _fitsio_pywrap_write_columns_bail;
             }
-        }
-        if (is_string[icol]) {
-            //fprintf(stderr,"is_string[%ld]: %d\n", icol, is_string[icol]);
         }
 
         tmp_obj = PyList_GetItem(colnum_list,icol);
@@ -1916,7 +1915,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         for (j=1; j<ndim; j++) {
             nperrow[icol] *= dims[j];
         }
-        //fprintf(stderr,"nperrow[%ld]: %ld\n", icol, (long)nperrow[icol]);
+
     }
 
     for (irow=0; irow<nelem; irow++) {
@@ -1934,25 +1933,9 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                     set_ioerr_string_from_status(status);
                     goto _fitsio_pywrap_write_columns_bail;
                 }
-                /*
-                char *strdata=NULL;
-                strdata = (char* ) data;
-
-                if( fits_write_col_str(self->fits, 
-                                       colnums[icol], 
-                                       thisrow, 
-                                       firstelem, 
-                                       nperrow[icol], 
-                                       &strdata, 
-                                       &status)) {
-                    set_ioerr_string_from_status(status);
-                    goto _fitsio_pywrap_write_columns_bail;
-                }
-                */
-
 
             } else {
-                //fprintf(stderr,"row: %ld col: %d\n", (long)thisrow, colnums[icol]);
+
                 if( fits_write_col(self->fits, 
                                    fits_dtypes[icol], 
                                    colnums[icol], 
@@ -1967,30 +1950,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
             }
         }
     }
-    /*
-    nelem = PyArray_SIZE(array);
-
-    if (fits_dtype == TSTRING) {
-
-        // this is my wrapper for strings
-        if (write_string_column(self->fits, colnum, firstrow, firstelem, nelem, data, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-        
-    } else {
-        if( fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status)) {
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-    }
-
-    // this is a full file close and reopen
-    if (fits_flush_file(self->fits, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-    */
 
 _fitsio_pywrap_write_columns_bail:
     free(is_string); is_string=NULL;
@@ -2939,6 +2898,200 @@ read_var_column_cleanup:
 }
  
 
+/*
+
+    The user inputs the column numbers and a list of arrays to be read into
+
+    This method has the advantage that the data for each array can be accessed
+    using the safe methods, so this works transparently non-contiguous arrays
+    and with unaligned data
+
+*/
+
+
+static int read_binary_columns_in_lists(fitsfile* fits, 
+                                        npy_intp ncols,
+                                        const npy_int64* colnums, 
+                                        PyObject **array_ptrs,
+                                        npy_intp nrows,
+                                        const npy_int64* rows) {
+
+    int status=0;
+
+    FITSfile* hdu=NULL;
+    tcolumn* colptr=NULL;
+    LONGLONG file_pos=0;
+    npy_intp col=0;
+    npy_int64 colnum=0;
+
+    int rows_sent=0;
+    npy_intp irow=0;
+    npy_int64 row=0;
+
+    char* ptr=NULL;
+
+    LONGLONG repeat=0;
+    LONGLONG width=0;
+
+    // using struct defs here, could cause problems
+    hdu = fits->Fptr;
+
+    rows_sent = nrows == hdu->numrows ? 0 : 1;
+
+    for (irow=0; irow<nrows; irow++) {
+        if (rows_sent) {
+            row = rows[irow];
+        } else {
+            row = irow;
+        }
+
+        for (col=0; col < ncols; col++) {
+
+            // note irow here
+            ptr=(char*)PyArray_GETPTR1(array_ptrs[col], irow);
+
+            colnum = colnums[col];
+            colptr = hdu->tableptr + (colnum-1);
+
+            repeat = colptr->trepeat;
+            width = colptr->tdatatype == TSTRING ? 1 : colptr->twidth;
+
+            file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
+
+            // can just do one status check, since status are inherited.
+            ffmbyt(fits, file_pos, REPORT_EOF, &status);
+            if (ffgbytoff(fits, width, repeat, 0, ptr, &status)) {
+                goto _read_binary_columns_in_list_bail;
+
+            }
+        }
+    }
+
+_read_binary_columns_in_list_bail:
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status);
+    }
+
+    return status;
+}
+
+
+
+static PyObject *
+PyFITSObject_read_columns_in_lists(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+
+
+    /*
+       Input arguments and keywords
+    */
+
+    /* required arguments */
+    int hdunum=0;
+    PyObject* colnumsObj=NULL;
+    PyObject* array_list=NULL;
+
+    /* optional keywords */
+    PyObject* rowsObj=NULL;
+
+    /* local data */
+
+    int hdutype=0;
+
+    // constant refs to the underlying array data
+    const npy_int64 *colnums=NULL, *rows=NULL;
+    npy_intp ncols=0, icol=0;
+    npy_intp nrows=0;
+
+    // temporary array ref to for an array in the array_list
+    PyObject *tmp_array=NULL;
+    // pointers to the underlying data, for speed
+    PyObject **array_ptrs=NULL;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        goto _read_columns_in_list_bail;
+    }
+
+    if (!PyArg_ParseTuple(args, "iOOO", 
+                  &hdunum, &colnumsObj, &array_list, &rowsObj)) {
+        goto _read_columns_in_list_bail;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        goto _read_columns_in_list_bail;
+    }
+
+    // unpack the data
+    // the users should have converted columns and rows to int64
+
+    colnums = (const npy_int64*) get_int64_from_array(colnumsObj, &ncols);
+    if (colnums == NULL) {
+        goto _read_columns_in_list_bail;
+    }
+    if (ncols == 0) {
+        PyErr_SetString(PyExc_ValueError,"no columns requested");
+        goto _read_columns_in_list_bail;
+    }
+
+    if (!PyList_Check(array_list)) {
+        PyErr_SetString(PyExc_ValueError,"arraylist must be a list");
+        goto _read_columns_in_list_bail;
+    }
+
+    if (ncols != PyList_Size(array_list)) {
+        PyErr_Format(PyExc_ValueError,"colnum and array lists not same size: %ld/%ld",
+                     ncols, PyList_Size(array_list));
+    }
+
+    if (rowsObj == Py_None) {
+        nrows = self->fits->Fptr->numrows;
+    } else {
+        rows = (const npy_int64*) get_int64_from_array(rowsObj, &nrows);
+        if (rows==NULL) {
+            goto _read_columns_in_list_bail;
+        }
+    }
+
+    // from here on we'll have this temporary array we must free
+    array_ptrs  = calloc(ncols, sizeof(void*));
+
+    for (icol=0; icol<ncols; icol++) {
+
+        tmp_array = PyList_GetItem(array_list, icol);
+        if (!PyArray_Check(tmp_array)) {
+            PyErr_SetString(PyExc_ValueError,"arraylist must be a list of arrays");
+            goto _read_columns_in_list_bail;
+        }
+
+        array_ptrs[icol] = tmp_array;
+
+    }
+
+    // if an error occurs, the exception will be set
+    status = read_binary_columns_in_lists(self->fits, 
+                                          ncols,
+                                          colnums, 
+                                          array_ptrs,
+                                          nrows,
+                                          rows);
+
+
+_read_columns_in_list_bail:
+    free(array_ptrs); array_ptrs=NULL;
+    if (status != 0) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
+
+
+
+
 // read specified columns and rows
 static int read_binary_rec_columns(
         fitsfile* fits, 
@@ -3263,45 +3416,6 @@ static int read_rec_bytes_byrow(
 
     return 0;
 }
-// read specified rows, all columns
-/*
-static int read_rec_bytes_byrowold(
-        fitsfile* fits, 
-        npy_intp nrows, npy_int64* rows,
-        void* data, int* status) {
-    FITSfile* hdu=NULL;
-    LONGLONG file_pos=0;
-
-    npy_intp irow=0;
-    npy_int64 row=0;
-
-    // use char for pointer arith.  It's actually ok to use void as char but
-    // this is just in case.
-    char* ptr;
-
-    long ngroups=1; // number to read, one for row-by-row reading
-    long offset=0; // gap between groups, not stride.  zero since we aren't using it
-
-    // using struct defs here, could cause problems
-    hdu = fits->Fptr;
-    ptr = (char*) data;
-
-    for (irow=0; irow<nrows; irow++) {
-        row = rows[irow];
-        file_pos = hdu->datastart + row*hdu->rowlength;
-
-        // can just do one status check, since status are inherited.
-        ffmbyt(fits, file_pos, REPORT_EOF, status);
-        if (ffgbytoff(fits, hdu->rowlength, ngroups, offset, (void*) ptr, status)) {
-            return 1;
-        }
-        ptr += hdu->rowlength;
-    }
-
-    return 0;
-}
-*/
-
 
 // python method to read all columns but subset of rows
 static PyObject *
@@ -4003,6 +4117,9 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_image_slice",     (PyCFunction)PyFITSObject_read_image_slice,     METH_VARARGS,  "read_image_slice\n\nRead an image slice."},
     {"read_column",          (PyCFunction)PyFITSObject_read_column,          METH_VARARGS,  "read_column\n\nRead the column into the input array.  No checking of array is done."},
     {"read_var_column_as_list",          (PyCFunction)PyFITSObject_read_var_column_as_list,          METH_VARARGS,  "read_var_column_as_list\n\nRead the variable length column as a list of arrays."},
+
+    {"read_columns_in_lists",  (PyCFunction)PyFITSObject_read_columns_in_lists,  METH_VARARGS,  "read_columns_in_lists\n\nRead the specified columns (rows) into the input list of arrays.  No checking of array types is done."},
+
     {"read_columns_as_rec",  (PyCFunction)PyFITSObject_read_columns_as_rec,  METH_VARARGS,  "read_columns_as_rec\n\nRead the specified columns into the input rec array.  No checking of array is done."},
     {"read_columns_as_rec_byoffset",  (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset,  METH_VARARGS,  "read_columns_as_rec_byoffset\n\nRead the specified columns into the input rec array at the specified offsets.  No checking of array is done."},
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},

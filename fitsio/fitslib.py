@@ -2031,6 +2031,98 @@ class TableHDU(HDUBase):
 
         return array
 
+
+    def read_columns_in_lists(self, columns, **keys):
+        """
+        temporary test code
+
+        read a subset of columns from this binary table HDU
+
+        By default, all rows are read.  Send rows= to select subsets of the
+        data.  Table data are read into a recarray for multiple columns,
+        plain array for a single column.
+
+        parameters
+        ----------
+        columns: list/array
+            An optional set of columns to read from table HDUs.  Can be string
+            or number. If a sequence, a recarray is always returned.  If a
+            scalar, an ordinary array is returned.
+        rows: list/array, optional
+            An optional list of rows to read from table HDUS.  Default is to
+            read all.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns.  Can
+            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
+        """
+
+        if self._info['hdutype'] == ASCII_TBL:
+            keys['columns'] = columns
+            return self.read(**keys)
+
+        rows = keys.get('rows',None)
+
+        # if columns is None, returns all.  Guaranteed to be unique and sorted
+        colnums = self._extract_colnums(columns)
+        if isinstance(colnums,int):
+            # scalar sent, don't read as a recarray
+            return self.read_column(columns, **keys)
+
+        # if rows is None still returns None, and is correctly interpreted
+        # by the reader to mean all
+        rows = self._extract_rows(rows)
+
+        # this is the full dtype for all columns
+        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
+
+        w,=numpy.where(isvar == True)
+        if w.size > 0:
+            vstorage = keys.get('vstorage',self._vstorage)
+            array = self._read_rec_with_var(colnums, rows, dtype, offsets, isvar, vstorage)
+        else:
+
+            if rows is None:
+                nrows = self._info['nrows']
+            else:
+                nrows = rows.size
+
+            array = numpy.zeros(nrows, dtype=dtype)
+
+            col_list = [array[n] for n in array.dtype.names]
+
+
+            colnumsp = colnums[:].copy()
+            colnumsp[:] += 1
+
+
+            self._FITS.read_columns_in_lists(self._ext+1, colnumsp, col_list, rows)
+
+            for i in xrange(colnums.size):
+                colnum = int(colnums[i])
+                name = array.dtype.names[i]
+                self._rescale_and_convert_field_inplace(array,
+                                          name,
+                                          self._info['colinfo'][colnum]['tscale'], 
+                                          self._info['colinfo'][colnum]['tzero'])
+
+        lower=keys.get('lower',False)
+        upper=keys.get('upper',False)
+        if self.lower or lower:
+            _names_to_lower_if_recarray(array)
+        elif self.upper or upper:
+            _names_to_upper_if_recarray(array)
+
+        self._maybe_trim_strings(array, **keys)
+
+        return array
+
+
     def read_slice(self, firstrow, lastrow, step=1, **keys):
         """
         Read the specified row slice from a table.

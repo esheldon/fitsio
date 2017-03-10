@@ -1366,11 +1366,11 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
     def testBz2Read(self):
-        '''
+        """
         Write a normal .fits file, run bzip2 on it, then read the bz2
         file and verify that it's the same as what we put in; we don't
         [currently support or] test *writing* bzip2.
-        '''
+        """
 
         if 'SKIP_BZIP_TEST' in os.environ:
             if sys.version_info >= (2,7,0):
