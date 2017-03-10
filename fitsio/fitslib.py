@@ -1768,7 +1768,8 @@ class TableHDU(HDUBase):
         keys['firstrow'] = firstrow
         self.write(data, **keys)
 
-    def _read_align(self, **keys):
+
+    def read(self, **keys):
         """
         read data from this HDU
 
@@ -1798,6 +1799,30 @@ class TableHDU(HDUBase):
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
         """
 
+        if self.align:
+            return self._read_align(**keys)
+
+        columns = keys.get('columns',None)
+        rows    = keys.get('rows',None)
+
+        if columns is not None:
+            if 'columns' in keys: 
+                del keys['columns']
+            data = self.read_columns(columns, **keys)
+        elif rows is not None:
+            if 'rows' in keys: 
+                del keys['rows']
+            data = self.read_rows(rows, **keys)
+        else:
+            data = self._read_all(**keys)
+
+        return data
+
+
+    def _read_align(self, **keys):
+        """
+        slower reading when we must use aligned data
+        """
 
         columns = keys.get('columns',None)
         rows    = keys.get('rows',None)
@@ -1860,57 +1885,6 @@ class TableHDU(HDUBase):
         self._maybe_trim_strings(array, **keys)
 
         return array
-
-
-    def read(self, **keys):
-        """
-        read data from this HDU
-
-        By default, all data are read.  
-        
-        send columns= and rows= to select subsets of the data.
-        Table data are read into a recarray; use read_column() to get a single
-        column as an ordinary array.  You can alternatively use slice notation
-            fits=fitsio.FITS(filename)
-            fits[ext][:]
-            fits[ext][2:5]
-            fits[ext][200:235:2]
-            fits[ext][rows]
-            fits[ext][cols][rows]
-
-        parameters
-        ----------
-        columns: optional
-            An optional set of columns to read from table HDUs.  Default is to
-            read all.  Can be string or number.  If a sequence, a recarray
-            is always returned.  If a scalar, an ordinary array is returned.
-        rows: optional
-            An optional list of rows to read from table HDUS.  Default is to
-            read all.
-        vstorage: string, optional
-            Over-ride the default method to store variable length columns.  Can
-            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
-        """
-
-        if self.align:
-            return self._read_align(**keys)
-
-        columns = keys.get('columns',None)
-        rows    = keys.get('rows',None)
-
-        if columns is not None:
-            if 'columns' in keys: 
-                del keys['columns']
-            data = self.read_columns(columns, **keys)
-        elif rows is not None:
-            if 'rows' in keys: 
-                del keys['rows']
-            data = self.read_rows(rows, **keys)
-        else:
-            data = self._read_all(**keys)
-
-        return data
-
 
 
     def _read_all(self, **keys):
