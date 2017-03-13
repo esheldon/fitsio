@@ -1,4 +1,4 @@
-version 0.9.11 (not yet released)
+version 0.9.11
 ---------------------------------
 
 New Features
