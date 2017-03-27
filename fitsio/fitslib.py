@@ -1372,11 +1372,12 @@ class HDUBase(object):
         for r in hdr.records():
             name=r['name'].upper()
             value=r['value']
+            comment = r.get('comment','')
 
             if name=='COMMENT':
-                self.write_comment(value)
+                self.write_comment(comment)
             elif name=='HISTORY':
-                self.write_history(value)
+                self.write_history(comment)
             else:
                 comment=r.get('comment','')
                 self.write_key(name,value,comment=comment)
