@@ -321,6 +321,34 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 pass
                 #os.remove(fname)
+
+    def testHeaderContinue(self):
+        """
+        Test a header with CONTINUE keys
+        """
+        fname=tempfile.mktemp(prefix='fitsio-HeaderContinue-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data=numpy.zeros(10)
+                header = [                          
+                    "SVALUE  = 'This is a long string value &' ",
+                    "CONTINUE  'extending&   '   ",
+                    "CONTINUE  ' over 3 lines.'     / and a comment ",
+                    "TEST    = 10 / another key",
+                    ]
+                fits.write_image(data, header=header)
+
+                rh = fits[0].read_header()
+                assert rh.keys().count('CONTINUE') == 2
+                
+            with fitsio.FITS(fname) as fits:
+                rh = fits[0].read_header()
+                assert rh.keys().count('CONTINUE') == 2
+
+        finally:
+            if os.path.exists(fname):
+                pass
+                #os.remove(fname)
  
     def testImageWriteRead(self):
         """

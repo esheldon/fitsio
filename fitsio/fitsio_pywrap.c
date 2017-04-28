@@ -2456,6 +2456,74 @@ PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
+
+//   ADW: Adapted from ffpcom and ffphis in putkey.c
+int fits_write_continue( fitsfile *fptr,      /* I - FITS file pointer  */
+                         const char *cont,    /* I - continue string    */
+                         int   *status)       /* IO - error status      */
+/*
+  Write 1 or more CONTINUE keywords.  If the history string is too
+  long to fit on a single keyword (72 chars) then it will automatically
+  be continued on multiple CONTINUE keywords.
+*/
+{
+    char card[FLEN_CARD];
+    int len, ii;
+
+    if (*status > 0)           /* inherit input status value if > 0 */
+        return(*status);
+
+    len = strlen(cont);
+    ii = 0;
+
+    for (; len > 0; len -= 72)
+    {
+        strcpy(card, "CONTINUE");
+        strncat(card, &cont[ii], 72);
+        ffprec(fptr, card, status);
+        ii += 72;
+    }
+
+    return(*status);
+}
+
+// let python do the conversions
+static PyObject *
+PyFITSObject_write_continue(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    char* value=NULL;
+ 
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &value)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_write_continue(self->fits, value, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
  
 /*
  * read a single, entire column from an ascii table into the input array.  This
@@ -4029,6 +4097,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
     {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
+    {"write_continue",       (PyCFunction)PyFITSObject_write_continue,        METH_VARARGS,  "write_continue\n\nWrite contineu into the header of the specified HDU."},
     {"close",                (PyCFunction)PyFITSObject_close,                METH_VARARGS,  "close\n\nClose the fits file."},
     {NULL}  /* Sentinel */
 };
