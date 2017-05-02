@@ -1271,7 +1271,7 @@ class HDUBase(object):
         """
         self._FITS.write_history(self._ext+1, str(history))
 
-    def write_continue(self, value):
+    def _write_continue(self, value):
         """
         Write history text into the header
         """
@@ -1384,7 +1384,7 @@ class HDUBase(object):
             elif name=='HISTORY':
                 self.write_history(value)
             elif name=='CONTINUE':
-                self.write_continue(value)
+                self._write_continue(value)
             else:
                 comment=r.get('comment','')
                 self.write_key(name,value,comment=comment)
