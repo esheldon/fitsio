@@ -354,6 +354,37 @@ f[1].get_vstorage()         # for tables, storage mechanism for variable
 f[1].lower           # If True, lower case colnames on output
 f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
+
+# Open a file in memory, using data you have already read in
+# through other alternative means (from the network, etc.).
+# The filename is ignored!
+bytes = bytearray(data_in_memory)
+f = FITS('inmemory.fits', 'r', bytes=bytes)
+f[0].read_header()
+
+# You can also create files directly in memory without writing them
+# to disk. This is useful if you are going to immediately send them
+# out over the network. There is no need to create the file on disk.
+bytes = bytearray(0)
+f = FITS('inmemory.fits', 'rw', bytes=bytes)
+f.write(data)
+
+# Now you can get the bytes in memory in two different ways. You can
+# use the read_raw() accessor function. This is useful if you're going
+# to add more data, but want to save a copy at this point.
+bytes = bytearray(0)
+f = FITS('inmemory.fits', 'rw', bytes=bytes)
+f.write(data)
+data = f.read_raw()
+print(len(data))
+
+# Or instead, you can close the file and use the byte array
+# that you used to construct the object.
+bytes = bytearray(0)
+f = FITS('inmemory.fits', 'rw', bytes=bytes)
+f.write(data)
+f.close()
+print(len(bytes))
 ```
 Installation
 ------------

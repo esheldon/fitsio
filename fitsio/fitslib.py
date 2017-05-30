@@ -289,6 +289,11 @@ class FITS(object):
     clobber: bool, optional
         If the mode is READWRITE, and clobber=True, then remove any existing
         file before opening.
+    bytes: bytearray, optional
+        If given a bytearray, then the FITS object will be created in memory
+        and not on disk. This allows you to operate on FITS files that you
+        already have in memory, for example after retrieving them over the
+        network.
     case_sensitive: bool, optional
         Match column names and extension names with case-sensitivity.  Default
         is False.
@@ -316,7 +321,7 @@ class FITS(object):
 
     See the docs at https://github.com/esheldon/fitsio
     """
-    def __init__(self, filename, mode='r', **keys):
+    def __init__(self, filename, mode='r', bytes=None, **keys):
         self.keys=keys
         filename = extract_filename(filename)
         self._filename = filename
@@ -336,21 +341,25 @@ class FITS(object):
         self.intmode = _int_modemap[self.mode]
 
         create=0
-        if self.mode in [READWRITE,'rw']:
-            if clobber:
-                create=1
-                if os.path.exists(filename):
-                    os.remove(filename)
-            else:
-                if os.path.exists(filename):
-                    create=0
-                else:
-                    create=1
+        if bytes is not None:
+            if self.mode in [READWRITE, 'rw']:
+                create = 1
         else:
-            if not os.path.exists(filename):
-                raise IOError("File not found: '%s'" % filename)
+            if self.mode in [READWRITE,'rw']:
+                if clobber:
+                    create=1
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                else:
+                    if os.path.exists(filename):
+                        create=0
+                    else:
+                        create=1
+            else:
+                if not os.path.exists(filename):
+                    raise IOError("File not found: '%s'" % filename)
 
-        self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
+        self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create, bytes)
 
     def close(self):
         """

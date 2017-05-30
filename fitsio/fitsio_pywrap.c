@@ -38,8 +38,36 @@
 struct PyFITSObject {
     PyObject_HEAD
     fitsfile* fits;
+
+    // in-memory buffer object
+    PyObject* bufferobject;
+    void* buffer;
+    size_t buflen;
 };
 
+// free the memory associated with the in-memory buffer object
+static void inmemory_buffer_free(struct PyFITSObject *self)
+{
+    if (self->buffer) {
+        free(self->buffer);
+        self->buffer = NULL;
+        self->buflen = 0;
+    }
+}
+
+// copy the in-memory buffer object to the bytearray object
+// we were given at creation time
+static void inmemory_buffer_copyout(struct PyFITSObject *self)
+{
+    if (self->buffer) {
+        Py_buffer view;
+
+        PyByteArray_Resize(self->bufferobject, self->buflen);
+        PyObject_GetBuffer(self->bufferobject, &view, PyBUF_SIMPLE | PyBUF_WRITABLE);
+        memcpy(view.buf, self->buffer, self->buflen);
+        PyBuffer_Release(&view);
+    }
+}
 
 // check unicode for python3, string for python2
 int is_python_string(const PyObject* obj)
@@ -328,10 +356,61 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     int status=0;
     int create=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"sii", &filename, &mode, &create)) {
+    if (!PyArg_ParseTuple(args, (char*)"siiO", &filename, &mode, &create, &self->bufferobject)) {
         return -1;
     }
 
+    // check that the bytes parameter was a bytearray object
+    if (self->bufferobject != Py_None && !PyByteArray_Check(self->bufferobject)) {
+        PyErr_SetString(PyExc_TypeError, "bytes parameter must be a bytearray object");
+        return -9999;
+    }
+
+    // in-memory access method
+    if (PyByteArray_Check(self->bufferobject)) {
+        if (mode == READONLY) {
+            // read-only mode, we can do zero copy!
+            void* buf = PyByteArray_AsString(self->bufferobject);
+            size_t len = PyByteArray_Size(self->bufferobject);
+
+            if (fits_open_memfile(&self->fits, filename, mode, &buf, &len, 2880, NULL, &status)) {
+                set_ioerr_string_from_status(status);
+                return -1;
+            }
+        } else {
+            // read-write mode, we need to handle the buffer ourselves
+            // since Python doesn't support a buffer access method that
+            // works with realloc()
+
+            // calculate a minimum buffer size even if the user passed in
+            // a bytearray with length 0
+            const size_t minsize = 10 * 2880;
+            const size_t actsize = PyByteArray_Size(self->bufferobject);
+
+            // copy bytearray into our internal structure
+            self->buflen = actsize > minsize ? actsize : minsize;
+            self->buffer = malloc(self->buflen);
+            memcpy(self->buffer, PyByteArray_AsString(self->bufferobject), self->buflen);
+
+            if (create) {
+                if (fits_create_memfile(&self->fits, &self->buffer, &self->buflen, 2880, realloc, &status)) {
+                    inmemory_buffer_free(self);
+                    set_ioerr_string_from_status(status);
+                    return -1;
+                }
+            } else {
+                if (fits_open_memfile(&self->fits, filename, mode, &self->buffer, &self->buflen, 2880, realloc, &status)) {
+                    inmemory_buffer_free(self);
+                    set_ioerr_string_from_status(status);
+                    return -1;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    // filesystem or URL access methods
     if (create) {
         // create and open
         if (fits_create_file(&self->fits, filename, &status)) {
@@ -403,6 +482,8 @@ PyFITSObject_close(struct PyFITSObject* self)
         */
     }
     self->fits=NULL;
+    inmemory_buffer_copyout(self);
+    inmemory_buffer_free(self);
     Py_RETURN_NONE;
 }
 
@@ -413,6 +494,7 @@ PyFITSObject_dealloc(struct PyFITSObject* self)
 {
     int status=0;
     fits_close_file(self->fits, &status);
+    inmemory_buffer_free(self);
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject*)self);
