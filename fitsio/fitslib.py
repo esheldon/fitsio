@@ -1271,6 +1271,12 @@ class HDUBase(object):
         """
         self._FITS.write_history(self._ext+1, str(history))
 
+    def _write_continue(self, value):
+        """
+        Write history text into the header
+        """
+        self._FITS.write_continue(self._ext+1, str(value))
+
     def write_key(self, keyname, value, comment=""):
         """
         Write the input value to the header
@@ -1377,6 +1383,8 @@ class HDUBase(object):
                 self.write_comment(value)
             elif name=='HISTORY':
                 self.write_history(value)
+            elif name=='CONTINUE':
+                self._write_continue(value)
             else:
                 comment=r.get('comment','')
                 self.write_key(name,value,comment=comment)
@@ -3859,7 +3867,7 @@ class FITSHDR(object):
 
         key_exists = key in self._record_map
 
-        if not key_exists or key == 'COMMENT' or key == 'HISTORY':
+        if not key_exists or key in ('COMMENT','HISTORY','CONTINUE'):
             # append new record
             self._record_list.append(record)
             index=len(self._record_list)-1
@@ -4087,6 +4095,8 @@ class FITSHDR(object):
 
         if name == 'COMMENT':
             card = 'COMMENT   %s' % value
+        elif name == 'CONTINUE':
+            card = 'CONTINUE   %s' % value
         elif name=='HISTORY':
             card = 'HISTORY   %s' % value
         else:
@@ -4298,11 +4308,13 @@ class FITSCard(FITSRecord):
             front=card_string[0:7]
             if (not self.has_equals() or front=='COMMENT' or front=='HISTORY'):
 
-                if front=='CONTINU':
-                    raise ValueError("CONTINUE not supported")
+                #if front=='CONTINU':
+                #    raise ValueError("CONTINUE not supported")
 
                 if front=='HISTORY':
                     self._set_as_history()
+                elif front=='CONTINU':
+                    self._set_as_continue()
                 else:
                     # note anything without an = and not history is
                     # treated as comment; this is built into cfitsio
@@ -4341,7 +4353,7 @@ class FITSCard(FITSRecord):
         res=_fitsio_wrap.parse_card(card_string)
         keyclass, name, value, dtype, comment=res
 
-        if keyclass==140:
+        if keyclass==TYP_CONT_KEY:
             raise ValueError("bad card '%s'.  CONTINUE not "
                              "supported" % card_string)
 
@@ -4365,6 +4377,13 @@ class FITSCard(FITSRecord):
         self['class'] = TYP_COMM_KEY
         self['name']  = 'HISTORY'
         self['value'] =  history
+
+    def _set_as_continue(self):
+        value=self._extract_comm_or_hist_value()
+
+        self['class'] = TYP_CONT_KEY
+        self['name']  = 'CONTINUE'
+        self['value'] =  value
 
     def _extract_comm_or_hist_value(self):
         card_string=self['card_string']
