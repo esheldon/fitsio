@@ -354,6 +354,18 @@ f[1].get_vstorage()         # for tables, storage mechanism for variable
 f[1].lower           # If True, lower case colnames on output
 f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
+
+# Open a file in memory, using data you have already read in
+# through other alternative means (from the network, etc.).
+with FITSMemFile(bytearray(data_in_memory), 'r') as f:
+    f[0].read_header()
+
+# You can also create files directly in memory without writing them
+# to disk. This is useful if you are going to immediately send them
+# out over the network. There is no need to create the file on disk.
+with FITS('mem://', 'rw') as f:
+    f.write(data)
+    data_in_memory = f.read_raw()
 ```
 Installation
 ------------

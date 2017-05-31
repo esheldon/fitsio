@@ -10,11 +10,13 @@ from . import fitslib
 from . import util
 
 from .fitslib import FITS
+from .fitslib import FITSMemFile
 from .fitslib import FITSHDR
 from .fitslib import FITSRecord
 from .fitslib import FITSCard
 
 from .fitslib import read
+from .fitslib import read_memfile
 from .fitslib import read_header
 from .fitslib import read_scamp_head
 from .fitslib import write
