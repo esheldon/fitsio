@@ -38,6 +38,10 @@
 struct PyFITSObject {
     PyObject_HEAD
     fitsfile* fits;
+
+    // memfile support
+    void *memfile_buf;
+    size_t memfile_len;
 };
 
 
@@ -323,15 +327,42 @@ void append_string_to_list(PyObject* list, const char* str) {
 static int
 PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
 {
+    PyObject *bytearray = Py_None;
     char* filename;
     int mode;
     int status=0;
     int create=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"sii", &filename, &mode, &create)) {
+    if (!PyArg_ParseTuple(args, (char*)"siiO", &filename, &mode, &create, &bytearray)) {
         return -1;
     }
 
+    // memfile access method (read-only in memory buffer support)
+    if (bytearray != Py_None) {
+        if (!PyByteArray_Check(bytearray)) {
+            PyErr_SetString(PyExc_TypeError, "bytes parameter must be a bytearray object");
+            return -9999;
+        }
+
+        if (mode != READONLY) {
+            PyErr_SetString(PyExc_RuntimeError, "memfile mode only supports read-only data");
+            return -9999;
+        }
+
+        // never need to free these, they are just pointers to existing
+        // memory that we don't change
+        self->memfile_buf = PyByteArray_AsString(bytearray);
+        self->memfile_len = PyByteArray_Size(bytearray);
+
+        if (fits_open_memfile(&self->fits, filename, mode, &self->memfile_buf, &self->memfile_len, 2880, NULL, &status)) {
+            set_ioerr_string_from_status(status);
+            return -1;
+        }
+
+        return 0;
+    }
+
+    // filesystem or URL access methods
     if (create) {
         // create and open
         if (fits_create_file(&self->fits, filename, &status)) {

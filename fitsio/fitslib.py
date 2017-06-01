@@ -106,6 +106,75 @@ def read(filename, ext=None, extver=None, **keys):
             return data
 
 
+def read_memfile(bytes, ext=None, extver=None, **keys):
+    """
+    Convenience function to read data from the specified FITS HDU
+
+    By default, all data are read.  For tables, send columns= and rows= to
+    select subsets of the data.  Table data are read into a recarray; use a
+    FITS object and read_column() to get a single column as an ordinary array.
+    For images, create a FITS object and use slice notation to read subsets.
+
+    Under the hood, a FITS object is constructed and data are read using
+    an associated FITSHDU object.
+
+    parameters
+    ----------
+    bytes: bytearray
+        The bytes comprising a FITS file.
+    ext: number or string, optional
+        The extension.  Either the numerical extension from zero
+        or a string extension name. If not sent, data is read from
+        the first HDU that has data.
+    extver: integer, optional
+        FITS allows multiple extensions to have the same name (extname).  These
+        extensions can optionally specify an EXTVER version number in the
+        header.  Send extver= to select a particular version.  If extver is not
+        sent, the first one will be selected.  If ext is an integer, the extver
+        is ignored.
+    columns: list or array, optional
+        An optional set of columns to read from table HDUs.  Default is to
+        read all.  Can be string or number.
+    rows: optional
+        An optional list of rows to read from table HDUS.  Default is to
+        read all.
+    header: bool, optional
+        If True, read the FITS header and return a tuple (data,header)
+        Default is False.
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
+    vstorage: string, optional
+        Set the default method to store variable length columns.  Can be
+        'fixed' or 'object'.  See docs on fitsio.FITS for details.
+    """
+
+    with FITSMemFile(bytes, **keys) as fits:
+
+        header=keys.pop('header',False)
+
+        if ext is None:
+            for i in xrange(len(fits)):
+                if fits[i].has_data():
+                    ext=i
+                    break
+            if ext is None:
+                raise IOError("No extensions have data")
+
+        item=_make_item(ext, extver=extver)
+
+        data = fits[item].read(**keys)
+        if header:
+            h = fits[item].read_header()
+            return data, h
+        else:
+            return data
+
+
 def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     """
     Convenience function to read the header from the specified FITS HDU
@@ -350,7 +419,7 @@ class FITS(object):
             if not os.path.exists(filename):
                 raise IOError("File not found: '%s'" % filename)
 
-        self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
+        self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create, None)
 
     def close(self):
         """
@@ -1115,7 +1184,91 @@ class FITS(object):
     def __exit__(self, exception_type, exception_value, traceback):
         self.close()
 
+class FITSMemFile(FITS):
+    """
+    A class to handle FITS images and tables which have already been read
+    into memory through other means. This is useful for the implementation
+    of network services which fetch FITS files from another network source,
+    transform them, and then ship them back out over the network.
 
+    This class uses the cfitsio library for almost all relevant work,
+    and specifically uses the fits_open_memfile routine.
+
+    Usage of this class is exactly the same as the FITS class above.
+
+    NOTE: At this time, only read-only mode is supported. If you wish to
+    use read/write mode to construct a FITS file in memory, you can use the
+    FITS class like this:
+
+        with fitsio.FITS('mem://', 'rw') as fits:
+            fits.write(data)
+            bytes = fits.read_raw()
+
+    parameters
+    ----------
+    bytes: bytearray
+        A Python bytearray object, which contains the raw data bytes
+        making up a FITS file (for example, as returned by file.read()).
+    mode: int/string, optional
+        The mode, either a string or integer.
+        For reading only
+            'r' or 0
+        For reading and writing
+            'rw' or 1
+        You can also use fitsio.READONLY and fitsio.READWRITE.
+
+        Default is 'r'
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
+    vstorage: string, optional
+        A string describing how, by default, to store variable length columns
+        in the output array.  This can be over-ridden when reading by using the
+        using vstorage keyword to the individual read methods.  The options are
+
+            'fixed': Use a fixed length field in the array, with
+                dimensions equal to the max possible size for column.
+                Arrays are padded with zeros.
+            'object': Use an object for the field in the array.
+                Each element will then be an array of the right type,
+                but only using the memory needed to hold that element.
+
+        Default is 'fixed'.  The rationale is that this is the option
+            of 'least surprise'
+    iter_row_buffer: integer
+        Number of rows to buffer when iterating over table HDUs.
+        Default is 1.
+
+    See the docs at https://github.com/esheldon/fitsio
+    """
+    def __init__(self, bytes, mode='r', **keys):
+        self.bytes = bytes
+        self.keys=keys
+        self._filename = 'inmemory.fits'
+
+        #self.mode=keys.get('mode','r')
+        self.mode=mode
+        self.case_sensitive=keys.get('case_sensitive',False)
+
+        self.verbose = keys.get('verbose',False)
+
+        if self.mode not in _int_modemap:
+            raise IOError("mode should be one of 'r','rw',"
+                             "READONLY,READWRITE")
+
+        self.charmode = _char_modemap[self.mode]
+        self.intmode = _int_modemap[self.mode]
+
+        create=0
+        if bytes is not None:
+            if self.mode in [READWRITE, 'rw']:
+                create = 1
+
+        self._FITS =  _fitsio_wrap.FITS(self._filename, self.intmode, create, bytes)
 
 class HDUBase(object):
     """

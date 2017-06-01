@@ -1668,6 +1668,58 @@ class TestReadWrite(unittest.TestCase):
             traceback.print_exc()
             self.assertTrue(False, 'Exception in testing read_raw')
 
+    def testMemFileWriteRead(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-MemFile-',suffix='.fits')
+        dtypes=['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']
+        try:
+            bytes = bytearray(0)
+            with fitsio.FITS('mem://', 'rw') as fits:
+                # note mixing up byte orders a bit
+                for dtype in dtypes:
+                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
+                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    fits.write_image(data, header=header)
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "images")
+
+                    rh = fits[-1].read_header()
+                    self.check_header(header, rh)
+
+                    # save the bytes for later
+                    bytes = bytearray(fits.read_raw())
+
+            # make sure some bytes were written to the output file
+            self.assertTrue(len(bytes) > 0)
+
+            # write bytes out to a file on disk
+            with open(fname, 'wb') as f:
+                f.write(bytes)
+
+            # now read the file back using the file oriented routines
+            with fitsio.FITS(fname, 'r') as fits:
+                tmpbytes = fits.read_raw()
+                self.assertEqual(bytes, tmpbytes)
+
+            # test the read only memfile mode
+            robytes = bytes[:]
+            with fitsio.FITSMemFile(robytes, 'r') as fits:
+                # make sure our bytes were unchanged
+                self.assertEqual(robytes, bytes)
+
+                # make sure the bytes returned by read_raw() are the same too
+                tmpbytes = bytearray(fits.read_raw())
+                self.assertEqual(robytes, tmpbytes)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def compare_names(self, read_names, true_names, lower=False, upper=False):
         for nread,ntrue in zip(read_names,true_names):
             if lower:
