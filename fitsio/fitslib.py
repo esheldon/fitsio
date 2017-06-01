@@ -1235,7 +1235,14 @@ class HDUBase(object):
         Get a copy of the filename for this fits file
         """
         return copy.copy(self._filename)
-
+    
+    @property
+    def byte_offsets(self):
+	    """
+	    Return the byte offsets of the header start, data start, and data end of HDU as tuple.
+	    """
+	    return self._FITS.byte_offsets(self._ext+1)
+    
     def write_checksum(self):
         """
         Write the checksum into the header for this HDU.
@@ -1460,6 +1467,9 @@ class TableHDU(HDUBase):
         self._vstorage=keys.get('vstorage','fixed')
         self.case_sensitive=keys.get('case_sensitive',False)
         self._iter_row_buffer=keys.get('iter_row_buffer',1)
+
+        if self._iter_row_buffer > self.get_nrows:
+        	self._iter_row_buffer = self.get_nrows
 
         if self._info['hdutype'] == ASCII_TBL:
             self._table_type_str='ascii'

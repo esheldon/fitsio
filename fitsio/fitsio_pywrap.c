@@ -3867,7 +3867,47 @@ PyFITSObject_verify_checksum(struct PyFITSObject* self, PyObject* args) {
     return dict;
 }
 
+static PyObject *
+PyFITSObject_byte_offsets(struct PyFITSObject* self, PyObject* args) {
 
+	// arguments
+	int hdunum;
+
+	// cfitsio variables
+	int status = 0;
+	long long header_start;
+	long long data_start;
+	long long data_end;
+	
+	if (self->fits == NULL) {
+       PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+       return NULL;
+   }
+
+   if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+       return NULL;
+   }
+
+	// move to specified HDU
+	if (fits_movabs_hdu(self->fits, hdunum, NULL, &status)) {
+		set_ioerr_string_from_status(status);
+		return NULL;
+	}
+
+	// get byte offsets
+	if (fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end, &status)) {
+		set_ioerr_string_from_status(status);
+		return NULL;
+	}
+	
+	// return values as tuple: (header_start, data_start, data_end)
+	PyObject* offsets = PyTuple_New(3);
+	PyTuple_SetItem(offsets, 0, PyLong_FromLongLong(header_start));
+	PyTuple_SetItem(offsets, 1, PyLong_FromLongLong(data_start));
+	PyTuple_SetItem(offsets, 2, PyLong_FromLongLong(data_end));
+	
+	return offsets;
+}
 
 static PyObject *
 PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
@@ -4076,6 +4116,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_rows_as_rec",     (PyCFunction)PyFITSObject_read_rows_as_rec,     METH_VARARGS,  "read_rows_as_rec\n\nRead the subset of rows into the input rec array.  No checking of array is done."},
     {"read_as_rec",          (PyCFunction)PyFITSObject_read_as_rec,          METH_VARARGS,  "read_as_rec\n\nRead a set of rows into the input rec array.  No significant checking of array is done."},
     {"read_header",          (PyCFunction)PyFITSObject_read_header,          METH_VARARGS | METH_VARARGS,  "read_header\n\nRead the entire header as a list of dictionaries."},
+    {"byte_offsets",		 (PyCFunction)PyFITSObject_byte_offsets,		 METH_VARARGS,  "byte_offsets\n\nReturn the byte offsets of the header start, data start, and data end of HDU as tuple."},
 
     {"create_image_hdu",     (PyCFunction)PyFITSObject_create_image_hdu,     METH_VARARGS | METH_KEYWORDS, "create_image_hdu\n\nWrite the input image to a new extension."},
     {"create_table_hdu",     (PyCFunction)PyFITSObject_create_table_hdu,     METH_VARARGS | METH_KEYWORDS, "create_table_hdu\n\nCreate a new table with the input parameters."},
