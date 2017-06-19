@@ -2034,6 +2034,9 @@ class TableHDU(HDUBase):
                                           self._info['colinfo'][colnum]['tscale'], 
                                           self._info['colinfo'][colnum]['tzero'])
 
+        if (self._check_tbit(colnums=colnums)):
+            array = self._fix_tbit_dtype(array, colnums)
+
         lower=keys.get('lower',False)
         upper=keys.get('upper',False)
         if self.lower or lower:
@@ -2176,6 +2179,25 @@ class TableHDU(HDUBase):
                 break
 
         return has_tbit
+
+    def _fix_tbit_dtype(self, array, colnums):
+        """
+        If necessary, patch up the TBIT to convert to bool array
+
+        parameters
+        ----------
+        array: record array
+        colnums: column numbers for lookup
+        """
+        descr = array.dtype.descr
+        for i,colnum in enumerate(colnums):
+            npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
+            if (istbit) :
+                coldescr=list(descr[i])
+                coldescr[1]='?'
+                descr[i]=tuple(coldescr)
+
+        return array.view(descr)
 
     def _get_simple_dtype_and_shape(self, colnum, rows=None):
         """
