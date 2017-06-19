@@ -1840,12 +1840,18 @@ class TableHDU(HDUBase):
         dtype, offsets, isvar = self.get_rec_dtype(**keys)
 
         w,=numpy.where(isvar == True)
+        has_tbit=self._check_tbit()
+
         if w.size > 0:
             vstorage = keys.get('vstorage',self._vstorage)
             colnums = self._extract_colnums()
             rows=None
             array = self._read_rec_with_var(colnums, rows, dtype,
                                             offsets, isvar, vstorage)
+        elif has_tbit:
+            # drop down to read_columns since we can't stuff into a contiguous array
+            colnums=self._extract_colnums()
+            array = self.read_columns(colnums, **keys)
         else:
 
             firstrow=1
@@ -2149,6 +2155,28 @@ class TableHDU(HDUBase):
             offsets[i] = dtype.fields[n][1]
         return dtype, offsets, isvararray
 
+    def _check_tbit(self, **keys):
+        """
+        Check if one of the columns is a TBIT column
+
+        parameters
+        ----------
+        colnums: integer array, optional
+        """
+        colnums=keys.get('colnums',None)
+
+        if colnums is None:
+            colnums = self._extract_colnums()
+
+        has_tbit=False
+        for i,colnum in enumerate(colnums):
+            npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
+            if (istbit) :
+                has_tbit=True
+                break
+
+        return has_tbit
+
     def _get_simple_dtype_and_shape(self, colnum, rows=None):
         """
         When reading a single column, we want the basic data
@@ -2164,7 +2192,7 @@ class TableHDU(HDUBase):
         """
 
         # basic datatype
-        npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
+        npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
         info = self._info['colinfo'][colnum]
         name = info['name']
 
@@ -2201,7 +2229,7 @@ class TableHDU(HDUBase):
         vstorage: string
             See docs in read_columns
         """
-        npy_type,isvar = self._get_tbl_numpy_dtype(colnum)
+        npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
         name = self._info['colinfo'][colnum]['name']
 
         if isvar:
@@ -2419,7 +2447,6 @@ class TableHDU(HDUBase):
         self._rescale_array(array[name], scale, zero)
         if array[name].dtype==numpy.bool:
             array[name] = self._convert_bool_array(array[name])
-            
         return array
 
     def _rescale_and_convert(self, array, scale, zero, name=None):
@@ -2479,6 +2506,10 @@ class TableHDU(HDUBase):
             raise KeyError("unsupported %s fits data "
                            "type: %d" % (table_type_string, ftype))
 
+        istbit=False
+        if (ftype == 1):
+            istbit=True
+
         isvar=False
         if ftype < 0:
             isvar=True
@@ -2495,7 +2526,7 @@ class TableHDU(HDUBase):
         if npy_type == 'S':
             width = self._info['colinfo'][colnum]['width']
             npy_type = 'S%d' % width
-        return npy_type, isvar
+        return npy_type, isvar, istbit
 
 
     def _process_args_as_rows_or_columns(self, arg, unpack=False):
@@ -2775,7 +2806,7 @@ class TableHDU(HDUBase):
             else:
                 f = format
 
-            dt,isvar = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
+            dt,isvar,istbit = self._get_tbl_numpy_dtype(colnum, include_endianness=False)
             if isvar:
                 tform = self._info['colinfo'][colnum]['tform']
                 if dt[0] == 'S':
@@ -3370,7 +3401,7 @@ class TableColumnSubset(object):
             else:
                 f = format
 
-            dt,isvar = hdu._get_tbl_numpy_dtype(colnum, include_endianness=False)
+            dt,isvar,istbit = hdu._get_tbl_numpy_dtype(colnum, include_endianness=False)
             if isvar:
                 tform = cinfo['tform']
                 if dt[0] == 'S':
@@ -4628,7 +4659,7 @@ _hdu_type_map = {IMAGE_HDU:'IMAGE_HDU',
                  'BINARY_TBL':BINARY_TBL}
 
 # no support yet for complex
-_table_fits2npy = {#1: 'b1',
+_table_fits2npy = {1: 'i1',
                    11: 'u1',
                    12: 'i1',
                    14: 'b1', # logical. Note pyfits uses this for i1, cfitsio casts to char*

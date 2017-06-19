@@ -2778,7 +2778,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    
+
     if (hdutype == ASCII_TBL) {
         if (read_ascii_column(self->fits, colnum, array, rowsObj, &status)) {
             set_ioerr_string_from_status(status);
@@ -3054,10 +3054,16 @@ static int read_binary_rec_columns(
 
             file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
 
-            // can just do one status check, since status are inherited.
-            ffmbyt(fits, file_pos, REPORT_EOF, status);
-            if (ffgbytoff(fits, width, repeat, 0, (void*)ptr, status)) {
-                return 1;
+            if (colptr->tdatatype == TBIT) {
+                if (fits_read_col_bit(fits, colnum, row+1, 1, repeat, (char*)ptr, status)) {
+                    return 1;
+                }
+            } else {
+                // can just do one status check, since status are inherited.
+                ffmbyt(fits, file_pos, REPORT_EOF, status);
+                if (ffgbytoff(fits, width, repeat, 0, (void*)ptr, status)) {
+                    return 1;
+                }
             }
             ptr += gsize;
         }
@@ -3101,7 +3107,7 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
-    
+
     colnums = get_int64_from_array(columnsobj, &ncols);
     if (colnums == NULL) {
         return NULL;
