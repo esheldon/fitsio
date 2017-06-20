@@ -292,6 +292,28 @@ class TestReadWrite(unittest.TestCase):
 
         self.vardata = data
 
+        #
+        # for bitcol columns
+        #
+        nvec = 2
+        ashape=(21,21)
+
+        dtype=[('b1vec','?',nvec),
+
+               ('b1arr','?',ashape)]
+
+        nrows=4
+        data=numpy.zeros(nrows, dtype=dtype)
+
+        for t in ['b1']:
+            data[t+'vec'] = (numpy.arange(nrows*nvec) % 2 == 0).astype('?').reshape(nrows,nvec)
+            arr = (numpy.arange(nrows*ashape[0]*ashape[1]) % 2 == 0).astype('?')
+            data[t+'arr'] = arr.reshape(nrows,ashape[0],ashape[1])
+
+        self.bdata = data
+
+
+
     def testHeaderWriteRead(self):
         """
         Test a basic header write and read
@@ -1667,6 +1689,49 @@ class TestReadWrite(unittest.TestCase):
             import traceback
             traceback.print_exc()
             self.assertTrue(False, 'Exception in testing read_raw')
+
+    def testTableBitcolReadWrite(self):
+        """
+        Test basic write/read with bitcols
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWriteBitcol-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                try:
+                    fits.write_table(self.bdata, extname='mytable', write_bitcols=True)
+                    write_success=True
+                except:
+                    write_success=False
+
+                self.assertTrue(write_success,"testing write does not raise an error")
+                if not write_success:
+                    self.skipTest("cannot test result if write failed")
+
+                d=fits[1].read()
+                self.compare_rec(self.bdata, d, "table read/write")
+
+            # now test read_column
+            with fitsio.FITS(fname) as fits:
+
+                for f in self.bdata.dtype.names:
+                    d = fits[1].read_column(f)
+                    self.compare_array(self.bdata[f], d, "table 1 single field read '%s'" % f)
+
+                # now list of columns
+                for cols in [['b1vec','b1arr']]:
+                    d = fits[1].read(columns=cols)
+                    for f in d.dtype.names:
+                        self.compare_array(self.bdata[f][:], d[f], "test column list %s" % f)
+
+                    rows = [1,3]
+                    d = fits[1].read(columns=cols, rows=rows)
+                    for f in d.dtype.names:
+                        self.compare_array(self.bdata[f][rows], d[f], "test column list %s row subset" % f)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
 
     def compare_names(self, read_names, true_names, lower=False, upper=False):
         for nread,ntrue in zip(read_names,true_names):
