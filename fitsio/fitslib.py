@@ -418,7 +418,7 @@ class FITS(object):
               compress=None, tile_dims=None,
               header=None,
               names=None,
-              table_type='binary', **keys):
+              table_type='binary', write_bitcols=False, **keys):
         """
         Write the data to a new HDU.
 
@@ -483,7 +483,8 @@ class FITS(object):
             self.write_table(data, units=units, 
                              extname=extname, extver=extver, header=header,
                              names=names,
-                             table_type=table_type)
+                             table_type=table_type,
+                             write_bitcols=write_bitcols)
 
 
 
@@ -705,7 +706,8 @@ class FITS(object):
 
     def write_table(self, data, table_type='binary', 
                     names=None, formats=None, units=None, 
-                    extname=None, extver=None, header=None):
+                    extname=None, extver=None, header=None,
+                    write_bitcols=False):
         """
         Create a new table extension and write the data.
 
@@ -758,13 +760,17 @@ class FITS(object):
             raise ValueError("data must have at least 1 row")
         """
 
+        # record this for the TableHDU object
+        self.keys['write_bitcols'] = write_bitcols
+
         self.create_table_hdu(data=data, 
                               header=header,
                               names=names,
                               units=units, 
                               extname=extname,
                               extver=extver,
-                              table_type=table_type)
+                              table_type=table_type,
+                              write_bitcols=write_bitcols)
 
         if header is not None:
             self[-1].write_keys(header)
@@ -782,7 +788,7 @@ class FITS(object):
                          header=None,
                          names=None, formats=None,
                          units=None, dims=None, extname=None, extver=None, 
-                         table_type='binary'):
+                         table_type='binary', write_bitcols=False):
         """
         Create a new, empty table extension and reload the hdu list.
 
@@ -855,20 +861,22 @@ class FITS(object):
         ------------
         The File must be opened READWRITE
         """
-
+        ## can leave as turn
         table_type_int=_extract_table_type(table_type)
 
         if data is not None:
             if isinstance(data,numpy.ndarray):
-                names, formats, dims = array2tabledef(data, table_type=table_type)
+                names, formats, dims = array2tabledef(data, table_type=table_type,
+                                                      write_bitcols=write_bitcols)
             elif isinstance(data, (list,dict)):
                 names, formats, dims = collection2tabledef(data, names=names,
-                                                           table_type=table_type)
+                                                           table_type=table_type,
+                                                           write_bitcols=write_bitcols)
             else:
                 raise ValueError("data must be an ndarray with fields or a dict")
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
-            names, formats, dims = descr2tabledef(dtype.descr)
+            names, formats, dims = descr2tabledef(dtype.descr,write_bitcols=write_bitcols)
         else:
             if names is None or formats is None:
                 raise ValueError("send either dtype=, data=, or names= and formats=")
@@ -1460,6 +1468,7 @@ class TableHDU(HDUBase):
         self._vstorage=keys.get('vstorage','fixed')
         self.case_sensitive=keys.get('case_sensitive',False)
         self._iter_row_buffer=keys.get('iter_row_buffer',1)
+        self.write_bitcols=keys.get('write_bitcols',False)
 
         if self._info['hdutype'] == ASCII_TBL:
             self._table_type_str='ascii'
@@ -1618,7 +1627,7 @@ class TableHDU(HDUBase):
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
                 self._FITS.write_columns(self._ext+1, nonobj_colnums, nonobj_arrays, 
-                                         firstrow=firstrow+1)
+                                         firstrow=firstrow+1, write_bitcols=self.write_bitcols)
 
         # writing the object arrays always occurs the same way
         # need to make sure this works for array fields
@@ -1666,7 +1675,7 @@ class TableHDU(HDUBase):
             data_send = array_to_native(data, inplace=False)
 
         self._FITS.write_column(self._ext+1, colnum+1, data_send, 
-                                firstrow=firstrow+1)
+                                firstrow=firstrow+1, write_bitcols=self.write_bitcols)
         del data_send
         self._update_info()
 
@@ -3500,7 +3509,7 @@ def tdim2shape(tdim, name, is_string=False):
 
     return shape
 
-def array2tabledef(data, table_type='binary'):
+def array2tabledef(data, table_type='binary', write_bitcols=False):
     """
     Similar to descr2tabledef but if there are object columns a type
     and max length will be extracted and used for the tabledef
@@ -3532,7 +3541,7 @@ def array2tabledef(data, table_type='binary'):
         elif npy_dtype[0] == "V":
             continue
         else:
-            name, form, dim = npy2fits(d,table_type=table_type)
+            name, form, dim = npy2fits(d,table_type=table_type,write_bitcols=write_bitcols)
 
         if name == '':
             raise ValueError("field name is an empty string")
@@ -3548,7 +3557,7 @@ def array2tabledef(data, table_type='binary'):
 
     return names, formats, dims
 
-def collection2tabledef(data, names=None, table_type='binary'):
+def collection2tabledef(data, names=None, table_type='binary', write_bitcols=False):
     if isinstance(data,dict):
         if names is None:
             names = list(data.keys())
@@ -3589,7 +3598,7 @@ def collection2tabledef(data, names=None, table_type='binary'):
             send_dt=dt
             if len(this_data.shape) > 1:
                 send_dt=list(dt) + [this_data.shape[1:]]
-            _, form, dim = npy2fits(send_dt,table_type=table_type)
+            _, form, dim = npy2fits(send_dt,table_type=table_type,write_bitcols=write_bitcols)
 
         formats.append(form)
         dims.append(dim)
@@ -3597,7 +3606,7 @@ def collection2tabledef(data, names=None, table_type='binary'):
     return names, formats, dims
 
 
-def descr2tabledef(descr, table_type='binary'):
+def descr2tabledef(descr, table_type='binary', write_bitcols=False):
     """
     Create a FITS table def from the input numpy descriptor.
 
@@ -3624,7 +3633,7 @@ def descr2tabledef(descr, table_type='binary'):
             raise ValueError("1-byte integers are not supported for ascii tables")
         """
 
-        name, form, dim = npy2fits(d,table_type=table_type)
+        name, form, dim = npy2fits(d,table_type=table_type,write_bitcols=write_bitcols)
 
         if name == '':
             raise ValueError("field name is an empty string")
@@ -3683,7 +3692,7 @@ def npy_obj2fits(data, name=None):
 
 
 
-def npy2fits(d, table_type='binary'):
+def npy2fits(d, table_type='binary', write_bitcols=False):
     """
     d is the full element from the descr
     """
@@ -3691,11 +3700,11 @@ def npy2fits(d, table_type='binary'):
     if npy_dtype[0] == 'S':
         name, form, dim = npy_string2fits(d,table_type=table_type)
     else:
-        name, form, dim = npy_num2fits(d, table_type=table_type)
+        name, form, dim = npy_num2fits(d, table_type=table_type, write_bitcols=write_bitcols)
 
     return name, form, dim
 
-def npy_num2fits(d, table_type='binary'):
+def npy_num2fits(d, table_type='binary', write_bitcols=False):
     """
     d is the full element from the descr
 
@@ -3728,6 +3737,10 @@ def npy_num2fits(d, table_type='binary'):
     if len(d) > 2:
         if table_type == 'ascii':
             raise ValueError("Ascii table columns must be scalar, got %s" % str(d))
+
+        if write_bitcols and npy_dtype=='b1':
+            # multi-dimensional boolean
+            form = 'X'
 
         # Note, depending on numpy version, even 1-d can be a tuple
         if isinstance(d[2], tuple):
