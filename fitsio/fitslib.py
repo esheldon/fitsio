@@ -239,6 +239,8 @@ def write(filename, data, extname=None, extver=None, units=None,
     table_type: string, optional
         Either 'binary' or 'ascii', default 'binary'
         Matching is case-insensitive
+    write_bitcols: bool, optional
+        Write boolean arrays in the FITS bitcols format, default False
 
 
     """
@@ -462,6 +464,8 @@ class FITS(object):
             table_type: string, optional
                 Either 'binary' or 'ascii', default 'binary'
                 Matching is case-insensitive
+            write_bitcols: bool, optional
+                Write boolean arrays in the FITS bitcols format, default False
 
         restrictions
         ------------
@@ -747,6 +751,8 @@ class FITS(object):
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
+        write_bitcols: boolean, optional
+            Write boolean arrays in the FITS bitcols format, default False
 
         restrictions
         ------------
@@ -760,8 +766,6 @@ class FITS(object):
             raise ValueError("data must have at least 1 row")
         """
 
-        # record this for the TableHDU object
-        self.keys['write_bitcols'] = write_bitcols
 
         self.create_table_hdu(data=data, 
                               header=header,
@@ -851,6 +855,8 @@ class FITS(object):
             be represented in the header with keyname EXTVER.  The extver must
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
+        write_bitcols: bool, optional
+            Write boolean arrays in the FITS bitcols format, default False
 
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
@@ -861,6 +867,10 @@ class FITS(object):
         ------------
         The File must be opened READWRITE
         """
+
+        # record this for the TableHDU object
+        self.keys['write_bitcols'] = write_bitcols
+
         ## can leave as turn
         table_type_int=_extract_table_type(table_type)
 
