@@ -1733,6 +1733,31 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableBitcolAppend(self):
+        """
+        Test creating a table with bitcol support and appending new rows.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableAppendBitcol-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                # initial write
+                fits.write_table(self.bdata, extname='mytable', write_bitcols=True)
+                # now append
+                bdata2 = self.bdata.copy()
+                fits[1].append(bdata2)
+
+                d = fits[1].read()
+                self.assertEqual(d.size, self.bdata.size*2)
+
+                self.compare_rec(self.bdata, d[0:self.data.size], "Comparing initial write")
+                self.compare_rec(bdata2, d[self.data.size:], "Comparing appended data")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def compare_names(self, read_names, true_names, lower=False, upper=False):
         for nread,ntrue in zip(read_names,true_names):
             if lower:
