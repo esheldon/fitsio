@@ -1,6 +1,6 @@
 A python library to read from and write to FITS files.
 
-![](https://travis-ci.org/esheldon/fitsio.svg)
+[![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
 
 Do not use numpy 1.10.0 or 1.10.1
 ----------------------------------
