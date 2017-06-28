@@ -5,8 +5,9 @@ We plan to release 1.0 soon now that bit columns are supported.
 
 New Features
 
-    - Now support reading and writing bit columns (Eli Rykoff) Can now read
-    - CONTINUE keywords in headers.  It is currently
+    - Now support reading and writing bit columns (Eli Rykoff)
+    
+    - Can now read CONTINUE keywords in headers.  It is currently
       treated as a comment; full implementation to come. (Alex Drlica-Wagner)
 
 version 0.9.11
