@@ -635,6 +635,35 @@ class TestReadWrite(unittest.TestCase):
  
 
 
+    def testWriteKeyDict(self):
+        """
+        test that write_key works using a standard key dict
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-WriteKeyDict-',suffix='.fits')
+        nrows=3
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                im=numpy.zeros( (10,10), dtype='i2' )
+                fits.write(im)
+
+                keydict = {
+                    'name':'test',
+                    'value':35,
+                    'comment':'keydict test',
+                }
+                fits[-1].write_key(**keydict)
+
+                h = fits[-1].read_header()
+
+                self.assertEqual(h['test'],keydict['value'])
+                self.assertEqual(h.get_comment('test'),keydict['comment'])
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
 
 
     def testMoveByName(self):
