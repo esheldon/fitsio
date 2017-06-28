@@ -1,5 +1,8 @@
-version 0.9.12 (not yet released)
+version 1.0 (not yet released)
 ---------------------------------
+
+We plan to release 1.0 soon now that bit columns are supported.
+
 New Features
 
     - Now support reading and writing bit columns (Eli Rykoff) Can now read
