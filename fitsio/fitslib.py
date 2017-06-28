@@ -1295,13 +1295,13 @@ class HDUBase(object):
         """
         self._FITS.write_continue(self._ext+1, str(value))
 
-    def write_key(self, keyname, value, comment=""):
+    def write_key(self, name, value, comment=""):
         """
         Write the input value to the header
 
         parameters
         ----------
-        keyname: string
+        name: string
             Name of keyword to write/update
         value: scalar
             Value to write, can be string float or integer type,
@@ -1324,29 +1324,29 @@ class HDUBase(object):
             else:
                 v=0
             self._FITS.write_logical_key(self._ext+1,
-                                         str(keyname),
+                                         str(name),
                                          v,
                                          str(comment))
         elif isinstance(value, _stypes):
             self._FITS.write_string_key(self._ext+1,
-                                        str(keyname),
+                                        str(name),
                                         str(value),
                                         str(comment))
         elif isinstance(value, _ftypes):
             self._FITS.write_double_key(self._ext+1,
-                                        str(keyname),
+                                        str(name),
                                         float(value),
                                         str(comment))
         elif isinstance(value, _itypes):
             self._FITS.write_long_key(self._ext+1,
-                                      str(keyname),
+                                      str(name),
                                       int(value),
                                       str(comment))
         elif isinstance(value,(tuple,list)):
             vl=[str(el) for el in value]
             sval=','.join(vl)
             self._FITS.write_string_key(self._ext+1,
-                                        str(keyname),
+                                        str(name),
                                         sval,
                                         str(comment))
         else:
@@ -1354,9 +1354,9 @@ class HDUBase(object):
             mess=("warning, keyword '%s' has non-standard "
                   "value type %s, "
                   "Converting to string: '%s'")
-            warnings.warn(mess % (keyname,type(value),sval), FITSRuntimeWarning)
+            warnings.warn(mess % (name,type(value),sval), FITSRuntimeWarning)
             self._FITS.write_string_key(self._ext+1,
-                                        str(keyname),
+                                        str(name),
                                         sval,
                                         str(comment))
 
