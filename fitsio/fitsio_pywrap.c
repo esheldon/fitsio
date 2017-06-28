@@ -812,12 +812,16 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
 // this is the parameter that goes in the type for fits_write_col
 static int 
-npy_to_fits_table_type(int npy_dtype) {
+npy_to_fits_table_type(int npy_dtype, int write_bitcols) {
 
     char mess[255];
     switch (npy_dtype) {
         case NPY_BOOL:
-            return TLOGICAL;
+            if (write_bitcols) {
+                return TBIT;
+            } else {
+                return TLOGICAL;
+            }
         case NPY_UINT8:
             return TBYTE;
         case NPY_INT8:
@@ -1737,6 +1741,7 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
     int hdunum=0;
     int hdutype=0;
     int colnum=0;
+    int write_bitcols=0;
     PyObject* array=NULL;
 
     void* data=NULL;
@@ -1747,15 +1752,15 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
     int npy_dtype=0;
     int fits_dtype=0;
 
-    static char *kwlist[] = {"hdunum","colnum","array","firstrow", NULL};
+    static char *kwlist[] = {"hdunum","colnum","array","firstrow","write_bitcols", NULL};
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL", 
-                  kwlist, &hdunum, &colnum, &array, &firstrow_py)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOLi", 
+                                     kwlist, &hdunum, &colnum, &array, &firstrow_py, &write_bitcols)) {
         return NULL;
     }
     firstrow = (LONGLONG) firstrow_py;
@@ -1772,7 +1777,7 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
     }
 
     npy_dtype = PyArray_TYPE(array);
-    fits_dtype = npy_to_fits_table_type(npy_dtype);
+    fits_dtype = npy_to_fits_table_type(npy_dtype, write_bitcols);
     if (fits_dtype == -9999) {
         return NULL;
     }
@@ -1787,7 +1792,11 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
             set_ioerr_string_from_status(status);
             return NULL;
         }
-        
+    } else if (fits_dtype == TBIT) {
+        if (fits_write_col_bit(self->fits, colnum, firstrow, firstelem, nelem, data, &status)) {
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
     } else {
         if( fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status)) {
             set_ioerr_string_from_status(status);
@@ -1811,6 +1820,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     int status=0;
     int hdunum=0;
     int hdutype=0;
+    int write_bitcols=0;
     //void **data_ptrs=NULL;
     PyObject* colnum_list=NULL;
     PyObject* array_list=NULL;
@@ -1832,15 +1842,15 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     npy_intp ndim=0, *dims=NULL;
     Py_ssize_t irow=0, icol=0, j=0;;
 
-    static char *kwlist[] = {"hdunum","colnums","arraylist","firstrow", NULL};
+    static char *kwlist[] = {"hdunum","colnums","arraylist","firstrow","write_bitcols", NULL};
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOL", 
-                  kwlist, &hdunum, &colnum_list, &array_list, &firstrow_py)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOLi", 
+                                     kwlist, &hdunum, &colnum_list, &array_list, &firstrow_py, &write_bitcols)) {
         return NULL;
     }
     firstrow = (LONGLONG) firstrow_py;
@@ -1877,7 +1887,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     for (icol=0; icol<ncols; icol++) {
         tmp_array = PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
-        fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype);
+        fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype, write_bitcols);
         if (fits_dtypes[icol] == -9999) {
             status=1;
             goto _fitsio_pywrap_write_columns_bail;
@@ -1950,7 +1960,17 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                 }
                 */
 
-
+            } else if (fits_dtypes[icol] == TBIT) {
+                if (fits_write_col_bit(self->fits,
+                                       colnums[icol],
+                                       thisrow,
+                                       firstelem,
+                                       nperrow[icol],
+                                       data,
+                                       &status)) {
+                    set_ioerr_string_from_status(status);
+                    goto _fitsio_pywrap_write_columns_bail;
+                }
             } else {
                 //fprintf(stderr,"row: %ld col: %d\n", (long)thisrow, colnums[icol]);
                 if( fits_write_col(self->fits, 
@@ -2548,7 +2568,7 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
     char* cdata=NULL;
 
     npy_dtype = PyArray_TYPE(array);
-    fits_dtype = npy_to_fits_table_type(npy_dtype);
+    fits_dtype = npy_to_fits_table_type(npy_dtype,0);
 
     nelem = PyArray_SIZE(array);
 
@@ -2627,7 +2647,7 @@ static int read_ascii_column_byrow(
     npy_intp i=0;
 
     npy_dtype = PyArray_TYPE(array);
-    fits_dtype = npy_to_fits_table_type(npy_dtype);
+    fits_dtype = npy_to_fits_table_type(npy_dtype,0);
 
     nelem = PyArray_SIZE(array);
 
@@ -2778,7 +2798,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    
+
     if (hdutype == ASCII_TBL) {
         if (read_ascii_column(self->fits, colnum, array, rowsObj, &status)) {
             set_ioerr_string_from_status(status);
@@ -3054,10 +3074,16 @@ static int read_binary_rec_columns(
 
             file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
 
-            // can just do one status check, since status are inherited.
-            ffmbyt(fits, file_pos, REPORT_EOF, status);
-            if (ffgbytoff(fits, width, repeat, 0, (void*)ptr, status)) {
-                return 1;
+            if (colptr->tdatatype == TBIT) {
+                if (fits_read_col_bit(fits, colnum, row+1, 1, repeat, (char*)ptr, status)) {
+                    return 1;
+                }
+            } else {
+                // can just do one status check, since status are inherited.
+                ffmbyt(fits, file_pos, REPORT_EOF, status);
+                if (ffgbytoff(fits, width, repeat, 0, (void*)ptr, status)) {
+                    return 1;
+                }
             }
             ptr += gsize;
         }
@@ -3101,7 +3127,7 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
-    
+
     colnums = get_int64_from_array(columnsobj, &ncols);
     if (colnums == NULL) {
         return NULL;
