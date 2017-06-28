@@ -10,6 +10,10 @@ New Features
     - Can now read CONTINUE keywords in headers.  It is currently
       treated as a comment; full implementation to come. (Alex Drlica-Wagner)
 
+    - Can now use a standard key dict when writing a header key using
+      the write_key method via `**`, e.g. `write_key(**key_dict)`
+      (Alex Drlica-Wagner)
+
 version 0.9.11
 ---------------------------------
 
