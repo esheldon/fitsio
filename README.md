@@ -414,7 +414,6 @@ be read, without affecting other functionality.
 TODO
 ----
 
-- bit columns
 - HDU groups: does anyone use these? If so open an issue!
 
 Notes on cfitsio bundling
