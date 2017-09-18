@@ -376,7 +376,7 @@ class TestReadWrite(unittest.TestCase):
                 data=numpy.zeros(10)
                 header = [
                     # This is a snippet from a real DES FITS header, which (I guess incorrectly)
-                    # puts # an = sign after the CONTINUE.  This didn't used to work.
+                    # puts an = sign after the CONTINUE.  This didn't used to work.
                     "OBSERVER= 'Ross Cawthon(RM), Ricardo Ogando(OBS1), Rutu Das (OBS1) Michael &'",
                     "CONTINUE= '        '           /   '&' / Observer name(s)",
                     ]
