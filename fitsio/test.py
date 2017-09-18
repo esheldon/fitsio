@@ -341,8 +341,7 @@ class TestReadWrite(unittest.TestCase):
 
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
     def testHeaderContinue(self):
         """
@@ -369,8 +368,7 @@ class TestReadWrite(unittest.TestCase):
 
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
         fname=tempfile.mktemp(prefix='fitsio-HeaderContinue-',suffix='.fits')
         try:
@@ -393,8 +391,7 @@ class TestReadWrite(unittest.TestCase):
 
         finally:
             if os.path.exists(fname):
-                pass
-                #os.remove(fname)
+                os.remove(fname)
 
 
  
