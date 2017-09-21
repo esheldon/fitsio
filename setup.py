@@ -101,7 +101,10 @@ class build_ext_subclass(build_ext):
             # FIXME: use pkg-config to tell if bz2 shall be included ?
             self.compiler.add_library('cfitsio')
             pass
-
+        
+        # fitsio requires libm as well.
+        self.compiler.add_library('m')
+        
         # call the original build_extensions
 
         build_ext.build_extensions(self)
