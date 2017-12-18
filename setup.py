@@ -1,3 +1,4 @@
+from __future__ import print_function
 import distutils
 from distutils.core import setup, Extension, Command
 from distutils.command.build_ext import build_ext
@@ -9,6 +10,15 @@ import numpy
 import glob
 import shutil
 import platform
+
+# we allow numpy to fail import, in order to
+# support egg_info for readthedocs
+try:
+    import numpy
+    include_dirs=[numpy.get_include()]
+except:
+    print("could not import numpy")
+    include_dirs=[]
 
 class build_ext_subclass(build_ext):
     boolean_options = build_ext.boolean_options + ['use-system-fitsio']
@@ -169,7 +179,6 @@ class build_ext_subclass(build_ext):
             raise ValueError("could not compile cfitsio %s" % self.cfitsio_version)
 
 
-include_dirs=[numpy.get_include()]
     
 
 sources = ["fitsio/fitsio_pywrap.c"]
