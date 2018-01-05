@@ -3564,7 +3564,8 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
         """
         name_nocase = name.upper()
         if name_nocase in names_nocase:
-            raise ValueError("duplicate column name found: '%s'" % name_nocase)
+            raise ValueError("duplicate column name found: '%s'.  Note "
+                             "FITS column names are not case sensitive" % name_nocase)
 
         names.append(name)
         names_nocase[name_nocase] = name_nocase
