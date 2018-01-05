@@ -3529,6 +3529,7 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
     if data.dtype.fields is None:
         raise ValueError("data must have fields")
     names=[]
+    names_nocase={}
     formats=[]
     dims=[]
 
@@ -3561,7 +3562,13 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
             if dim is not None:
                 raise ValueError("array columns are not supported for ascii tables")
         """
+        name_nocase = name.upper()
+        if name_nocase in names_nocase:
+            raise ValueError("duplicate column name found: '%s'" % name_nocase)
+
         names.append(name)
+        names_nocase[name_nocase] = name_nocase
+
         formats.append(form)
         dims.append(dim)
 
