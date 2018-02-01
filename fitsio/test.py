@@ -380,8 +380,12 @@ class TestReadWrite(unittest.TestCase):
                     "OBSERVER= 'Ross Cawthon(RM), Ricardo Ogando(OBS1), Rutu Das (OBS1) Michael &'",
                     "CONTINUE= '        '           /   '&' / Observer name(s)",
                     ]
-                fits.write_image(data, header=header)
+                numpy.testing.assert_warns(fitsio.FITSRuntimeWarning,
+                                           fits.write_image, data, header=header)
 
+                # The CONTINUE= line gets converted to a normal CONTINUE, so no warning on reads.
+                # There would be a warning if the file being read has CONTINUE=, but that would
+                # be harder to test explicitly, since fitsio won't write that file...
                 rh = fits[0].read_header()
                 assert rh.keys().count('CONTINUE') == 1
 
