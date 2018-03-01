@@ -4390,10 +4390,7 @@ class FITSCard(FITSRecord):
             self._check_len()
 
             front=card_string[0:7]
-            if (not self.has_equals() or front=='COMMENT' or front=='HISTORY'):
-
-                #if front=='CONTINU':
-                #    raise ValueError("CONTINUE not supported")
+            if (not self.has_equals() or front in ['COMMENT', 'HISTORY', 'CONTINU']):
 
                 if front=='HISTORY':
                     self._set_as_history()
@@ -4404,6 +4401,13 @@ class FITSCard(FITSRecord):
                     # treated as comment; this is built into cfitsio
                     # as well
                     self._set_as_comment()
+
+                if self.has_equals():
+                    mess=("warning: It is not FITS-compliant for a %s header card to include "
+                          "an = sign.  There may be slight inconsistencies if you write this "
+                          "back out to a file.")
+                    mess = mess % (card_string[:8])
+                    warnings.warn(mess, FITSRuntimeWarning)
             else:
                 self._set_as_key()
 
