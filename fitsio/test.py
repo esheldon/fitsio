@@ -401,7 +401,25 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
+    def testImageWriteEmpty(self):
+        """
+        Test a basic image write, with no data and just a header, then reading back in to
+        check the values
+        """
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteEmpty-',suffix='.fits')
+        try:
+            data=None
+            header={'EXPTIME':120, 'OBSERVER':'Beatrice Tinsley','INSTRUME':'DECam','FILTER':'r'}
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                for extname in ['CCD1','CCD2','CCD3','CCD4','CCD5','CCD6','CCD7','CCD8']:
+                    fits.write_image(data, ignore_empty=True, header=header)
+                    rdata = fits[-1].read()
+                    rh = fits[-1].read_header()
+                    self.check_header(header, rh)
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
 
     def testImageWriteReadFromDims(self):
         """
