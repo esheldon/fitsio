@@ -420,7 +420,7 @@ class FITS(object):
               compress=None, tile_dims=None,
               header=None,
               names=None,
-              ignore_empty=False,
+              ignore_empty=self.keys.ignore_empty,
               table_type='binary', write_bitcols=False, **keys):
         """
         Write the data to a new HDU.
@@ -494,7 +494,7 @@ class FITS(object):
 
 
 
-    def write_image(self, img, extname=None, extver=None, ignore_empty=False,
+    def write_image(self, img, extname=None, extver=None, ignore_empty=self.keys.ignore_empty,
                     compress=None, tile_dims=None, header=None):
         """
         Create a new image extension and write the data.  

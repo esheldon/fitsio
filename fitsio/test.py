@@ -411,9 +411,9 @@ class TestReadWrite(unittest.TestCase):
         try:
             data=None
             header={'EXPTIME':120, 'OBSERVER':'Beatrice Tinsley','INSTRUME':'DECam','FILTER':'r'}
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            with fitsio.FITS(fname,'rw',clobber=True, ignore_empty=True) as fits:
                 for extname in ['CCD1','CCD2','CCD3','CCD4','CCD5','CCD6','CCD7','CCD8']:
-                    fits.write_image(data, ignore_empty=True, header=header)
+                    fits.write_image(data, header=header)
                     rdata = fits[-1].read()
                     rh = fits[-1].read_header()
                     self.check_header(header, rh)
