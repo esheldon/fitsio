@@ -34,7 +34,8 @@ class build_ext_subclass(build_ext):
               "Path to look for cfitsio library; default is the system search path."),
             ]
     #cfitsio_version = '3280patch'
-    cfitsio_version = '3370patch'
+    #cfitsio_version = '3370patch'
+    cfitsio_version = '3430'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
@@ -91,6 +92,8 @@ class build_ext_subclass(build_ext):
 
             if '-DHAVE_BZIP2=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
                 self.compiler.add_library('bz2')
+
+            self.compiler.add_library('curl')
 
             self.compile_cfitsio()
 
@@ -199,7 +202,7 @@ classifiers = ["Development Status :: 5 - Production/Stable"
               ]
 
 setup(name="fitsio", 
-      version="0.9.12rc1",
+      version="0.9.12rc1-3430",
       description=description,
       long_description=long_description,
       license = "GPL",
