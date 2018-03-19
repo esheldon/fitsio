@@ -93,7 +93,8 @@ class build_ext_subclass(build_ext):
             if '-DHAVE_BZIP2=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
                 self.compiler.add_library('bz2')
 
-            self.compiler.add_library('curl')
+            if '-DCFITSIO_HAVE_CURL=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
+                self.compiler.add_library('curl')
 
             self.compile_cfitsio()
 
