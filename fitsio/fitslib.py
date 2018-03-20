@@ -1845,6 +1845,53 @@ class TableHDU(HDUBase):
 
         self._update_info()
 
+    def resize(self, nrows, front=False):
+        """
+        Resize the table to the given size, removing or adding rows as
+        necessary.  Note if expanding the table at the end, it is more
+        efficient to use the append function than resizing and then
+        writing.
+        
+        New added rows are zerod, except for 'i1', 'u2' and 'u4' data types
+        which get -128,32768,2147483648 respectively
+
+
+        parameters
+        ----------
+        nrows: int
+            new size of table
+        front: bool, optional
+            If True, add or remove rows from the front.  Default
+            is False
+        """
+
+        nrows_current = self.get_nrows()
+        if nrows == nrows_current:
+            return
+
+        if nrows < nrows_current:
+            rowdiff = nrows_current - nrows
+            if front:
+                # delete from the front
+                start = 0
+                stop = rowdiff
+            else:
+                # delete from the back
+                start = nrows
+                stop = nrows_current
+
+            self.delete_rows(slice(start, stop))
+        else:
+            rowdiff = nrows - nrows_current
+            if front:
+                firstrow = 0 # in this case zero is what we want, since the code inserts
+            else:
+                firstrow = nrows_current
+            self._FITS.insert_rows(self._ext+1, firstrow, rowdiff)
+
+        self._update_info()
+
+
     def read(self, **keys):
         """
         read data from this HDU

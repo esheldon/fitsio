@@ -2543,6 +2543,56 @@ PyFITSObject_write_continue(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+/*
+   insert a set of rows
+*/
+
+static PyObject *
+PyFITSObject_insert_rows(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+
+    int hdutype=0;
+    PY_LONG_LONG firstrow_py=0, nrows_py=0;
+    LONGLONG firstrow=0, nrows=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iLL",
+                          &hdunum, &firstrow_py, &nrows_py)) {
+        return NULL;
+    }
+
+    firstrow = (LONGLONG) firstrow_py;
+    nrows = (LONGLONG) nrows_py;
+
+    if (nrows <= 0) {
+        // nothing to do, just return
+        Py_RETURN_NONE;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_insert_rows(self->fits, firstrow, nrows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does a full close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
 
 /*
 
@@ -4232,6 +4282,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
     {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
     {"write_continue",       (PyCFunction)PyFITSObject_write_continue,        METH_VARARGS,  "write_continue\n\nWrite contineu into the header of the specified HDU."},
+
+    {"insert_rows",        (PyCFunction)PyFITSObject_insert_rows,        METH_VARARGS,  "Insert blank rows"},
 
     {"delete_row_range",        (PyCFunction)PyFITSObject_delete_row_range,        METH_VARARGS,  "Delete a range of rows"},
     {"delete_rows",        (PyCFunction)PyFITSObject_delete_rows,        METH_VARARGS,  "Delete a set of rows"},

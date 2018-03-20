@@ -16,6 +16,8 @@ New Features
 
     - Delete row sets and row ranges using the delete_rows() method
       for tables
+    - Resize tables, adding or removing rows, using the resize() method for
+      tables
 
 version 0.9.11
 ---------------------------------
