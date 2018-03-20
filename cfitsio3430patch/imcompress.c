@@ -2373,9 +2373,16 @@ int imcomp_convert_tile_tushort(
 		       idata[ii] = ((int) usbuff[ii]) - 32768;
                }
            } else {  /* just do the data type conversion to int */
-                 /* have to convert usbuff to an I*4 array, in place */
-                 /* usbuff must have been allocated large enough to do this */
-                 fits_ushort_to_int_inplace(usbuff, tilelen, status);
+               /* for HCOMPRESS we need to simply subtract 32768 */
+               /* for PLIO, have to convert usbuff to an I*4 array, in place */
+               /* usbuff must have been allocated large enough to do this */
+
+               if ((outfptr->Fptr)->compress_type == HCOMPRESS_1) {
+                    for (ii = tilelen - 1; ii >= 0; ii--)
+                       idata[ii] = ((int) usbuff[ii]) - 32768;
+               } else {
+                    fits_ushort_to_int_inplace(usbuff, tilelen, status);
+               }
            }
         }
 
