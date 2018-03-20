@@ -33,9 +33,7 @@ class build_ext_subclass(build_ext):
              ('system-fitsio-libdir=', None,
               "Path to look for cfitsio library; default is the system search path."),
             ]
-    #cfitsio_version = '3280patch'
-    #cfitsio_version = '3370patch'
-    cfitsio_version = '3430'
+    cfitsio_version = '3430patch'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
