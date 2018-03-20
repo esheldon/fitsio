@@ -14,6 +14,9 @@ New Features
       the write_key method via `**`, e.g. `write_key(**key_dict)`
       (Alex Drlica-Wagner)
 
+    - Delete row sets and row ranges using the delete_rows() method
+      for tables
+
 version 0.9.11
 ---------------------------------
 

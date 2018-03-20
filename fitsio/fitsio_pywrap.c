@@ -2544,7 +2544,115 @@ PyFITSObject_write_continue(struct PyFITSObject* self, PyObject* args) {
 }
 
 
- 
+/*
+
+   delete a range of rows
+
+   input stop is like a python slice, so exclusive, but 1-offset
+   rather than 0-offset
+*/
+
+static PyObject *
+PyFITSObject_delete_row_range(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+
+    int hdutype=0;
+    PY_LONG_LONG slice_start_py=0, slice_stop_py=0;
+    LONGLONG slice_start=0, slice_stop=0, nrows=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iLL",
+                          &hdunum, &slice_start_py, &slice_stop_py)) {
+        return NULL;
+    }
+
+    slice_start = (LONGLONG) slice_start_py;
+    slice_stop = (LONGLONG) slice_stop_py;
+    nrows = slice_stop - slice_start;
+
+    if (nrows <= 0) {
+        // nothing to do, just return
+        Py_RETURN_NONE;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_delete_rows(self->fits, slice_start, nrows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does a full close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+/*
+
+   delete a specific set of rows, 1-offset
+
+   no type checking is applied to the rows
+*/
+
+static PyObject *
+PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+    int status=0;
+    int hdunum=0;
+
+    int hdutype=0;
+    PyObject *rows_array=NULL;
+    LONGLONG *rows=NULL, nrows=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iO",
+                          &hdunum, &rows_array)) {
+        return NULL;
+    }
+
+    rows = (LONGLONG *) PyArray_DATA(rows_array);
+    nrows = PyArray_SIZE(rows_array);
+    if (nrows <= 0) {
+        Py_RETURN_NONE;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (fits_delete_rowlistll(self->fits, rows, nrows, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does a full close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
+
+
 /*
  * read a single, entire column from an ascii table into the input array.  This
  * version uses the standard read column instead of our by-bytes version.
@@ -4124,6 +4232,10 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
     {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
     {"write_continue",       (PyCFunction)PyFITSObject_write_continue,        METH_VARARGS,  "write_continue\n\nWrite contineu into the header of the specified HDU."},
+
+    {"delete_row_range",        (PyCFunction)PyFITSObject_delete_row_range,        METH_VARARGS,  "Delete a range of rows"},
+    {"delete_rows",        (PyCFunction)PyFITSObject_delete_rows,        METH_VARARGS,  "Delete a set of rows"},
+
     {"close",                (PyCFunction)PyFITSObject_close,                METH_VARARGS,  "close\n\nClose the fits file."},
     {NULL}  /* Sentinel */
 };

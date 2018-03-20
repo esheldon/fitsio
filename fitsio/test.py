@@ -1318,6 +1318,56 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableDeleteRowRange(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableDeleteRowRange-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            rowslice = slice(1,3)
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].delete_rows(rowslice)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[ [0,3] ]
+            self.compare_rec(compare_data, d, "delete row range")
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testTableDeleteRows(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableDeleteRowRange-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            rows2delete = [1,3]
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].delete_rows(rows2delete)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[ [0,2] ]
+            self.compare_rec(compare_data, d, "delete rows")
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
 
 
     def testSlice(self):

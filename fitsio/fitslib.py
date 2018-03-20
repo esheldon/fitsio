@@ -1793,6 +1793,58 @@ class TableHDU(HDUBase):
         keys['firstrow'] = firstrow
         self.write(data, **keys)
 
+
+    def delete_rows(self, rows):
+        """
+        Delete rows from the table
+
+        parameters
+        ----------
+        rows: sequence or slice
+            The exact rows to delete as a sequence, or a slice.
+        
+        examples
+        --------
+            # delete a range of rows
+            with fitsio.FITS(fname,'rw') as fits:
+                fits['mytable'].delete_rows(slice(3,20))
+
+            # delete specific rows
+            with fitsio.FITS(fname,'rw') as fits:
+                rows2delete = [3,88,76]
+                fits['mytable'].delete_rows(rows2delete)
+        """
+
+        if rows is None:
+            return
+
+        # extract and convert to 1-offset for C routine
+        if isinstance(rows, slice):
+            rows = self._process_slice(rows)
+            if rows.step is not None and rows.step != 1:
+                rows = numpy.arange(
+                    rows.start+1,
+                    rows.stop+1,
+                    rows.step,
+                )
+            else:
+                # rows must be 1-offset
+                rows = slice(rows.start+1, rows.stop+1)
+        else:
+            rows = self._extract_rows(rows)
+            # rows must be 1-offset
+            rows += 1
+
+        if isinstance(rows, slice):
+            self._FITS.delete_row_range(self._ext+1, rows.start, rows.stop)
+        else:
+            if rows.size == 0:
+                return
+
+            self._FITS.delete_rows(self._ext+1, rows)
+
+        self._update_info()
+
     def read(self, **keys):
         """
         read data from this HDU
