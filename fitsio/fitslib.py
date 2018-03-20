@@ -4527,14 +4527,14 @@ def check_comptype_img(comptype, dtype_str):
     if comptype == NOCOMPRESS:
         return
 
-    if dtype_str == 'i8':
+    #if dtype_str == 'i8':
         # no i8 allowed for tile-compressed images
-        raise ValueError("8-byte integers not supported when  using tile compression")
+    #    raise ValueError("8-byte integers not supported when  using tile compression")
 
     if comptype == PLIO_1:
-        # no unsigned for plio
-        if dtype_str[0] == 'u':
-            raise ValueError("unsigned integers currently not "
+        # no unsigned u4/u8 for plio
+        if dtype_str == 'u4' or dtype_str == 'u8':
+            raise ValueError("Unsigned 4/8-byte integers currently not "
                              "allowed when writing using PLIO "
                              "tile compression")
 
