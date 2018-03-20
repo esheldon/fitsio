@@ -1,7 +1,5 @@
-version 1.0 (not yet released)
+version 1.0
 ---------------------------------
-
-We plan to release 1.0 soon now that bit columns are supported.
 
 New Features
 
@@ -18,6 +16,15 @@ New Features
       for tables
     - Resize tables, adding or removing rows, using the resize() method for
       tables
+
+    - make write_key usable with standard dictionary using the **keydict
+      style
+
+Bug Fixes
+
+    - check that the input fields names for tables are unique after converting
+      to upper case
+    - link against libm explicitly for compatability on some systems
 
 version 0.9.11
 ---------------------------------
