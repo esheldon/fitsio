@@ -974,6 +974,28 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableReadScalar(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            data = numpy.empty(1, dtype=[('CLASS', 'S6')])
+            data['CLASS'] = 'GALAXY'
+            fits.write_table(data)
+            fits.write_table(data)
+            fits.write_table(data)
+        try:
+            with fitsio.FITS(fname,'r',clobber=True) as fits:
+                # this shall not segfault.
+                x = fits[2]['CLASS'][:]
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
 
     def testTableWriteDictOfArraysScratch(self):
         """

@@ -2966,7 +2966,8 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         void* data=PyArray_DATA(array);
         npy_intp nrows=0;
         npy_int64* rows=NULL;
-        npy_intp stride=PyArray_STRIDE(array,0);
+        npy_intp * strides=PyArray_STRIDES(array);
+        npy_intp stride = strides?strides[0]:0;
         if (rowsObj == Py_None) {
             nrows = hdu->numrows;
         } else {
