@@ -326,6 +326,7 @@ class FITS(object):
         #self.mode=keys.get('mode','r')
         self.mode=mode
         self.case_sensitive=keys.get('case_sensitive',False)
+        self.ignore_empty=keys.get('ignore_empty', False)
 
         self.verbose = keys.get('verbose',False)
         clobber = keys.get('clobber',False)
@@ -420,6 +421,7 @@ class FITS(object):
               compress=None, tile_dims=None,
               header=None,
               names=None,
+              ignore_empty=None,
               table_type='binary', write_bitcols=False, **keys):
         """
         Write the data to a new HDU.
@@ -458,6 +460,10 @@ class FITS(object):
                     'PLIO' (no unsigned or negative integers)
                     'HCOMPRESS'
                 (case-insensitive) See the cfitsio manual for details.
+            ignore_empty: bool, optional
+                Allows writing more that one empty HDU, by bypassing the call
+                to _ensure_empty_image_ok()
+
         Table-only keywords:
             units: list/dec, optional:
                 A list of strings with units for each column.
@@ -466,6 +472,7 @@ class FITS(object):
                 Matching is case-insensitive
             write_bitcols: bool, optional
                 Write boolean arrays in the FITS bitcols format, default False
+
 
         restrictions
         ------------
@@ -481,6 +488,7 @@ class FITS(object):
 
         if isimage:
             self.write_image(data, extname=extname, extver=extver, 
+                             ignore_empty=ignore_empty,
                              compress=compress, tile_dims=tile_dims,
                              header=header)
         else:
@@ -492,7 +500,7 @@ class FITS(object):
 
 
 
-    def write_image(self, img, extname=None, extver=None,
+    def write_image(self, img, extname=None, extver=None, ignore_empty=None,
                     compress=None, tile_dims=None, header=None):
         """
         Create a new image extension and write the data.  
@@ -534,7 +542,7 @@ class FITS(object):
         """
 
         self.create_image_hdu(img, 
-                              header=header,
+                              header=header, ignore_empty=ignore_empty,
                               extname=extname, extver=extver,
                               compress=compress, tile_dims=tile_dims)
 
@@ -554,7 +562,8 @@ class FITS(object):
                          extver=None,
                          compress=None,
                          tile_dims=None,
-                         header=None):
+                         header=None,
+                         ignore_empty=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
         create from an input image or from input dims and dtype
@@ -610,6 +619,10 @@ class FITS(object):
             This is only used to determine how many slots to reserve for
             header keywords
 
+       ignore_empty: bool, optional
+            Allows writing more that one empty HDU, by bypassing the
+            call to _ensure_empty_image_ok()
+
 
         restrictions
         ------------
@@ -620,6 +633,9 @@ class FITS(object):
             from_image=True
         elif dims is not None:
             from_image=False
+
+        if ignore_empty is None:
+            ignore_empty = self.ignore_empty
 
         if from_image:
             img2send=img
@@ -638,7 +654,8 @@ class FITS(object):
                     img2send = array_to_native(img, inplace=False)
 
             else:
-                self._ensure_empty_image_ok()
+                if not ignore_empty:
+                    self._ensure_empty_image_ok()
                 compress=None
                 tile_dims=None
 
