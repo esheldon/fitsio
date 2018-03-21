@@ -57,7 +57,7 @@ script:
     - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
     - pushd /tmp
-    - SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
+    - SKIP_BZIP_TEST=true SKIP_HCOMPRESS_U2_TEST=true python -c "import fitsio; fitsio.test.test()"
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
