@@ -20,11 +20,18 @@ New Features
     - make write_key usable with standard dictionary using the **keydict
       style
 
+    - allow writing empty HDUs after the first one using
+        ignore_empty=True to the FITS constructor or
+        the write convenience function (Felipe Menanteau)
+        We might make this the default in the future if
+        it is found to be benign
+
 Bug Fixes
 
     - check that the input fields names for tables are unique after converting
       to upper case
     - link against libm explicitly for compatability on some systems
+
 
 version 0.9.11
 ---------------------------------

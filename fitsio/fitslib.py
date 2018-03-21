@@ -229,6 +229,10 @@ def write(filename, data, extname=None, extver=None, units=None,
         If True, overwrite any existing file. Default is to append
         a new extension on existing files.
 
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
+
 
     table keywords
     --------------
@@ -315,6 +319,9 @@ class FITS(object):
     iter_row_buffer: integer
         Number of rows to buffer when iterating over table HDUs.
         Default is 1.
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
 
     See the docs at https://github.com/esheldon/fitsio
     """
@@ -326,6 +333,7 @@ class FITS(object):
         #self.mode=keys.get('mode','r')
         self.mode=mode
         self.case_sensitive=keys.get('case_sensitive',False)
+        self.ignore_empty=keys.get('ignore_empty', False)
 
         self.verbose = keys.get('verbose',False)
         clobber = keys.get('clobber',False)
@@ -458,6 +466,7 @@ class FITS(object):
                     'PLIO' (no unsigned or negative integers)
                     'HCOMPRESS'
                 (case-insensitive) See the cfitsio manual for details.
+
         Table-only keywords:
             units: list/dec, optional:
                 A list of strings with units for each column.
@@ -466,6 +475,7 @@ class FITS(object):
                 Matching is case-insensitive
             write_bitcols: bool, optional
                 Write boolean arrays in the FITS bitcols format, default False
+
 
         restrictions
         ------------
@@ -610,7 +620,6 @@ class FITS(object):
             This is only used to determine how many slots to reserve for
             header keywords
 
-
         restrictions
         ------------
         The File must be opened READWRITE
@@ -698,9 +707,12 @@ class FITS(object):
 
     def _ensure_empty_image_ok(self):
         """
-        Only allow empty HDU for first HDU and if there is no
-        data there already
+        If ignore_empty was not set to True, we only allow empty HDU for first
+        HDU and if there is no data there already
         """
+        if self.ignore_empty:
+            return
+
         if len(self) > 1:
             raise RuntimeError("Cannot write None image at extension %d" % len(self))
         if 'ndims' in self[0]._info:
