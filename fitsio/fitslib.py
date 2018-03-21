@@ -335,6 +335,9 @@ class FITS(object):
         self.charmode = _char_modemap[self.mode]
         self.intmode = _int_modemap[self.mode]
 
+        # Will not test existence when reading, let cfitsio
+        # do the test and report an error.  This allows opening
+        # urls etc.
         create=0
         if self.mode in [READWRITE,'rw']:
             if clobber:
@@ -346,9 +349,6 @@ class FITS(object):
                     create=0
                 else:
                     create=1
-        #else:
-        #    if not os.path.exists(filename):
-        #        raise IOError("File not found: '%s'" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
