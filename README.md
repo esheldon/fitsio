@@ -29,7 +29,8 @@ Some Features
 - Write and read variable length table columns.
 - Read images and tables using slice notation similar to numpy arrays.  This is like a more
   powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.
+- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
+    or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
