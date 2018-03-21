@@ -14,6 +14,12 @@ New Features
       the write_key method via `**`, e.g. `write_key(**key_dict)`
       (Alex Drlica-Wagner)
 
+    - allow writing empty HDUs after the first one using
+        ignore_empty=True to the FITS constructor or
+        the write convenience function (Felipe Menanteau)
+        We might make this the default in the future if
+        it is found to be benign
+
 version 0.9.11
 ---------------------------------
 

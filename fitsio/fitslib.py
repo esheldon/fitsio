@@ -229,6 +229,10 @@ def write(filename, data, extname=None, extver=None, units=None,
         If True, overwrite any existing file. Default is to append
         a new extension on existing files.
 
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
+
 
     table keywords
     --------------
@@ -315,6 +319,9 @@ class FITS(object):
     iter_row_buffer: integer
         Number of rows to buffer when iterating over table HDUs.
         Default is 1.
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
 
     See the docs at https://github.com/esheldon/fitsio
     """
@@ -421,7 +428,6 @@ class FITS(object):
               compress=None, tile_dims=None,
               header=None,
               names=None,
-              ignore_empty=None,
               table_type='binary', write_bitcols=False, **keys):
         """
         Write the data to a new HDU.
@@ -460,9 +466,6 @@ class FITS(object):
                     'PLIO' (no unsigned or negative integers)
                     'HCOMPRESS'
                 (case-insensitive) See the cfitsio manual for details.
-            ignore_empty: bool, optional
-                Allows writing more that one empty HDU, by bypassing the call
-                to _ensure_empty_image_ok()
 
         Table-only keywords:
             units: list/dec, optional:
@@ -488,7 +491,6 @@ class FITS(object):
 
         if isimage:
             self.write_image(data, extname=extname, extver=extver, 
-                             ignore_empty=ignore_empty,
                              compress=compress, tile_dims=tile_dims,
                              header=header)
         else:
@@ -500,7 +502,7 @@ class FITS(object):
 
 
 
-    def write_image(self, img, extname=None, extver=None, ignore_empty=None,
+    def write_image(self, img, extname=None, extver=None,
                     compress=None, tile_dims=None, header=None):
         """
         Create a new image extension and write the data.  
@@ -542,7 +544,7 @@ class FITS(object):
         """
 
         self.create_image_hdu(img, 
-                              header=header, ignore_empty=ignore_empty,
+                              header=header,
                               extname=extname, extver=extver,
                               compress=compress, tile_dims=tile_dims)
 
@@ -562,8 +564,7 @@ class FITS(object):
                          extver=None,
                          compress=None,
                          tile_dims=None,
-                         header=None,
-                         ignore_empty=None):
+                         header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
         create from an input image or from input dims and dtype
@@ -619,11 +620,6 @@ class FITS(object):
             This is only used to determine how many slots to reserve for
             header keywords
 
-       ignore_empty: bool, optional
-            Allows writing more that one empty HDU, by bypassing the
-            call to _ensure_empty_image_ok()
-
-
         restrictions
         ------------
         The File must be opened READWRITE
@@ -633,9 +629,6 @@ class FITS(object):
             from_image=True
         elif dims is not None:
             from_image=False
-
-        if ignore_empty is None:
-            ignore_empty = self.ignore_empty
 
         if from_image:
             img2send=img
@@ -654,8 +647,7 @@ class FITS(object):
                     img2send = array_to_native(img, inplace=False)
 
             else:
-                if not ignore_empty:
-                    self._ensure_empty_image_ok()
+                self._ensure_empty_image_ok()
                 compress=None
                 tile_dims=None
 
@@ -715,9 +707,12 @@ class FITS(object):
 
     def _ensure_empty_image_ok(self):
         """
-        Only allow empty HDU for first HDU and if there is no
-        data there already
+        If ignore_empty was not set to True, we only allow empty HDU for first
+        HDU and if there is no data there already
         """
+        if self.ignore_empty:
+            return
+
         if len(self) > 1:
             raise RuntimeError("Cannot write None image at extension %d" % len(self))
         if 'ndims' in self[0]._info:
