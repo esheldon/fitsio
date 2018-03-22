@@ -597,7 +597,7 @@ class TestReadWrite(unittest.TestCase):
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 # note i8 not supported for compressed!
                 # also no writing unsigned, need to address
-                dtypes = ['i1','i2','i4','f4','f8']
+                dtypes = ['u1','i1','u2','i2','i4','f4','f8']
 
                 for dtype in dtypes:
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
@@ -649,6 +649,8 @@ class TestReadWrite(unittest.TestCase):
                 dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
+                    if (dtype == 'u2') and ('SKIP_HCOMPRESS_U2_TEST' in os.environ):
+                        continue
                     data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
                     fits.write_image(data, compress=compress)
                     #fits.reopen()

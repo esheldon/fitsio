@@ -32,8 +32,8 @@ before_install:
     - ./miniconda.sh -b -p $HOME/miniconda
     - export PATH=$HOME/miniconda/bin:$PATH
     - conda update --yes conda
-    - wget ftp://heasarc.gsfc.nasa.gov/software/fitsio/c/cfitsio3370.tar.gz
-    - tar -xzvf cfitsio3370.tar.gz
+    - wget ftp://heasarc.gsfc.nasa.gov/software/fitsio/c/cfitsio3430.tar.gz
+    - tar -xzvf cfitsio3430.tar.gz
     - (cd cfitsio; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
 
 install:
@@ -57,7 +57,7 @@ script:
     - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
     - pushd /tmp
-    - SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
+    - SKIP_BZIP_TEST=true SKIP_HCOMPRESS_U2_TEST=true python -c "import fitsio; fitsio.test.test()"
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 

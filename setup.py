@@ -4,7 +4,7 @@ from distutils.core import setup, Extension, Command
 from distutils.command.build_ext import build_ext
 
 import os
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import sys
 import numpy
 import glob
@@ -33,8 +33,7 @@ class build_ext_subclass(build_ext):
              ('system-fitsio-libdir=', None,
               "Path to look for cfitsio library; default is the system search path."),
             ]
-    #cfitsio_version = '3280patch'
-    cfitsio_version = '3370patch'
+    cfitsio_version = '3430patch'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
@@ -92,6 +91,9 @@ class build_ext_subclass(build_ext):
             if '-DHAVE_BZIP2=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
                 self.compiler.add_library('bz2')
 
+            if '-DCFITSIO_HAVE_CURL=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
+                self.compiler.add_library('curl')
+
             self.compile_cfitsio()
 
             # link against the .a library in cfitsio; 
@@ -107,11 +109,14 @@ class build_ext_subclass(build_ext):
             for ext in self.extensions:
                 ext.depends += link_objects
         else:
-            # Include bz2 by default?  Depends on how system cfitsio was built.
-            # FIXME: use pkg-config to tell if bz2 shall be included ?
             self.compiler.add_library('cfitsio')
-            pass
-        
+
+            # Check if system cfitsio was compiled with bzip2 and/or curl
+            if self.check_system_cfitsio_objects('bzip2'):
+                self.compiler.add_library('bz2')
+            if self.check_system_cfitsio_objects('curl_'):
+                self.compiler.add_library('curl')
+
         # fitsio requires libm as well.
         self.compiler.add_library('m')
         
@@ -178,8 +183,15 @@ class build_ext_subclass(build_ext):
         if p.returncode != 0:
             raise ValueError("could not compile cfitsio %s" % self.cfitsio_version)
 
-
-    
+    def check_system_cfitsio_objects(self, obj_name):
+        for lib_dir in self.library_dirs:
+            if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
+                p = Popen("nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
+                          shell=True, stdout=PIPE, stderr=PIPE)
+                if len(p.stdout.read()) > 0:
+                    return True
+                else:
+                    return False
 
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files=[]
@@ -199,7 +211,7 @@ classifiers = ["Development Status :: 5 - Production/Stable"
               ]
 
 setup(name="fitsio", 
-      version="0.9.12rc1",
+      version="0.9.12rc1-3430",
       description=description,
       long_description=long_description,
       license = "GPL",
