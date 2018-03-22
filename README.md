@@ -1,6 +1,6 @@
 A python library to read from and write to FITS files.
 
-![](https://travis-ci.org/esheldon/fitsio.svg)
+[![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
 
 Do not use numpy 1.10.0 or 1.10.1
 ----------------------------------
@@ -29,7 +29,8 @@ Some Features
 - Write and read variable length table columns.
 - Read images and tables using slice notation similar to numpy arrays.  This is like a more
   powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.
+- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
+    or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
@@ -280,7 +281,11 @@ fits.write(img, compress='rice')
 fits[ext].write(img2)
 
 # write into an existing image, starting at the location [300,400]
+# the image will be expanded if needed
 fits[ext].write(img3, start=[300,400])
+
+# change the shape of the image on disk
+fits[ext].reshape([250,100])
 
 # add checksums for the data
 fits[-1].write_checksum()
@@ -336,6 +341,7 @@ f[1].get_extname()
 f[1].get_extver()
 f[1].get_extnum()           # return zero-offset extension number
 f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
+f[1].get_offsets()          # byte offsets (header_start, data_start, data_end)
 f[1].is_compressed()        # for images. True if tile-compressed
 f[1].get_colnames()         # for tables
 f[1].get_colname(colnum)    # for tables find the name from column number
@@ -409,7 +415,6 @@ be read, without affecting other functionality.
 TODO
 ----
 
-- bit columns
 - HDU groups: does anyone use these? If so open an issue!
 
 Notes on cfitsio bundling

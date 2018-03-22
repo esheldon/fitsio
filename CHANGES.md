@@ -1,4 +1,127 @@
-version 0.9.8 (not yet released)
+version 1.0
+---------------------------------
+
+New Features
+
+    - Now support reading and writing bit columns (Eli Rykoff)
+    
+    - Can now read CONTINUE keywords in headers.  It is currently
+      treated as a comment; full implementation to come. (Alex Drlica-Wagner)
+
+    - Can now use a standard key dict when writing a header key using
+      the write_key method via `**`, e.g. `write_key(**key_dict)`
+      (Alex Drlica-Wagner)
+
+    - Delete row sets and row ranges using the delete_rows() method
+      for tables
+    - Resize tables, adding or removing rows, using the resize() method for
+      tables
+
+    - make write_key usable with standard dictionary using the **keydict
+      style
+
+    - allow writing empty HDUs after the first one using
+        ignore_empty=True to the FITS constructor or
+        the write convenience function (Felipe Menanteau)
+        We might make this the default in the future if
+        it is found to be benign
+
+Bug Fixes
+
+    - check that the input fields names for tables are unique after converting
+      to upper case
+    - link against libm explicitly for compatability on some systems
+
+
+version 0.9.11
+---------------------------------
+
+New Features
+
+    - Added trim_strings option to constructor and as keyword for read methods.
+      If trim_strings=True is set, white space is trimmed from the end
+      of all string columns upon reading.  This was introduced because
+      cfitsio internally pads strings out with spaces to the full column
+      width when writing, against the FITS standard.
+
+    - Added read_raw() method to the FITS class, to read the raw underlying data
+      from the file (Dustin Lang)
+
+Bug Fixes
+
+    - Fix bug reading hierarch keywords. recent changes to keyword parsing had
+      broken reading of hierarch keywords
+    - Fix for strings that look like expressions, e.g. '3-4' which were
+      being evaluated rather than returned as strings.
+    - Fix bug for missing key in FITSHDR object using the hdr[key]
+      notation.  Also raise KeyError rather than ValueError
+
+version 0.9.10
+---------------
+
+Bug Fixes
+
+    - Fix variable length string column copying in python 3
+    - Fix bug checking for max size in a variable length table column.
+    - Raise an exception when writing to a table with data
+      that has shape ()
+    - exit test suite with non-zero exit code if a test fails
+
+Continuous integration
+
+    - the travis ci now runs unit tests, ignoring those that may fail
+      when certain libraries/headers are not installed on the users system (for
+      now this is only bzip2 support)
+    - only particular pairs of python version/numpy version are tested
+
+python3 compatibility
+
+    - the compatibility is now built into the code rather than
+      using 2to3 to modify code at install time.
+
+Workarounds
+
+    - It turns out that when python, numpy etc. are compiled with gcc 4*
+      and fitsio is compiled with gcc 5* there is a problem, in some cases,
+      reading from an array with not aligned memory.  This has to do with using
+      the -O3 optimization flag when compiling cfitsio.  For replacing -O3 with
+      -O2 fixes the issue.  This was an issue on linux in both anaconda python2
+      and python3.
+
+
+version 0.9.9.1
+----------------------------------
+
+New tag so that pypi will accept the updated version
+
+version 0.9.9
+----------------------------------
+
+New Features 
+
+    - header_start, data_start, data_end now available in the
+      info dictionary, as well as the new get_offsets() method
+      to access these in a new dict.
+      (thanks Dimitri Muna for the initial version of this)
+
+Bug Fixes
+
+    - Fix bug when writing new COMMENT fields (thanks Alex Drlica-Wagner for
+      initial fix)
+    - deal correctly with aligned data in some scenarios
+      (thanks Ole Streicher)
+    - use correct data type long for tile_dims_fits in
+      the set_compression C code.  This avoids a crash
+      on 32 but systems. (thanks Ole Streicher)
+    - use correct data type npy_int64 for pointer in
+      get_long_slices (this function is not not correctly
+      named).  Avoids crash on some 32 bit systems.
+      (thanks Ole Streicher)
+    - use correct data type npy_int64 for pointer in
+      PyFITSObject_create_image_hdu, rather than npy_intp.
+      (thanks Ole Streicher)
+
+version 0.9.8
 ----------------------------------
 
 New Features
@@ -18,8 +141,12 @@ New Features
         that are as new as the bundled one.  Also note the bundled cfitsio
         sometimes contains patches that are not yet upstream in an
         official cfitsio release
-    - Sped up image writing
-    - Added reserving keyword space on HDU creation
+    - proper support for reading unsigned images compressed with PLIO.
+        This is a patch directly on the cfitsio code base.  The same
+        code is in the upstream, but not yet released.
+    - New method reshape(dims) for images
+    - When writing into an existing image HDU, and larger dimensions
+        are required, the image is automatically expanded.
 
 Bug Fixes
 
@@ -35,8 +162,10 @@ Bug Fixes
     - make sure to convert correct endianness when writing during image HDU
         creation
     - Corrected the repr for single column subsets
+    - only clean bzero,bscale,bunit from headers for TableHDU
 
 Dev features
+
     - added travis ci
 
 version 0.9.7
