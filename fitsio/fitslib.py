@@ -229,6 +229,10 @@ def write(filename, data, extname=None, extver=None, units=None,
         If True, overwrite any existing file. Default is to append
         a new extension on existing files.
 
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
+
 
     table keywords
     --------------
@@ -315,6 +319,9 @@ class FITS(object):
     iter_row_buffer: integer
         Number of rows to buffer when iterating over table HDUs.
         Default is 1.
+    ignore_empty: bool, optional
+        Default False.  Unless set to True, only allow
+        empty HDUs in the zero extension.
 
     See the docs at https://github.com/esheldon/fitsio
     """
@@ -326,6 +333,7 @@ class FITS(object):
         #self.mode=keys.get('mode','r')
         self.mode=mode
         self.case_sensitive=keys.get('case_sensitive',False)
+        self.ignore_empty=keys.get('ignore_empty', False)
 
         self.verbose = keys.get('verbose',False)
         clobber = keys.get('clobber',False)
@@ -337,6 +345,9 @@ class FITS(object):
         self.charmode = _char_modemap[self.mode]
         self.intmode = _int_modemap[self.mode]
 
+        # Will not test existence when reading, let cfitsio
+        # do the test and report an error.  This allows opening
+        # urls etc.
         create=0
         if self.mode in [READWRITE,'rw']:
             if clobber:
@@ -348,9 +359,6 @@ class FITS(object):
                     create=0
                 else:
                     create=1
-        else:
-            if not os.path.exists(filename):
-                raise IOError("File not found: '%s'" % filename)
 
         self._FITS =  _fitsio_wrap.FITS(filename, self.intmode, create)
 
@@ -458,6 +466,7 @@ class FITS(object):
                     'PLIO' (no unsigned or negative integers)
                     'HCOMPRESS'
                 (case-insensitive) See the cfitsio manual for details.
+
         Table-only keywords:
             units: list/dec, optional:
                 A list of strings with units for each column.
@@ -466,6 +475,7 @@ class FITS(object):
                 Matching is case-insensitive
             write_bitcols: bool, optional
                 Write boolean arrays in the FITS bitcols format, default False
+
 
         restrictions
         ------------
@@ -610,7 +620,6 @@ class FITS(object):
             This is only used to determine how many slots to reserve for
             header keywords
 
-
         restrictions
         ------------
         The File must be opened READWRITE
@@ -698,9 +707,12 @@ class FITS(object):
 
     def _ensure_empty_image_ok(self):
         """
-        Only allow empty HDU for first HDU and if there is no
-        data there already
+        If ignore_empty was not set to True, we only allow empty HDU for first
+        HDU and if there is no data there already
         """
+        if self.ignore_empty:
+            return
+
         if len(self) > 1:
             raise RuntimeError("Cannot write None image at extension %d" % len(self))
         if 'ndims' in self[0]._info:
@@ -1792,6 +1804,105 @@ class TableHDU(HDUBase):
 
         keys['firstrow'] = firstrow
         self.write(data, **keys)
+
+
+    def delete_rows(self, rows):
+        """
+        Delete rows from the table
+
+        parameters
+        ----------
+        rows: sequence or slice
+            The exact rows to delete as a sequence, or a slice.
+        
+        examples
+        --------
+            # delete a range of rows
+            with fitsio.FITS(fname,'rw') as fits:
+                fits['mytable'].delete_rows(slice(3,20))
+
+            # delete specific rows
+            with fitsio.FITS(fname,'rw') as fits:
+                rows2delete = [3,88,76]
+                fits['mytable'].delete_rows(rows2delete)
+        """
+
+        if rows is None:
+            return
+
+        # extract and convert to 1-offset for C routine
+        if isinstance(rows, slice):
+            rows = self._process_slice(rows)
+            if rows.step is not None and rows.step != 1:
+                rows = numpy.arange(
+                    rows.start+1,
+                    rows.stop+1,
+                    rows.step,
+                )
+            else:
+                # rows must be 1-offset
+                rows = slice(rows.start+1, rows.stop+1)
+        else:
+            rows = self._extract_rows(rows)
+            # rows must be 1-offset
+            rows += 1
+
+        if isinstance(rows, slice):
+            self._FITS.delete_row_range(self._ext+1, rows.start, rows.stop)
+        else:
+            if rows.size == 0:
+                return
+
+            self._FITS.delete_rows(self._ext+1, rows)
+
+        self._update_info()
+
+    def resize(self, nrows, front=False):
+        """
+        Resize the table to the given size, removing or adding rows as
+        necessary.  Note if expanding the table at the end, it is more
+        efficient to use the append function than resizing and then
+        writing.
+        
+        New added rows are zerod, except for 'i1', 'u2' and 'u4' data types
+        which get -128,32768,2147483648 respectively
+
+
+        parameters
+        ----------
+        nrows: int
+            new size of table
+        front: bool, optional
+            If True, add or remove rows from the front.  Default
+            is False
+        """
+
+        nrows_current = self.get_nrows()
+        if nrows == nrows_current:
+            return
+
+        if nrows < nrows_current:
+            rowdiff = nrows_current - nrows
+            if front:
+                # delete from the front
+                start = 0
+                stop = rowdiff
+            else:
+                # delete from the back
+                start = nrows
+                stop = nrows_current
+
+            self.delete_rows(slice(start, stop))
+        else:
+            rowdiff = nrows - nrows_current
+            if front:
+                firstrow = 0 # in this case zero is what we want, since the code inserts
+            else:
+                firstrow = nrows_current
+            self._FITS.insert_rows(self._ext+1, firstrow, rowdiff)
+
+        self._update_info()
+
 
     def read(self, **keys):
         """

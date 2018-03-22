@@ -428,7 +428,25 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
- 
+
+    def testImageWriteEmpty(self):
+        """
+        Test a basic image write, with no data and just a header, then reading back in to
+        check the values
+        """
+        fname=tempfile.mktemp(prefix='fitsio-ImageWriteEmpty-',suffix='.fits')
+        try:
+            data=None
+            header={'EXPTIME':120, 'OBSERVER':'Beatrice Tinsley','INSTRUME':'DECam','FILTER':'r'}
+            with fitsio.FITS(fname,'rw',clobber=True, ignore_empty=True) as fits:
+                for extname in ['CCD1','CCD2','CCD3','CCD4','CCD5','CCD6','CCD7','CCD8']:
+                    fits.write_image(data, header=header)
+                    rdata = fits[-1].read()
+                    rh = fits[-1].read_header()
+                    self.check_header(header, rh)
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
 
     def testImageWriteReadFromDims(self):
         """
@@ -1315,6 +1333,146 @@ class TestReadWrite(unittest.TestCase):
                     newdata = fits[1][newname][:]
 
                     self.compare_array(d[n], newdata, "table single field insert and read '%s'" % n)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testTableDeleteRowRange(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableDeleteRowRange-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            rowslice = slice(1,3)
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].delete_rows(rowslice)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[ [0,3] ]
+            self.compare_rec(compare_data, d, "delete row range")
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testTableDeleteRows(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableDeleteRows-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            rows2delete = [1,3]
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].delete_rows(rows2delete)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[ [0,2] ]
+            self.compare_rec(compare_data, d, "delete rows")
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testTableResize(self):
+        """
+        Insert a new column
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableResize-',suffix='.fits')
+        try:
+
+            #
+            # shrink from back
+            #
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            nrows = 2
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].resize(nrows)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[0:nrows]
+            self.compare_rec(compare_data, d, "shrink from back")
+
+
+            #
+            # shrink from front
+            #
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].resize(nrows, front=True)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = self.data[nrows-self.data.size:]
+            self.compare_rec(compare_data, d, "shrink from front")
+
+
+            # These don't get zerod
+
+            nrows = 10
+            add_data = numpy.zeros(nrows-self.data.size,dtype=self.data.dtype)
+            add_data['i1scalar'] = -128
+            add_data['i1vec'] = -128
+            add_data['i1arr'] = -128
+            add_data['u2scalar'] = 32768
+            add_data['u2vec'] = 32768
+            add_data['u2arr'] = 32768
+            add_data['u4scalar'] = 2147483648
+            add_data['u4vec'] = 2147483648
+            add_data['u4arr'] = 2147483648
+
+
+            #
+            # expand at the back
+            #
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].resize(nrows)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = numpy.hstack( (self.data, add_data) )
+            self.compare_rec(compare_data, d, "expand at the back")
+
+            #
+            # expand at the front
+            #
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data)
+            with fitsio.FITS(fname,'rw') as fits:
+                fits[1].resize(nrows, front=True)
+
+            with fitsio.FITS(fname) as fits:
+                d = fits[1].read()
+
+            compare_data = numpy.hstack( (add_data, self.data) )
+            # These don't get zerod
+            self.compare_rec(compare_data, d, "expand at the front")
+
 
         finally:
             if os.path.exists(fname):

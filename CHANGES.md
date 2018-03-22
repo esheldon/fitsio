@@ -1,7 +1,5 @@
-version 1.0 (not yet released)
+version 1.0
 ---------------------------------
-
-We plan to release 1.0 soon now that bit columns are supported.
 
 New Features
 
@@ -13,6 +11,27 @@ New Features
     - Can now use a standard key dict when writing a header key using
       the write_key method via `**`, e.g. `write_key(**key_dict)`
       (Alex Drlica-Wagner)
+
+    - Delete row sets and row ranges using the delete_rows() method
+      for tables
+    - Resize tables, adding or removing rows, using the resize() method for
+      tables
+
+    - make write_key usable with standard dictionary using the **keydict
+      style
+
+    - allow writing empty HDUs after the first one using
+        ignore_empty=True to the FITS constructor or
+        the write convenience function (Felipe Menanteau)
+        We might make this the default in the future if
+        it is found to be benign
+
+Bug Fixes
+
+    - check that the input fields names for tables are unique after converting
+      to upper case
+    - link against libm explicitly for compatability on some systems
+
 
 version 0.9.11
 ---------------------------------
