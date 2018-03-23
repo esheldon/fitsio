@@ -3529,7 +3529,6 @@ class TableColumnSubset(object):
 
         hdu = self.fitshdu
         info = self.fitshdu._info
-
         colinfo = info['colinfo']
 
         text = []
@@ -3537,7 +3536,7 @@ class TableColumnSubset(object):
         text.append("%sextension: %d" % (spacing,info['hdunum']-1))
         text.append("%stype: %s" % (spacing,_hdu_type_map[info['hdutype']]))
         text.append('%srows: %d' % (spacing,info['nrows']))
-        text.append("%scolumn subset%s:" %  (spacing, ['', '(atomic)'][atomic]))
+        text.append("%scolumn subset:" %  spacing)
 
         cspacing = ' '*4
         nspace = 4
