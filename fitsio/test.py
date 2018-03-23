@@ -976,6 +976,31 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableFormatColumnSubset(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            data = numpy.empty(1, dtype=[('Z', 'f8'), ('Z_PERSON', 'f8')])
+            data['Z'][:] = 1.0
+            data['Z_PERSON'][:] = 1.0
+            fits.write_table(data)
+            fits.write_table(data)
+            fits.write_table(data)
+        try:
+            with fitsio.FITS(fname,'r',clobber=True) as fits:
+                # assert we do not have an extra row of 'Z'
+                sz = str(fits[2]['Z_PERSON']).split('\n')
+                s  = str(fits[2][('Z_PERSON', 'Z')]).split('\n')
+                assert len(sz) == len(s) - 1
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
 
     def testTableWriteDictOfArraysScratch(self):
         """
