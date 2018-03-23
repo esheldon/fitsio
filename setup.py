@@ -62,6 +62,7 @@ class build_ext_subclass(build_ext):
 
     def build_extensions(self):
         if not self.use_system_fitsio:
+            
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
 
