@@ -401,6 +401,7 @@ class FITS(object):
 
         returns the zero-offset extension number
         """
+        extname=mks(extname)
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         return hdu-1
 
@@ -412,6 +413,7 @@ class FITS(object):
 
         returns the one-offset extension number
         """
+        extname=mks(extname)
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         return hdu
 
@@ -671,14 +673,22 @@ class FITS(object):
             if img2send.dtype.fields is not None:
                 raise ValueError("got record data type, expected regular ndarray")
 
-        if extname is not None and extver is not None:
-            extver = check_extver(extver)
-        if extver is None:
-            # will be ignored
-            extver = 0
         if extname is None:
             # will be ignored
             extname=""
+        else:
+            if not isstring(extname):
+                raise ValueError("extension name must be a string")
+            extname=mks(extname)
+
+
+        if extname is not None and extver is not None:
+            extver = check_extver(extver)
+
+        if extver is None:
+            # will be ignored
+            extver = 0
+
 
         comptype = get_compress_type(compress)
         tile_dims = get_tile_dims(tile_dims, dims)
@@ -919,9 +929,16 @@ class FITS(object):
                 raise ValueError("units should be a list")
             if len(units) != len(names):
                 raise ValueError("names and units must be same length")
-        if extname is not None:
-            if not isinstance(extname,str):
+
+        if extname is None:
+            # will be ignored
+            extname=""
+        else:
+            if not isstring(extname):
                 raise ValueError("extension name must be a string")
+            extname=mks(extname)
+
+
 
         if extname is not None and extver is not None:
             extver = check_extver(extver)
@@ -1081,7 +1098,7 @@ class FITS(object):
             hdu = self.hdu_list[ext]
         except:
             # might be a string
-            ext='%s' % ext
+            ext=mks(ext)
             if not self.case_sensitive:
                 mess='(case insensitive)'
                 ext=ext.lower()
@@ -2803,7 +2820,7 @@ class TableHDU(HDUBase):
             if (colnum < 0) or (colnum > (self._ncol-1)):
                 raise ValueError("column number should be in [0,%d]" % (0,self._ncol-1))
         else:
-            colstr='%s' % col
+            colstr=mks(col)
             try:
                 if self.case_sensitive:
                     mess="column name '%s' not found (case sensitive)" % col
@@ -3605,6 +3622,7 @@ def check_extver(extver):
     return extver
 
 def extract_filename(filename):
+    filename = mks(filename)
     filename=filename.strip()
     if filename[0] == "!":
         filename=filename[1:]
@@ -4655,6 +4673,20 @@ def isstring(arg):
 def isinteger(arg):
     return isinstance(arg, _itypes)
 
+def mks(val):
+    """
+    make sure the value is a string, paying mind to python3 vs 2
+    """
+    if sys.version_info > (3,0,0):
+        if isinstance(val, bytes):
+            sval = str(val, 'utf-8')
+        else:
+            sval = str(val)
+    else:
+        sval = str(val)
+    
+    return sval
+
 def fields_are_object(arr):
     isobj=numpy.zeros(len(arr.dtype.names),dtype=numpy.bool)
     for i,name in enumerate(arr.dtype.names):
@@ -4900,7 +4932,7 @@ _ftypes = (float,numpy.float32,numpy.float64)
 
 if sys.version_info > (3,0,0):
     _itypes=(int,)
-    _stypes = (str,)
+    _stypes = (str,bytes)
 else:
     _itypes=(int,long)
     _stypes = (basestring,unicode,)
@@ -4910,5 +4942,6 @@ _itypes += (numpy.uint8,numpy.int8,
             numpy.uint32,numpy.int32,
             numpy.uint64,numpy.int64)
 
-_stypes += (numpy.string_,)
+# different for py3
+_stypes += (numpy.string_,numpy.str_)
 
