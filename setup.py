@@ -6,7 +6,6 @@ from distutils.command.build_ext import build_ext
 import os
 from subprocess import Popen, PIPE
 import sys
-import numpy
 import glob
 import shutil
 import platform
