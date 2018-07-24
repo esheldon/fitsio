@@ -652,6 +652,30 @@ class TestReadWrite(unittest.TestCase):
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
+
+    def testGZIP2TileCompressedWriteRead(self):
+        """
+        Test a basic image write, data and a header, then reading back in to
+        check the values
+        """
+
+        compress='gzip_2'
+        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note i8 not supported for compressed!
+                dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
+
+                for dtype in dtypes:
+                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
+                    fits.write_image(data, compress=compress)
+                    rdata = fits[-1].read()
+
+                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
  
     def testHCompressTileCompressedWriteRead(self):
         """
