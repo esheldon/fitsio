@@ -209,6 +209,7 @@ def write(filename, data, extname=None, extver=None, units=None,
         Can be one of
            'RICE'
            'GZIP'
+           'GZIP_2'
            'PLIO' (no unsigned or negative integers)
            'HCOMPRESS'
         (case-insensitive) See the cfitsio manual for details.
@@ -270,6 +271,7 @@ BINARY_TBL=2
 NOCOMPRESS=0
 RICE_1 = 11
 GZIP_1 = 21
+GZIP_2 = 22
 PLIO_1 = 31
 HCOMPRESS_1 = 41
 
@@ -465,6 +467,7 @@ class FITS(object):
                 Can be one of
                     'RICE'
                     'GZIP'
+                    'GZIP_2'
                     'PLIO' (no unsigned or negative integers)
                     'HCOMPRESS'
                 (case-insensitive) See the cfitsio manual for details.
@@ -527,6 +530,7 @@ class FITS(object):
             Can be one of
                 'RICE'
                 'GZIP'
+                'GZIP_2'
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
             (case-insensitive) See the cfitsio manual for details.
@@ -614,6 +618,7 @@ class FITS(object):
             Can be one of
                 'RICE'
                 'GZIP'
+                'GZIP_2'
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
             (case-insensitive) See the cfitsio manual for details.
@@ -4829,14 +4834,13 @@ def _convert_full_start_to_offset(dims, start):
     return start_index
 
 
-# this doesn't work
-#GZIP_2 = 22
 
 _compress_map={None:NOCOMPRESS,
                'RICE': RICE_1,
                'RICE_1': RICE_1,
                'GZIP': GZIP_1,
                'GZIP_1': GZIP_1,
+               'GZIP_2': GZIP_2,
                'PLIO': PLIO_1,
                'PLIO_1': PLIO_1,
                'HCOMPRESS': HCOMPRESS_1,
@@ -4844,6 +4848,7 @@ _compress_map={None:NOCOMPRESS,
                NOCOMPRESS:None,
                RICE_1:'RICE_1',
                GZIP_1:'GZIP_1',
+               GZIP_2:'GZIP_2',
                PLIO_1:'PLIO_1',
                HCOMPRESS_1:'HCOMPRESS_1'}
 
