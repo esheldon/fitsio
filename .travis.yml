@@ -56,6 +56,7 @@ script:
     - FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
     - export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages:$PYTHONPATH
 
+    - mkdir -p $FITSIO_INSTALL_DIR/lib/
     - python setup.py install --prefix=$FITSIO_INSTALL_DIR
 
     - pushd /tmp
@@ -63,6 +64,7 @@ script:
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
+    - mkdir -p $FITSIO_INSTALL_DIR/lib/
     - python setup.py clean -a 
     - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
@@ -71,6 +73,7 @@ script:
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
+    - mkdir -p $FITSIO_INSTALL_DIR/lib/
     - python setup.py clean -a
     - python setup.py build 
     - python setup.py clean -a
