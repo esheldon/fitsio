@@ -4,6 +4,8 @@ os:
 
 language: c
 
+# use the containers for a faster build
+sudo: false
 
 # these combos of python and numpy are not supported by
 # anaconda:
