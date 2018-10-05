@@ -359,7 +359,7 @@ f[1].case_sensitive  # if True, names are matched case sensitive
 Installation
 ------------
 
-The easiest way is using pip. To get the latest release
+The easiest way is using pip or conda. To get the latest release
 
     pip install fitsio
 
@@ -371,6 +371,9 @@ The easiest way is using pip. To get the latest release
 
     # if you only want to upgrade fitsio
     pip install fitsio --no-deps --upgrade --ignore-installed
+    
+    # for conda, use conda-forge
+    conda install -c conda-forge fitsio
 
 You can also get the latest source tarball release from
 
@@ -401,8 +404,8 @@ Requirements
     - you need a c compiler and build tools like Make
     - You need numerical python (numpy).
 
-test
-----
+Tests
+-----
 The unit tests should all pass for full support.
 
     import fitsio
