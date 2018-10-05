@@ -4578,7 +4578,6 @@ class FITSCard(FITSRecord):
 
     def _set_as_key(self):
         card_string=self['card_string']
-        print(card_string)
         res=_fitsio_wrap.parse_card(card_string)
         if len(res)==5:
             keyclass, name, value, dtype, comment=res
