@@ -1350,9 +1350,11 @@ class HDUBase(object):
         """
 
         if value is None:
-            value=''
+            self._FITS.write_undefined_key(self._ext+1,
+                                           str(name),
+                                           str(comment))
 
-        if isinstance(value,bool):
+        elif isinstance(value,bool):
             if value:
                 v=1
             else:
@@ -4262,10 +4264,11 @@ class FITSHDR(object):
         self.add_record(rec)
 
     def __getitem__(self, item):
-        val = self.get(item,None)
-        if val is None:
+        if item not in self:
             raise KeyError("unknown record: %s" % item)
-        return val
+
+        return self.get(item)
+
 
     def __iter__(self):
         self._current=0
@@ -4451,6 +4454,9 @@ class FITSRecord(dict):
         Things like 'hello' are stripped of quotes
         """
         import ast
+        if value_orig is None:
+            return value_orig
+
         try:
             avalue = ast.parse(value_orig).body[0].value
             if isinstance(avalue,ast.BinOp):
@@ -4573,7 +4579,11 @@ class FITSCard(FITSRecord):
     def _set_as_key(self):
         card_string=self['card_string']
         res=_fitsio_wrap.parse_card(card_string)
-        keyclass, name, value, dtype, comment=res
+        if len(res)==5:
+            keyclass, name, value, dtype, comment=res
+        else:
+            keyclass, name, dtype, comment=res
+            value=None
 
         if keyclass==TYP_CONT_KEY:
             raise ValueError("bad card '%s'.  CONTINUE not "

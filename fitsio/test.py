@@ -329,6 +329,7 @@ class TestReadWrite(unittest.TestCase):
                     'funky':'35-8', # test old bug when strings look 
                                     #like expressions
                     'name':'J. Smith',
+                    'und':None,
                 }
                 fits.write_image(data, header=header)
 

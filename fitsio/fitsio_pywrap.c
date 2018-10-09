@@ -2543,6 +2543,51 @@ PyFITSObject_write_continue(struct PyFITSObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+
+static PyObject *
+PyFITSObject_write_undefined_key(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    char* keyname=NULL;
+    int value=0;
+    char* comment=NULL;
+    char* comment_in=NULL;
+ 
+    if (!PyArg_ParseTuple(args, (char*)"iss", &hdunum, &keyname, &comment_in)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    if (strlen(comment_in) > 0) {
+        comment=comment_in;
+    }
+
+    if (fits_update_key_null(self->fits, keyname, comment, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+ 
+
+
 /*
    insert a set of rows
 */
@@ -4198,6 +4243,7 @@ PyFITS_parse_card(PyObject* self, PyObject* args) {
     char comment[FLEN_COMMENT]={0};
     int keylen=0;
     int keyclass=0;
+    int is_undefined=0;
 
     char* card=NULL;
     char dtype[2]={0};
@@ -4225,8 +4271,14 @@ PyFITS_parse_card(PyObject* self, PyObject* args) {
             goto bail;
         }
         if (fits_get_keytype(value, dtype, &status)) {
-            set_ioerr_string_from_status(status);
-            goto bail;
+
+            if (status == VALUE_UNDEFINED) {
+                is_undefined=1;
+                status=0;
+            } else {
+                set_ioerr_string_from_status(status);
+                goto bail;
+            }
         }
     }
 
@@ -4235,7 +4287,11 @@ bail:
         return NULL;
     }
 
-    output=Py_BuildValue("issss", keyclass, name, value, dtype, comment);
+    if (is_undefined) {
+        output=Py_BuildValue("isss", keyclass, name, dtype, comment);
+    } else {
+        output=Py_BuildValue("issss", keyclass, name, value, dtype, comment);
+    }
     return output;
 }
 
@@ -4282,6 +4338,8 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
     {"write_history",        (PyCFunction)PyFITSObject_write_history,        METH_VARARGS,  "write_history\n\nWrite history into the header of the specified HDU."},
     {"write_continue",       (PyCFunction)PyFITSObject_write_continue,        METH_VARARGS,  "write_continue\n\nWrite contineu into the header of the specified HDU."},
+
+    {"write_undefined_key",       (PyCFunction)PyFITSObject_write_undefined_key,        METH_VARARGS,  "write_undefined_key\n\nWrite a key without a value field into the header of the specified HDU."},
 
     {"insert_rows",        (PyCFunction)PyFITSObject_insert_rows,        METH_VARARGS,  "Insert blank rows"},
 
