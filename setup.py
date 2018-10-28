@@ -27,7 +27,7 @@ class build_ext_subclass(build_ext):
     boolean_options = build_ext.boolean_options + ['use-system-fitsio']
 
     user_options = build_ext.user_options + \
-            [('use-system-fitsio', None, 
+            [('use-system-fitsio', None,
               "Use the cfitsio installed in the system"),
 
              ('system-fitsio-includedir=', None,
@@ -43,11 +43,11 @@ class build_ext_subclass(build_ext):
         self.use_system_fitsio = False
         self.system_fitsio_includedir = None
         self.system_fitsio_libdir = None
-        build_ext.initialize_options(self)    
+        build_ext.initialize_options(self)
 
     def finalize_options(self):
 
-        build_ext.finalize_options(self)    
+        build_ext.finalize_options(self)
 
         self.cfitsio_build_dir = os.path.join(self.build_temp, self.cfitsio_dir)
         self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir,'zlib')
@@ -74,18 +74,18 @@ class build_ext_subclass(build_ext):
             # a disagreement between gcc 4 and gcc 5
 
             CCold=self.compiler.compiler
-            
+
             CC=[]
             for val in CCold:
                 if val=='-O3':
                     print("replacing '-O3' with '-O2' to address "
                           "gcc bug")
                     val='-O2'
-                CC.append(val) 
-                    
+                CC.append(val)
+
             self.configure_cfitsio(
-                CC=CC, 
-                ARCHIVE=self.compiler.archiver, 
+                CC=CC,
+                ARCHIVE=self.compiler.archiver,
                 RANLIB=self.compiler.ranlib,
             )
 
@@ -99,8 +99,8 @@ class build_ext_subclass(build_ext):
 
             self.compile_cfitsio()
 
-            # link against the .a library in cfitsio; 
-            # It should have been a 'static' library of relocatable objects (-fPIC), 
+            # link against the .a library in cfitsio;
+            # It should have been a 'static' library of relocatable objects (-fPIC),
             # since we use the python compiler flags
 
             link_objects = glob.glob(os.path.join(self.cfitsio_build_dir,'*.a'))
@@ -122,7 +122,7 @@ class build_ext_subclass(build_ext):
 
         # fitsio requires libm as well.
         self.compiler.add_library('m')
-        
+
         # call the original build_extensions
 
         build_ext.build_extensions(self)
@@ -173,14 +173,14 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
-        p = Popen("sh ./configure --with-bzip2 " + args, 
+        p = Popen("sh ./configure --with-bzip2 " + args,
                 shell=True, cwd=self.cfitsio_build_dir)
         p.wait()
         if p.returncode != 0:
             raise ValueError("could not configure cfitsio %s" % self.cfitsio_version)
 
     def compile_cfitsio(self):
-        p = Popen("make", 
+        p = Popen("make",
                 shell=True, cwd=self.cfitsio_build_dir)
         p.wait()
         if p.returncode != 0:
@@ -201,7 +201,7 @@ include_dirs=[numpy.get_include()]
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files=[]
 
-ext=Extension("fitsio._fitsio_wrap", 
+ext=Extension("fitsio._fitsio_wrap",
               sources, include_dirs=include_dirs)
 
 description = ("A full featured python library to read from and "
@@ -215,11 +215,11 @@ classifiers = ["Development Status :: 5 - Production/Stable"
                ,"Intended Audience :: Science/Research"
               ]
 
-setup(name="fitsio", 
+setup(name="fitsio",
       version="1.0.0rc1",
       description=description,
       long_description=long_description,
-      long_description_content_type='text/x-rst',
+      long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
       license = "GPL",
       classifiers=classifiers,
       url="https://github.com/esheldon/fitsio",
@@ -233,6 +233,3 @@ setup(name="fitsio",
         "build_ext": build_ext_subclass,
       }
      )
-
-
-
