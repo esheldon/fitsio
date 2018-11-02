@@ -8,11 +8,6 @@ import fitsio
 
 import unittest
 
-if sys.version_info > (3,0,0):
-    stype=(str,bytes)
-else:
-    stype=str
-
 try:
     xrange=xrange
 except:
@@ -58,7 +53,9 @@ class TestReadWrite(unittest.TestCase):
 
         nvec = 2
         ashape=(21,21)
-        Sdtype = 'S6'
+        Sdtype = 'S6'        
+        Udtype = 'U6'
+        
         # all currently available types, scalar, 1-d and 2-d array columns
         dtype=[('u1scalar','u1'),
                ('i1scalar','i1'),
@@ -102,6 +99,12 @@ class TestReadWrite(unittest.TestCase):
                ('Sscalar',Sdtype),
                ('Svec',   Sdtype, nvec),
                ('Sarr',   Sdtype, ashape)]
+
+        if sys.version_info > (3,0,0):
+            dtype += [
+               ('Uscalar',Udtype),
+               ('Uvec',   Udtype, nvec),
+               ('Uarr',   Udtype, ashape)]
 
         dtype2=[('index','i4'),
                 ('x','f8'),
@@ -152,6 +155,15 @@ class TestReadWrite(unittest.TestCase):
         s = ['%-6s' % el for el in s]
         data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
 
+        if sys.version_info >= (3, 0, 0):
+            data['Uscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
+            data['Uvec'][:,0] = '%-6s' % 'hello'
+            data['Uvec'][:,1] = '%-6s' % 'world'
+
+            s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+            s = ['%-6s' % el for el in s]
+            data['Uarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+            
         self.data = data
 
         # use a dict list so we can have comments
@@ -177,6 +189,7 @@ class TestReadWrite(unittest.TestCase):
         nvec = 2
         ashape = (2,3)
         Sdtype = 'S6'
+        Udtype = 'U6'
 
         # we support writing i2, i4, i8, f4 f8, but when reading cfitsio always
         # reports their types as i4 and f8, so can't really use i8 and we are
@@ -188,6 +201,9 @@ class TestReadWrite(unittest.TestCase):
                 ('f4scalar','f4'),
                 ('f8scalar','f8'),
                 ('Sscalar',Sdtype)]
+        if sys.version_info >= (3, 0, 0):
+            adtype += [('Uscalar', Udtype)]
+        
         nrows=4
         try:
             tdt = numpy.dtype(adtype, align=True)
@@ -201,6 +217,9 @@ class TestReadWrite(unittest.TestCase):
         adata['f4scalar'][:] = -2.55555555555555555555555e35 + numpy.arange(nrows,dtype='f4')*1.e35
         adata['f8scalar'][:] = -2.55555555555555555555555e110 + numpy.arange(nrows,dtype='f8')*1.e110
         adata['Sscalar'] = ['hello','world','good','bye']
+        
+        if sys.version_info >= (3, 0, 0):
+            adata['Uscalar'] = ['hello','world','good','bye']
 
         self.ascii_data = adata
 
@@ -256,6 +275,12 @@ class TestReadWrite(unittest.TestCase):
                ('Svec',   Sdtype, nvec),
                ('Sarr',   Sdtype, ashape)]
 
+        if sys.version_info > (3,0,0):
+            dtype += [
+               ('Uscalar',Udtype),
+               ('Uvec',   Udtype, nvec),
+               ('Uarr',   Udtype, ashape)]
+
         dtype2=[('index','i4'),
                 ('x','f8'),
                 ('y','f8')]
@@ -286,6 +311,15 @@ class TestReadWrite(unittest.TestCase):
         s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
         s = ['%-6s' % el for el in s]
         data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+
+        if sys.version_info >= (3, 0, 0):
+            data['Uscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
+            data['Uvec'][:,0] = '%-6s' % 'hello'
+            data['Uvec'][:,1] = '%-6s' % 'world'
+
+            s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+            s = ['%-6s' % el for el in s]
+            data['Uarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
 
         for i in xrange(nrows):
             data['Sobj'][i] = data['Sscalar'][i].rstrip()
@@ -2081,7 +2115,11 @@ class TestReadWrite(unittest.TestCase):
                          "testing arrays '%s' shapes are equal: "
                          "input %s, read: %s" % (name, arr1.shape, arr2.shape))
 
-        res=numpy.where(arr1 != arr2)
+        if sys.version_info >= (3, 0, 0) and arr1.dtype.char == 'S':
+            _arr1 = arr1.astype('U')
+        else:
+            _arr1 = arr1
+        res=numpy.where(_arr1 != arr2)
         for i,w in enumerate(res):
             self.assertEqual(w.size,0,"testing array '%s' dim %d are equal" % (name,i))
 
@@ -2090,8 +2128,14 @@ class TestReadWrite(unittest.TestCase):
             self.assertEqual(rec1[f].shape, rec2[f].shape,
                              "testing '%s' field '%s' shapes are equal: "
                              "input %s, read: %s" % (name, f,rec1[f].shape, rec2[f].shape))
+            
+            if sys.version_info >= (3, 0, 0) and rec1[f].dtype.char == 'S':
+                # for python 3, we get back unicode always
+                _rec1f = rec1[f].astype('U')
+            else:
+                _rec1f = rec1[f]
 
-            res=numpy.where(rec1[f] != rec2[f])
+            res=numpy.where(_rec1f != rec2[f])
             for w in res:
                 self.assertEqual(w.size,0,"testing column %s" % f)
 
@@ -2101,7 +2145,13 @@ class TestReadWrite(unittest.TestCase):
                              "testing '%s' field '%s' shapes are equal: "
                              "input %s, read: %s" % (name, f,rec1[f].shape, rec2[f].shape))
 
-            res=numpy.where(rec1[f][rows] != rec2[f])
+            if sys.version_info >= (3, 0, 0) and rec1[f].dtype.char == 'S':
+                # for python 3, we get back unicode always
+                _rec1frows = rec1[f][rows].astype('U')
+            else:
+                _rec1frows = rec1[f][rows]
+
+            res=numpy.where(_rec1frows != rec2[f])
             for w in res:
                 self.assertEqual(w.size,0,"testing column %s" % f)
 
@@ -2143,8 +2193,12 @@ class TestReadWrite(unittest.TestCase):
             rows = arange(arr1.size)
 
         for i,row in enumerate(rows):
-            if isinstance(arr2[i],stype):
-                self.assertEqual(arr1[row],arr2[i],
+            if (sys.version_info >= (3, 0, 0) and isinstance(arr2[i], bytes)) or isinstance(arr2[i], str):
+                if sys.version_info >= (3, 0, 0) and isinstance(arr1[row], bytes):
+                    _arr1row = arr1[row].decode('ascii')
+                else:
+                    _arr1row = arr1[row]
+                self.assertEqual(_arr1row,arr2[i],
                                 "%s str el %d equal" % (name,i))
             else:
                 delement = arr2[i]
@@ -2163,7 +2217,7 @@ class TestReadWrite(unittest.TestCase):
             if fitsio.fitslib.is_object(rec2[f]):
 
                 for i in xrange(rec2.size):
-                    if isinstance(rec2[f][i],stype):
+                    if isinstance(rec2[f][i],str):
                         self.assertEqual(rec1[f][i],rec2[f][i],
                                         "testing '%s' str field '%s' el %d equal" % (name,f,i))
                     else:
