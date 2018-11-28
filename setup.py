@@ -81,6 +81,11 @@ class build_ext_subclass(build_ext):
                     print("replacing '-O3' with '-O2' to address "
                           "gcc bug")
                     val='-O2'
+
+                if val=='ccache':
+                    print("removing ccache from the compiler options")
+                    continue
+
                 CC.append(val)
 
             self.configure_cfitsio(
