@@ -1,5 +1,14 @@
 A python library to read from and write to FITS files.
 
+[![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
+
+Do not use numpy 1.10.0 or 1.10.1
+----------------------------------
+There is a serious performance regression in numpy 1.10 that results
+in fitsio running tens to hundreds of times slower.  A fix may be
+forthcoming in a later release.  Please comment here if this
+has already impacted your work https://github.com/numpy/numpy/issues/6467
+
 Description
 -----------
 
@@ -20,11 +29,12 @@ Some Features
 - Write and read variable length table columns.
 - Read images and tables using slice notation similar to numpy arrays.  This is like a more
   powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.
+- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
+    or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
 - Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
-- Read/write gzip files directly.  Read unix compress files (.Z,.zip).
+- Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
@@ -33,7 +43,6 @@ Some Features
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
 - python 3 support
-- data are guaranteed to conform to the FITS standard.
 
 
 Examples
@@ -272,7 +281,11 @@ fits.write(img, compress='rice')
 fits[ext].write(img2)
 
 # write into an existing image, starting at the location [300,400]
+# the image will be expanded if needed
 fits[ext].write(img3, start=[300,400])
+
+# change the shape of the image on disk
+fits[ext].reshape([250,100])
 
 # add checksums for the data
 fits[-1].write_checksum()
@@ -328,6 +341,7 @@ f[1].get_extname()
 f[1].get_extver()
 f[1].get_extnum()           # return zero-offset extension number
 f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
+f[1].get_offsets()          # byte offsets (header_start, data_start, data_end)
 f[1].is_compressed()        # for images. True if tile-compressed
 f[1].get_colnames()         # for tables
 f[1].get_colname(colnum)    # for tables find the name from column number
@@ -345,7 +359,7 @@ f[1].case_sensitive  # if True, names are matched case sensitive
 Installation
 ------------
 
-The easiest way is using pip. To get the latest release
+The easiest way is using pip or conda. To get the latest release
 
     pip install fitsio
 
@@ -357,6 +371,9 @@ The easiest way is using pip. To get the latest release
 
     # if you only want to upgrade fitsio
     pip install fitsio --no-deps --upgrade --ignore-installed
+    
+    # for conda, use conda-forge
+    conda install -c conda-forge fitsio
 
 You can also get the latest source tarball release from
 
@@ -387,17 +404,20 @@ Requirements
     - you need a c compiler and build tools like Make
     - You need numerical python (numpy).
 
-test
-----
+Tests
+-----
 The unit tests should all pass for full support.
 
     import fitsio
     fitsio.test.test()
 
+Some tests may fail if certain libraries are not available, such
+as bzip2.  This failure only implies that bzipped files cannot
+be read, without affecting other functionality.
+
 TODO
 ----
 
-- bit columns
 - HDU groups: does anyone use these? If so open an issue!
 
 Notes on cfitsio bundling
