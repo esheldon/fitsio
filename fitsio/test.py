@@ -101,7 +101,13 @@ class TestReadWrite(unittest.TestCase):
 
                ('Sscalar',Sdtype),
                ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
+               ('Sarr',   Sdtype, ashape),
+              
+               ('Sscalar_nopad',Sdtype),
+               ('Svec_nopad',   Sdtype, nvec),
+               ('Sarr_nopad',   Sdtype, ashape),
+ 
+              ]
 
         dtype2=[('index','i4'),
                 ('x','f8'),
@@ -148,9 +154,18 @@ class TestReadWrite(unittest.TestCase):
         data['Svec'][:,0] = '%-6s' % 'hello'
         data['Svec'][:,1] = '%-6s' % 'world'
 
+        data['Sscalar_nopad'] = ['hello','world','good','bye']
+        data['Svec_nopad'][:,0] = 'hello'
+        data['Svec_nopad'][:,1] = 'world'
+
+
         s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
         s = ['%-6s' % el for el in s]
         data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+
+        s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+        s = ['%s' % el for el in s]
+        data['Sarr_nopad'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
 
         self.data = data
 
