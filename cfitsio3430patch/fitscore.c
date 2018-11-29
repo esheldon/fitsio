@@ -182,6 +182,19 @@ float ffvers(float *version)  /* IO - version number */
 
     return(*version);
 }
+
+/*
+   Return 1 if we are to treat strings per the FITS standard (not
+   replacing nulls with spaces, and not padding with spaces)
+*/
+int fits_use_standard_strings(void) {
+#ifdef FITS_USE_STANDARD_STRINGS
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 /*--------------------------------------------------------------------------*/
 int ffflnm(fitsfile *fptr,    /* I - FITS file pointer  */
            char *filename,    /* O - name of the file   */
