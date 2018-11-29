@@ -169,7 +169,7 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
-        p = Popen("sh ./configure --with-bzip2 " + args, 
+        p = Popen("sh ./configure --with-bzip2 --enable-standard-strings " + args, 
                 shell=True, cwd=self.cfitsio_build_dir)
         p.wait()
         if p.returncode != 0:
