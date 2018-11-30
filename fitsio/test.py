@@ -114,7 +114,16 @@ class TestReadWrite(unittest.TestCase):
             dtype += [
                ('Uscalar',Udtype),
                ('Uvec',   Udtype, nvec),
-               ('Uarr',   Udtype, ashape)]
+               ('Uarr',   Udtype, ashape),
+            ]
+
+            if cfitsio_use_standard_strings():
+                dtype += [
+                   ('Uscalar_nopad',Udtype),
+                   ('Uvec_nopad',   Udtype, nvec),
+                   ('Uarr_nopad',   Udtype, ashape),
+                ]
+
 
         dtype2=[('index','i4'),
                 ('x','f8'),
@@ -183,7 +192,17 @@ class TestReadWrite(unittest.TestCase):
             s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
             s = ['%-6s' % el for el in s]
             data['Uarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-            
+
+
+            if cfitsio_use_standard_strings():
+                data['Uscalar_nopad'] = ['hello','world','good','bye']
+                data['Uvec_nopad'][:,0] = 'hello'
+                data['Uvec_nopad'][:,1] = 'world'
+
+                s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+                s = ['%s' % el for el in s]
+                data['Uarr_nopad'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+           
         self.data = data
 
         # use a dict list so we can have comments
