@@ -118,6 +118,8 @@ class build_ext_subclass(build_ext):
             # Make sure the external lib has the fits_use_standard_strings
             # function. If not, then define a macro to tell the wrapper 
             # to always return False.
+            print('system fits patched:', self.check_system_cfitsio_objects('_fits_use_standard_strings'), flush=True)
+            print('system fits patched:', self.check_system_cfitsio_objects('fits_use_standard_strings'), flush=True)
             if not self.check_system_cfitsio_objects('_fits_use_standard_strings'):
                 self.compiler.compiler.append('-DFITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
