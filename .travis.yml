@@ -4,10 +4,19 @@ os:
 
 language: c
 
+# use the containers for a faster build
+sudo: false
+
 env:
     - PYTHON_VERSION=2.7 NUMPY_VERSION=1.11
     - PYTHON_VERSION=3.6 NUMPY_VERSION=1.11
     - PYTHON_VERSION=3.7 NUMPY_VERSION=1.11
+
+    - PYTHON_VERSION=3.6 NUMPY_VERSION=1.9
+    - PYTHON_VERSION=3.6 NUMPY_VERSION=1.15
+
+    - PYTHON_VERSION=3.7 NUMPY_VERSION=1.9
+    - PYTHON_VERSION=3.7 NUMPY_VERSION=1.15
 
 before_install:
     - if  [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -19,7 +28,7 @@ before_install:
     - ./miniconda.sh -b -p $HOME/miniconda
     - export PATH=$HOME/miniconda/bin:$PATH
     - conda update --yes conda
-    - wget ftp://heasarc.gsfc.nasa.gov/software/fitsio/c/cfitsio3430.tar.gz
+    - wget http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio3430.tar.gz
     - tar -xzvf cfitsio3430.tar.gz
     - (cd cfitsio; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
 
@@ -34,7 +43,8 @@ script:
     - export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages:$PYTHONPATH
     - mkdir -p $FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages
 
-    - python setup.py install --prefix=$FITSIO_INSTALL_DIR
+    - export INSTALLFLAGS="--prefix=$FITSIO_INSTALL_DIR --single-version-externally-managed --record rec.txt"
+    - python setup.py install $INSTALLFLAGS
 
     - pushd /tmp
     - SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
@@ -43,7 +53,7 @@ script:
 
     - python setup.py clean -a
     - mkdir -p $FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages
-    - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
+    - python setup.py install $INSTALLFLAGS build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
     - pushd /tmp
     - SKIP_BZIP_TEST=true SKIP_HCOMPRESS_U2_TEST=true python -c "import fitsio; fitsio.test.test()"

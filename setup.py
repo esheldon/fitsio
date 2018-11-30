@@ -1,13 +1,18 @@
+#
+# setup script for fitsio, using setuptools
+#
+# c.f.
+# https://packaging.python.org/guides/distributing-packages-using-setuptools/
+
 from __future__ import print_function
-from setuptools import setup, Extension, Command
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 import os
 from subprocess import Popen, PIPE
-import sys
+import numpy
 import glob
 import shutil
-import platform
 
 # we allow numpy to fail import, in order to
 # support egg_info for readthedocs
@@ -20,7 +25,7 @@ except:
 
 class build_ext_subclass(build_ext):
     boolean_options = build_ext.boolean_options + ['use-system-fitsio']
-    
+
     user_options = build_ext.user_options + \
             [('use-system-fitsio', None, 
               "Use the cfitsio installed in the system"),
@@ -76,8 +81,11 @@ class build_ext_subclass(build_ext):
                     print("replacing '-O3' with '-O2' to address "
                           "gcc bug")
                     val='-O2'
-                CC.append(val) 
-                    
+                if val=='ccache':
+                    print("removing ccache from the compiler options")
+                    continue
+                CC.append(val)
+
             self.configure_cfitsio(
                 CC=CC, 
                 ARCHIVE=self.compiler.archiver, 
@@ -168,7 +176,7 @@ class build_ext_subclass(build_ext):
         args = ''
         args += ' CC="%s"' % ' '.join(CC[:1])
         args += ' CFLAGS="%s"' % ' '.join(CC[1:])
-    
+
         if ARCHIVE:
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
         if RANLIB:
@@ -197,6 +205,8 @@ class build_ext_subclass(build_ext):
                 else:
                     return False
 
+include_dirs=[numpy.get_include()]
+
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files=[]
 
@@ -218,6 +228,7 @@ setup(name="fitsio",
       version="1.0.0rc1",
       description=description,
       long_description=long_description,
+      long_description_content_type='text/x-rst',
       license = "GPL",
       classifiers=classifiers,
       url="https://github.com/esheldon/fitsio",
