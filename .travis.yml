@@ -1,5 +1,5 @@
 os:
-    - linux 
+    - linux
     - osx
 
 language: c
@@ -61,7 +61,7 @@ script:
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
-    - python setup.py clean -a 
+    - python setup.py clean -a && rm -rf build *.egg
     - python setup.py install --prefix=$FITSIO_INSTALL_DIR build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
     - pushd /tmp
@@ -69,9 +69,9 @@ script:
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
-    - python setup.py clean -a
-    - python setup.py build 
-    - python setup.py clean -a
+    - python setup.py clean -a && rm -rf build *.egg
+    - python setup.py build
+    - python setup.py clean -a && rm -rf build *.egg
     - python setup.py build_ext
 
 #notifications:
