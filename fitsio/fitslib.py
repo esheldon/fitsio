@@ -916,7 +916,12 @@ class FITS(object):
                 raise ValueError("data must be an ndarray with fields or a dict")
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
-            names, formats, dims = descr2tabledef(dtype.descr,write_bitcols=write_bitcols)
+            names, formats, dims = descr2tabledef(
+                dtype.
+                descr,
+                write_bitcols=write_bitcols,
+                table_type=table_type,
+            )
         else:
             if names is None or formats is None:
                 raise ValueError("send either dtype=, data=, or names= and formats=")
