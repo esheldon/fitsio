@@ -40,6 +40,13 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
+#ifdef FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS
+static int fits_use_standard_strings(void)
+{
+    return 0;
+}
+#endif
+
 
 // check unicode for python3, string for python2
 int is_python_string(const PyObject* obj)

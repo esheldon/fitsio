@@ -1,7 +1,6 @@
 from __future__ import print_function
-import distutils
-from distutils.core import setup, Extension, Command
-from distutils.command.build_ext import build_ext
+from setuptools import setup, Extension, Command
+from setuptools.command.build_ext import build_ext
 
 import os
 from subprocess import Popen, PIPE
@@ -115,6 +114,12 @@ class build_ext_subclass(build_ext):
                 self.compiler.add_library('bz2')
             if self.check_system_cfitsio_objects('curl_'):
                 self.compiler.add_library('curl')
+            
+            # Make sure the external lib has the fits_use_standard_strings
+            # function. If not, then define a macro to tell the wrapper 
+            # to always return False.
+            if not self.check_system_cfitsio_objects('_fits_use_standard_strings'):
+                self.compiler.compiler.append('-DFITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
         # fitsio requires libm as well.
         self.compiler.add_library('m')
