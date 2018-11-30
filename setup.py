@@ -121,7 +121,7 @@ class build_ext_subclass(build_ext):
             print('system fits patched:', self.check_system_cfitsio_objects('_fits_use_standard_strings'), flush=True)
             print('system fits patched:', self.check_system_cfitsio_objects('fits_use_standard_strings'), flush=True)
             if not self.check_system_cfitsio_objects('_fits_use_standard_strings'):
-                self.compiler.compiler.append('-DFITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
+                self.compiler.define_macro('FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
         # fitsio requires libm as well.
         self.compiler.add_library('m')
