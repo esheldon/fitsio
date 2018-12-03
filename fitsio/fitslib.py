@@ -1802,6 +1802,7 @@ class TableHDU(HDUBase):
             raise ValueError("bad input shape for column '%s': "
                              "expected '%s', got '%s'" % (col_name,col_shape, this_shape))
 
+
     def write_var_column(self, column, data, firstrow=0, **keys):
         """
         Write data to a variable-length column in this HDU
@@ -1898,14 +1899,6 @@ class TableHDU(HDUBase):
         """
 
         firstrow=self._info['nrows']
-
-        #if data.dtype.fields is None:
-        #    raise ValueError("got an ordinary array, can only append recarrays.  "
-        #                     "using this method")
-
-        # make sure these columns exist
-        #for n in data.dtype.names:
-        #    colnum = self._extract_colnum(n)
 
         keys['firstrow'] = firstrow
         self.write(data, **keys)
@@ -3923,6 +3916,10 @@ def descr2tabledef(descr, table_type='binary', write_bitcols=False):
         if is_ascii and npy_dtype in ['u1','i1']:
             raise ValueError("1-byte integers are not supported for ascii tables")
         """
+
+        if d[1][1]=='O':
+            raise ValueError('cannot automatically declare a var column without '
+                             'some data to determine max len')
 
         name, form, dim = npy2fits(d,table_type=table_type,write_bitcols=write_bitcols)
 
