@@ -157,7 +157,16 @@ int ffpcls( fitsfile *fptr,  /* I - FITS file pointer                       */
 
          for (;jj < twidth; jj++)    /* fill field with blanks, if needed */
          {
-           *buffer = ' ';
+             if ( fits_use_standard_strings() ) {
+                 if (snull[0] == ASCII_NULL_UNDEFINED) {
+                     *buffer = ' ';
+                 } else {
+                     *buffer = '\0';
+                 }
+             } else {
+                 *buffer = ' ';
+             }
+
            buffer++;
          }
 

@@ -6,6 +6,8 @@ import numpy
 from numpy import arange, array
 import fitsio
 
+from ._fitsio_wrap import cfitsio_use_standard_strings
+
 import unittest
 
 try:
@@ -47,9 +49,8 @@ class TestWarnings(unittest.TestCase):
             assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
         
 class TestReadWrite(unittest.TestCase):
+
     def setUp(self):
-
-
 
         nvec = 2
         ashape=(21,21)
@@ -57,54 +58,72 @@ class TestReadWrite(unittest.TestCase):
         Udtype = 'U6'
         
         # all currently available types, scalar, 1-d and 2-d array columns
-        dtype=[('u1scalar','u1'),
-               ('i1scalar','i1'),
-               ('b1scalar','?'),
-               ('u2scalar','u2'),
-               ('i2scalar','i2'),
-               ('u4scalar','u4'),
-               ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
-               ('i8scalar','i8'),
-               ('f4scalar','f4'),
-               ('f8scalar','>f8'),
-               ('c8scalar','c8'), # complex, two 32-bit
-               ('c16scalar','c16'), # complex, two 32-bit
+        dtype=[
+            ('u1scalar','u1'),
+            ('i1scalar','i1'),
+            ('b1scalar','?'),
+            ('u2scalar','u2'),
+            ('i2scalar','i2'),
+            ('u4scalar','u4'),
+            ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
+            ('i8scalar','i8'),
+            ('f4scalar','f4'),
+            ('f8scalar','>f8'),
+            ('c8scalar','c8'), # complex, two 32-bit
+            ('c16scalar','c16'), # complex, two 32-bit
 
-               ('u1vec','u1',nvec),
-               ('i1vec','i1',nvec),
-               ('b1vec','?',nvec),
-               ('u2vec','u2',nvec),
-               ('i2vec','i2',nvec),
-               ('u4vec','u4',nvec),
-               ('i4vec','i4',nvec),
-               ('i8vec','i8',nvec),
-               ('f4vec','f4',nvec),
-               ('f8vec','f8',nvec),
-               ('c8vec','c8',nvec),
-               ('c16vec','c16',nvec),
- 
-               ('u1arr','u1',ashape),
-               ('i1arr','i1',ashape),
-               ('b1arr','?',ashape),
-               ('u2arr','u2',ashape),
-               ('i2arr','i2',ashape),
-               ('u4arr','u4',ashape),
-               ('i4arr','i4',ashape),
-               ('i8arr','i8',ashape),
-               ('f4arr','f4',ashape),
-               ('f8arr','f8',ashape),
-               ('c8arr','c8',ashape),
-               ('c16arr','c16',ashape),
+            ('u1vec','u1',nvec),
+            ('i1vec','i1',nvec),
+            ('b1vec','?',nvec),
+            ('u2vec','u2',nvec),
+            ('i2vec','i2',nvec),
+            ('u4vec','u4',nvec),
+            ('i4vec','i4',nvec),
+            ('i8vec','i8',nvec),
+            ('f4vec','f4',nvec),
+            ('f8vec','f8',nvec),
+            ('c8vec','c8',nvec),
+            ('c16vec','c16',nvec),
 
-               ('Sscalar',Sdtype),
-               ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
+            ('u1arr','u1',ashape),
+            ('i1arr','i1',ashape),
+            ('b1arr','?',ashape),
+            ('u2arr','u2',ashape),
+            ('i2arr','i2',ashape),
+            ('u4arr','u4',ashape),
+            ('i4arr','i4',ashape),
+            ('i8arr','i8',ashape),
+            ('f4arr','f4',ashape),
+            ('f8arr','f8',ashape),
+            ('c8arr','c8',ashape),
+            ('c16arr','c16',ashape),
+
+            ('Sscalar',Sdtype),
+            ('Svec',   Sdtype, nvec),
+            ('Sarr',   Sdtype, ashape),
+        ] 
+
+        if cfitsio_use_standard_strings():
+            dtype += [
+                ('Sscalar_nopad',Sdtype),
+                ('Svec_nopad',   Sdtype, nvec),
+                ('Sarr_nopad',   Sdtype, ashape),
+            ]
 
         if sys.version_info > (3,0,0):
             dtype += [
                ('Uscalar',Udtype),
                ('Uvec',   Udtype, nvec),
-               ('Uarr',   Udtype, ashape)]
+               ('Uarr',   Udtype, ashape),
+            ]
+
+            if cfitsio_use_standard_strings():
+                dtype += [
+                   ('Uscalar_nopad',Udtype),
+                   ('Uvec_nopad',   Udtype, nvec),
+                   ('Uarr_nopad',   Udtype, ashape),
+                ]
+
 
         dtype2=[('index','i4'),
                 ('x','f8'),
@@ -151,9 +170,19 @@ class TestReadWrite(unittest.TestCase):
         data['Svec'][:,0] = '%-6s' % 'hello'
         data['Svec'][:,1] = '%-6s' % 'world'
 
+
         s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
         s = ['%-6s' % el for el in s]
         data['Sarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+
+        if cfitsio_use_standard_strings():
+            data['Sscalar_nopad'] = ['hello','world','good','bye']
+            data['Svec_nopad'][:,0] = 'hello'
+            data['Svec_nopad'][:,1] = 'world'
+
+            s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+            s = ['%s' % el for el in s]
+            data['Sarr_nopad'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
 
         if sys.version_info >= (3, 0, 0):
             data['Uscalar'] = ['%-6s' % s for s in ['hello','world','good','bye']]
@@ -163,7 +192,17 @@ class TestReadWrite(unittest.TestCase):
             s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
             s = ['%-6s' % el for el in s]
             data['Uarr'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
-            
+
+
+            if cfitsio_use_standard_strings():
+                data['Uscalar_nopad'] = ['hello','world','good','bye']
+                data['Uvec_nopad'][:,0] = 'hello'
+                data['Uvec_nopad'][:,1] = 'world'
+
+                s = 1 + numpy.arange(nrows*ashape[0]*ashape[1])
+                s = ['%s' % el for el in s]
+                data['Uarr_nopad'] = numpy.array(s).reshape(nrows,ashape[0],ashape[1])
+           
         self.data = data
 
         # use a dict list so we can have comments
@@ -179,8 +218,6 @@ class TestReadWrite(unittest.TestCase):
         data2['x'] = numpy.arange(nrows2,dtype='f8')
         data2['y'] = numpy.arange(nrows2,dtype='f8')
         self.data2 = data2
-
-
 
         #
         # ascii table
@@ -225,55 +262,56 @@ class TestReadWrite(unittest.TestCase):
 
 
 
-
         #
         # for variable length columns
         #
 
         # all currently available types, scalar, 1-d and 2-d array columns
-        dtype=[('u1scalar','u1'),
-               ('u1obj','O'),
-               ('i1scalar','i1'),
-               ('i1obj','O'),
-               ('u2scalar','u2'),
-               ('u2obj','O'),
-               ('i2scalar','i2'),
-               ('i2obj','O'),
-               ('u4scalar','u4'),
-               ('u4obj','O'),
-               ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
-               ('i4obj','O'),
-               ('i8scalar','i8'),
-               ('i8obj','O'),
-               ('f4scalar','f4'),
-               ('f4obj','O'),
-               ('f8scalar','>f8'),
-               ('f8obj','O'),
+        dtype=[
+            ('u1scalar','u1'),
+            ('u1obj','O'),
+            ('i1scalar','i1'),
+            ('i1obj','O'),
+            ('u2scalar','u2'),
+            ('u2obj','O'),
+            ('i2scalar','i2'),
+            ('i2obj','O'),
+            ('u4scalar','u4'),
+            ('u4obj','O'),
+            ('i4scalar','<i4'), # mix the byte orders a bit, test swapping
+            ('i4obj','O'),
+            ('i8scalar','i8'),
+            ('i8obj','O'),
+            ('f4scalar','f4'),
+            ('f4obj','O'),
+            ('f8scalar','>f8'),
+            ('f8obj','O'),
 
-               ('u1vec','u1',nvec),
-               ('i1vec','i1',nvec),
-               ('u2vec','u2',nvec),
-               ('i2vec','i2',nvec),
-               ('u4vec','u4',nvec),
-               ('i4vec','i4',nvec),
-               ('i8vec','i8',nvec),
-               ('f4vec','f4',nvec),
-               ('f8vec','f8',nvec),
- 
-               ('u1arr','u1',ashape),
-               ('i1arr','i1',ashape),
-               ('u2arr','u2',ashape),
-               ('i2arr','i2',ashape),
-               ('u4arr','u4',ashape),
-               ('i4arr','i4',ashape),
-               ('i8arr','i8',ashape),
-               ('f4arr','f4',ashape),
-               ('f8arr','f8',ashape),
+            ('u1vec','u1',nvec),
+            ('i1vec','i1',nvec),
+            ('u2vec','u2',nvec),
+            ('i2vec','i2',nvec),
+            ('u4vec','u4',nvec),
+            ('i4vec','i4',nvec),
+            ('i8vec','i8',nvec),
+            ('f4vec','f4',nvec),
+            ('f8vec','f8',nvec),
 
-               ('Sscalar',Sdtype),
-               ('Sobj','O'),
-               ('Svec',   Sdtype, nvec),
-               ('Sarr',   Sdtype, ashape)]
+            ('u1arr','u1',ashape),
+            ('i1arr','i1',ashape),
+            ('u2arr','u2',ashape),
+            ('i2arr','i2',ashape),
+            ('u4arr','u4',ashape),
+            ('i4arr','i4',ashape),
+            ('i8arr','i8',ashape),
+            ('f4arr','f4',ashape),
+            ('f8arr','f8',ashape),
+
+            ('Sscalar',Sdtype),
+            ('Sobj','O'),
+            ('Svec',   Sdtype, nvec),
+            ('Sarr',   Sdtype, ashape),
+        ]
 
         if sys.version_info > (3,0,0):
             dtype += [
@@ -466,8 +504,8 @@ class TestReadWrite(unittest.TestCase):
 
     def testImageWriteEmpty(self):
         """
-        Test a basic image write, with no data and just a header, then reading back in to
-        check the values
+        Test a basic image write, with no data and just a header, then reading
+        back in to check the values
         """
         fname=tempfile.mktemp(prefix='fitsio-ImageWriteEmpty-',suffix='.fits')
         try:
@@ -485,8 +523,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testImageWriteReadFromDims(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test creating an image from dims and writing in place
         """
 
         fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
@@ -515,8 +552,7 @@ class TestReadWrite(unittest.TestCase):
  
     def testImageWriteReadFromDimsChunks(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test creating an image and reading/writing chunks
         """
 
         fname=tempfile.mktemp(prefix='fitsio-ImageWriteFromDims-',suffix='.fits')
@@ -575,6 +611,9 @@ class TestReadWrite(unittest.TestCase):
  
 
     def testImageSlice(self):
+        """
+        test reading an image slice
+        """
         fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
@@ -597,8 +636,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testRiceTileCompressedWriteRead(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test writing and reading a rice compressed image
         """
         nrows=30
         ncols=100
@@ -640,8 +678,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testPLIOTileCompressedWriteRead(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        test writing and readin PLIO compressed image
         """
 
         compress='plio'
@@ -666,8 +703,7 @@ class TestReadWrite(unittest.TestCase):
  
     def testGZIPTileCompressedWriteRead(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test writing and reading gzip compressed image
         """
 
         compress='gzip'
@@ -690,8 +726,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testGZIP2TileCompressedWriteRead(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test writing and reading gzip2 compressed image
         """
 
         compress='gzip_2'
@@ -714,8 +749,7 @@ class TestReadWrite(unittest.TestCase):
  
     def testHCompressTileCompressedWriteRead(self):
         """
-        Test a basic image write, data and a header, then reading back in to
-        check the values
+        Test writing and reading hcompress compressed image
         """
 
         compress='hcompress'
@@ -774,8 +808,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testMoveByName(self):
         """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        test moving hdus by name
         """
 
         fname=tempfile.mktemp(prefix='fitsio-MoveByName-',suffix='.fits')
@@ -973,7 +1006,6 @@ class TestReadWrite(unittest.TestCase):
                     os.remove(fname)
 
 
-
     def testTableWriteRead(self):
         """
         Test a basic table write, data and a header, then reading back in to
@@ -1063,9 +1095,8 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableWriteDictOfArraysScratch(self):
         """
-        This version creating the table from the names and list
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        This version creating the table from a dict of arrays, creating
+        table first
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableDict-',suffix='.fits')
@@ -1096,9 +1127,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableWriteDictOfArrays(self):
         """
-        This version creating the table from the names and list
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        This version creating the table from a dict of arrays
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableDict-',suffix='.fits')
@@ -1132,9 +1161,8 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableWriteDictOfArraysVar(self):
         """
-        This version creating the table from the names and list
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        This version creating the table from a dict of arrays, variable
+        lenght columns
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableDictVar-',suffix='.fits')
@@ -1166,9 +1194,8 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableWriteListOfArraysScratch(self):
         """
-        This version creating the table from the names and list
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        This version creating the table from the names and list, creating
+        table first
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableListScratch-',suffix='.fits')
@@ -1229,12 +1256,10 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
-
     def testTableWriteListOfArraysVar(self):
         """
-        This version creating the table from the names and list
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        This version creating the table from the names and list, variable
+        lenght cols
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableListScratch-',suffix='.fits')
@@ -1295,8 +1320,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testAsciiTableWriteRead(self):
         """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        Test write and read for an ascii table
         """
 
         fname=tempfile.mktemp(prefix='fitsio-AsciiTableWrite-',suffix='.fits')
@@ -1424,7 +1448,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableDeleteRowRange(self):
         """
-        Insert a new column
+        Test deleting a range of rows using the delete_rows method
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableDeleteRowRange-',suffix='.fits')
@@ -1449,7 +1473,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableDeleteRows(self):
         """
-        Insert a new column
+        Test deleting specific set of rows using the delete_rows method
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableDeleteRows-',suffix='.fits')
@@ -1474,7 +1498,9 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableResize(self):
         """
-        Insert a new column
+        Use the resize method to change the size of a table
+
+        default values get filled in and these are tested
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableResize-',suffix='.fits')
@@ -1649,8 +1675,7 @@ class TestReadWrite(unittest.TestCase):
 
     def testTableSubsets(self):
         """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        testing reading subsets
         """
 
         fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
@@ -1765,10 +1790,10 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(bzfname):
                 os.remove(bzfname)
             pass
+
     def testChecksum(self):
         """
-        Test a basic table write, data and a header, then reading back in to
-        check the values
+        test that checksumming works
         """
 
         fname=tempfile.mktemp(prefix='fitsio-Checksum-',suffix='.fits')
@@ -1783,6 +1808,9 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
     def testTrimStrings(self):
+        """
+        test mode where we strim strings on read
+        """
         fname=tempfile.mktemp(prefix='fitsio-Trim-',suffix='.fits')
         dt=[('fval','f8'),('name','S15'),('vec','f4',2)]
         n=3
@@ -1878,6 +1906,9 @@ class TestReadWrite(unittest.TestCase):
 
 
     def testLowerUpper(self):
+        """
+        test forcing names to upper and lower
+        """
         fname=tempfile.mktemp(prefix='fitsio-LowerUpper-',suffix='.fits')
         dt=[('MyName','f8'),('StuffThings','i4'),('Blah','f4')]
         data=numpy.zeros(3, dtype=dt)
@@ -1962,6 +1993,9 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
     def testReadRaw(self):
+        """
+        testing reading the file as raw bytes
+        """
         fname=tempfile.mktemp(prefix='fitsio-readraw-',suffix='.fits')
 
         dt=[('MyName','f8'),('StuffThings','i4'),('Blah','f4')]

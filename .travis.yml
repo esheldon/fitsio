@@ -1,5 +1,5 @@
 os:
-    - linux 
+    - linux
     - osx
 
 language: c
@@ -7,36 +7,10 @@ language: c
 # use the containers for a faster build
 sudo: false
 
-# these combos of python and numpy are not supported by
-# anaconda:
-# python 2.6* numpy 1.11*
-# python 3.3* numpy 1.11*
-# python 3.5* numpy 1.8*
-
-# Here is a matrix that anaconda supports:
 env:
-    - PYTHON_VERSION=2.6 NUMPY_VERSION=1.8
-    - PYTHON_VERSION=2.6 NUMPY_VERSION=1.9
-
-    - PYTHON_VERSION=2.7 NUMPY_VERSION=1.8
-    - PYTHON_VERSION=2.7 NUMPY_VERSION=1.9
     - PYTHON_VERSION=2.7 NUMPY_VERSION=1.11
-
-    - PYTHON_VERSION=3.3 NUMPY_VERSION=1.8
-    - PYTHON_VERSION=3.3 NUMPY_VERSION=1.9
-
-    - PYTHON_VERSION=3.4 NUMPY_VERSION=1.8
-    - PYTHON_VERSION=3.4 NUMPY_VERSION=1.9
-    - PYTHON_VERSION=3.4 NUMPY_VERSION=1.11
-
-    - PYTHON_VERSION=3.5 NUMPY_VERSION=1.9
-    - PYTHON_VERSION=3.5 NUMPY_VERSION=1.11
-
-    - PYTHON_VERSION=3.6 NUMPY_VERSION=1.9
-    - PYTHON_VERSION=3.6 NUMPY_VERSION=1.15
-
-    - PYTHON_VERSION=3.7 NUMPY_VERSION=1.9
-    - PYTHON_VERSION=3.7 NUMPY_VERSION=1.15
+    - PYTHON_VERSION=3.6 NUMPY_VERSION=1.11
+    - PYTHON_VERSION=3.7 NUMPY_VERSION=1.11
 
 before_install:
     - if  [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -61,6 +35,8 @@ install:
 script:
     - FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
     - export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages:$PYTHONPATH
+    - mkdir -p $FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages
+
     - export INSTALLFLAGS="--prefix=$FITSIO_INSTALL_DIR --single-version-externally-managed --record rec.txt"
     - python setup.py install $INSTALLFLAGS
 
@@ -69,7 +45,8 @@ script:
     - popd
     - rm -rf $FITSIO_INSTALL_DIR
 
-    - python setup.py clean -a 
+    - python setup.py clean -a
+    - mkdir -p $FITSIO_INSTALL_DIR/lib/python$PYTHON_VERSION/site-packages
     - python setup.py install $INSTALLFLAGS build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
 
     - pushd /tmp

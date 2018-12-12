@@ -916,7 +916,12 @@ class FITS(object):
                 raise ValueError("data must be an ndarray with fields or a dict")
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
-            names, formats, dims = descr2tabledef(dtype.descr,write_bitcols=write_bitcols)
+            names, formats, dims = descr2tabledef(
+                dtype.
+                descr,
+                write_bitcols=write_bitcols,
+                table_type=table_type,
+            )
         else:
             if names is None or formats is None:
                 raise ValueError("send either dtype=, data=, or names= and formats=")
@@ -1673,6 +1678,9 @@ class TableHDU(HDUBase):
                         colref=array_to_native_c(data_list[i],inplace=False)
                     nonobj_arrays.append(colref)
 
+            for tcolnum,tdata in zip(nonobj_colnums, nonobj_arrays):
+                self._verify_column_data(tcolnum,tdata)
+
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
                 self._FITS.write_columns(self._ext+1, nonobj_colnums, nonobj_arrays, 
@@ -1728,10 +1736,72 @@ class TableHDU(HDUBase):
             # this will error if the character is not in ascii
             data_send = data_send.astype('S', copy=False)
 
+        self._verify_column_data(colnum, data_send)
+
         self._FITS.write_column(self._ext+1, colnum+1, data_send, 
                                 firstrow=firstrow+1, write_bitcols=self.write_bitcols)
         del data_send
         self._update_info()
+
+    def _verify_column_data(self, colnum, data):
+        """
+        verify the input data is of the correct type and shape
+        """
+        this_dt = data.dtype.descr[0]
+
+        if len(data.shape) > 1:
+            this_shape = data.shape[1:]
+        else:
+            this_shape = ()
+
+        this_npy_type = this_dt[1][1:]
+
+        npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
+        info = self._info['colinfo'][colnum]
+
+        if npy_type[0] in ['>','<','|']:
+            npy_type = npy_type[1:]
+
+        col_name=info['name']
+        col_tdim = info['tdim']
+        col_shape = tdim2shape(col_tdim, col_name, is_string=(npy_type[0] == 'S'))
+
+        if col_shape is None:
+            if this_shape == ():
+                this_shape=None
+
+        if col_shape is not None and not isinstance(col_shape,tuple):
+            col_shape = (col_shape,)
+
+        '''
+        print('column name:',col_name)
+        print(data.shape)
+        print('column dtype:',npy_type)
+        print('input dtype:',this_npy_type)
+        print('column shape:',col_shape)
+        print('input shape:',this_shape)
+        print()
+        '''
+
+        # this mismatch is OK
+        if npy_type=='i1' and this_npy_type=='b1':
+            this_npy_type='i1'
+
+        if isinstance(self,AsciiTableHDU):
+            # we don't enforce types exact for ascii
+            if npy_type=='i8' and this_npy_type in ['i2','i4']:
+                this_npy_type = 'i8'
+            elif npy_type=='f8' and this_npy_type == 'f4':
+                this_npy_type = 'f8'
+
+        if this_npy_type != npy_type:
+            raise ValueError("bad input data for column '%s': "
+                             "expected '%s', got '%s'" % (col_name,npy_type, this_npy_type))
+
+        if this_shape != col_shape:
+            raise ValueError("bad input shape for column '%s': "
+                             "expected '%s', got '%s'" % (col_name,col_shape, this_shape))
+
 
     def write_var_column(self, column, data, firstrow=0, **keys):
         """
@@ -1829,14 +1899,6 @@ class TableHDU(HDUBase):
         """
 
         firstrow=self._info['nrows']
-
-        #if data.dtype.fields is None:
-        #    raise ValueError("got an ordinary array, can only append recarrays.  "
-        #                     "using this method")
-
-        # make sure these columns exist
-        #for n in data.dtype.names:
-        #    colnum = self._extract_colnum(n)
 
         keys['firstrow'] = firstrow
         self.write(data, **keys)
@@ -3854,6 +3916,10 @@ def descr2tabledef(descr, table_type='binary', write_bitcols=False):
         if is_ascii and npy_dtype in ['u1','i1']:
             raise ValueError("1-byte integers are not supported for ascii tables")
         """
+
+        if d[1][1]=='O':
+            raise ValueError('cannot automatically declare a var column without '
+                             'some data to determine max len')
 
         name, form, dim = npy2fits(d,table_type=table_type,write_bitcols=write_bitcols)
 
