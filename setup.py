@@ -14,15 +14,6 @@ from subprocess import Popen, PIPE
 import glob
 import shutil
 
-# we allow numpy to fail import, in order to
-# support egg_info for readthedocs
-try:
-    import numpy
-    include_dirs = [numpy.get_include()]
-except ImportError:
-    print("could not import numpy")
-    include_dirs = []
-
 
 class build_ext_subclass(build_ext):
     boolean_options = build_ext.boolean_options + ['use-system-fitsio']
@@ -66,6 +57,20 @@ class build_ext_subclass(build_ext):
             # because we will know the compiler there.
             self.include_dirs.insert(0, self.cfitsio_build_dir)
 
+    def run(self):
+        # For extensions that require 'numpy' in their include dirs,
+        # replace 'numpy' with the actual paths
+        import numpy
+        np_include = numpy.get_include()
+
+        for extension in self.extensions:
+            if 'numpy' in extension.include_dirs:
+                idx = extension.include_dirs.index('numpy')
+                extension.include_dirs.insert(idx, np_include)
+                extension.include_dirs.remove('numpy')
+
+        build_ext.run(self)
+
     def build_extensions(self):
         if not self.use_system_fitsio:
 
@@ -77,7 +82,6 @@ class build_ext_subclass(build_ext):
             # a disagreement between gcc 4 and gcc 5
 
             CCold = self.compiler.compiler
-
             CC = []
             for val in CCold:
                 if val == '-O3':
@@ -87,6 +91,7 @@ class build_ext_subclass(build_ext):
                 if val == 'ccache':
                     print("removing ccache from the compiler options")
                     continue
+
                 CC.append(val)
 
             self.configure_cfitsio(
@@ -237,14 +242,11 @@ class build_ext_subclass(build_ext):
                 else:
                     return False
 
-
-include_dirs = [numpy.get_include()]
-
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files = []
 
-ext = Extension(
-    "fitsio._fitsio_wrap", sources, include_dirs=include_dirs)
+ext=Extension("fitsio._fitsio_wrap",
+              sources, include_dirs=['numpy'])
 
 description = ("A full featured python library to read from and "
                "write to FITS files.")
@@ -270,6 +272,7 @@ setup(
     url="https://github.com/esheldon/fitsio",
     author="Erin Scott Sheldon",
     author_email="erin.sheldon@gmail.com",
+    setup_requires=['numpy'],
     install_requires=['numpy'],
     packages=['fitsio'],
     data_files=data_files,

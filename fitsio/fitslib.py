@@ -4597,11 +4597,15 @@ class FITSRecord(dict):
             if isinstance(avalue,ast.BinOp):
                 # this is probably a string that happens to look like
                 # a binary operation, e.g. '25-3'
-                value = orig_value
+                value = value_orig
             else:
                 value = ast.literal_eval(value_orig)
         except:
             value = self._convert_quoted_string(value_orig)
+
+        if isinstance(value,int) and '_' in value_orig:
+            value = value_orig
+
         return value
 
     def _convert_quoted_string(self, value):

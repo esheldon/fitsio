@@ -402,6 +402,8 @@ class TestReadWrite(unittest.TestCase):
                                     #like expressions
                     'name':'J. Smith',
                     'und':None,
+                    'binop':'25-3', # test string with binary operation in it
+                    'unders':'1_000_000', # test string with underscore
                 }
                 fits.write_image(data, header=header)
 
