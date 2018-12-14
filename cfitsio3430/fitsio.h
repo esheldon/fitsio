@@ -797,7 +797,6 @@ int CFITS_API fits_delete_iraf_file(const char *filename, int *status);
 /*---------------- utility routines -------------*/
 
 float CFITS_API ffvers(float *version);
-int CFITS_API fits_use_standard_strings(void);
 void CFITS_API ffupch(char *string);
 void CFITS_API ffgerr(int status, char *errtext);
 void CFITS_API ffpmsg(const char *err_message);
