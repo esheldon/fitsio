@@ -1,0 +1,22 @@
+--- cfitsio3430/fitscore.c	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3430/fitscore.c	2018-12-14 08:39:20.000000000 -0600
+@@ -182,6 +182,19 @@
+
+     return(*version);
+ }
++
++/*
++   Return 1 if we are to treat strings per the FITS standard (not
++   replacing nulls with spaces, and not padding with spaces)
++*/
++int fits_use_standard_strings(void) {
++#ifdef FITS_USE_STANDARD_STRINGS
++    return 1;
++#else
++    return 0;
++#endif
++}
++
+ /*--------------------------------------------------------------------------*/
+ int ffflnm(fitsfile *fptr,    /* I - FITS file pointer  */
+            char *filename,    /* O - name of the file   */

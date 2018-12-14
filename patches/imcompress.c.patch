@@ -1,0 +1,21 @@
+--- cfitsio3430/imcompress.c	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3430/imcompress.c	2018-12-14 08:39:20.000000000 -0600
+@@ -2373,9 +2373,16 @@
+ 		       idata[ii] = ((int) usbuff[ii]) - 32768;
+                }
+            } else {  /* just do the data type conversion to int */
+-                 /* have to convert usbuff to an I*4 array, in place */
+-                 /* usbuff must have been allocated large enough to do this */
+-                 fits_ushort_to_int_inplace(usbuff, tilelen, status);
++               /* for HCOMPRESS we need to simply subtract 32768 */
++               /* for PLIO, have to convert usbuff to an I*4 array, in place */
++               /* usbuff must have been allocated large enough to do this */
++
++               if ((outfptr->Fptr)->compress_type == HCOMPRESS_1) {
++                    for (ii = tilelen - 1; ii >= 0; ii--)
++                       idata[ii] = ((int) usbuff[ii]) - 32768;
++               } else {
++                    fits_ushort_to_int_inplace(usbuff, tilelen, status);
++               }
+            }
+         }

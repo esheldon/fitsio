@@ -1,0 +1,50 @@
+--- cfitsio3430/configure	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3430/configure	2018-12-14 08:39:20.000000000 -0600
+@@ -708,6 +708,7 @@
+ enable_reentrant
+ enable_sse2
+ enable_ssse3
++enable_standard_strings
+ enable_hera
+ with_gsiftp_flavour
+ with_gsiftp
+@@ -1339,6 +1340,8 @@
+                           instruction set
+   --enable-ssse3          Enable use of instructions in the SSSE3 extended
+                           instruction set
++  --enable-standard-strings
++                          Enable use of FITSIO standard string processing
+   --enable-hera           Build for HERA (ASD use only)
+
+ Optional Packages:
+@@ -2250,6 +2253,14 @@
+ fi
+
+
++# Check whether --enable-standard_strings was given.
++if test "${enable_standard_strings+set}" = set; then :
++  enableval=$enable_standard_strings;  if test $enableval = yes; then USE_STANDARD_STRINGS=yes; fi
++
++fi
++
++
++
+ # Define BUILD_HERA when building for HERA project to activate code in
+ # drvrfile.c (by way of fitsio2.h):
+ # Check whether --enable-hera was given.
+@@ -5072,6 +5083,15 @@
+
+ fi
+
++# ------------------------------------------------------------------------------
++# Define FITS_USE_STANDARD_STRINGS
++# ------------------------------------------------------------------------------
++if test "x$USE_STANDARD_STRINGS" = xyes; then
++  $as_echo "#define FITS_USE_STANDARD_STRINGS 1" >>confdefs.h
++
++fi
++
++
+ # -------------------------------------------------------------------------
+ # there are some idiosyncrasies with semun defs (used in semxxx). Solaris
+ # does not define it at all
