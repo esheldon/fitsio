@@ -2,6 +2,7 @@ version 1.0
 ---------------------------------
 
 New Features
+
     - Support for python 3 strings.
 
     - Support for proper string null termination.
