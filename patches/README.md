@@ -20,7 +20,7 @@ To add new patches, you need to
     +++ cfitsio<version>/<filename>	2018-12-14 08:39:20.000000000 -0600
     ...
     ``` 
-  where `<version>` and `<filename>` have the current cfitsio version and
-  file that is being patched.
+    where `<version>` and `<filename>` have the current cfitsio version and
+    file that is being patched.
 
 5. Commit the patch file in the patches directory with the name `<filename>.patch`.
