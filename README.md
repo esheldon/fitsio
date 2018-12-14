@@ -2,12 +2,6 @@ A python library to read from and write to FITS files.
 
 [![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
 
-Do not use numpy 1.10.0 or 1.10.1
-----------------------------------
-There is a serious performance regression in numpy 1.10 that results
-in fitsio running tens to hundreds of times slower.  A fix may be
-forthcoming in a later release.  Please comment here if this
-has already impacted your work https://github.com/numpy/numpy/issues/6467
 
 Description
 -----------
@@ -356,6 +350,8 @@ f[1].lower           # If True, lower case colnames on output
 f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
 ```
+
+
 Installation
 ------------
 
@@ -400,9 +396,18 @@ optionally with a prefix
 Requirements
 ------------
 
-    - python 2 or python 3
-    - you need a c compiler and build tools like Make
-    - You need numerical python (numpy).
+- python 2 or python 3
+- a C compiler and build tools like `make`, `patch`, etc.
+- numpy (See the note below. Generally, numpy 1.11 or later is better.)
+
+
+Do not use numpy 1.10.0 or 1.10.1
+----------------------------------
+There is a serious performance regression in numpy 1.10 that results
+in fitsio running tens to hundreds of times slower.  A fix may be
+forthcoming in a later release.  Please comment here if this
+has already impacted your work https://github.com/numpy/numpy/issues/6467
+
 
 Tests
 -----
@@ -435,5 +440,14 @@ and image dimensions in reverse order, but write the data as is.  Then we need
 to also reverse the dims as read from the header when creating the numpy dtype,
 but read as is.
 
+Note on `distutils` vs `setuptools`
+-----------------------------------
+
+As of version `1.0.0`, `fitsio` has been transitioned to `setuptools` for packaging 
+and installation. There are many reasons to do this (and to not do this). However,
+at a practical level, what this means for you is that you may have trouble uninstalling
+older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing to do is 
+to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
+for example.
 
 
