@@ -3,6 +3,12 @@ version 0.9.12
 
 New Features
 
+    - Deal properly with undefined value header entries
+    - can delete rows from a table
+    - can insert rows with resize()
+    - can create empty HDU extension for extensions beyond 0 (Felipe Menanteau)
+    - sanitize string input for py3
+    - GZIP_2 compression support (Felipe Menanteau)
     - Improvements to python packaging for easier installation.
     - Using cfitsio 3.430 now with patches for known bugs
     - Now support reading and writing bit columns (Eli Rykoff)
@@ -25,6 +31,11 @@ New Features
 
 Bug Fixes
 
+    - Only raise exception when PLIO u4/u8 is selected now that u1/u2 is supported
+      in cfitsio (Eli Rykoff)
+    - link curl library if cfitsio linked to it
+    - don't require numpy to run setup (Simon Conseil)
+    - strings with understores in headers, such as `1_000_000` are now not converted to numbers in py3
     - check that the input fields names for tables are unique after converting
       to upper case
     - link against libm explicitly for compatibility on some systems
