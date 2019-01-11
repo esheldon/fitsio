@@ -222,7 +222,7 @@ classifiers = ["Development Status :: 5 - Production/Stable"
               ]
 
 setup(name="fitsio",
-      version="1.0.0rc1",
+      version="0.9.12",
       description=description,
       long_description=long_description,
       long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
