@@ -1,30 +1,37 @@
-version 1.0
+version 1.0.0
 ---------------------------------
 
 New Features
 
     - Support for python 3 strings.
-
     - Support for proper string null termination.
 
-    - Now support reading and writing bit columns (Eli Rykoff)
 
+version 0.9.12
+---------------------------------
+
+New Features
+
+    - Deal properly with undefined value header entries
+    - can delete rows from a table
+    - can insert rows with resize()
+    - can create empty HDU extension for extensions beyond 0 (Felipe Menanteau)
+    - sanitize string input for py3
+    - GZIP_2 compression support (Felipe Menanteau)
+    - Improvements to python packaging for easier installation.
+    - Using cfitsio 3.430 now with patches for known bugs
+    - Now support reading and writing bit columns (Eli Rykoff)
     - Can now read CONTINUE keywords in headers.  It is currently
       treated as a comment; full implementation to come. (Alex Drlica-Wagner)
-
     - Can now use a standard key dict when writing a header key using
       the write_key method via `**`, e.g. `write_key(**key_dict)`
       (Alex Drlica-Wagner)
-
     - Delete row sets and row ranges using the delete_rows() method
       for tables
-
     - Resize tables, adding or removing rows, using the resize() method for
       tables
-
     - make write_key usable with standard dictionary using the `**keydict`
       style
-
     - allow writing empty HDUs after the first one using
         ignore_empty=True to the FITS constructor or
         the write convenience function (Felipe Menanteau)
@@ -33,9 +40,14 @@ New Features
 
 Bug Fixes
 
+    - Only raise exception when PLIO u4/u8 is selected now that u1/u2 is supported
+      in cfitsio (Eli Rykoff)
+    - link curl library if cfitsio linked to it
+    - don't require numpy to run setup (Simon Conseil)
+    - strings with understores in headers, such as `1_000_000` are now not converted to numbers in py3
     - check that the input fields names for tables are unique after converting
       to upper case
-    - link against libm explicitly for compatability on some systems
+    - link against libm explicitly for compatibility on some systems
 
 
 version 0.9.11

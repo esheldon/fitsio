@@ -266,7 +266,7 @@ setup(
     version="1.0.0rc1",
     description=description,
     long_description=long_description,
-    long_description_content_type='text/x-rst',
+    long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
     license="GPL",
     classifiers=classifiers,
     url="https://github.com/esheldon/fitsio",
