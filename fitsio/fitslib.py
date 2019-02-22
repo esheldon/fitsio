@@ -655,6 +655,11 @@ class FITS(object):
                     array_to_native(img2send, inplace=True)
                 else:
                     img2send = array_to_native(img, inplace=False)
+                    
+                if IS_PY3 and img2send.dtype.char == 'U':
+                    # for python3, we convert unicode to ascii
+                    # this will error if the character is not in ascii
+                    img2send = img2send.astype('S', copy=False)
 
             else:
                 self._ensure_empty_image_ok()
@@ -1676,6 +1681,12 @@ class TableHDU(HDUBase):
                         colref=array_to_native(data_list[i],inplace=False)
                     else:
                         colref=array_to_native_c(data_list[i],inplace=False)
+
+                    if IS_PY3 and colref.dtype.char == 'U':
+                        # for python3, we convert unicode to ascii
+                        # this will error if the character is not in ascii
+                        colref = colref.astype('S', copy=False)
+                        
                     nonobj_arrays.append(colref)
 
             for tcolnum,tdata in zip(nonobj_colnums, nonobj_arrays):
@@ -1852,7 +1863,12 @@ class TableHDU(HDUBase):
             raise ValueError("column '%s' already exists" % name)
 
         if IS_PY3 and data.dtype.char == 'U':
-            descr = data.astype('S', copy=False).dtype.descr
+            # fast dtype conversion using an empty array
+            # we could hack at the actual text description, but using
+            # the numpy API is probably safer
+            # this also avoids doing a dtype conversion on every array
+            # element which could b expensive
+            descr = numpy.empty(1).astype(data.dtype).astype('S').dtype.descr
         else:
             descr = data.dtype.descr
 
@@ -3334,6 +3350,11 @@ class ImageHDU(HDUBase):
             array_to_native(img_send, inplace=True)
         else:
             img_send = array_to_native(img, inplace=False)
+
+        if IS_PY3 and img_send.dtype.char == 'U':
+            # for python3, we convert unicode to ascii
+            # this will error if the character is not in ascii
+            img_send = img_send.astype('S', copy=False)
 
         if not numpy.isscalar(start):
             # convert to scalar offset
@@ -4859,12 +4880,7 @@ def array_to_native_c(array_in, inplace=False):
     return array_to_native(arr, inplace=inplace)
 
  
-def array_to_native(array, inplace=False):
-    if IS_PY3 and array.dtype.char == 'U':
-        # for python3, we convert unicode to ascii
-        # this will error if the character is not in ascii
-        array = array.astype('S', copy=False)
-    
+def array_to_native(array, inplace=False):    
     if numpy.little_endian:
         machine_little=True
     else:
