@@ -1,0 +1,19 @@
+--- cfitsio3430/putcols.c	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3430/putcols.c	2018-12-14 08:39:20.000000000 -0600
+@@ -157,7 +157,16 @@
+
+          for (;jj < twidth; jj++)    /* fill field with blanks, if needed */
+          {
+-           *buffer = ' ';
++             if ( fits_use_standard_strings() ) {
++                 if (snull[0] == ASCII_NULL_UNDEFINED) {
++                     *buffer = ' ';
++                 } else {
++                     *buffer = '\0';
++                 }
++             } else {
++                 *buffer = ' ';
++             }
++
+            buffer++;
+          }

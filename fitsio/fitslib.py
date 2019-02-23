@@ -29,11 +29,14 @@ import warnings
 from . import _fitsio_wrap
 from .util import FITSRuntimeWarning, cfitsio_version
 
+if sys.version_info >= (3, 0, 0):
+    IS_PY3 = True
+else:
+    IS_PY3 = False
+
 # for python3 compat
-try:
-    xrange=xrange
-except:
-    xrange=range
+if IS_PY3:
+    xrange = range
 
 from functools import reduce
 
@@ -652,6 +655,11 @@ class FITS(object):
                     array_to_native(img2send, inplace=True)
                 else:
                     img2send = array_to_native(img, inplace=False)
+                    
+                if IS_PY3 and img2send.dtype.char == 'U':
+                    # for python3, we convert unicode to ascii
+                    # this will error if the character is not in ascii
+                    img2send = img2send.astype('S', copy=False)
 
             else:
                 self._ensure_empty_image_ok()
@@ -913,7 +921,12 @@ class FITS(object):
                 raise ValueError("data must be an ndarray with fields or a dict")
         elif dtype is not None:
             dtype=numpy.dtype(dtype)
-            names, formats, dims = descr2tabledef(dtype.descr,write_bitcols=write_bitcols)
+            names, formats, dims = descr2tabledef(
+                dtype.
+                descr,
+                write_bitcols=write_bitcols,
+                table_type=table_type,
+            )
         else:
             if names is None or formats is None:
                 raise ValueError("send either dtype=, data=, or names= and formats=")
@@ -1668,7 +1681,16 @@ class TableHDU(HDUBase):
                         colref=array_to_native(data_list[i],inplace=False)
                     else:
                         colref=array_to_native_c(data_list[i],inplace=False)
+
+                    if IS_PY3 and colref.dtype.char == 'U':
+                        # for python3, we convert unicode to ascii
+                        # this will error if the character is not in ascii
+                        colref = colref.astype('S', copy=False)
+                        
                     nonobj_arrays.append(colref)
+
+            for tcolnum,tdata in zip(nonobj_colnums, nonobj_arrays):
+                self._verify_column_data(tcolnum,tdata)
 
             if len(nonobj_arrays) > 0:
                 firstrow=keys.get('firstrow',0)
@@ -1720,10 +1742,77 @@ class TableHDU(HDUBase):
             # some logic
             data_send = array_to_native(data, inplace=False)
 
+        if IS_PY3 and data_send.dtype.char == 'U':
+            # for python3, we convert unicode to ascii
+            # this will error if the character is not in ascii
+            data_send = data_send.astype('S', copy=False)
+
+        self._verify_column_data(colnum, data_send)
+
         self._FITS.write_column(self._ext+1, colnum+1, data_send, 
                                 firstrow=firstrow+1, write_bitcols=self.write_bitcols)
         del data_send
         self._update_info()
+
+    def _verify_column_data(self, colnum, data):
+        """
+        verify the input data is of the correct type and shape
+        """
+        this_dt = data.dtype.descr[0]
+
+        if len(data.shape) > 1:
+            this_shape = data.shape[1:]
+        else:
+            this_shape = ()
+
+        this_npy_type = this_dt[1][1:]
+
+        npy_type,isvar,istbit = self._get_tbl_numpy_dtype(colnum)
+        info = self._info['colinfo'][colnum]
+
+        if npy_type[0] in ['>','<','|']:
+            npy_type = npy_type[1:]
+
+        col_name=info['name']
+        col_tdim = info['tdim']
+        col_shape = tdim2shape(col_tdim, col_name, is_string=(npy_type[0] == 'S'))
+
+        if col_shape is None:
+            if this_shape == ():
+                this_shape=None
+
+        if col_shape is not None and not isinstance(col_shape,tuple):
+            col_shape = (col_shape,)
+
+        '''
+        print('column name:',col_name)
+        print(data.shape)
+        print('column dtype:',npy_type)
+        print('input dtype:',this_npy_type)
+        print('column shape:',col_shape)
+        print('input shape:',this_shape)
+        print()
+        '''
+
+        # this mismatch is OK
+        if npy_type=='i1' and this_npy_type=='b1':
+            this_npy_type='i1'
+
+        if isinstance(self,AsciiTableHDU):
+            # we don't enforce types exact for ascii
+            if npy_type=='i8' and this_npy_type in ['i2','i4']:
+                this_npy_type = 'i8'
+            elif npy_type=='f8' and this_npy_type == 'f4':
+                this_npy_type = 'f8'
+
+        if this_npy_type != npy_type:
+            raise ValueError("bad input data for column '%s': "
+                             "expected '%s', got '%s'" % (col_name,npy_type, this_npy_type))
+
+        if this_shape != col_shape:
+            raise ValueError("bad input shape for column '%s': "
+                             "expected '%s', got '%s'" % (col_name,col_shape, this_shape))
+
 
     def write_var_column(self, column, data, firstrow=0, **keys):
         """
@@ -1773,7 +1862,16 @@ class TableHDU(HDUBase):
         if name in self._colnames:
             raise ValueError("column '%s' already exists" % name)
 
-        descr=data.dtype.descr
+        if IS_PY3 and data.dtype.char == 'U':
+            # fast dtype conversion using an empty array
+            # we could hack at the actual text description, but using
+            # the numpy API is probably safer
+            # this also avoids doing a dtype conversion on every array
+            # element which could b expensive
+            descr = numpy.empty(1).astype(data.dtype).astype('S').dtype.descr
+        else:
+            descr = data.dtype.descr
+
         if len(descr) > 1:
             raise ValueError("you can only insert a single column, "
                              "requested: %s" % descr)
@@ -1817,14 +1915,6 @@ class TableHDU(HDUBase):
         """
 
         firstrow=self._info['nrows']
-
-        #if data.dtype.fields is None:
-        #    raise ValueError("got an ordinary array, can only append recarrays.  "
-        #                     "using this method")
-
-        # make sure these columns exist
-        #for n in data.dtype.names:
-        #    colnum = self._extract_colnum(n)
 
         keys['firstrow'] = firstrow
         self.write(data, **keys)
@@ -2014,6 +2104,8 @@ class TableHDU(HDUBase):
 
             self._FITS.read_as_rec(self._ext+1, 1, nrows, array)
 
+            array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
+            
             for colnum,name in enumerate(array.dtype.names):
                 self._rescale_and_convert_field_inplace(array,
                                           name,
@@ -2099,6 +2191,8 @@ class TableHDU(HDUBase):
             array = numpy.zeros(rows.size, dtype=dtype)
             self._FITS.read_rows_as_rec(self._ext+1, array, rows)
 
+            array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
+
             for colnum,name in enumerate(array.dtype.names):
                 self._rescale_and_convert_field_inplace(array,
                                           name,
@@ -2179,6 +2273,8 @@ class TableHDU(HDUBase):
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
             self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
+
+            array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
             for i in xrange(colnums.size):
                 colnum = int(colnums[i])
@@ -2262,6 +2358,8 @@ class TableHDU(HDUBase):
 
                 # only first needs to be +1.  This is becuase the c code is inclusive
                 self._FITS.read_as_rec(self._ext+1, firstrow+1, lastrow, array)
+
+                array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
                 for colnum,name in enumerate(array.dtype.names):
                     self._rescale_and_convert_field_inplace(array, 
@@ -2435,11 +2533,16 @@ class TableHDU(HDUBase):
                     # themselves be arrays I don't think
                     npy_type = 'S%d' % max_size
                     descr=(name,npy_type)
+                elif npy_type[0] == 'U':
+                    # variable length string columns cannot
+                    # themselves be arrays I don't think
+                    npy_type = 'U%d' % max_size
+                    descr=(name,npy_type)
                 else:
                     descr=(name,npy_type,max_size)
         else:
             tdim = self._info['colinfo'][colnum]['tdim']
-            shape = tdim2shape(tdim, name, is_string=(npy_type[0] == 'S'))
+            shape = tdim2shape(tdim, name, is_string=(npy_type[0] == 'S' or npy_type[0] == 'U'))
             if shape is not None:
                 descr=(name,npy_type,shape)
             else:
@@ -2486,7 +2589,8 @@ class TableHDU(HDUBase):
                                           self._info['colinfo'][colnum]['tscale'], 
                                           self._info['colinfo'][colnum]['tzero'])
 
-
+        array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
+        
         # now read the variable length arrays we may be able to speed this up
         # by storing directly instead of reading first into a list
         wvar,=numpy.where(isvar == True)
@@ -2496,7 +2600,8 @@ class TableHDU(HDUBase):
                 colnump = thesecol[i]
                 name = array.dtype.names[wvar[i]]
                 dlist = self._FITS.read_var_column_as_list(self._ext+1,colnump,rows)
-                if isinstance(dlist[0],str):
+
+                if isinstance(dlist[0], str) or (IS_PY3 and isinstance(dlist[0], bytes)):
                     is_string=True
                 else:
                     is_string=False
@@ -2505,17 +2610,22 @@ class TableHDU(HDUBase):
                     # storing in object array
                     # get references to each, no copy made
                     for irow,item in enumerate(dlist):
+                        if IS_PY3 and isinstance(item, bytes):
+                            item = item.decode('ascii')
                         array[name][irow] = item
                 else: 
                     for irow,item in enumerate(dlist):
+                        if IS_PY3 and isinstance(item, bytes):
+                            item = item.decode('ascii')
+                        
                         if is_string:
                             array[name][irow]= item
                         else:
                             ncopy = len(item)
 
-                            if sys.version_info > (3,0,0):
+                            if IS_PY3:
                                 ts = array[name].dtype.descr[0][1][1]
-                                if ts != 'S':
+                                if ts != 'S' and ts != 'U':
                                     array[name][irow][0:ncopy] = item[:]
                                 else:
                                     array[name][irow] = item
@@ -2657,6 +2767,28 @@ class TableHDU(HDUBase):
         if self.trim_strings or trim_strings:
             _trim_strings(array)
 
+    def _maybe_decode_fits_ascii_strings_to_unicode_py3(self, array):
+        if IS_PY3:
+            do_conversion = False
+            new_dt = []
+            for _dt in array.dtype.descr:
+                if 'S' in _dt[1]:
+                    do_conversion = True
+                    if len(_dt) == 3:
+                        new_dt.append((
+                            _dt[0], 
+                            _dt[1].replace('S', 'U').replace('|', ''), 
+                            _dt[2]))
+                    else:
+                        new_dt.append((
+                            _dt[0], 
+                            _dt[1].replace('S', 'U').replace('|', '')))
+                else:
+                    new_dt.append(_dt)
+            if do_conversion:
+                array = array.astype(new_dt, copy=False)
+        return array
+
     def _convert_bool_array(self, array):
         """
         cfitsio reads as characters 'T' and 'F' -- convert to real boolean
@@ -2696,12 +2828,16 @@ class TableHDU(HDUBase):
                 addstr=''
             else:
                 addstr='>'
-            if npy_type not in ['u1','i1','S']:
+            if npy_type not in ['u1','i1','S','U']:
                 npy_type = addstr+npy_type
 
         if npy_type == 'S':
             width = self._info['colinfo'][colnum]['width']
             npy_type = 'S%d' % width
+        elif npy_type == 'U':
+            width = self._info['colinfo'][colnum]['width']
+            npy_type = 'U%d' % width
+
         return npy_type, isvar, istbit
 
 
@@ -2754,7 +2890,7 @@ class TableHDU(HDUBase):
 
         """
 
-        if sys.version_info > (3,0,0):
+        if IS_PY3:
             stype=bytes
         else:
             stype=str
@@ -2784,6 +2920,8 @@ class TableHDU(HDUBase):
             if isinstance(dlist[0],stype):
                 descr = 'S%d' % max_size
                 array = numpy.fromiter(dlist, descr)
+                if IS_PY3:
+                    array = array.astype('U', copy=False)
             else:
                 descr=dlist[0].dtype.str
                 array = numpy.zeros( (len(dlist), max_size), dtype=descr)
@@ -2794,6 +2932,8 @@ class TableHDU(HDUBase):
         else:
             array=numpy.zeros(len(dlist), dtype='O')
             for irow,item in enumerate(dlist):
+                if IS_PY3 and isinstance(item, bytes):
+                    item = item.decode('ascii')
                 array[irow] = item
 
         return array
@@ -3066,6 +3206,8 @@ class AsciiTableHDU(TableHDU):
                 self._FITS.read_column(self._ext+1,colnum+1, a, rows)
                 array[name] = a
                 del a
+        
+        array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
         wvar,=numpy.where(isvar == True)
         if wvar.size > 0:
@@ -3073,7 +3215,7 @@ class AsciiTableHDU(TableHDU):
                 colnum = colnums[i]
                 name = array.dtype.names[i]
                 dlist = self._FITS.read_var_column_as_list(self._ext+1,colnum+1,rows)
-                if isinstance(dlist[0],str):
+                if isinstance(dlist[0],str) or (IS_PY3 and isinstance(dlist[0], bytes)):
                     is_string=True
                 else:
                     is_string=False
@@ -3082,9 +3224,13 @@ class AsciiTableHDU(TableHDU):
                     # storing in object array
                     # get references to each, no copy made
                     for irow,item in enumerate(dlist):
+                        if IS_PY3 and isinstance(item, bytes):
+                            item = item.decode('ascii')
                         array[name][irow] = item
                 else: 
                     for irow,item in enumerate(dlist):
+                        if IS_PY3 and isinstance(item, bytes):
+                            item = item.decode('ascii')
                         if is_string:
                             array[name][irow]= item
                         else:
@@ -3204,6 +3350,11 @@ class ImageHDU(HDUBase):
             array_to_native(img_send, inplace=True)
         else:
             img_send = array_to_native(img, inplace=False)
+
+        if IS_PY3 and img_send.dtype.char == 'U':
+            # for python3, we convert unicode to ascii
+            # this will error if the character is not in ascii
+            img_send = img_send.astype('S', copy=False)
 
         if not numpy.isscalar(start):
             # convert to scalar offset
@@ -3787,6 +3938,10 @@ def descr2tabledef(descr, table_type='binary', write_bitcols=False):
             raise ValueError("1-byte integers are not supported for ascii tables")
         """
 
+        if d[1][1]=='O':
+            raise ValueError('cannot automatically declare a var column without '
+                             'some data to determine max len')
+
         name, form, dim = npy2fits(d,table_type=table_type,write_bitcols=write_bitcols)
 
         if name == '':
@@ -3809,11 +3964,6 @@ def npy_obj2fits(data, name=None):
     # type and len is max length.  Each element must be convertible to
     # the same type as the first
 
-    if sys.version_info > (3,0,0):
-        stype=bytes
-    else:
-        stype=str
-
     if name is None:
         d = data.dtype.descr
         first=data[0]
@@ -3823,13 +3973,19 @@ def npy_obj2fits(data, name=None):
 
     # note numpy._string is an instance of str in python2, bytes
     # in python3
-    if isinstance(first, stype):
-        fits_dtype = _table_npy2fits_form['S']
+    if isinstance(first, str) or (IS_PY3 and isinstance(first, bytes)):
+        if IS_PY3:
+            if isinstance(first, str):
+                fits_dtype = _table_npy2fits_form['U']
+            else:
+                fits_dtype = _table_npy2fits_form['S']
+        else:
+            fits_dtype = _table_npy2fits_form['S']
     else:
         arr0 = numpy.array(first,copy=False)
         dtype0 = arr0.dtype
         npy_dtype = dtype0.descr[0][1][1:]
-        if npy_dtype[0] == 'S':
+        if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
             raise ValueError("Field '%s' is an arrays of strings, this is "
                              "not allowed in variable length columns" % name)
         if npy_dtype not in _table_npy2fits_form:
@@ -3851,7 +4007,7 @@ def npy2fits(d, table_type='binary', write_bitcols=False):
     d is the full element from the descr
     """
     npy_dtype = d[1][1:]
-    if npy_dtype[0] == 'S':
+    if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
         name, form, dim = npy_string2fits(d,table_type=table_type)
     else:
         name, form, dim = npy_num2fits(d, table_type=table_type, write_bitcols=write_bitcols)
@@ -3876,8 +4032,8 @@ def npy_num2fits(d, table_type='binary', write_bitcols=False):
     name = d[0]
 
     npy_dtype = d[1][1:]
-    if npy_dtype[0] == 'S':
-        raise ValueError("got S type: use npy_string2fits")
+    if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
+        raise ValueError("got S or U type: use npy_string2fits")
 
     if npy_dtype not in _table_npy2fits_form:
         raise ValueError("unsupported type '%s'" % npy_dtype)
@@ -3934,8 +4090,8 @@ def npy_string2fits(d,table_type='binary'):
     name = d[0]
 
     npy_dtype = d[1][1:]
-    if npy_dtype[0] != 'S':
-        raise ValueError("expected S type")
+    if npy_dtype[0] != 'S' and npy_dtype[0] != 'U':
+        raise ValueError("expected S or U type, got %s" % npy_dtype[0])
 
     # get the size of each string
     string_size_str = npy_dtype[1:]
@@ -4724,7 +4880,7 @@ def array_to_native_c(array_in, inplace=False):
     return array_to_native(arr, inplace=inplace)
 
  
-def array_to_native(array, inplace=False):
+def array_to_native(array, inplace=False):    
     if numpy.little_endian:
         machine_little=True
     else:
@@ -4819,11 +4975,11 @@ def _trim_strings(data):
     if names is not None:
         # run through each field separately
         for n in names:
-            if data[n].dtype.descr[0][1][1] == 'S':
+            if data[n].dtype.descr[0][1][1] in ['S', 'U']:
                 data[n] = numpy.char.rstrip(data[n])
 
     else:
-        if data.dtype.descr[0][1][1] == 'S':
+        if data.dtype.descr[0][1][1] in ['S', 'U']:
             data[:] = numpy.char.rstrip(data[:])
 
 def _convert_full_start_to_offset(dims, start):
@@ -4878,6 +5034,7 @@ _hdu_type_map = {IMAGE_HDU:'IMAGE_HDU',
                  'BINARY_TBL':BINARY_TBL}
 
 # no support yet for complex
+# all strings are read as bytes for python3 and then decoded to unicode
 _table_fits2npy = {1: 'i1',
                    11: 'u1',
                    12: 'i1',
@@ -4897,6 +5054,7 @@ _table_fits2npy = {1: 'i1',
 
 # cfitsio returns only types f8, i4 and strings for column types. in order to
 # avoid data loss, we always use i8 for integer types
+# all strings are read as bytes for python3 and then decoded to unicode
 _table_fits2npy_ascii = {16: 'S',
                          31: 'i8', # listed as TINT, reading as i8
                          41: 'i8', # listed as TLONG, reading as i8
@@ -4911,6 +5069,7 @@ _table_npy2fits_form = {'b1':'L',
                         'u1':'B',
                         'i1':'S', # gets converted to unsigned
                         'S' :'A',
+                        'U' :'A',
                         'u2':'U', # gets converted to signed
                         'i2':'I',
                         'u4':'V', # gets converted to signed
@@ -4922,6 +5081,7 @@ _table_npy2fits_form = {'b1':'L',
                         'c16':'M'}
 
 _table_npy2fits_form_ascii = {'S' :'A1',       # Need to add max here
+                              'U' :'A1',       # Need to add max here
                               'i2':'I7',      # I
                               'i4':'I12',     # ??
                               #'i8':'I21',     # K # i8 aren't supported

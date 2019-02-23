@@ -1,3 +1,12 @@
+version 1.0.0
+---------------------------------
+
+New Features
+
+    - Support for python 3 strings.
+    - Support for proper string null termination.
+
+
 version 0.9.12
 ---------------------------------
 
@@ -236,7 +245,7 @@ New Features
     - Specify tile dimensions for compressed images.
     - write_comment and write_history methods added.
     - is_compressed() for image HDUs, True if tile compressed.
-    - added **keys to the image hdu reading routines to provide a more uniform
+    - added `**keys` to the image hdu reading routines to provide a more uniform
       interface for all hdu types
 
 Bug Fixes
@@ -270,7 +279,7 @@ New Features
             fits=fitsio.FITS(filename)
             if 'name' in fits:
                 data=fits['name'].read()
-    - added **keys to the read_header function
+    - added `**keys` to the read_header function
     - added get_exttype() to the FITSHDU class
         'BINARY_TBL' 'ASCII_TBL' 'IMAGE_HDU'
     - added get_nrows() for binary tables
@@ -289,12 +298,12 @@ minor changes
 Backwards incompatible changes
 
     - renamed some attributes; use the getters instead
-        - colnames -> _colnames
-        - info -> _info
-        - filename -> _filename
-        - ext -> _ext
-        - vstorage -> _vstorage
-        - is_comparessed -> _is_compressed
+        - `colnames` -> `_colnames`
+        - `info` -> `_info`
+        - `filename` -> `_filename`
+        - `ext` -> `_ext`
+        - `vstorage` -> `_vstorage`
+        - `is_comparessed` -> `_is_compressed`
             ( use the getter )
 
 Bug Fixes
@@ -330,7 +339,7 @@ version 0.9.1
 
 New features
 
-    - Added reading of image slices, e.g. f[ext][2:25, 10:100]
+    - Added reading of image slices, e.g. `f[ext][2:25, 10:100]`
     - Added insert_column(name, data, colnum=) method for HDUs., 2011-11-14 ESS
     - Added a verify_checksum() method for HDU objects. 2011-10-24, ESS
     - Headers are cleaned of required keyword before writing.  E.g. if you have
@@ -341,7 +350,7 @@ New features
       the required keywords.
 
     - when accessing a column subset object, more metadata are shown
-        f[ext][name]
+        `f[ext][name]`
     - can write None as an image for extension 0, as supported by
       the spirit standard.  Similarly reading gives None in that case.
     - the setup.py is now set up for registering versions to pypi.
@@ -409,21 +418,24 @@ New features
 
     - You can now read rows and columns from a table HDU using slice notation. e.g.
       to read row subsets from extension 1
-            fits=fitsio.FITS(filename)
-            data=fits[1][:]
-            data=fits[1][10:30]
-            data=fits[1][10:30:2]
+            >>> fits=fitsio.FITS(filename)
+            >>> data=fits[1][:]
+            >>> data=fits[1][10:30]
+            >>> data=fits[1][10:30:2]
+
       You can also specify a list of rows
-            rows=[3,8,25]
-            data=fits[1][rows]
-      this is equivalent to
-            data=fits[1].read(rows=rows)
+            >>> rows=[3,8,25]
+            >>> data=fits[1][rows]
+
+      This is equivalent to
+            >>> data=fits[1].read(rows=rows)
+
       To get columns subsets, the notation is similar.  The data are read
       when the rows are specified.  If a sequence of columns is entered,
       a recarray is returned, otherwise a simple array.
-            data=fits[1]['x'][:]
-            data=fits[1]['x','y'][3:20]
-            data=fits[1][column_list][row_list]
+            >>> data=fits[1]['x'][:]
+            >>> data=fits[1]['x','y'][3:20]
+            >>> data=fits[1][column_list][row_list]
 
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,

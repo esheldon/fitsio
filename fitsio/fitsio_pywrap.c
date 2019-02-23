@@ -40,6 +40,13 @@ struct PyFITSObject {
     fitsfile* fits;
 };
 
+#ifdef FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS
+static int fits_use_standard_strings(void)
+{
+    return 0;
+}
+#endif
+
 
 // check unicode for python3, string for python2
 int is_python_string(const PyObject* obj)
@@ -4176,6 +4183,16 @@ PyFITS_cfitsio_version(void) {
     return PyFloat_FromDouble((double)version);
 }
 
+static PyObject *
+PyFITS_cfitsio_use_standard_strings(void) {
+    if ( fits_use_standard_strings() ) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+
 /*
 
 'C',              'L',     'I',     'F'             'X'
@@ -4402,6 +4419,7 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"cfitsio_use_standard_strings",      (PyCFunction)PyFITS_cfitsio_use_standard_strings,      METH_NOARGS,  "cfitsio_use_standard_strings\n\nReturn True if using string code that matches the FITS standard."},
     {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
     {"get_key_meta",      (PyCFunction)PyFITS_get_key_meta,      METH_VARARGS,  "get_key_meta\n\nparse the card to get key metadata (keyclass,dtype)."},

@@ -6,27 +6,28 @@
 
 from __future__ import print_function
 from setuptools import setup, Extension
-from distutils.command.build_ext import build_ext
+from setuptools.command.build_ext import build_ext
 
 import os
+import subprocess
 from subprocess import Popen, PIPE
 import glob
 import shutil
 
+
 class build_ext_subclass(build_ext):
     boolean_options = build_ext.boolean_options + ['use-system-fitsio']
 
-    user_options = build_ext.user_options + \
-            [('use-system-fitsio', None,
-              "Use the cfitsio installed in the system"),
-
-             ('system-fitsio-includedir=', None,
-              "Path to look for cfitsio header; default is the system search path."),
-
-             ('system-fitsio-libdir=', None,
-              "Path to look for cfitsio library; default is the system search path."),
-            ]
-    cfitsio_version = '3430patch'
+    user_options = build_ext.user_options + [
+        ('use-system-fitsio', None, "Use the cfitsio installed in the system"),
+        ('system-fitsio-includedir=', None,
+         "Path to look for cfitsio header; default is "
+         "the system search path."),
+        ('system-fitsio-libdir=', None,
+         "Path to look for cfitsio library; default is "
+         "the system search path."),
+    ]
+    cfitsio_version = '3430'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
@@ -39,8 +40,12 @@ class build_ext_subclass(build_ext):
 
         build_ext.finalize_options(self)
 
-        self.cfitsio_build_dir = os.path.join(self.build_temp, self.cfitsio_dir)
-        self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir,'zlib')
+        self.cfitsio_build_dir = os.path.join(
+            self.build_temp, self.cfitsio_dir)
+        self.cfitsio_zlib_dir = os.path.join(
+            self.cfitsio_build_dir, 'zlib')
+        self.cfitsio_patch_dir = os.path.join(
+            self.build_temp, 'patches')
 
         if self.use_system_fitsio:
             if self.system_fitsio_includedir:
@@ -76,16 +81,14 @@ class build_ext_subclass(build_ext):
             # set to '-O3' on some versions of gcc.  It appears to be
             # a disagreement between gcc 4 and gcc 5
 
-            CCold=self.compiler.compiler
-
-            CC=[]
+            CCold = self.compiler.compiler
+            CC = []
             for val in CCold:
-                if val=='-O3':
+                if val == '-O3':
                     print("replacing '-O3' with '-O2' to address "
                           "gcc bug")
-                    val='-O2'
-
-                if val=='ccache':
+                    val = '-O2'
+                if val == 'ccache':
                     print("removing ccache from the compiler options")
                     continue
 
@@ -98,20 +101,21 @@ class build_ext_subclass(build_ext):
             )
 
             # If configure detected bzlib.h, we have to link to libbz2
-
-            if '-DHAVE_BZIP2=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
-                self.compiler.add_library('bz2')
-
-            if '-DCFITSIO_HAVE_CURL=1' in open(os.path.join(self.cfitsio_build_dir, 'Makefile')).read():
-                self.compiler.add_library('curl')
+            with open(os.path.join(self.cfitsio_build_dir, 'Makefile')) as fp:
+                _makefile = fp.read()
+                if '-DHAVE_BZIP2=1' in _makefile:
+                    self.compiler.add_library('bz2')
+                if '-DCFITSIO_HAVE_CURL=1' in _makefile:
+                    self.compiler.add_library('curl')
 
             self.compile_cfitsio()
 
             # link against the .a library in cfitsio;
-            # It should have been a 'static' library of relocatable objects (-fPIC),
-            # since we use the python compiler flags
+            # It should have been a 'static' library of relocatable objects
+            # (-fPIC), since we use the python compiler flags
 
-            link_objects = glob.glob(os.path.join(self.cfitsio_build_dir,'*.a'))
+            link_objects = glob.glob(
+                os.path.join(self.cfitsio_build_dir, '*.a'))
 
             self.compiler.set_link_objects(link_objects)
 
@@ -128,6 +132,14 @@ class build_ext_subclass(build_ext):
             if self.check_system_cfitsio_objects('curl_'):
                 self.compiler.add_library('curl')
 
+            # Make sure the external lib has the fits_use_standard_strings
+            # function. If not, then define a macro to tell the wrapper
+            # to always return False.
+            if not self.check_system_cfitsio_objects(
+                    '_fits_use_standard_strings'):
+                self.compiler.define_macro(
+                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
+
         # fitsio requires libm as well.
         self.compiler.add_library('m')
 
@@ -135,36 +147,50 @@ class build_ext_subclass(build_ext):
 
         build_ext.build_extensions(self)
 
+    def patch_cfitsio(self):
+        patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
+        for patch in patches:
+            fname = os.path.basename(patch.replace('.patch', ''))
+            subprocess.check_call(
+                'patch %s/%s %s' % (self.cfitsio_build_dir, fname, patch),
+                shell=True)
+
     def configure_cfitsio(self, CC=None, ARCHIVE=None, RANLIB=None):
 
         # prepare source code and run configure
-        def copy_update(dir1,dir2):
+        def copy_update(dir1, dir2):
             f1 = os.listdir(dir1)
             for f in f1:
-                path1 = os.path.join(dir1,f)
-                path2 = os.path.join(dir2,f)
+                path1 = os.path.join(dir1, f)
+                path2 = os.path.join(dir2, f)
 
                 if os.path.isdir(path1):
                     if not os.path.exists(path2):
                         os.makedirs(path2)
-                    copy_update(path1,path2)
+                    copy_update(path1, path2)
                 else:
                     if not os.path.exists(path2):
-                        shutil.copy(path1,path2)
+                        shutil.copy(path1, path2)
                     else:
                         stat1 = os.stat(path1)
                         stat2 = os.stat(path2)
                         if (stat1.st_mtime > stat2.st_mtime):
-                            shutil.copy(path1,path2)
-
+                            shutil.copy(path1, path2)
 
         if not os.path.exists('build'):
-            ret=os.makedirs('build')
+            os.makedirs('build')
 
         if not os.path.exists(self.cfitsio_build_dir):
-            ret=os.makedirs(self.cfitsio_build_dir)
+            os.makedirs(self.cfitsio_build_dir)
+
+        if not os.path.exists(self.cfitsio_patch_dir):
+            os.makedirs(self.cfitsio_patch_dir)
 
         copy_update(self.cfitsio_dir, self.cfitsio_build_dir)
+        copy_update('patches', self.cfitsio_patch_dir)
+
+        # we patch the source in the buil dir to avoid mucking with the repo
+        self.patch_cfitsio()
 
         makefile = os.path.join(self.cfitsio_build_dir, 'Makefile')
 
@@ -181,31 +207,43 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
-        p = Popen("sh ./configure --with-bzip2 " + args,
-                shell=True, cwd=self.cfitsio_build_dir)
+        p = Popen(
+            "sh ./configure --with-bzip2 --enable-standard-strings " + args,
+            shell=True,
+            cwd=self.cfitsio_build_dir,
+        )
         p.wait()
         if p.returncode != 0:
-            raise ValueError("could not configure cfitsio %s" % self.cfitsio_version)
+            raise ValueError(
+                "could not configure cfitsio %s" % self.cfitsio_version)
 
     def compile_cfitsio(self):
-        p = Popen("make",
-                shell=True, cwd=self.cfitsio_build_dir)
+        p = Popen(
+            "make",
+            shell=True,
+            cwd=self.cfitsio_build_dir,
+        )
         p.wait()
         if p.returncode != 0:
-            raise ValueError("could not compile cfitsio %s" % self.cfitsio_version)
+            raise ValueError(
+                "could not compile cfitsio %s" % self.cfitsio_version)
 
     def check_system_cfitsio_objects(self, obj_name):
         for lib_dir in self.library_dirs:
             if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
-                p = Popen("nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
-                          shell=True, stdout=PIPE, stderr=PIPE)
+                p = Popen(
+                    "nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
+                    shell=True,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                )
                 if len(p.stdout.read()) > 0:
                     return True
                 else:
                     return False
 
 sources = ["fitsio/fitsio_pywrap.c"]
-data_files=[]
+data_files = []
 
 ext=Extension("fitsio._fitsio_wrap",
               sources, include_dirs=['numpy'])
@@ -213,30 +251,31 @@ ext=Extension("fitsio._fitsio_wrap",
 description = ("A full featured python library to read from and "
                "write to FITS files.")
 
-long_description=open(os.path.join(os.path.dirname(__file__), "README.md")).read()
+with open(os.path.join(os.path.dirname(__file__), "README.md")) as fp:
+    long_description = fp.read()
 
-classifiers = ["Development Status :: 5 - Production/Stable"
-               ,"License :: OSI Approved :: GNU General Public License (GPL)"
-               ,"Topic :: Scientific/Engineering :: Astronomy"
-               ,"Intended Audience :: Science/Research"
-              ]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Intended Audience :: Science/Research",
+]
 
-setup(name="fitsio",
-      version="0.9.12",
-      description=description,
-      long_description=long_description,
-      long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
-      license = "GPL",
-      classifiers=classifiers,
-      url="https://github.com/esheldon/fitsio",
-      author="Erin Scott Sheldon",
-      author_email="erin.sheldon@gmail.com",
-      setup_requires=['numpy'],
-      install_requires=['numpy'],
-      packages=['fitsio'],
-      data_files=data_files,
-      ext_modules=[ext],
-      cmdclass = {
-        "build_ext": build_ext_subclass,
-      }
-     )
+setup(
+    name="fitsio",
+    version="1.0.0rc2",
+    description=description,
+    long_description=long_description,
+    long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
+    license="GPL",
+    classifiers=classifiers,
+    url="https://github.com/esheldon/fitsio",
+    author="Erin Scott Sheldon",
+    author_email="erin.sheldon@gmail.com",
+    setup_requires=['numpy'],
+    install_requires=['numpy'],
+    packages=['fitsio'],
+    data_files=data_files,
+    ext_modules=[ext],
+    cmdclass={"build_ext": build_ext_subclass}
+)

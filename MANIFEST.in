@@ -1,2 +1,4 @@
 include *.txt
-recursive-include cfitsio3430patch *
+include README.md
+recursive-include cfitsio3430 *
+recursive-include patches *

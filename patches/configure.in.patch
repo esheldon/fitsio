@@ -1,0 +1,31 @@
+--- cfitsio3430/configure.in	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3430/configure.in	2018-12-14 08:39:20.000000000 -0600
+@@ -42,6 +42,13 @@
+   [ if test $enableval = yes; then SSE_FLAGS="$SSE_FLAGS -mssse3"; fi ]
+ )
+
++AC_ARG_ENABLE(
++  standard_strings,
++  [AS_HELP_STRING([--enable-standard-strings],[Enable use of FITSIO standard string processing])],
++  [ if test $enableval = yes; then USE_STANDARD_STRINGS=yes; fi ]
++)
++
++
+ # Define BUILD_HERA when building for HERA project to activate code in
+ # drvrfile.c (by way of fitsio2.h):
+ AC_ARG_ENABLE(
+@@ -582,6 +589,14 @@
+   AC_CHECK_LIB([pthread],[main],[],[AC_MSG_ERROR(Unable to locate pthread library needed when enabling reentrant multithreading)])
+ fi
+
++# ------------------------------------------------------------------------------
++# Define FITS_USE_STANDARD_STRINGS
++# ------------------------------------------------------------------------------
++if test "x$USE_STANDARD_STRINGS" = xyes; then
++  AC_DEFINE(FITS_USE_STANDARD_STRINGS)
++fi
++
++
+ # -------------------------------------------------------------------------
+ # there are some idiosyncrasies with semun defs (used in semxxx). Solaris
+ # does not define it at all
