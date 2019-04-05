@@ -4589,10 +4589,10 @@ class FITSRecord(dict):
 
             self.verify()
 
-            if convert:
-                self['value_orig'] = copy.copy(self['value'])
-                if isstring(self['value']):
-                    self['value'] = self._convert_value(self['value_orig'])
+            #if convert:
+            #    self['value_orig'] = copy.copy(self['value'])
+            #    if isstring(self['value']):
+            #        self['value'] = self._convert_value(self['value_orig'])
 
     def verify(self):
         """
@@ -4613,30 +4613,31 @@ class FITSRecord(dict):
         if value_orig is None:
             return value_orig
 
-        try:
-            avalue = ast.parse(value_orig).body[0].value
-            if isinstance(avalue,ast.BinOp):
-                # this is probably a string that happens to look like
-                # a binary operation, e.g. '25-3'
-                value = value_orig
-            else:
-                value = ast.literal_eval(value_orig)
-        except:
-            value = self._convert_quoted_string(value_orig)
+        if value_orig.startswith("'") and value_orig.endswith("'"):
+            value = value_orig[1:-1]
+        else:
 
-        if isinstance(value,int) and '_' in value_orig:
-            value = value_orig
+            try:
+                avalue = ast.parse(value_orig).body[0].value
+                if isinstance(avalue,ast.BinOp):
+                    # this is probably a string that happens to look like
+                    # a binary operation, e.g. '25-3'
+                    value = value_orig
+                else:
+                    value = ast.literal_eval(value_orig)
+            except:
+                value = self._convert_string(value_orig)
+
+            if isinstance(value,int) and '_' in value_orig:
+                value = value_orig
 
         return value
 
-    def _convert_quoted_string(self, value):
+    def _convert_string(self, value):
         """
         Possibly remove quotes around strings.  Deal with bool
         """
-        # Strip extra quotes from strings if needed
-        if value.startswith("'") and value.endswith("'"):
-            val = value[1:-1]
-        elif value=='T':
+        if value=='T':
             val=True
         elif value=='F':
             val=False
