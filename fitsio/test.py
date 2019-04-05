@@ -401,6 +401,7 @@ class TestReadWrite(unittest.TestCase):
                     'funky':'35-8', # test old bug when strings look 
                                     #like expressions
                     'name':'J. Smith',
+                    'what': '89113e6', # test bug where converted to float
                     'und':None,
                     'binop':'25-3', # test string with binary operation in it
                     'unders':'1_000_000', # test string with underscore
