@@ -5,7 +5,13 @@ New Features
 
     - Support for python 3 strings.
     - Support for proper string null termination.
+    - Installation moved to setuptools from distutils.
+    - Bundling of cfitsio now done with patches against the upstream
+      version instead of direct edits to the upstream code.
 
+Deprecations
+
+    - removed `convert` keyword in `FITSRecord` and `FITSHDR` classes.
 
 version 0.9.12
 ---------------------------------
