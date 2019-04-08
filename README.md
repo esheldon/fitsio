@@ -3,8 +3,7 @@ A python library to read from and write to FITS files.
 [![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
 
 
-Description
------------
+## Description
 
 This is a python extension written in c and python.  Data are read into
 numerical python arrays.
@@ -13,8 +12,7 @@ A version of cfitsio is bundled with this package, there is no need to install
 your own, nor will this conflict with a version you have installed.
 
 
-Some Features
--------------
+## Some Features
 
 - Read from and write to image, binary, and ascii table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
@@ -39,8 +37,7 @@ Some Features
 - python 3 support
 
 
-Examples
---------
+## Examples
 
 ```python
 import fitsio
@@ -109,7 +106,7 @@ image info:
   data type: f8
   dims: [4096,2048]
 
-print(fits['mytable']  # can also use fits[1])
+print(fits['mytable'])  # can also use fits[1])
 
 file: data.fits
 extension: 1
@@ -352,8 +349,7 @@ f[1].case_sensitive  # if True, names are matched case sensitive
 ```
 
 
-Installation
-------------
+## Installation
 
 The easiest way is using pip or conda. To get the latest release
 
@@ -393,54 +389,49 @@ optionally with a prefix
 
     python setup.py install --prefix=/some/path
 
-Requirements
-------------
+## Requirements
 
 - python 2 or python 3
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
 
-Do not use numpy 1.10.0 or 1.10.1
-----------------------------------
+### Do not use numpy 1.10.0 or 1.10.1
+
 There is a serious performance regression in numpy 1.10 that results
 in fitsio running tens to hundreds of times slower.  A fix may be
 forthcoming in a later release.  Please comment here if this
 has already impacted your work https://github.com/numpy/numpy/issues/6467
 
 
-Tests
------
+## Tests
+
 The unit tests should all pass for full support.
 
-    python -c "import fitsio; fitsio.test.test()"
+```bash
+python -c "import fitsio; fitsio.test.test()"
+```
 
 Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
 be read, without affecting other functionality.
 
-TODO
-----
+## Notes on Usage and Features
 
-- HDU groups: does anyone use these? If so open an issue!
+### cfitsio bundling
 
-Notes on cfitsio bundling
--------------------------
+We bundle cfitsio partly because many deployed versions of cfitsio in the
+wild do not have support for interesting features like tiled image compression.
+Bundling a version that meets our needs is a safe alternative.
 
-We bundle partly because many deployed versions of cfitsio in the wild do not
-have support for interesting features like tiled image compression.   Bundling
-a version that meets our needs is a safe alternative.
-
-Note on array ordering
-----------------------
+### array ordering
 
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
 to also reverse the dims as read from the header when creating the numpy dtype,
 but read as is.
 
-Note on `distutils` vs `setuptools`
------------------------------------
+### `distutils` vs `setuptools`
 
 As of version `1.0.0`, `fitsio` has been transitioned to `setuptools` for packaging
 and installation. There are many reasons to do this (and to not do this). However,
@@ -448,3 +439,17 @@ at a practical level, what this means for you is that you may have trouble unins
 older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing to do is
 to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
 for example.
+
+### python 3 strings
+
+As of version `1.0.0`, fitsio now supports Python 3 strings natively. This support
+means that for Python 3, native strings are read from and written correctly to
+FITS files. All byte string columns are treated as ASCII-encoded unicode strings
+as well. For FITS files written with a previous version of fitsio, the data
+in Python 3 will now come back as a string and not a byte string. Note that this
+support is not the same as full unicode support. Internally, fitsio only supports
+the ASCII character set.
+
+## TODO
+
+- HDU groups: does anyone use these? If so open an issue!
