@@ -287,7 +287,7 @@ fits[-1].write_checksum()
 # can later verify data integridy
 fits[-1].verify_checksum()
 
-# you can also write a header at the same time.  The header can be 
+# you can also write a header at the same time.  The header can be
 #   - a simple dict (no comments)
 #   - a list of dicts with 'name','value','comment' fields
 #   - a FITSHDR object
@@ -304,7 +304,7 @@ fits.write(data, header=hdr)
 # you can add individual keys to an existing HDU
 fits[1].write_key(name, value, comment="my comment")
 
-# Write multiple header keys to an existing HDU. Here records 
+# Write multiple header keys to an existing HDU. Here records
 # is the same as sent with header= above
 fits[1].write_keys(records)
 
@@ -342,7 +342,7 @@ f[1].get_colname(colnum)    # for tables find the name from column number
 f[1].get_nrows()            # for tables
 f[1].get_rec_dtype()        # for tables
 f[1].get_rec_column_descr() # for tables
-f[1].get_vstorage()         # for tables, storage mechanism for variable 
+f[1].get_vstorage()         # for tables, storage mechanism for variable
                             # length columns
 
 # public attributes you can feel free to change as needed
@@ -367,7 +367,7 @@ The easiest way is using pip or conda. To get the latest release
 
     # if you only want to upgrade fitsio
     pip install fitsio --no-deps --upgrade --ignore-installed
-    
+
     # for conda, use conda-forge
     conda install -c conda-forge fitsio
 
@@ -389,7 +389,7 @@ Use tar xvfz to untar the file, enter the fitsio directory and type
 
     python setup.py install
 
-optionally with a prefix 
+optionally with a prefix
 
     python setup.py install --prefix=/some/path
 
@@ -413,8 +413,7 @@ Tests
 -----
 The unit tests should all pass for full support.
 
-    import fitsio
-    fitsio.test.test()
+    python -c "import fitsio; fitsio.test.test()"
 
 Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
@@ -434,7 +433,7 @@ a version that meets our needs is a safe alternative.
 
 Note on array ordering
 ----------------------
-        
+
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
 to also reverse the dims as read from the header when creating the numpy dtype,
@@ -443,11 +442,9 @@ but read as is.
 Note on `distutils` vs `setuptools`
 -----------------------------------
 
-As of version `1.0.0`, `fitsio` has been transitioned to `setuptools` for packaging 
+As of version `1.0.0`, `fitsio` has been transitioned to `setuptools` for packaging
 and installation. There are many reasons to do this (and to not do this). However,
 at a practical level, what this means for you is that you may have trouble uninstalling
-older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing to do is 
+older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing to do is
 to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
 for example.
-
-

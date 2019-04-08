@@ -151,9 +151,18 @@ class build_ext_subclass(build_ext):
         patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
         for patch in patches:
             fname = os.path.basename(patch.replace('.patch', ''))
-            subprocess.check_call(
-                'patch %s/%s %s' % (self.cfitsio_build_dir, fname, patch),
-                shell=True)
+            try:
+                subprocess.check_call(
+                    'patch -N --dry-run %s/%s %s' % (
+                        self.cfitsio_build_dir, fname, patch),
+                    shell=True)
+            except subprocess.CalledProcessError:
+                pass
+            else:
+                subprocess.check_call(
+                    'patch %s/%s %s' % (
+                        self.cfitsio_build_dir, fname, patch),
+                    shell=True)
 
     def configure_cfitsio(self, CC=None, ARCHIVE=None, RANLIB=None):
 
@@ -242,11 +251,11 @@ class build_ext_subclass(build_ext):
                 else:
                     return False
 
+
 sources = ["fitsio/fitsio_pywrap.c"]
 data_files = []
 
-ext=Extension("fitsio._fitsio_wrap",
-              sources, include_dirs=['numpy'])
+ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
 
 description = ("A full featured python library to read from and "
                "write to FITS files.")
