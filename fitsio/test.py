@@ -1307,22 +1307,26 @@ class TestReadWrite(unittest.TestCase):
         try:
             for d in ['S0','U0']:
                 dt=[('s',d)]
-                data = numpy.zeros(1, dtype=dt)
-                with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
-                    try:
-                        fits.write(data)
-                        got_error=False
+                # old numpy didn't allow this dtype, so will throw
+                # a TypeError for empty dtype
+                try:
+                    data = numpy.zeros(1, dtype=dt)
+                    supported = True
+                except TypeError:
+                    supported = False
 
-                    except ValueError:
-                        got_error=True
-                    except TypeError:
-                        # old numpy don't allow this dtype, so will throw
-                        # a TypeError for empty dtype
-                        got_error=True
+                if supported:
+                    with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
-                    self.assertTrue(got_error == True,
-                                    "expected an error for zero sized string")
+                        try:
+                            fits.write(data)
+                            got_error=False
+                        except ValueError:
+                            got_error=True
+
+                        self.assertTrue(got_error == True,
+                                        "expected an error for zero sized string")
 
         finally:
             if os.path.exists(fname):
