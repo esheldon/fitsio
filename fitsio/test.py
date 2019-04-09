@@ -1316,6 +1316,10 @@ class TestReadWrite(unittest.TestCase):
 
                     except ValueError:
                         got_error=True
+                    except TypeError:
+                        # old numpy don't allow this dtype, so will throw
+                        # a TypeError for empty dtype
+                        got_error=True
 
                     self.assertTrue(got_error == True,
                                     "expected an error for zero sized string")
