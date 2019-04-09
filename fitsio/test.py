@@ -426,6 +426,21 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testHeaderCommentPreserved(self):
+        """
+        Test that the comment is preserved after resetting the value
+        """
+
+        l1 = 'KEY1    =                   77 / My comment1'
+        l2 = 'KEY2    =                   88 / My comment2'
+        hdr=fitsio.FITSHDR()
+        hdr.add_record(l1)
+        hdr.add_record(l2)
+
+        hdr['key1'] = 99
+        self.assertEqual(hdr.get_comment('key1'), 'My comment1',
+                         'comment not preserved')
+
     def testHeaderContinue(self):
         """
         Test a header with CONTINUE keys

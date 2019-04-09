@@ -4420,6 +4420,13 @@ class FITSHDR(object):
         else:
             rec = {'name':item, 'value':value}
 
+        try:
+            # the entry may already exist; if so, preserve the comment
+            comment=self.get_comment(item)
+            rec['comment'] = comment
+        except ValueError:
+            pass
+
         self.add_record(rec)
 
     def __getitem__(self, item):
