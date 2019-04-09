@@ -4268,7 +4268,8 @@ class FITSHDR(object):
         """
         key=item.upper()
         if key not in self._record_map:
-            raise ValueError("unknown record: %s" % key)
+            raise KeyError("unknown record: %s" % key)
+
         if 'comment' not in self._record_map[key]:
             return None
         else:
@@ -4419,6 +4420,13 @@ class FITSHDR(object):
             rec=value
         else:
             rec = {'name':item, 'value':value}
+
+        try:
+            # the entry may already exist; if so, preserve the comment
+            comment=self.get_comment(item)
+            rec['comment'] = comment
+        except KeyError:
+            pass
 
         self.add_record(rec)
 
