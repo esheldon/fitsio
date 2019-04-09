@@ -4100,6 +4100,11 @@ def npy_string2fits(d,table_type='binary'):
     string_size_str = npy_dtype[1:]
     string_size = int(string_size_str)
 
+    if string_size <= 0:
+        raise ValueError('string sizes must be > 0, '
+                         'got %s for field %s' % (npy_dtype,name))
+
+
     # now the dimensions
     if len(d) == 2:
         if table_type == 'ascii':

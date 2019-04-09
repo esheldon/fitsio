@@ -1296,6 +1296,35 @@ class TestReadWrite(unittest.TestCase):
                 #pass
                 os.remove(fname)
 
+    def testTableWriteBadString(self):
+        """
+        Test a basic table write, data and a header, then reading back in to
+        check the values
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWriteBadString-',suffix='.fits')
+
+        try:
+            for d in ['S0','U0']:
+                dt=[('s',d)]
+                data = numpy.zeros(1, dtype=dt)
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                    try:
+                        fits.write(data)
+                        got_error=False
+
+                    except ValueError:
+                        got_error=True
+
+                    self.assertTrue(got_error == True,
+                                    "expected an error for zero sized string")
+
+        finally:
+            if os.path.exists(fname):
+                #pass
+                os.remove(fname)
+
     def testTableIter(self):
         """
         Test iterating over rows of a table
