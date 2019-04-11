@@ -496,24 +496,25 @@ class TestReadWrite(unittest.TestCase):
         test generating a header from cards, writing it out and getting
         back what we put in
         """
-        hdr_from_cards=fitsio.FITSHDR([
-            "IVAL    =                   35 / integer value                                  ",
-            "SHORTS  = 'hello world'                                                         ",
-            "CONTINUE= '        '           /   '&' / Current observing orogram              ",
-            "UND     =                                                                       ",
-            "DBL     =                 1.25                                                  ",
-        ]).records()
-        header = fitsio.FITSHDR([
-            {'name':'ival','value':35,'comment':'integer value'},
-            {'name':'shorts','value':'hello world'},
-            {'name':'continue','value':'','comment':"  '&' / Current observing orogram"},
-            {'name':'und','value':None},
-            {'name':'dbl','value':1.25},
-        ]).records()
+        with warnings.catch_warnings(record=True) as w:
+            hdr_from_cards=fitsio.FITSHDR([
+                "IVAL    =                   35 / integer value                                  ",
+                "SHORTS  = 'hello world'                                                         ",
+                "CONTINUE= '        '           /   '&' / Current observing orogram              ",
+                "UND     =                                                                       ",
+                "DBL     =                 1.25                                                  ",
+            ]).records()
+            header = fitsio.FITSHDR([
+                {'name':'ival','value':35,'comment':'integer value'},
+                {'name':'shorts','value':'hello world'},
+                {'name':'continue','value':'','comment':"  '&' / Current observing orogram"},
+                {'name':'und','value':None},
+                {'name':'dbl','value':1.25},
+            ]).records()
 
-        
-        self.assertEqual(len(hdr_from_cards), len(header),
-                         "headers must be same length")
+            
+            self.assertEqual(len(hdr_from_cards), len(header),
+                             "headers must be same length")
 
 
     def testImageWriteRead(self):
