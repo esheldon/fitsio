@@ -4050,7 +4050,10 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
         // if not a comment but empty value, put in None
         tocomp = (ls < lcomm) ? ls : lcomm;
-        if (0==strlen(longstr) && strncmp(keyname,"COMMENT",tocomp)!=0) {
+        if (!is_string_value
+                && 0==strlen(longstr)
+                && strncmp(keyname,"COMMENT",tocomp)!=0) {
+
             add_none_to_dict(dict, "value");
         } else {
             add_string_to_dict(dict,"value",longstr);
