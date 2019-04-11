@@ -451,6 +451,45 @@ class TestReadWrite(unittest.TestCase):
         self.assertEqual(hdr.get_comment('key1'), 'My comment1',
                          'comment not preserved')
 
+    def testHeaderFromCards(self):
+        """
+        test generating a header from cards, writing it out and getting
+        back what we put in
+        """
+        hdr_from_cards=fitsio.FITSHDR([
+            "IVAL    =                   35 / integer value                                  ",
+            "SHORTS  = 'hello world'                                                         ",
+            "UND     =                                                                       ",
+            "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",
+            "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",
+            "DBL     =                 1.25                                                  ",
+        ])
+        header = [
+            {'name':'ival','value':35,'comment':'integer value'},
+            {'name':'shorts','value':'hello world'},
+            {'name':'und','value':None},
+            {'name':'longs','value':lorem_ipsum},
+            {'name':'dbl','value':1.25},
+        ]
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderFromCars-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data=numpy.zeros(10)
+                fits.write_image(data, header=hdr_from_cards)
+
+                rh = fits[0].read_header()
+                self.compare_headerlist_header(header, rh)
+
+            with fitsio.FITS(fname) as fits:
+                rh = fits[0].read_header()
+                self.compare_headerlist_header(header, rh)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
