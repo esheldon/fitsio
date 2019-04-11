@@ -493,29 +493,29 @@ class TestReadWrite(unittest.TestCase):
 
     def testCorruptContinue(self):
         """
-        test generating a header from cards, writing it out and getting
-        back what we put in
+        test with corrupt continue, just make sure it doesn't crash
         """
         with warnings.catch_warnings(record=True) as w:
+            fname=tempfile.mktemp(prefix='fitsio-TestCorruptContinue-',suffix='.fits')
+
             hdr_from_cards=fitsio.FITSHDR([
                 "IVAL    =                   35 / integer value                                  ",
                 "SHORTS  = 'hello world'                                                         ",
                 "CONTINUE= '        '           /   '&' / Current observing orogram              ",
                 "UND     =                                                                       ",
                 "DBL     =                 1.25                                                  ",
-            ]).records()
-            header = fitsio.FITSHDR([
-                {'name':'ival','value':35,'comment':'integer value'},
-                {'name':'shorts','value':'hello world'},
-                {'name':'continue','value':'','comment':"  '&' / Current observing orogram"},
-                {'name':'und','value':None},
-                {'name':'dbl','value':1.25},
-            ]).records()
+            ])
 
-            
-            self.assertEqual(len(hdr_from_cards), len(header),
-                             "headers must be same length")
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
+                    fits.write(None, header=hdr_from_cards)
+
+                rhdr = fitsio.read_header(fname)
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
     def testImageWriteRead(self):
         """

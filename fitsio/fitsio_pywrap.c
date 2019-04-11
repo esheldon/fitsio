@@ -3982,7 +3982,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     long is_string_value=0;
 
     int nkeys=0, morekeys=0, i=0;
-    int has_equals=0;
+    int has_equals=0, has_quote=0;
 
     PyObject* list=NULL;
     PyObject* dict=NULL;  // to hold the dict for each record
@@ -4026,14 +4026,12 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             return NULL;
         }
 
-        // skip CONTINUE unless there is an = sign which may indicate a corrupt
-        // continue
-        has_equals = (card[8] == '=') ? 1 : 0;
 
         ls=strlen(keyname);
         tocomp = (ls < lcont) ? ls : lcont;
 
-        if (!has_equals && strncmp(keyname,"CONTINUE",tocomp)==0) {
+        // skip CONTINUE, we already read the data
+        if (strncmp(keyname,"CONTINUE",tocomp)==0) {
             continue;
         }
 
@@ -4043,7 +4041,9 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             return NULL;
         }
 
-        if (has_equals && card[10]=='\'') {
+        has_equals = (card[8] == '=') ? 1 : 0;
+        has_quote = (card[10] == '\'') ? 1 : 0;
+        if (has_equals && has_quote) {
             is_string_value=1;
         } else {
             is_string_value=0;
