@@ -1475,8 +1475,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
  */
 static int 
 add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
-    int status=0;
-    size_t size=0, i=0;
+    int status=0, i=0;
+    size_t size=0;
     char keyname[20];
     int colnum=0;
     PyObject* tmp=NULL;
@@ -1493,7 +1493,7 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
     }
 
     size = PyList_Size(tdimObj);
-    if (size != ncols) {
+    if (size != (size_t)ncols) {
         PyErr_Format(PyExc_ValueError, "Expected %d elements in tdims list, got %ld", ncols, size);
         return 1;
     }
@@ -2558,7 +2558,6 @@ PyFITSObject_write_undefined_key(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     char* keyname=NULL;
-    int value=0;
     char* comment=NULL;
     char* comment_in=NULL;
  
@@ -3972,7 +3971,6 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int status=0;
     int hdunum=0;
     int hdutype=0;
-    char *tmp=NULL;
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
     char *longstr=NULL;
