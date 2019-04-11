@@ -216,6 +216,7 @@ class TestReadWrite(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
+                     {'name':'empty','value':''},
                      {'name':'test2','value':'stuff','comment':'this is a string keyword'},
                      {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
                      {'name':'lng','value':3423432,'comment':'this is a long keyword'},
@@ -414,6 +415,7 @@ class TestReadWrite(unittest.TestCase):
                 header={
                     'x':35,
                     'y':88.215,
+                    'empty':'',
                     'funky':'35-8', # test old bug when strings look
                                     #like expressions
                     'name':'J. Smith',
