@@ -4056,7 +4056,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             add_string_to_dict(dict,"value",longstr);
         }
 
-        free(longstr);
+        free(longstr); longstr=NULL;
 
         PyList_Append(list, dict);
         Py_XDECREF(dict);
