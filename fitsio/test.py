@@ -537,8 +537,6 @@ class TestReadWrite(unittest.TestCase):
 
                 rhdr = fitsio.read_header(fname)
 
-                import pdb; pdb.set_trace()
-                
             finally:
                 if os.path.exists(fname):
                     os.remove(fname)
