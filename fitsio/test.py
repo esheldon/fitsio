@@ -517,6 +517,33 @@ class TestReadWrite(unittest.TestCase):
                 if os.path.exists(fname):
                     os.remove(fname)
 
+        with warnings.catch_warnings(record=True) as w:
+            fname=tempfile.mktemp(prefix='fitsio-TestCorruptContinue-',suffix='.fits')
+
+            hdr_from_cards=fitsio.FITSHDR([
+                "IVAL    =                   35 / integer value                                  ",
+                "SHORTS  = 'hello world'                                                         ",
+                "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",
+                "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",
+                "CONTINUE  '&' / Current observing orogram                                       ",
+                "UND     =                                                                       ",
+                "DBL     =                 1.25                                                  ",
+            ])
+
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                    fits.write(None, header=hdr_from_cards)
+
+                rhdr = fitsio.read_header(fname)
+
+                import pdb; pdb.set_trace()
+                
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
+
+
     def testImageWriteRead(self):
         """
         Test a basic image write, data and a header, then reading back in to
