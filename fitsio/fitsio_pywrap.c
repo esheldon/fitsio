@@ -1475,8 +1475,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
  */
 static int 
 add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
-    int status=0;
-    size_t size=0, i=0;
+    int status=0, i=0;
+    size_t size=0;
     char keyname[20];
     int colnum=0;
     PyObject* tmp=NULL;
@@ -1493,7 +1493,7 @@ add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
     }
 
     size = PyList_Size(tdimObj);
-    if (size != ncols) {
+    if (size != (size_t)ncols) {
         PyErr_Format(PyExc_ValueError, "Expected %d elements in tdims list, got %ld", ncols, size);
         return 1;
     }
@@ -2558,7 +2558,6 @@ PyFITSObject_write_undefined_key(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     char* keyname=NULL;
-    int value=0;
     char* comment=NULL;
     char* comment_in=NULL;
  
@@ -3972,17 +3971,24 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int status=0;
     int hdunum=0;
     int hdutype=0;
+    int lcont=0, lcomm=0, ls=0;
+    int tocomp=0;
+    char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
     char value[FLEN_VALUE];
     char comment[FLEN_COMMENT];
     char card[FLEN_CARD];
+    long is_string_value=0;
 
     int nkeys=0, morekeys=0, i=0;
+    int has_equals=0, has_quote=0;
 
     PyObject* list=NULL;
     PyObject* dict=NULL;  // to hold the dict for each record
 
+    lcont=strlen("CONTINUE");
+    lcomm=strlen("COMMENT");
 
     if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
         return NULL;
@@ -4002,12 +4008,11 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    list=PyList_New(nkeys);
+    list=PyList_New(0);
     for (i=0; i<nkeys; i++) {
 
         // the full card
         if (fits_read_record(self->fits, i+1, card, &status)) {
-            // is this enough?
             Py_XDECREF(list);
             set_ioerr_string_from_status(status);
             return NULL;
@@ -4016,21 +4021,55 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         // this just returns the character string stored in the header; we
         // can eval in python
         if (fits_read_keyn(self->fits, i+1, keyname, value, comment, &status)) {
-            // is this enough?
             Py_XDECREF(list);
             set_ioerr_string_from_status(status);
             return NULL;
         }
 
-        dict = PyDict_New();
-        add_string_to_dict(dict,"card_string",card);
-        add_string_to_dict(dict,"name",keyname);
-        add_string_to_dict(dict,"value",value);
-        add_string_to_dict(dict,"comment",comment);
 
-        // PyList_SetItem and PyTuple_SetItem only exceptions, don't 
-        // have to decref the object set
-        PyList_SetItem(list, i, dict);
+        ls=strlen(keyname);
+        tocomp = (ls < lcont) ? ls : lcont;
+
+        // skip CONTINUE, we already read the data
+        if (strncmp(keyname,"CONTINUE",tocomp)==0) {
+            continue;
+        }
+
+        if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
+            Py_XDECREF(list);
+            set_ioerr_string_from_status(status);
+            return NULL;
+        }
+
+        has_equals = (card[8] == '=') ? 1 : 0;
+        has_quote = (card[10] == '\'') ? 1 : 0;
+        if (has_equals && has_quote) {
+            is_string_value=1;
+        } else {
+            is_string_value=0;
+        }
+
+
+        dict = PyDict_New();
+        add_string_to_dict(dict,"name",keyname);
+        add_string_to_dict(dict,"comment",comment);
+        add_long_to_dict(dict, "is_string_value", is_string_value);
+
+        // if not a comment but empty value, put in None
+        tocomp = (ls < lcomm) ? ls : lcomm;
+        if (!is_string_value
+                && 0==strlen(longstr)
+                && strncmp(keyname,"COMMENT",tocomp)!=0) {
+
+            add_none_to_dict(dict, "value");
+        } else {
+            add_string_to_dict(dict,"value",longstr);
+        }
+
+        free(longstr); longstr=NULL;
+
+        PyList_Append(list, dict);
+        Py_XDECREF(dict);
 
     }
 

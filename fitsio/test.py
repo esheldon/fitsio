@@ -15,6 +15,11 @@ try:
 except:
     xrange=range
 
+lorem_ipsum = (
+    'Lorem ipsum dolor sit amet, consectetur adipiscing '
+    'elit, sed do eiusmod tempor incididunt ut labore '
+    'et dolore magna aliqua'
+)
 def test():
     suite_warnings = unittest.TestLoader().loadTestsFromTestCase(TestWarnings)
     res1=unittest.TextTestRunner(verbosity=2).run(suite_warnings).wasSuccessful()
@@ -211,9 +216,11 @@ class TestReadWrite(unittest.TestCase):
 
         # use a dict list so we can have comments
         self.keys = [{'name':'test1','value':35},
+                     {'name':'empty','value':''},
                      {'name':'test2','value':'stuff','comment':'this is a string keyword'},
                      {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
-                     {'name':'lng','value':3423432,'comment':'this is a long keyword'}]
+                     {'name':'lng','value':3423432,'comment':'this is a long keyword'},
+                     {'name':'lngstr','value':lorem_ipsum,'comment':'long string'}]
 
         # a second extension using the convenience function
         nrows2=10
@@ -396,6 +403,9 @@ class TestReadWrite(unittest.TestCase):
     def testHeaderWriteRead(self):
         """
         Test a basic header write and read
+
+        Note the other read/write tests also are checking header writing with
+        a list of dicts
         """
 
         fname=tempfile.mktemp(prefix='fitsio-HeaderWrite-',suffix='.fits')
@@ -405,6 +415,7 @@ class TestReadWrite(unittest.TestCase):
                 header={
                     'x':35,
                     'y':88.215,
+                    'empty':'',
                     'funky':'35-8', # test old bug when strings look
                                     #like expressions
                     'name':'J. Smith',
@@ -412,6 +423,7 @@ class TestReadWrite(unittest.TestCase):
                     'und':None,
                     'binop':'25-3', # test string with binary operation in it
                     'unders':'1_000_000', # test string with underscore
+                    'longs':lorem_ipsum,
                 }
                 fits.write_image(data, header=header)
 
@@ -441,60 +453,93 @@ class TestReadWrite(unittest.TestCase):
         self.assertEqual(hdr.get_comment('key1'), 'My comment1',
                          'comment not preserved')
 
-    def testHeaderContinue(self):
+    def testHeaderFromCards(self):
         """
-        Test a header with CONTINUE keys
+        test generating a header from cards, writing it out and getting
+        back what we put in
         """
-        fname=tempfile.mktemp(prefix='fitsio-HeaderContinue-',suffix='.fits')
+        hdr_from_cards=fitsio.FITSHDR([
+            "IVAL    =                   35 / integer value                                  ",
+            "SHORTS  = 'hello world'                                                         ",
+            "UND     =                                                                       ",
+            "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",
+            "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",
+            "DBL     =                 1.25                                                  ",
+        ])
+        header = [
+            {'name':'ival','value':35,'comment':'integer value'},
+            {'name':'shorts','value':'hello world'},
+            {'name':'und','value':None},
+            {'name':'longs','value':lorem_ipsum},
+            {'name':'dbl','value':1.25},
+        ]
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderFromCars-',suffix='.fits')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 data=numpy.zeros(10)
-                header = [
-                    "SVALUE  = 'This is a long string value &' ",
-                    "CONTINUE  'extending&   '   ",
-                    "CONTINUE  ' over 3 lines.'     / and a comment ",
-                    "TEST    = 10 / another key",
-                    ]
-                fits.write_image(data, header=header)
+                fits.write_image(data, header=hdr_from_cards)
 
                 rh = fits[0].read_header()
-                assert rh.keys().count('CONTINUE') == 2
+                self.compare_headerlist_header(header, rh)
 
             with fitsio.FITS(fname) as fits:
                 rh = fits[0].read_header()
-                assert rh.keys().count('CONTINUE') == 2
+                self.compare_headerlist_header(header, rh)
 
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
 
-        fname=tempfile.mktemp(prefix='fitsio-HeaderContinue-',suffix='.fits')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                data=numpy.zeros(10)
-                header = [
-                    # This is a snippet from a real DES FITS header, which (I guess incorrectly)
-                    # puts an = sign after the CONTINUE.  This didn't used to work.
-                    "OBSERVER= 'Ross Cawthon(RM), Ricardo Ogando(OBS1), Rutu Das (OBS1) Michael &'",
-                    "CONTINUE= '        '           /   '&' / Observer name(s)",
-                    ]
-                numpy.testing.assert_warns(fitsio.FITSRuntimeWarning,
-                                           fits.write_image, data, header=header)
+    def testCorruptContinue(self):
+        """
+        test with corrupt continue, just make sure it doesn't crash
+        """
+        with warnings.catch_warnings(record=True) as w:
+            fname=tempfile.mktemp(prefix='fitsio-TestCorruptContinue-',suffix='.fits')
 
-                # The CONTINUE= line gets converted to a normal CONTINUE, so no warning on reads.
-                # There would be a warning if the file being read has CONTINUE=, but that would
-                # be harder to test explicitly, since fitsio won't write that file...
-                rh = fits[0].read_header()
-                assert rh.keys().count('CONTINUE') == 1
+            hdr_from_cards=fitsio.FITSHDR([
+                "IVAL    =                   35 / integer value                                  ",
+                "SHORTS  = 'hello world'                                                         ",
+                "CONTINUE= '        '           /   '&' / Current observing orogram              ",
+                "UND     =                                                                       ",
+                "DBL     =                 1.25                                                  ",
+            ])
 
-            with fitsio.FITS(fname) as fits:
-                rh = fits[0].read_header()
-                assert rh.keys().count('CONTINUE') == 1
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
 
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
+                    fits.write(None, header=hdr_from_cards)
 
+                rhdr = fitsio.read_header(fname)
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
+
+        with warnings.catch_warnings(record=True) as w:
+            fname=tempfile.mktemp(prefix='fitsio-TestCorruptContinue-',suffix='.fits')
+
+            hdr_from_cards=fitsio.FITSHDR([
+                "IVAL    =                   35 / integer value                                  ",
+                "SHORTS  = 'hello world'                                                         ",
+                "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",
+                "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",
+                "CONTINUE  '&' / Current observing orogram                                       ",
+                "UND     =                                                                       ",
+                "DBL     =                 1.25                                                  ",
+            ])
+
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                    fits.write(None, header=hdr_from_cards)
+
+                rhdr = fitsio.read_header(fname)
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
 
     def testImageWriteRead(self):

@@ -1465,7 +1465,7 @@ class HDUBase(object):
         number.
         """
         # note converting strings
-        return FITSHDR(self.read_header_list())
+        return FITSHDR(self.read_header_list(),convert=True)
 
     def read_header_list(self):
         """
@@ -4203,7 +4203,8 @@ class FITSHDR(object):
         hdr=FITSHDR(recs)
 
     """
-    def __init__(self, record_list=None):
+    def __init__(self, record_list=None, convert=False):
+        self.convert=convert
 
         self._record_list = []
         self._record_map = {}
@@ -4243,7 +4244,7 @@ class FITSHDR(object):
 
             If the input is a card string, convert is implied True
         """
-        record = FITSRecord(record_in)
+        record = FITSRecord(record_in, convert=self.convert)
 
         # only append when this name already exists if it is
         # a comment or history field, otherwise simply over-write
@@ -4487,7 +4488,8 @@ class FITSHDR(object):
         v_isstring=isstring(value)
 
         if name == 'COMMENT':
-            card = 'COMMENT   %s' % value
+            #card = 'COMMENT   %s' % value
+            card = 'COMMENT %s' % value
         elif name == 'CONTINUE':
             card = 'CONTINUE   %s' % value
         elif name=='HISTORY':
@@ -4560,10 +4562,11 @@ class FITSRecord(dict):
     card=FITSRecord('test    =                   77 / My comment')
 
     """
-    def __init__(self, record):
-        self.set_record(record)
+    def __init__(self, record, convert=False):
+        self.convert=convert
+        self.set_record(record, convert=self.convert)
 
-    def set_record(self, record):
+    def set_record(self, record, **kw):
         """
         check the record is valid and set keys in the dict
 
@@ -4575,6 +4578,9 @@ class FITSRecord(dict):
         """
         import copy
 
+        if 'convert' in kw:
+            self.convert=kw['convert']
+
         if isstring(record):
             card=FITSCard(record)
             self.update(card)
@@ -4585,18 +4591,32 @@ class FITSRecord(dict):
 
             if isinstance(record,FITSRecord):
                 self.update(record)
+                self.verify()
             elif isinstance(record,dict):
                 # if the card is present, always construct the record from that
-                if 'card_string' in record:
+                if 'name' in record and 'value' in record:
+                    self.update(record)
+                    if self['name']=='COMMENT':
+                        self['value']=self['comment']
+
+                    if self.convert:
+                        if 'is_string_value' not in self:
+                            raise ValueError('if sending convert=True to FITSRecord, '
+                                             'you must include the is_string_value field')
+
+                        # we need to convert values for non-strings
+                        if not self['is_string_value']:
+                            self['value'] = self._convert_nonstring_value(self['value'])
+
+                elif 'card_string' in record:
                     self.set_record(record['card_string'])
                 else:
-                    # we will need to verify it
-                    self.update(record)
+                    raise ValueError('record must have name,value fields '
+                                     'or a card_string field')
             else:
                 raise ValueError("record must be a string card or "
                                  "dictionary or FITSRecord")
 
-            self.verify()
 
     def verify(self):
         """
@@ -4607,9 +4627,35 @@ class FITSRecord(dict):
         if 'value' not in self:
             raise ValueError("each record must have a 'value' field")
 
+    def _convert_nonstring_value(self, value_orig):
+        """
+        things like 6 and 1.25 are converted with ast.literal_value
+
+        Things like 'hello' are stripped of quotes
+        """
+        import ast
+        if value_orig is None:
+            return value_orig
+
+        try:
+            avalue = ast.parse(value_orig).body[0].value
+            if isinstance(avalue,ast.BinOp):
+                # this is probably a string that happens to look like
+                # a binary operation, e.g. '25-3'
+                value = value_orig
+            else:
+                value = ast.literal_eval(value_orig)
+        except:
+            value = self._convert_string(value_orig)
+
+        if isinstance(value,int) and '_' in value_orig:
+            value = value_orig
+
+        return value
+
     def _convert_string(self, value):
         """
-        Possibly remove quotes around strings.  Deal with bool
+        Deal with bool
         """
         if value=='T':
             val=True
