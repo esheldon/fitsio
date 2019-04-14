@@ -3007,10 +3007,18 @@ class TableHDU(HDUBase):
 
             fits=fitsio.FITS(filename)
             fits[ext][:]
+            fits[ext][2]   # see below (Indxing with a scalar)
             fits[ext][2:5]
             fits[ext][200:235:2]
             fits[ext][rows]
             fits[ext][cols][rows]
+
+        Indexing with a scalar:
+
+            Before version 1.1 returns fits[ext][2:3].
+            And a DeprecationWarning is issued.
+            Since version 1.1 returns a numpy scalar (as indexing a
+            ndarray).
 
         Note data are only read once the rows are specified.
 
@@ -3692,8 +3700,18 @@ class TableColumnSubset(object):
             self.fitshdu._process_args_as_rows_or_columns(arg, unpack=True)
         if isrows:
             # rows was entered: read all current column subset
-            return self.read(rows=res)
-
+            r = self.read(rows=res)
+            if numpy.isscalar(res):
+                mess=("Indexing a TableColumnSubset with "
+                      "a scalar currently returns a length 1 array. "
+                      "The behavior will change to return a scalar in the "
+                      "next release, consistent with h5py and numpy. "
+                     )
+                # FIXME: enable this and change the test case
+                # testTableColumnIndexScalar.
+                warnings.warn(mess, DeprecationWarning)
+                # r = r[0]
+            return r
         # columns was entered.  Return a subset objects
         return TableColumnSubset(self.fitshdu, columns=res)
 
