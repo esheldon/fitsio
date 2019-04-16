@@ -295,7 +295,18 @@ void add_string_to_dict(PyObject* dict, const char* key, const char* str) {
 static
 void add_none_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_None);
+    Py_XINCREF(Py_None);
 }
+static
+void add_true_to_dict(PyObject* dict, const char* key) {
+    PyDict_SetItemString(dict, key, Py_True);
+    Py_XINCREF(Py_True);
+}
+void add_false_to_dict(PyObject* dict, const char* key) {
+    PyDict_SetItemString(dict, key, Py_False);
+    Py_XINCREF(Py_False);
+}
+
 
 /*
 static
@@ -1907,7 +1918,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         dims = PyArray_DIMS(tmp_array);
         if (icol==0) {
             nelem = dims[0];
-            //fprintf(stderr,"nelem: %ld\n", (long)nelem);
         } else {
             if (dims[0] != nelem) {
                 PyErr_Format(PyExc_ValueError,
@@ -1916,9 +1926,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                 status=1;
                 goto _fitsio_pywrap_write_columns_bail;
             }
-        }
-        if (is_string[icol]) {
-            //fprintf(stderr,"is_string[%ld]: %d\n", icol, is_string[icol]);
         }
 
         tmp_obj = PyList_GetItem(colnum_list,icol);
@@ -1933,7 +1940,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         for (j=1; j<ndim; j++) {
             nperrow[icol] *= dims[j];
         }
-        //fprintf(stderr,"nperrow[%ld]: %ld\n", icol, (long)nperrow[icol]);
     }
 
     for (irow=0; irow<nelem; irow++) {
@@ -1979,7 +1985,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                     goto _fitsio_pywrap_write_columns_bail;
                 }
             } else {
-                //fprintf(stderr,"row: %ld col: %d\n", (long)thisrow, colnums[icol]);
                 if( fits_write_col(self->fits, 
                                    fits_dtypes[icol], 
                                    colnums[icol], 
@@ -3973,6 +3978,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
+    int is_comment=0;
     char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
@@ -3980,6 +3986,9 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     char comment[FLEN_COMMENT];
     char card[FLEN_CARD];
     long is_string_value=0;
+
+    LONGLONG lval=0;
+    double dval=0;
 
     int nkeys=0, morekeys=0, i=0;
     int has_equals=0, has_quote=0;
@@ -4053,17 +4062,39 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         dict = PyDict_New();
         add_string_to_dict(dict,"name",keyname);
         add_string_to_dict(dict,"comment",comment);
-        add_long_to_dict(dict, "is_string_value", is_string_value);
+        //add_long_to_dict(dict, "is_string_value", is_string_value);
 
+        if ( strncmp(keyname,"COMMENT",tocomp)==0) {
+            is_comment=1;
+        } else {
+            is_comment=0;
+        }
         // if not a comment but empty value, put in None
         tocomp = (ls < lcomm) ? ls : lcomm;
-        if (!is_string_value
-                && 0==strlen(longstr)
-                && strncmp(keyname,"COMMENT",tocomp)!=0) {
+        if (!is_string_value && 0==strlen(longstr) && !is_comment) {
 
             add_none_to_dict(dict, "value");
+
         } else {
-            add_string_to_dict(dict,"value",longstr);
+
+            if (is_string_value) {
+                add_string_to_dict(dict,"value",longstr);
+            } else if (is_comment) {
+                add_string_to_dict(dict,"value",longstr);
+            } else if ( longstr[0]=='T' ) {
+                add_true_to_dict(dict, "value");
+            } else if (longstr[0]=='F') {
+                add_false_to_dict(dict, "value");
+            } else if ( (strchr(longstr,'.') != NULL) || (strchr(longstr,'E') != NULL) ) {
+                // we found a floating point value
+                fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
+                add_double_to_dict(dict,"value",dval);
+            } else {
+                // we found an integer
+                fits_read_key(self->fits, TLONGLONG, keyname, &lval, comment, &status);
+                add_long_long_to_dict(dict,"value",(long long)lval);
+            }
+
         }
 
         free(longstr); longstr=NULL;
