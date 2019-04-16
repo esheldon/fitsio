@@ -4085,7 +4085,10 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 add_true_to_dict(dict, "value");
             } else if (longstr[0]=='F') {
                 add_false_to_dict(dict, "value");
-            } else if ( (strchr(longstr,'.') != NULL) || (strchr(longstr,'E') != NULL) ) {
+            } else if ( 
+                    (strchr(longstr,'.') != NULL)
+                    || (strchr(longstr,'E') != NULL)
+                    || (strchr(longstr,'e') != NULL) ) {
                 // we found a floating point value
                 fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
                 add_double_to_dict(dict,"value",dval);
