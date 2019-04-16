@@ -135,9 +135,76 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     case_sensitive: bool, optional
         Match extension names with case-sensitivity.  Default is False.
     """
-    item=_make_item(ext,extver=extver)
-    with FITS(filename, case_sensitive=case_sensitive) as fits:
-        return fits[item].read_header()
+
+    dont_create=0
+    _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
+    try:
+        hdunum = ext+1
+    except TypeError:
+        extname=mks(ext).upper()
+        hdunum = self._FITS.movnam_hdu(ANY_HDU, extname, extver)
+
+    return FITSHDR(_fits.read_header(hdunum))
+
+    """
+    #if False:
+    if extver is None:
+        # we can do this fast.  There is probably a fast way to do it
+        # with extver as well, need to look into it
+        dont_create=0
+        _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
+        try:
+            hdunum = ext+1
+        except TypeError:
+            extname=mks(ext).upper()
+            hdunum = self._FITS.movnam_hdu(ANY_HDU, extname, 0)
+
+        return FITSHDR(_fits.read_header(hdunum))
+    else:
+
+        item=_make_item(ext,extver=extver)
+        with FITS(filename, case_sensitive=case_sensitive) as fits:
+            return fits[item].read_header()
+    """
+
+def read_header_list(filename, ext=0, extver=None, case_sensitive=False, **keys):
+    """
+    Convenience function to read a header list from the specified FITS HDU
+    The header entries are not converted to python types, they are kept
+    as strings
+
+    The FITSHDR allows access to the values and comments by name and
+    number.
+
+    Under the hood, a FITS object is constructed and data are read using
+    an associated FITSHDU object.
+
+    parameters
+    ----------
+    filename: string
+        A filename.
+    ext: number or string, optional
+        The extension.  Either the numerical extension from zero
+        or a string extension name. Default read primary header.
+    extver: integer, optional
+        FITS allows multiple extensions to have the same name (extname).  These
+        extensions can optionally specify an EXTVER version number in the
+        header.  Send extver= to select a particular version.  If extver is not
+        sent, the first one will be selected.  If ext is an integer, the extver
+        is ignored.
+    case_sensitive: bool, optional
+        Match extension names with case-sensitivity.  Default is False.
+    """
+
+    dont_create=0
+    _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
+    try:
+        hdunum = ext+1
+    except TypeError:
+        extname=mks(ext).upper()
+        hdunum = self._FITS.movnam_hdu(ANY_HDU, extname, extver)
+
+    return _fits.read_header(hdunum)
 
 def read_scamp_head(fname, header=None):
     """
