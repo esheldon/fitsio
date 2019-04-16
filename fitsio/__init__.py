@@ -15,7 +15,7 @@ from .fitslib import FITSRecord
 from .fitslib import FITSCard
 
 from .fitslib import read
-from .fitslib import read_header
+from .fitslib import read_header, read_header_list
 from .fitslib import read_scamp_head
 from .fitslib import write
 from .fitslib import READONLY
