@@ -4272,7 +4272,8 @@ class FITSHDR(object):
             If the input is a card string, convert is implied True
         """
         if isinstance(record_in,dict) and 'name' in record_in and 'value' in record_in:
-            record = record_in
+            record = {}
+            record.update(record_in)
         else:
             record = FITSRecord(record_in)
 
