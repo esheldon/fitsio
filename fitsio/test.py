@@ -1155,7 +1155,7 @@ class TestReadWrite(unittest.TestCase):
                 # FIXME: change this to == 0 after
                 # TableColumnSubset.__getitem__ handles this properly.
                 assert fits[1]['Z'][0].ndim == 1
-                pass
+                assert fits[1][0].ndim == 1
         finally:
             if os.path.exists(fname):
                 #pass
