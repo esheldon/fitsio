@@ -827,6 +827,42 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     return dict;
 }
 
+// get info for the specified HDU
+static PyObject *
+PyFITSObject_get_hdu_name_version(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0, hdutype=0;
+    int status=0;
+
+    char extname[FLEN_VALUE];
+    int extver=0;
+ 
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    status=0;
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &status)!=0) {
+        extver=0;
+    }
+
+    status=0;
+    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &status)==0) {
+        return Py_BuildValue("si", extname, extver);
+    } else {
+        return Py_BuildValue("si", "", extver);
+    }
+}
+
 
 // this is the parameter that goes in the type for fits_write_col
 static int 
@@ -4395,6 +4431,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"movabs_hdu",           (PyCFunction)PyFITSObject_movabs_hdu,           METH_VARARGS,  "movabs_hdu\n\nMove to the specified HDU."},
     {"movnam_hdu",           (PyCFunction)PyFITSObject_movnam_hdu,           METH_VARARGS,  "movnam_hdu\n\nMove to the specified HDU by name and return the hdu number."},
 
+    {"get_hdu_name_version",         (PyCFunction)PyFITSObject_get_hdu_name_version,         METH_VARARGS,  "get_hdu_name_version\n\nReturn a tuple (extname,extvers)."},
     {"get_hdu_info",         (PyCFunction)PyFITSObject_get_hdu_info,         METH_VARARGS,  "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_raw",             (PyCFunction)PyFITSObject_read_raw,             METH_NOARGS,  "read_raw\n\nRead the entire raw contents of the FITS file, returning a python string."},
     {"read_image",           (PyCFunction)PyFITSObject_read_image,           METH_VARARGS,  "read_image\n\nRead the entire n-dimensional image array.  No checking of array is done."},
