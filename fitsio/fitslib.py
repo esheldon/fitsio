@@ -116,9 +116,6 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     The FITSHDR allows access to the values and comments by name and
     number.
 
-    Under the hood, a FITS object is constructed and data are read using
-    an associated FITSHDU object.
-
     parameters
     ----------
     filename: string
@@ -137,35 +134,54 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     """
 
     dont_create=0
-    _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
     try:
         hdunum = ext+1
     except TypeError:
-        extname=mks(ext).upper()
-        hdunum = self._FITS.movnam_hdu(ANY_HDU, extname, extver)
+        hdunum = None
 
+    _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
+
+    if hdunum is None:
+
+        extname=mks(ext)
+        if extver is None:
+            extver_num=0
+        else:
+            extver_num = extver
+
+        if case_sensitive:
+            hdunum = _fits.movnam_hdu(ANY_HDU, extname, extver_num)
+        else:
+            # case insensitive, so we do our best to find a match
+            extname_low=extname.lower()
+
+            found=False
+            current_ext = 0
+            while True:
+                hdunum = current_ext+1
+                try:
+                    hdu_type=_fits.movabs_hdu(hdunum)
+                    name, vers = _fits.get_hdu_name_version(hdunum)
+                    if name == extname_low:
+                        if extver is None:
+                            # take the first match
+                            found=True
+                            break
+                        else:
+                            if extver_num == vers:
+                                found=True
+                                break
+                except OSError as err:
+                    print(err)
+                    break
+
+                current_ext += 1
+
+            if not found:
+                raise IOError('hdu not found: %s (extver %s)' % (extname,extver))
+
+        
     return FITSHDR(_fits.read_header(hdunum))
-
-    """
-    #if False:
-    if extver is None:
-        # we can do this fast.  There is probably a fast way to do it
-        # with extver as well, need to look into it
-        dont_create=0
-        _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
-        try:
-            hdunum = ext+1
-        except TypeError:
-            extname=mks(ext).upper()
-            hdunum = self._FITS.movnam_hdu(ANY_HDU, extname, 0)
-
-        return FITSHDR(_fits.read_header(hdunum))
-    else:
-
-        item=_make_item(ext,extver=extver)
-        with FITS(filename, case_sensitive=case_sensitive) as fits:
-            return fits[item].read_header()
-    """
 
 def read_scamp_head(fname, header=None):
     """
@@ -4268,8 +4284,6 @@ class FITSHDR(object):
             converted to 3 and "'hello'" gets converted
             to 'hello' and 'T'/'F' to True/False. Default
             is False.
-
-            If the input is a card string, convert is implied True
         """
         if isinstance(record_in,dict) and 'name' in record_in and 'value' in record_in:
             record = {}
