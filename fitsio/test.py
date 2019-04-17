@@ -941,10 +941,13 @@ class TestReadWrite(unittest.TestCase):
                 data3['dec'] = numpy.random.random(nrows)
 
 
-                fits.write_image(img1, extname='myimage', extver=1)
+                hdr1={'k1':'key1'}
+                hdr2={'k2':'key2'}
+
+                fits.write_image(img1, extname='myimage', header=hdr1, extver=1)
                 fits.write_table(data1)
                 fits.write_table(data2,extname='mytable', extver=1)
-                fits.write_image(img2, extname='myimage', extver=2)
+                fits.write_image(img2, extname='myimage', header=hdr2, extver=2)
                 fits.write_table(data3, extname='mytable',extver=2)
                 fits.write_image(img3)
 
@@ -970,6 +973,10 @@ class TestReadWrite(unittest.TestCase):
                 self.compare_array(img2, dimg2,"img2")
                 self.compare_array(img3, dimg3,"img3")
 
+            rhdr1 = fitsio.read_header(fname, ext='myimage', extver=1)
+            rhdr2 = fitsio.read_header(fname, ext='myimage', extver=2)
+            self.assertTrue('k1' in rhdr1,'testing k1 in header version 1')
+            self.assertTrue('k2' in rhdr2,'testing k2 in header version 2')
 
         finally:
             if os.path.exists(fname):
