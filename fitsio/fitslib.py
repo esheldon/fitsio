@@ -172,7 +172,6 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
                                 found=True
                                 break
                 except OSError as err:
-                    print(err)
                     break
 
                 current_ext += 1
