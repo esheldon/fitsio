@@ -3053,18 +3053,11 @@ class TableHDU(HDUBase):
 
             fits=fitsio.FITS(filename)
             fits[ext][:]
-            fits[ext][2]   # see below (Indxing with a scalar)
+            fits[ext][2]   # returns a scalar
             fits[ext][2:5]
             fits[ext][200:235:2]
             fits[ext][rows]
             fits[ext][cols][rows]
-
-        Indexing with a scalar:
-
-            Before version 1.1 returns fits[ext][2:3].
-            And a DeprecationWarning is issued.
-            Since version 1.1 returns a numpy scalar (as indexing a
-            ndarray).
 
         Note data are only read once the rows are specified.
 
