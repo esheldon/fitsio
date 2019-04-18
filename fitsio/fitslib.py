@@ -2858,32 +2858,42 @@ class TableHDU(HDUBase):
         Can also be tuples or arrays.
         """
 
-        isslice = False
-        isrows = False
-        result=arg
-        if isinstance(arg, (tuple,list,numpy.ndarray)):
+        flags = set()
+        #
+        if isinstance(arg, (tuple, list, numpy.ndarray)):
             # a sequence was entered
             if isstring(arg[0]):
-                pass
-            else:
-                isrows=True
                 result = arg
+            else:
+                result = arg
+                flags.add('isrows')
         elif isstring(arg):
             # a single string was entered
-            pass
+            result = arg
         elif isinstance(arg, slice):
-            isrows=True
             if unpack:
+                flags.add('isrows')
                 result = self._slice2rows(arg.start, arg.stop, arg.step)
             else:
-                isslice=True
+                flags.add('isrows')
+                flags.add('isslice')
                 result = self._process_slice(arg)
         else:
-            # a single object was entered.  Probably should apply some more
-            # checking on this
-            isrows=True
-
-        return result, isrows, isslice
+            # a single object was entered. 
+            # Probably should apply some more checking on this
+            result = arg
+            flags.add('isrows')
+            if numpy.ndim(arg) == 0:
+                mess=("Indexing a TableColumnSubset with "
+                      "a scalar currently returns a length 1 array. "
+                      "The behavior will change to return a scalar in the "
+                      "next release, consistent with h5py and numpy. "
+                     )
+                # FIXME: enable this and change the test case
+                # testTableColumnIndexScalar.
+                # flags.add('isscalar')
+                warnings.warn(mess, FutureWarning)
+        return result, flags
 
     def _read_var_column(self, colnum, rows, vstorage):
         """
@@ -3007,10 +3017,18 @@ class TableHDU(HDUBase):
 
             fits=fitsio.FITS(filename)
             fits[ext][:]
+            fits[ext][2]   # see below (Indxing with a scalar)
             fits[ext][2:5]
             fits[ext][200:235:2]
             fits[ext][rows]
             fits[ext][cols][rows]
+
+        Indexing with a scalar:
+
+            Before version 1.1 returns fits[ext][2:3].
+            And a DeprecationWarning is issued.
+            Since version 1.1 returns a numpy scalar (as indexing a
+            ndarray).
 
         Note data are only read once the rows are specified.
 
@@ -3020,12 +3038,12 @@ class TableHDU(HDUBase):
         This function is used for ascii tables as well
         """
 
-        res, isrows, isslice = \
+        res, flags = \
             self._process_args_as_rows_or_columns(arg)
 
-        if isrows:
+        if 'isrows' in flags:
             # rows were entered: read all columns
-            if isslice:
+            if 'isslice' in flags:
                 array = self.read_slice(res.start, res.stop, res.step)
             else:
                 # will also get here if slice is entered but this
@@ -3041,6 +3059,9 @@ class TableHDU(HDUBase):
 
         self._maybe_trim_strings(array)
 
+        if 'isscalar' in flags:
+            assert array.shape[0] == 1
+            array = array[0]
         return array
 
     def __iter__(self):
@@ -3688,15 +3709,18 @@ class TableColumnSubset(object):
         # on whole rows.  We could allow rows= keyword to
         # be a slice...
 
-        res, isrows, isslice = \
+        res, flags = \
             self.fitshdu._process_args_as_rows_or_columns(arg, unpack=True)
-        if isrows:
+        if 'isrows' in flags:
             # rows was entered: read all current column subset
-            return self.read(rows=res)
-
-        # columns was entered.  Return a subset objects
-        return TableColumnSubset(self.fitshdu, columns=res)
-
+            array = self.read(rows=res)
+            if 'isscalar' in flags:
+                assert array.shape[0] == 1
+                array = array[0]
+            return array
+        else:
+            # columns was entered.  Return a subset objects
+            return TableColumnSubset(self.fitshdu, columns=res)
 
     def __repr__(self):
         """
