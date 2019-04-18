@@ -1,13 +1,34 @@
-version 1.0.0
+version 1.0.1
 ---------------------------------
+
+Backwards Incompatible Changes
+
+    - Support for python 3 strings.
+    - Support for proper string null termination.  This means you can read back exactly
+      what you wrote.  However this departs from previous fitsio which used
+      the non-standard cfitsio convention of padding strings with spaces.
+    - Scalar indexing of FITS objects now returns a scalar, consistent
+      with numpy indexing rules (rainwoodman)
 
 New Features
 
-    - Support for python 3 strings.
-    - Support for proper string null termination.
     - Installation moved to setuptools from distutils.
     - Bundling of cfitsio now done with patches against the upstream
       version instead of direct edits to the upstream code.
+
+Bug Fixes
+
+    - CONTINUE in headers are now properly read.  Note there is a corner
+      case that is mis-handled by the underlying cfitsio library.  A bug
+      report has been sent.  (thanks for help with Alex Drlica-Wagner
+      identifying and testing this issue)
+    - Fixed bug where some long strings were not properly written to headers
+    - Fixed bug where compression settings for an open FITS object was inherited
+      from the previous HDU by a new HDU
+    - Fixed bug where comment strings were lost when setting the value in
+      a FITSHDR entry
+    - Fixed bug where get_comment was raising ValueError rather than KeyError
+    - For py3 need to ensure by hand that strings sizes are greater than 0
 
 Deprecations
 
