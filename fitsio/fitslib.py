@@ -116,9 +116,6 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     The FITSHDR allows access to the values and comments by name and
     number.
 
-    Under the hood, a FITS object is constructed and data are read using
-    an associated FITSHDU object.
-
     parameters
     ----------
     filename: string
@@ -135,9 +132,55 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     case_sensitive: bool, optional
         Match extension names with case-sensitivity.  Default is False.
     """
-    item=_make_item(ext,extver=extver)
-    with FITS(filename, case_sensitive=case_sensitive) as fits:
-        return fits[item].read_header()
+
+    dont_create=0
+    try:
+        hdunum = ext+1
+    except TypeError:
+        hdunum = None
+
+    _fits =  _fitsio_wrap.FITS(filename, READONLY, dont_create)
+
+    if hdunum is None:
+
+        extname=mks(ext)
+        if extver is None:
+            extver_num=0
+        else:
+            extver_num = extver
+
+        if case_sensitive:
+            hdunum = _fits.movnam_hdu(ANY_HDU, extname, extver_num)
+        else:
+            # case insensitive, so we do our best to find a match
+            extname_low=extname.lower()
+
+            found=False
+            current_ext = 0
+            while True:
+                hdunum = current_ext+1
+                try:
+                    hdu_type=_fits.movabs_hdu(hdunum)
+                    name, vers = _fits.get_hdu_name_version(hdunum)
+                    if name == extname_low:
+                        if extver is None:
+                            # take the first match
+                            found=True
+                            break
+                        else:
+                            if extver_num == vers:
+                                found=True
+                                break
+                except OSError as err:
+                    break
+
+                current_ext += 1
+
+            if not found:
+                raise IOError('hdu not found: %s (extver %s)' % (extname,extver))
+
+        
+    return FITSHDR(_fits.read_header(hdunum))
 
 def read_scamp_head(fname, header=None):
     """
@@ -1465,7 +1508,7 @@ class HDUBase(object):
         number.
         """
         # note converting strings
-        return FITSHDR(self.read_header_list(),convert=True)
+        return FITSHDR(self.read_header_list())
 
     def read_header_list(self):
         """
@@ -4220,8 +4263,7 @@ class FITSHDR(object):
         hdr=FITSHDR(recs)
 
     """
-    def __init__(self, record_list=None, convert=False):
-        self.convert=convert
+    def __init__(self, record_list=None):
 
         self._record_list = []
         self._record_map = {}
@@ -4258,10 +4300,12 @@ class FITSHDR(object):
             converted to 3 and "'hello'" gets converted
             to 'hello' and 'T'/'F' to True/False. Default
             is False.
-
-            If the input is a card string, convert is implied True
         """
-        record = FITSRecord(record_in, convert=self.convert)
+        if isinstance(record_in,dict) and 'name' in record_in and 'value' in record_in:
+            record = {}
+            record.update(record_in)
+        else:
+            record = FITSRecord(record_in)
 
         # only append when this name already exists if it is
         # a comment or history field, otherwise simply over-write
@@ -4579,9 +4623,8 @@ class FITSRecord(dict):
     card=FITSRecord('test    =                   77 / My comment')
 
     """
-    def __init__(self, record, convert=False):
-        self.convert=convert
-        self.set_record(record, convert=self.convert)
+    def __init__(self, record):
+        self.set_record(record)
 
     def set_record(self, record, **kw):
         """
@@ -4595,9 +4638,6 @@ class FITSRecord(dict):
         """
         import copy
 
-        if 'convert' in kw:
-            self.convert=kw['convert']
-
         if isstring(record):
             card=FITSCard(record)
             self.update(card)
@@ -4608,25 +4648,13 @@ class FITSRecord(dict):
 
             if isinstance(record,FITSRecord):
                 self.update(record)
-                self.verify()
             elif isinstance(record,dict):
-                # if the card is present, always construct the record from that
                 if 'name' in record and 'value' in record:
                     self.update(record)
-                    if self['name']=='COMMENT':
-                        self['value']=self['comment']
-
-                    if self.convert:
-                        if 'is_string_value' not in self:
-                            raise ValueError('if sending convert=True to FITSRecord, '
-                                             'you must include the is_string_value field')
-
-                        # we need to convert values for non-strings
-                        if not self['is_string_value']:
-                            self['value'] = self._convert_nonstring_value(self['value'])
 
                 elif 'card_string' in record:
                     self.set_record(record['card_string'])
+
                 else:
                     raise ValueError('record must have name,value fields '
                                      'or a card_string field')
@@ -4643,45 +4671,6 @@ class FITSRecord(dict):
             raise ValueError("each record must have a 'name' field")
         if 'value' not in self:
             raise ValueError("each record must have a 'value' field")
-
-    def _convert_nonstring_value(self, value_orig):
-        """
-        things like 6 and 1.25 are converted with ast.literal_value
-
-        Things like 'hello' are stripped of quotes
-        """
-        import ast
-        if value_orig is None:
-            return value_orig
-
-        try:
-            avalue = ast.parse(value_orig).body[0].value
-            if isinstance(avalue,ast.BinOp):
-                # this is probably a string that happens to look like
-                # a binary operation, e.g. '25-3'
-                value = value_orig
-            else:
-                value = ast.literal_eval(value_orig)
-        except:
-            value = self._convert_string(value_orig)
-
-        if isinstance(value,int) and '_' in value_orig:
-            value = value_orig
-
-        return value
-
-    def _convert_string(self, value):
-        """
-        Deal with bool
-        """
-        if value=='T':
-            val=True
-        elif value=='F':
-            val=False
-        else:
-            val=value
-
-        return val
 
 TYP_STRUC_KEY=10
 TYP_CMPRS_KEY=  20
