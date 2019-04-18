@@ -47,24 +47,28 @@ from fitsio import FITS,FITSHDR
 # create a FITS object.  In that case, you can use the read and write
 # convienience functions.
 
-# read all data from the first hdu with data
+# read all data from the first hdu that has data
 filename='data.fits'
 data = fitsio.read(filename)
 
 # read a subset of rows and columns from a table
 data = fitsio.read(filename, rows=[35,1001], columns=['x','y'], ext=2)
 
-# read the header, or both at once
-h = fitsio.read_header(filename, extension)
-data,h = fitsio.read(filename, ext=ext, header=True)
+# read the header
+h = fitsio.read_header(filename)
+# read both data and header
+data,h = fitsio.read(filename, header=True)
 
-# open the file, write a new binary table extension, and then write  the
-# data from "recarray" into the table. By default a new extension is
+# open the file and write a new binary table extension with the data
+# array, which is a numpy array with fields, or "recarray".
+
+data = np.zeros(10, dtype=[('id','i8'),('ra','f8'),('dec','f8')])
+fitsio.write(filename, data)
+
+# Write an image to the same file. By default a new extension is
 # added to the file.  use clobber=True to overwrite an existing file
 # instead.  To append rows to an existing table, see below.
-fitsio.write(filename, recarray)
 
-# write an image
 fitsio.write(filename, image)
 
 # NOTE when reading row subsets, the data must still be read from disk.
@@ -89,15 +93,15 @@ extnum hdutype         hduname
 0      IMAGE_HDU
 1      BINARY_TBL      mytable
 
-# at the python prompt, you could just type "fits" and it will automatically
-# print itself.  Same for ipython.
+# at the python or ipython prompt the fits object will
+# print itself
 >>> fits
 file: data.fits
 ... etc
 
 # explore the extensions, either by extension number or
 # extension name if available
-print(fits[0])
+>>> fits[0]
 
 file: data.fits
 extension: 0
@@ -106,7 +110,8 @@ image info:
   data type: f8
   dims: [4096,2048]
 
-print(fits['mytable'])  # can also use fits[1])
+# by name; can also use fits[1]
+>>> fits['mytable']
 
 file: data.fits
 extension: 1
@@ -127,7 +132,7 @@ column info:
 # See bottom for how to get more information for an extension
 
 # [-1] to refers the last HDU
-print(fits[-1])
+>>> fits[-1]
 ...
 
 # if there are multiple HDUs with the same name, and an EXTVER
@@ -150,7 +155,7 @@ data = fits[1][:]
 
 # read a subset of rows and columns. By default uses a case-insensitive
 # match. The result retains the names with original case.  If columns is a
-# sequence, a recarray is returned
+# sequence, a numpy array with fields, or recarray is returned
 data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
 # Similar but using slice notation
@@ -223,12 +228,12 @@ fits = FITS('test.fits','rw')
 # create a rec array.  Note vstr
 # is a variable length string
 nrows=35
-data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
-                                 ('arr','f4',(3,4))])
-data['index'] = numpy.arange(nrows,dtype='i4')
-data['x'] = numpy.random.random(nrows)
+data = np.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
+                              ('arr','f4',(3,4))])
+data['index'] = np.arange(nrows,dtype='i4')
+data['x'] = np.random.random(nrows)
 data['vstr'] = [str(i) for i in xrange(nrows)]
-data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
+data['arr'] = np.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
 # create a new table extension and write the data
 fits.write(data)
@@ -260,7 +265,7 @@ fits[-1].write(data, firstrow=350)
 
 
 # create an image
-img=numpy.arange(2*3,dtype='i4').reshape(2,3)
+img=np.arange(2*3,dtype='i4').reshape(2,3)
 
 # write an image in a new HDU (if this is a new file, the primary HDU)
 fits.write(img)
