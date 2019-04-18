@@ -25,7 +25,7 @@ your own, nor will this conflict with a version you have installed.
     or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
-- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
+- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).
 - Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
 - TDIM information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
@@ -34,7 +34,7 @@ your own, nor will this conflict with a version you have installed.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table.  Data are buffered for efficiency.
-- python 3 support
+- python 3 support, including python 3 strings
 
 
 ## Examples
