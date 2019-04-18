@@ -2884,15 +2884,8 @@ class TableHDU(HDUBase):
             result = arg
             flags.add('isrows')
             if numpy.ndim(arg) == 0:
-                mess=("Indexing a TableColumnSubset with "
-                      "a scalar currently returns a length 1 array. "
-                      "The behavior will change to return a scalar in the "
-                      "next release, consistent with h5py and numpy. "
-                     )
-                # FIXME: enable this and change the test case
-                # testTableColumnIndexScalar.
-                # flags.add('isscalar')
-                warnings.warn(mess, FutureWarning)
+                flags.add('isscalar')
+
         return result, flags
 
     def _read_var_column(self, colnum, rows, vstorage):

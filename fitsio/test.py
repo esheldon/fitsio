@@ -1152,13 +1152,10 @@ class TestReadWrite(unittest.TestCase):
             fits.write_table(data)
         try:
             with fitsio.FITS(fname,'r',clobber=True) as fits:
-                # FIXME: change this to == 0 after
-                # TableColumnSubset.__getitem__ handles this properly.
-                assert fits[1]['Z'][0].ndim == 1
-                assert fits[1][0].ndim == 1
+                assert fits[1]['Z'][0].ndim == 0
+                assert fits[1][0].ndim == 0
         finally:
             if os.path.exists(fname):
-                #pass
                 os.remove(fname)
 
     def testTableFormatColumnSubset(self):
