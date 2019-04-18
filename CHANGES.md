@@ -15,6 +15,8 @@ New Features
     - Installation moved to setuptools from distutils.
     - Bundling of cfitsio now done with patches against the upstream
       version instead of direct edits to the upstream code.
+    - Speed improvements for the read_header conveniance function, and
+      reading of headers in general.
 
 Bug Fixes
 
