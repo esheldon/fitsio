@@ -5,7 +5,7 @@
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/
 
 from __future__ import print_function
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 import os
@@ -283,7 +283,7 @@ setup(
     author_email="erin.sheldon@gmail.com",
     setup_requires=['numpy'],
     install_requires=['numpy'],
-    packages=['fitsio'],
+    packages=find_packages(),
     data_files=data_files,
     ext_modules=[ext],
     cmdclass={"build_ext": build_ext_subclass}
