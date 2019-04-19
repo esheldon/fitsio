@@ -4,11 +4,11 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__='1.0.1'
+__version__ = '1.0.1'
 
-from . import fitslib
+from . import fitslib   # noqa
 
-from .fitslib import (
+from .fitslib import (    # noqa
     FITS,
     FITSHDR,
     FITSRecord,
@@ -23,7 +23,7 @@ from .fitslib import (
     FITSRuntimeWarning,
 )
 
-from . import util
-from .util import cfitsio_version
+from . import util  # noqa
+from .util import cfitsio_version  # noqa
 
-from . import test
+from . import test  # noqa
