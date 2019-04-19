@@ -11,8 +11,6 @@ from . import fitslib   # noqa
 from .fitslib import (    # noqa
     FITS,
     FITSHDR,
-    FITSRecord,
-    FITSCard,
     read,
     read_header,
     read_scamp_head,
@@ -20,10 +18,11 @@ from .fitslib import (    # noqa
     READONLY,
     READWRITE,
     BINARY_TBL, ASCII_TBL, IMAGE_HDU,
-    FITSRuntimeWarning,
 )
 
+from .header import FITSRecord, FITSCard  # noqa
+
 from . import util  # noqa
-from .util import cfitsio_version  # noqa
+from .util import cfitsio_version, FITSRuntimeWarning  # noqa
 
 from . import test  # noqa

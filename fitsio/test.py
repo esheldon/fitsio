@@ -1005,7 +1005,7 @@ class TestReadWrite(unittest.TestCase):
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1].read_column(f)
-                        if fitsio.fitslib.is_object(self.vardata[f]):
+                        if fitsio.util.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d,
                                                       "read all field '%s'" % f)
 
@@ -1020,7 +1020,7 @@ class TestReadWrite(unittest.TestCase):
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1][f][:]
-                        if fitsio.fitslib.is_object(self.vardata[f]):
+                        if fitsio.util.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d,
                                                       "read all field '%s'" % f)
 
@@ -1043,7 +1043,7 @@ class TestReadWrite(unittest.TestCase):
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1].read_column(f,rows=rows)
-                        if fitsio.fitslib.is_object(self.vardata[f]):
+                        if fitsio.util.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d,
                                                       "read subrows field '%s'" % f,
                                                       rows=rows)
@@ -1067,12 +1067,12 @@ class TestReadWrite(unittest.TestCase):
                     # one at a time
                     for f in self.vardata.dtype.names:
                         d = fits[1][f][rows]
-                        if fitsio.fitslib.is_object(self.vardata[f]):
+                        if fitsio.util.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d,
                                                       "read subrows field '%s'" % f,
                                                       rows=rows)
                         d = fits[1][f][2:4]
-                        if fitsio.fitslib.is_object(self.vardata[f]):
+                        if fitsio.util.is_object(self.vardata[f]):
                             self.compare_object_array(self.vardata[f], d,
                                                       "read slice field '%s'" % f,
                                                       rows=numpy.array([2,3]))
@@ -2366,7 +2366,7 @@ class TestReadWrite(unittest.TestCase):
         for f in rec2.dtype.names:
 
             # f1 will have the objects
-            if fitsio.fitslib.is_object(rec1[f]):
+            if fitsio.util.is_object(rec1[f]):
                 self.compare_object_array(rec1[f], rec2[f],
                                           "testing '%s' field '%s'" % (name,f),
                                           rows=rows)
@@ -2403,7 +2403,7 @@ class TestReadWrite(unittest.TestCase):
 
         """
         for f in rec1.dtype.names:
-            if fitsio.fitslib.is_object(rec2[f]):
+            if fitsio.util.is_object(rec2[f]):
 
                 for i in xrange(rec2.size):
                     if isinstance(rec2[f][i],str):
