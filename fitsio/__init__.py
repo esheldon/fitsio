@@ -4,26 +4,24 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__='1.0.1'
+__version__ = '1.0.1'
 
-from . import fitslib
+from . import fitslib   # noqa
 
-from .fitslib import (
+from .fitslib import (    # noqa
     FITS,
-    FITSHDR,
-    FITSRecord,
-    FITSCard,
     read,
     read_header,
     read_scamp_head,
     write,
     READONLY,
     READWRITE,
-    BINARY_TBL, ASCII_TBL, IMAGE_HDU,
-    FITSRuntimeWarning,
 )
 
-from . import util
-from .util import cfitsio_version
+from .header import FITSHDR, FITSRecord, FITSCard  # noqa
+from .hdu import BINARY_TBL, ASCII_TBL, IMAGE_HDU  # noqa
 
-from . import test
+from . import util  # noqa
+from .util import cfitsio_version, FITSRuntimeWarning  # noqa
+
+from . import test  # noqa
