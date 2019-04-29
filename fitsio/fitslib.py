@@ -156,12 +156,12 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
         else:
             extver_num = extver
 
-        if case_sensitive:
+        if not case_sensitive:
+            # the builtin movnam_hdu is not case sensitive
             hdunum = _fits.movnam_hdu(ANY_HDU, extname, extver_num)
         else:
-            # case insensitive, so we do our best to find a match
-            extname_low = extname.lower()
-
+            # for case sensitivity we'll need to run through
+            # all the hdus
             found = False
             current_ext = 0
             while True:
@@ -169,7 +169,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
                 try:
                     hdu_type = _fits.movabs_hdu(hdunum)  # noqa - not used
                     name, vers = _fits.get_hdu_name_version(hdunum)
-                    if name.lower() == extname_low:
+                    if name == extname:
                         if extver is None:
                             # take the first match
                             found = True
