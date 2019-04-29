@@ -1,3 +1,13 @@
+version 1.0.2
+---------------------------------
+
+This is a bug fix release
+
+Bug Fixes
+
+    - the read_header function was not treating the case_sensitive
+      keyword properly (Stephen Bailey)
+
 version 1.0.1
 ---------------------------------
 
