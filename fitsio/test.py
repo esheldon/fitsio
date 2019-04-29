@@ -440,6 +440,37 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testReadHeaderCase(self):
+        """
+        Test read_header with and without case sensitivity
+
+        The reason we need a special test for this is because
+        the read_header code is optimized for speed and has
+        a different code path
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderCase-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data=numpy.zeros(10)
+                fits.write_image(data, header=self.keys, extname='First')
+                fits.write_image(data, header=self.keys, extname='second')
+
+            cases = [
+                ('First',True),
+                ('FIRST',False),
+                ('second',True),
+                ('seConD',False),
+            ]
+            for ext,ci in cases:
+                h = fitsio.read_header(fname,ext=ext,case_sensitive=ci)
+                self.compare_headerlist_header(self.keys, h)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
     def testHeaderCommentPreserved(self):
         """
         Test that the comment is preserved after resetting the value
