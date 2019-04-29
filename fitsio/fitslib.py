@@ -169,7 +169,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
                 try:
                     hdu_type = _fits.movabs_hdu(hdunum)  # noqa - not used
                     name, vers = _fits.get_hdu_name_version(hdunum)
-                    if name == extname_low:
+                    if name.lower() == extname_low:
                         if extver is None:
                             # take the first match
                             found = True
