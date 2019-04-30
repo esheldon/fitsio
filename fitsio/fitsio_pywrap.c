@@ -4004,6 +4004,23 @@ read_image_slice_cleanup:
 
 
 
+static int hierarch_is_string(const char* card)
+{
+    int i=0, is_string_value=1;
+
+    for (i=0; i<78; i++) {
+        if (card[i] == '=') {
+            // we found the equals, now if it is a string we
+            // now exactly where the quote must be
+            if (card[i+2] == '\'') {
+                is_string_value = 1;
+            } else  {
+                is_string_value = 0;
+            }
+        }
+    }
+    return is_string_value;
+}
 
 // read the entire header as list of dicts with name,value,comment and full
 // card
@@ -4086,25 +4103,33 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             return NULL;
         }
 
-        has_equals = (card[8] == '=') ? 1 : 0;
-        has_quote = (card[10] == '\'') ? 1 : 0;
-        if (has_equals && has_quote) {
-            is_string_value=1;
+        if (strncmp(card,"HIERARCH",8)==0) {
+            is_comment=0;
+            if (hierarch_is_string(card)) {
+                is_string_value=1;
+            } else {
+                is_string_value=0;
+            }
         } else {
-            is_string_value=0;
-        }
+            has_equals = (card[8] == '=') ? 1 : 0;
+            has_quote = (card[10] == '\'') ? 1 : 0;
+            if (has_equals && has_quote) {
+                is_string_value=1;
+            } else {
+                is_string_value=0;
+            }
 
+            if ( strncmp(keyname,"COMMENT",tocomp)==0) {
+                is_comment=1;
+            } else {
+                is_comment=0;
+            }
+        }
 
         dict = PyDict_New();
         add_string_to_dict(dict,"name",keyname);
         add_string_to_dict(dict,"comment",comment);
-        //add_long_to_dict(dict, "is_string_value", is_string_value);
 
-        if ( strncmp(keyname,"COMMENT",tocomp)==0) {
-            is_comment=1;
-        } else {
-            is_comment=0;
-        }
         // if not a comment but empty value, put in None
         tocomp = (ls < lcomm) ? ls : lcomm;
         if (!is_string_value && 0==strlen(longstr) && !is_comment) {
