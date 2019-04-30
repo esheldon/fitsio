@@ -1,3 +1,13 @@
+version 1.0.3
+---------------------------------
+
+This is a bug fix release
+
+Bug Fixes
+
+    - The new header reading code did not deal properly with some
+      HIERARCH non-standard header key values.
+
 version 1.0.2
 ---------------------------------
 
