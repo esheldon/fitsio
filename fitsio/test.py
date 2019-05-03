@@ -525,6 +525,31 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testHeaderJunk(self):
+        """
+        Test a basic header write and read
+
+        Note the other read/write tests also are checking header writing with
+        a list of dicts
+        """
+
+        data="""SIMPLE  =                    T / file does conform to FITS standard             BITPIX  =                   16 / number of bits per data pixel                  NAXIS   =                    0 / number of data axes                            EXTEND  =                    T / FITS dataset may contain extensions            COMMENT   FITS (Flexible Image Transport System) format is defined in 'AstronomyCOMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H CRAP    =  NaN                                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """
+        
+        fname=tempfile.mktemp(prefix='fitsio-HeaderJunk-',suffix='.fits')
+        try:
+            with open(fname,'w') as fobj:
+                fobj.write(data)
+
+            h = fitsio.read_header(fname)
+            self.assertEqual(h['crap'],'NaN', "junk header value")
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
     def testCorruptContinue(self):
         """
         test with corrupt continue, just make sure it doesn't crash
