@@ -1938,13 +1938,38 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     array_ptrs = calloc(ncols, sizeof(void*));
     nperrow = calloc(ncols, sizeof(LONGLONG));
     fits_dtypes = calloc(ncols, sizeof(int));
+
     for (icol=0; icol<ncols; icol++) {
+
+        tmp_obj = PyList_GetItem(colnum_list,icol);
+#if PY_MAJOR_VERSION >= 3
+        colnums[icol] = 1+(int) PyLong_AsLong(tmp_obj);
+#else
+        colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
+#endif
+
         tmp_array = PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
+
         fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype, write_bitcols);
         if (fits_dtypes[icol] == -9999) {
             status=1;
             goto _fitsio_pywrap_write_columns_bail;
+        }
+        if (fits_dtypes[icol] == TLOGICAL) {
+            int tstatus=0, ttype=0;
+            LONGLONG trepeat=0, twidth=0;
+            // if the column exists and is declared TBIT we will write
+            // that way instead
+            if (fits_get_coltypell(self->fits, colnums[icol],
+                                   &ttype, &trepeat, &twidth, &tstatus)==0) {
+                // if we don't get here its because the column doesn't exist
+                // yet and that's ok
+                if (ttype==TBIT) {
+                    fits_dtypes[icol]=TBIT;
+                }
+            }
+
         }
 
         if (fits_dtypes[icol]==TSTRING) {
@@ -1964,12 +1989,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
             }
         }
 
-        tmp_obj = PyList_GetItem(colnum_list,icol);
-#if PY_MAJOR_VERSION >= 3
-        colnums[icol] = 1+(int) PyLong_AsLong(tmp_obj);
-#else
-        colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
-#endif
         array_ptrs[icol] = tmp_array;
 
         nperrow[icol] = 1;
