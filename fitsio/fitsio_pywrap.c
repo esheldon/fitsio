@@ -1789,6 +1789,7 @@ int write_string_column(
 // write a column, starting at firstrow.  On the python side, the firstrow kwd
 // should default to 1.
 // You can append rows using firstrow = nrows+1
+/*
 static PyObject *
 PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
     int status=0;
@@ -1835,6 +1836,22 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
     if (fits_dtype == -9999) {
         return NULL;
     }
+    if (fits_dtype == TLOGICAL) {
+        int tstatus=0, ttype=0;
+        LONGLONG trepeat=0, twidth=0;
+        // if the column exists and is declared TBIT we will write
+        // that way instead
+        if (fits_get_coltypell(self->fits, colnum,
+                               &ttype, &trepeat, &twidth, &tstatus)==0) {
+            // if we don't get here its because the column doesn't exist
+            // yet and that's ok
+            if (ttype==TBIT) {
+                fits_dtype=TBIT;
+            }
+        }
+    }
+
+
 
     data = PyArray_DATA(array);
     nelem = PyArray_SIZE(array);
@@ -1867,7 +1884,7 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
 
     Py_RETURN_NONE;
 }
-
+*/
 
 static PyObject *
 PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
@@ -1969,7 +1986,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                     fits_dtypes[icol]=TBIT;
                 }
             }
-
         }
 
         if (fits_dtypes[icol]==TSTRING) {
@@ -2012,21 +2028,6 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                     set_ioerr_string_from_status(status);
                     goto _fitsio_pywrap_write_columns_bail;
                 }
-                /*
-                char *strdata=NULL;
-                strdata = (char* ) data;
-
-                if( fits_write_col_str(self->fits, 
-                                       colnums[icol], 
-                                       thisrow, 
-                                       firstelem, 
-                                       nperrow[icol], 
-                                       &strdata, 
-                                       &status)) {
-                    set_ioerr_string_from_status(status);
-                    goto _fitsio_pywrap_write_columns_bail;
-                }
-                */
 
             } else if (fits_dtypes[icol] == TBIT) {
                 if (fits_write_col_bit(self->fits,
@@ -4497,7 +4498,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"reshape_image",          (PyCFunction)PyFITSObject_reshape_image,          METH_VARARGS,  "reshape_image\n\nReshape the image."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
-    {"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specified hdu."},
+    //{"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specified hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specified hdu."},
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specified hdu from an object array."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},

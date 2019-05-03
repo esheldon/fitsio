@@ -283,9 +283,14 @@ class TableHDU(HDUBase):
 
         self._verify_column_data(colnum, data_send)
 
-        self._FITS.write_column(
-            self._ext+1, colnum+1, data_send,
-            firstrow=firstrow+1, write_bitcols=self.write_bitcols)
+        self._FITS.write_columns(
+            self._ext+1,
+            [colnum],
+            [data_send],
+            firstrow=firstrow+1,
+            write_bitcols=self.write_bitcols,
+        )
+
         del data_send
         self._update_info()
 
@@ -381,7 +386,7 @@ class TableHDU(HDUBase):
                                     firstrow=firstrow+1)
         self._update_info()
 
-    def insert_column(self, name, data, colnum=None):
+    def insert_column(self, name, data, colnum=None, **kw):
         """
         Insert a new column.
 
@@ -394,11 +399,18 @@ class TableHDU(HDUBase):
         colnum: int, optional
             The column number for the new column, zero-offset.  Default
             is to add the new column after the existing ones.
+        write_bitcols: bool
+            If set, write logical as bit cols. This can over-ride the
+            internal class setting.
 
         Notes
         -----
         This method is used un-modified by ascii tables as well.
         """
+
+        write_bitcols = self.write_bitcols
+        if 'write_bitcols' in kw:
+            write_bitcols = kw['write_bitcols']
 
         if name in self._colnames:
             raise ValueError("column '%s' already exists" % name)
@@ -425,7 +437,9 @@ class TableHDU(HDUBase):
 
         name, fmt, dims = _npy2fits(
             this_descr,
-            table_type=self._table_type_str)
+            table_type=self._table_type_str,
+            write_bitcols=write_bitcols,
+        )
         if dims is not None:
             dims = [dims]
 
@@ -433,7 +447,9 @@ class TableHDU(HDUBase):
             new_colnum = len(self._info['colinfo']) + 1
         else:
             new_colnum = colnum+1
+
         self._FITS.insert_col(self._ext+1, new_colnum, name, fmt, tdim=dims)
+
         self._update_info()
 
         self.write_column(name, data)
