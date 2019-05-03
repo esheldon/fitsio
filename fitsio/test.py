@@ -2261,6 +2261,47 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableBitcolInsert(self):
+        """
+        Test creating a table with bitcol support and appending new rows.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableBitcolInsert-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+
+                # initial write
+                nrows=3
+                d = numpy.zeros(nrows, dtype=[('ra','f8')])
+                d['ra'] = range(d.size)
+                fits.write(d)
+
+            with fitsio.FITS(fname,'rw') as fits:
+                bcol = numpy.array([True,False,True])
+
+                # now append
+                fits[-1].insert_column('bscalar_inserted', bcol, write_bitcols=True)
+
+                d = fits[-1].read()
+                self.assertEqual(d.size, nrows,'read size equals')
+                self.compare_array(bcol, d['bscalar_inserted'], "inserted bitcol")
+
+                bvec = numpy.array([[True,False], [False,True], [True,True] ])
+
+                # now append
+                fits[-1].insert_column('bvec_inserted', bvec, write_bitcols=True)
+
+                d = fits[-1].read()
+                self.assertEqual(d.size, nrows,'read size equals')
+                self.compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
+
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
     def compare_names(self, read_names, true_names, lower=False, upper=False):
         for nread,ntrue in zip(read_names,true_names):
             if lower:
