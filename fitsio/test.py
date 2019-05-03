@@ -1840,8 +1840,6 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
-
-
     def testTableSubsets(self):
         """
         testing reading subsets
@@ -2247,6 +2245,8 @@ class TestReadWrite(unittest.TestCase):
 
                 # initial write
                 fits.write_table(self.bdata, extname='mytable', write_bitcols=True)
+
+            with fitsio.FITS(fname,'rw') as fits:
                 # now append
                 bdata2 = self.bdata.copy()
                 fits[1].append(bdata2)
