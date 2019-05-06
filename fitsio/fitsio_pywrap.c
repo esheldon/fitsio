@@ -4174,9 +4174,22 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
                 add_double_to_dict(dict,"value",dval);
             } else {
-                // we found an integer
-                fits_read_key(self->fits, TLONGLONG, keyname, &lval, comment, &status);
-                add_long_long_to_dict(dict,"value",(long long)lval);
+
+                // we might have found an integer
+                if (fits_read_key(self->fits,
+                                  TLONGLONG,
+                                  keyname,
+                                  &lval,
+                                  comment,
+                                  &status)) {
+
+                    // something non standard, just store it as a string
+                    add_string_to_dict(dict,"value",longstr);
+                    status=0;
+
+                } else {
+                    add_long_long_to_dict(dict,"value",(long long)lval);
+                }
             }
 
         }

@@ -525,6 +525,36 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testHeaderJunk(self):
+        """
+        test lenient treatment of garbage written by IDL mwrfits
+        """
+
+        data="""SIMPLE  =                    T /Primary Header created by MWRFITS v1.11         BITPIX  =                   16 /                                                NAXIS   =                    0 /                                                EXTEND  =                    T /Extensions may be present                       BLAT    =                    1 /integer                                         FOO     =              1.00000 /float (or double?)                              BAR     =                  NAN /float NaN                                       BIZ     =                  NaN /double NaN                                      BAT     =                  INF /1.0 / 0.0                                       BOO     =                 -INF /-1.0 / 0.0                                      QUAT    = '        '           /blank string                                    QUIP    = '1.0     '           /number in quotes                                QUIZ    = ' 1.0    '           /number in quotes with a leading space           QUIL    = 'NaN     '           /NaN in quotes                                   QUID    = 'Inf     '           /Inf in quotes                                   END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """ # noqa
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderJunk-',suffix='.fits')
+        try:
+            with open(fname,'w') as fobj:
+                fobj.write(data)
+
+            h = fitsio.read_header(fname)
+            self.assertEqual(h['bar'],'NAN', "NAN garbage")
+            self.assertEqual(h['biz'],'NaN', "NaN garbage")
+            self.assertEqual(h['bat'],'INF', "INF garbage")
+            self.assertEqual(h['boo'],'-INF', "-INF garbage")
+            self.assertEqual(h['quat'], '', 'blank')
+            self.assertEqual(h['quip'], '1.0', '1.0 in quotes')
+            self.assertEqual(h['quiz'], ' 1.0', '1.0 in quotes')
+            self.assertEqual(h['quil'], 'NaN', 'NaN in quotes')
+            self.assertEqual(h['quid'], 'Inf', 'Inf in quotes')
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
     def testCorruptContinue(self):
         """
         test with corrupt continue, just make sure it doesn't crash
