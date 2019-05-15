@@ -141,6 +141,8 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
         Match extension names with case-sensitivity.  Default is False.
     """
 
+    filename = os.path.expandvars(filename)
+
     dont_create = 0
     try:
         hdunum = ext+1
