@@ -145,11 +145,13 @@ class FITSHDR(object):
 
         # only append when this name already exists if it is
         # a comment or history field, otherwise simply over-write
-        key = record['name'].upper()
+        key = record['name']
+        if key is not None:
+            key = key.upper()
 
         key_exists = key in self._record_map
 
-        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE'):
+        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE',None):
             # append new record
             self._record_list.append(record)
             index = len(self._record_list)-1
@@ -384,7 +386,9 @@ class FITSHDR(object):
 
         v_isstring = isstring(value)
 
-        if name == 'COMMENT':
+        if name is None:
+            card = '         %s' % value
+        elif name == 'COMMENT':
             # card = 'COMMENT   %s' % value
             card = 'COMMENT %s' % value
         elif name == 'CONTINUE':

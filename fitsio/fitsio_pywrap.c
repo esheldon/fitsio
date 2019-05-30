@@ -2299,6 +2299,45 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
 }
 
 
+/*
+    case for writing an entire record
+*/
+static PyObject *
+PyFITSObject_write_record(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    char* cardin=NULL;
+    char card[FLEN_CARD];
+ 
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &cardin)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    strncpy(card, cardin, FLEN_CARD);
+
+    if (fits_write_record(self->fits, card, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
  
 
 // let python do the conversions
@@ -4514,6 +4553,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     //{"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specified hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specified hdu."},
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specified hdu from an object array."},
+    {"write_record",         (PyCFunction)PyFITSObject_write_record,     METH_VARARGS,  "write_record\n\nWrite a header card."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 
