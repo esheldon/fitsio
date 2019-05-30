@@ -401,7 +401,6 @@ class TestReadWrite(unittest.TestCase):
         self.bdata = data
 
 
-
     def testHeaderWriteRead(self):
         """
         Test a basic header write and read
@@ -554,6 +553,109 @@ class TestReadWrite(unittest.TestCase):
                 os.remove(fname)
 
 
+    def testHeaderTemplate(self):
+        """
+        test adding bunch of cards from a split template
+        """
+
+        header_template = """SIMPLE  =                    T /
+BITPIX  =                    8 / bits per data value
+NAXIS   =                    0 / number of axes
+EXTEND  =                    T / Extensions are permitted
+ORIGIN  = 'LSST DM Header Service'/ FITS file originator
+
+         ---- Date, night and basic image information ----
+DATE    =                      / Creation Date and Time of File
+DATE-OBS=                      / Date of the observation (image acquisition)
+DATE-BEG=                      / Time at the start of integration
+DATE-END=                      / end date of the observation
+MJD     =                      / Modified Julian Date that the file was written
+MJD-OBS =                      / Modified Julian Date of observation
+MJD-BEG =                      / Modified Julian Date derived from DATE-BEG
+MJD-END =                      / Modified Julian Date derived from DATE-END
+OBSID   =                      / ImageName from Camera StartIntergration
+GROUPID =                      / imageSequenceName from StartIntergration
+OBSTYPE =                      / BIAS, DARK, FLAT, OBJECT
+BUNIT   = 'adu     '           / Brightness units for pixel array
+
+         ---- Telescope info, location, observer ----
+TELESCOP= 'LSST AuxTelescope'  / Telescope name
+INSTRUME= 'LATISS'             / Instrument used to obtain these data
+OBSERVER= 'LSST'               / Observer name(s)
+OBS-LONG=           -70.749417 / [deg] Observatory east longitude
+OBS-LAT =           -30.244639 / [deg] Observatory latitude
+OBS-ELEV=               2663.0 / [m] Observatory elevation
+OBSGEO-X=           1818938.94 / [m] X-axis Geocentric coordinate
+OBSGEO-Y=          -5208470.95 / [m] Y-axis Geocentric coordinate
+OBSGEO-Z=          -3195172.08 / [m] Z-axis Geocentric coordinate
+
+        ---- Pointing info, etc. ----
+
+DECTEL  =                      / Telescope DEC of observation
+ROTPATEL=                      / Telescope Rotation
+ROTCOORD= 'sky'                / Telescope Rotation Coordinates
+RA      =                      / RA of Target
+DEC     =                      / DEC of Target
+ROTPA   =                      / Rotation angle relative to the sky (deg)
+HASTART =                      / [HH:MM:SS] Telescope hour angle at start
+ELSTART =                      / [deg] Telescope zenith distance at start
+AZSTART =                      / [deg] Telescope azimuth angle at start
+AMSTART =                      / Airmass at start
+HAEND   =                      / [HH:MM:SS] Telescope hour angle at end
+ELEND   =                      / [deg] Telescope zenith distance at end
+AZEND   =                      / [deg] Telescope azimuth angle at end
+AMEND   =                      / Airmass at end
+
+        ---- Image-identifying used to build OBS-ID ----
+TELCODE = 'AT'                 / The code for the telecope
+CONTRLLR=                      / The controller (e.g. O for OCS, C for CCS)
+DAYOBS  =                      / The observation day as defined by image name
+SEQNUM  =                      / The sequence number from the image name
+GROUPID =                      /
+
+        ---- Information from Camera
+CCD_MANU= 'ITL'                / CCD Manufacturer
+CCD_TYPE= '3800C'              / CCD Model Number
+CCD_SERN= '20304'              / Manufacturers? CCD Serial Number
+LSST_NUM= 'ITL-3800C-098'      / LSST Assigned CCD Number
+SEQCKSUM=                      / Checksum of Sequencer
+SEQNAME =                      / SequenceName from Camera StartIntergration
+REBNAME =                      / Name of the REB
+CONTNUM =                      / CCD Controller (WREB) Serial Number
+IMAGETAG=                      / DAQ Image id
+TEMP_SET=                      / Temperature set point (deg C)
+CCDTEMP =                      / Measured temperature (deg C)
+
+        ---- Geometry from Camera ----
+DETSIZE =                      / Size of sensor
+OVERH   =                      / Over-scan pixels
+OVERV   =                      / Vert-overscan pix
+PREH    =                      / Pre-scan pixels
+
+        ---- Filter/grating information ----
+FILTER  =                      / Name of the filter
+FILTPOS =                      / Filter position
+GRATING =                      / Name of the second disperser
+GRATPOS =                      / disperser position
+LINSPOS =                      / Linear Stage
+
+        ---- Exposure-related information ----
+EXPTIME =                      / Exposure time in seconds
+SHUTTIME=                      / Shutter exposure time in seconds
+DARKTIME=                      / Dark time in seconds
+
+        ---- Header information ----
+FILENAME=                      / Original file name
+HEADVER =                      / Version of header
+
+        ---- Checksums ----
+CHECKSUM=                      / checksum for the current HDU
+DATASUM =                      / checksum of the data records\n"""
+
+        lines = header_template.splitlines()
+        hdr = fitsio.FITSHDR()
+        for l in lines:
+            hdr.add_record(l)
 
     def testCorruptContinue(self):
         """
