@@ -4090,7 +4090,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
-    int is_comment=0;
+    int is_comment=0, is_blank_key=0;
     char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
@@ -4151,86 +4151,101 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         ls=strlen(keyname);
         tocomp = (ls < lcont) ? ls : lcont;
 
-        // skip CONTINUE, we already read the data
-        if (strncmp(keyname,"CONTINUE",tocomp)==0) {
-            continue;
-        }
-
-        if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
-            Py_XDECREF(list);
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-
-        if (strncmp(card,"HIERARCH",8)==0) {
-            is_comment=0;
-            if (hierarch_is_string(card)) {
-                is_string_value=1;
-            } else {
-                is_string_value=0;
-            }
+        is_blank_key = 0;
+        if (ls==0) {
+            is_blank_key=1;
         } else {
-            has_equals = (card[8] == '=') ? 1 : 0;
-            has_quote = (card[10] == '\'') ? 1 : 0;
-            if (has_equals && has_quote) {
-                is_string_value=1;
-            } else {
-                is_string_value=0;
+
+            // skip CONTINUE, we already read the data
+            if (strncmp(keyname,"CONTINUE",tocomp)==0) {
+                continue;
             }
 
-            if ( strncmp(keyname,"COMMENT",tocomp)==0) {
-                is_comment=1;
+            if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
+                Py_XDECREF(list);
+                set_ioerr_string_from_status(status);
+                return NULL;
+            }
+
+            is_comment = 0;
+            if (strncmp(card,"HIERARCH",8)==0) {
+                if (hierarch_is_string(card)) {
+                    is_string_value=1;
+                } else {
+                    is_string_value=0;
+                }
             } else {
-                is_comment=0;
+                has_equals = (card[8] == '=') ? 1 : 0;
+                has_quote = (card[10] == '\'') ? 1 : 0;
+                if (has_equals && has_quote) {
+                    is_string_value=1;
+                } else {
+                    is_string_value=0;
+                }
+
+                if ( strncmp(keyname,"COMMENT",tocomp)==0) {
+                    is_comment=1;
+                }
             }
         }
 
         dict = PyDict_New();
-        add_string_to_dict(dict,"name",keyname);
-        add_string_to_dict(dict,"comment",comment);
-
-        // if not a comment but empty value, put in None
-        tocomp = (ls < lcomm) ? ls : lcomm;
-        if (!is_string_value && 0==strlen(longstr) && !is_comment) {
-
-            add_none_to_dict(dict, "value");
-
+        if (is_blank_key) {
+            add_none_to_dict(dict,"name");
+            add_string_to_dict(dict,"value","");
+            // cfitsio adds an extra space
+            if (strlen(comment)==0) {
+                add_string_to_dict(dict,"comment","");
+            } else {
+                add_string_to_dict(dict,"comment",&comment[1]);
+            }
         } else {
+            add_string_to_dict(dict,"name",keyname);
+            add_string_to_dict(dict,"comment",comment);
 
-            if (is_string_value) {
-                add_string_to_dict(dict,"value",longstr);
-            } else if (is_comment) {
-                add_string_to_dict(dict,"value",longstr);
-            } else if ( longstr[0]=='T' ) {
-                add_true_to_dict(dict, "value");
-            } else if (longstr[0]=='F') {
-                add_false_to_dict(dict, "value");
-            } else if ( 
-                    (strchr(longstr,'.') != NULL)
-                    || (strchr(longstr,'E') != NULL)
-                    || (strchr(longstr,'e') != NULL) ) {
-                // we found a floating point value
-                fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
-                add_double_to_dict(dict,"value",dval);
+            // if not a comment but empty value, put in None
+            tocomp = (ls < lcomm) ? ls : lcomm;
+            if (!is_string_value && 0==strlen(longstr) && !is_comment) {
+
+                add_none_to_dict(dict, "value");
+
             } else {
 
-                // we might have found an integer
-                if (fits_read_key(self->fits,
-                                  TLONGLONG,
-                                  keyname,
-                                  &lval,
-                                  comment,
-                                  &status)) {
-
-                    // something non standard, just store it as a string
+                if (is_string_value) {
                     add_string_to_dict(dict,"value",longstr);
-                    status=0;
-
+                } else if (is_comment) {
+                    add_string_to_dict(dict,"value",longstr);
+                } else if ( longstr[0]=='T' ) {
+                    add_true_to_dict(dict, "value");
+                } else if (longstr[0]=='F') {
+                    add_false_to_dict(dict, "value");
+                } else if ( 
+                           (strchr(longstr,'.') != NULL)
+                           || (strchr(longstr,'E') != NULL)
+                           || (strchr(longstr,'e') != NULL) ) {
+                    // we found a floating point value
+                    fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
+                    add_double_to_dict(dict,"value",dval);
                 } else {
-                    add_long_long_to_dict(dict,"value",(long long)lval);
-                }
-            }
 
+                    // we might have found an integer
+                    if (fits_read_key(self->fits,
+                                      TLONGLONG,
+                                      keyname,
+                                      &lval,
+                                      comment,
+                                      &status)) {
+
+                        // something non standard, just store it as a string
+                        add_string_to_dict(dict,"value",longstr);
+                        status=0;
+
+                    } else {
+                        add_long_long_to_dict(dict,"value",(long long)lval);
+                    }
+                }
+
+            }
         }
 
         free(longstr); longstr=NULL;

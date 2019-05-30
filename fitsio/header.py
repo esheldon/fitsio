@@ -383,14 +383,14 @@ class FITSHDR(object):
         """
         name = record['name']
         value = record['value']
+        comment = record.get('comment','')
 
         v_isstring = isstring(value)
 
         if name is None:
-            card = '         %s' % value
+            card = '         %s' % comment
         elif name == 'COMMENT':
-            # card = 'COMMENT   %s' % value
-            card = 'COMMENT %s' % value
+            card = 'COMMENT %s' % comment
         elif name == 'CONTINUE':
             card = 'CONTINUE   %s' % value
         elif name == 'HISTORY':
@@ -415,6 +415,11 @@ class FITSHDR(object):
                 else:
                     vstr = "''"
             else:
+                if value is True:
+                    value = 'T'
+                elif value is False:
+                    value = 'F'
+
                 vstr = '%20s' % value
 
             card += vstr

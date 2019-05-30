@@ -209,7 +209,7 @@ class HDUBase(object):
 
             # this might be longer than 80 but that's ok, the routine
             # will take care of it
-            card = '         ' + str(value)
+            card = '         ' + str(comment)
             self._FITS.write_record(
                 self._ext+1,
                 card,
