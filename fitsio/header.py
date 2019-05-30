@@ -60,13 +60,6 @@ class FITSHDR(object):
           - a dictionary of keyword-value pairs; no comments are written
             in this case, and the order is arbitrary.
           - another FITSHDR object; the order is preserved.
-    convert: bool, optional
-        If True, convert strings.  E.g. '3' gets
-        converted to 3 and "'hello'" gets converted
-        to 'hello' and 'T'/'F' to True/False. Default
-        is False.
-
-        If the input is a card string, convert is implied True
 
     examples:
 
@@ -142,11 +135,6 @@ class FITSHDR(object):
         record:
             The record, either a dict or a header card string
             or a FITSRecord or FITSCard
-        convert: bool, optional
-            If True, convert strings.  E.g. '3' gets
-            converted to 3 and "'hello'" gets converted
-            to 'hello' and 'T'/'F' to True/False. Default
-            is False.
         """
         if (isinstance(record_in, dict) and
                 'name' in record_in and 'value' in record_in):
@@ -667,6 +655,14 @@ class FITSCard(FITSRecord):
                 value = value_orig
 
         return value
+
+    def _convert_string(self, s):
+        if s == 'T':
+            return True
+        elif s == 'F':
+            return False
+        else:
+            return s
 
     def _extract_comm_or_hist_value(self):
         card_string = self['card_string']
