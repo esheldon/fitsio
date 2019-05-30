@@ -519,7 +519,7 @@ class TestReadWrite(unittest.TestCase):
                     self.assertEqual(
                         rec['name'],
                         None,
-                        'checking comment is called COMMENT',
+                        'checking name is None',
                     )
                     comment = rec['comment']
                     rcomment = rrec['comment']
@@ -531,6 +531,64 @@ class TestReadWrite(unittest.TestCase):
                         rcomment,
                         "check empty key comment",
                     )
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testBlankKeyCommentsFromCards(self):
+        """
+        test a few different comments
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderComments-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                records = [
+                    '                                                                                ',
+                    '         --- testing comment ---                                                ',
+                    "COMMENT testing                                                                 ",
+                ]
+                header = fitsio.FITSHDR(records)
+
+                fits.write(None, header=header)
+
+                rh = fits[0].read_header()
+
+                rrecords = rh.records()
+
+                self.assertEqual(
+                    rrecords[6]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[6]['comment'],
+                    '',
+                    "check empty key comment",
+                )
+                self.assertEqual(
+                    rrecords[7]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[7]['comment'],
+                    '--- testing comment ---',
+                    "check empty key comment",
+                )
+
+                self.assertEqual(
+                    rrecords[5]['name'],
+                    'COMMENT',
+                    'checking name is COMMENT',
+                )
+                self.assertEqual(
+                    rrecords[5]['comment'],
+                    'testing',
+                    "check comment",
+                )
+
 
         finally:
             if os.path.exists(fname):

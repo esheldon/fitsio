@@ -4193,12 +4193,16 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         if (is_blank_key) {
             add_none_to_dict(dict,"name");
             add_string_to_dict(dict,"value","");
-            // cfitsio adds an extra space
+            add_string_to_dict(dict,"comment",comment);
+            // cfitsio adds an extra space when the comment is
+            // not blank
+            /*
             if (strlen(comment)==0) {
                 add_string_to_dict(dict,"comment","");
             } else {
                 add_string_to_dict(dict,"comment",&comment[1]);
             }
+            */
         } else {
             add_string_to_dict(dict,"name",keyname);
             add_string_to_dict(dict,"comment",comment);

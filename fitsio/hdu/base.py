@@ -203,13 +203,14 @@ class HDUBase(object):
             # we write a blank keyword and the rest is a comment
             # string
 
-            if not isinstance(value, _stypes):
+            if not isinstance(comment, _stypes):
                 raise ValueError('when writing blank key the value '
                                  'must be a string')
 
             # this might be longer than 80 but that's ok, the routine
             # will take care of it
-            card = '         ' + str(comment)
+            # card = '         ' + str(comment)
+            card = '        ' + str(comment)
             self._FITS.write_record(
                 self._ext+1,
                 card,

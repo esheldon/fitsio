@@ -515,6 +515,7 @@ class FITSRecord(dict):
         if 'value' not in self:
             raise ValueError("each record must have a 'value' field")
 
+_blank = '       '
 
 class FITSCard(FITSRecord):
     """
@@ -546,12 +547,14 @@ class FITSCard(FITSRecord):
 
             front = card_string[0:7]
             if (not self.has_equals() or
-                    front in ['COMMENT', 'HISTORY', 'CONTINU']):
+                    front in ['COMMENT', 'HISTORY', 'CONTINU',_blank]):
 
                 if front == 'HISTORY':
                     self._set_as_history()
                 elif front == 'CONTINU':
                     self._set_as_continue()
+                elif front == _blank:
+                    self._set_as_blank()
                 else:
                     # note anything without an = and not history is
                     # treated as comment; this is built into cfitsio
@@ -613,6 +616,12 @@ class FITSCard(FITSRecord):
         self['value'] = self._convert_value(value)
         self['dtype'] = dtype
         self['comment'] = comment
+
+    def _set_as_blank(self):
+        self['class'] = TYP_USER_KEY
+        self['name'] = None
+        self['value'] = None
+        self['comment'] = self['card_string'][9:]
 
     def _set_as_comment(self):
         comment = self._extract_comm_or_hist_value()
