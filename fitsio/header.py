@@ -151,7 +151,7 @@ class FITSHDR(object):
 
         key_exists = key in self._record_map
 
-        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE',None):
+        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE', None):
             # append new record
             self._record_list.append(record)
             index = len(self._record_list)-1
@@ -383,7 +383,7 @@ class FITSHDR(object):
         """
         name = record['name']
         value = record['value']
-        comment = record.get('comment','')
+        comment = record.get('comment', '')
 
         v_isstring = isstring(value)
 
@@ -515,7 +515,9 @@ class FITSRecord(dict):
         if 'value' not in self:
             raise ValueError("each record must have a 'value' field")
 
-_blank = '       '
+
+_BLANK = '       '
+
 
 class FITSCard(FITSRecord):
     """
@@ -547,18 +549,18 @@ class FITSCard(FITSRecord):
 
             front = card_string[0:7]
             if (not self.has_equals() or
-                    front in ['COMMENT', 'HISTORY', 'CONTINU',_blank]):
+                    front in ['COMMENT', 'HISTORY', 'CONTINU', _BLANK]):
 
                 if front == 'HISTORY':
                     self._set_as_history()
                 elif front == 'CONTINU':
                     self._set_as_continue()
-                elif front == _blank:
+                elif front == _BLANK:
                     self._set_as_blank()
                 else:
-                    # note anything without an = and not history is
-                    # treated as comment; this is built into cfitsio
-                    # as well
+                    # note anything without an = and not history and not blank
+                    # key comment is treated as COMMENT; this is built into
+                    # cfitsio as well
                     self._set_as_comment()
 
                 if self.has_equals():
