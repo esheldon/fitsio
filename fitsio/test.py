@@ -547,6 +547,7 @@ class TestReadWrite(unittest.TestCase):
                 records = [
                     '                                                                                ',
                     '         --- testing comment ---                                                ',
+                    '        --- testing comment ---                                                 ',
                     "COMMENT testing                                                                 ",
                 ]
                 header = fitsio.FITSHDR(records)
@@ -556,6 +557,9 @@ class TestReadWrite(unittest.TestCase):
                 rh = fits[0].read_header()
 
                 rrecords = rh.records()
+                from pprint import pprint
+                print()
+                pprint(rrecords)
 
                 self.assertEqual(
                     rrecords[6]['name'],
@@ -574,9 +578,20 @@ class TestReadWrite(unittest.TestCase):
                 )
                 self.assertEqual(
                     rrecords[7]['comment'],
+                    ' --- testing comment ---',
+                    "check empty key comment",
+                )
+                self.assertEqual(
+                    rrecords[8]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[8]['comment'],
                     '--- testing comment ---',
                     "check empty key comment",
                 )
+
 
                 self.assertEqual(
                     rrecords[5]['name'],

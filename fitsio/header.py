@@ -621,7 +621,7 @@ class FITSCard(FITSRecord):
         self['class'] = TYP_USER_KEY
         self['name'] = None
         self['value'] = None
-        self['comment'] = self['card_string'][9:]
+        self['comment'] = self['card_string'][8:]
 
     def _set_as_comment(self):
         comment = self._extract_comm_or_hist_value()
