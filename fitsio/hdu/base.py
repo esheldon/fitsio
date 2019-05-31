@@ -198,7 +198,25 @@ class HDUBase(object):
         methods
         """
 
-        if value is None:
+        if name is None:
+
+            # we write a blank keyword and the rest is a comment
+            # string
+
+            if not isinstance(comment, _stypes):
+                raise ValueError('when writing blank key the value '
+                                 'must be a string')
+
+            # this might be longer than 80 but that's ok, the routine
+            # will take care of it
+            # card = '         ' + str(comment)
+            card = '        ' + str(comment)
+            self._FITS.write_record(
+                self._ext+1,
+                card,
+            )
+
+        elif value is None:
             self._FITS.write_undefined_key(self._ext+1,
                                            str(name),
                                            str(comment))
@@ -281,7 +299,10 @@ class HDUBase(object):
             hdr.clean(is_table=is_table)
 
         for r in hdr.records():
-            name = r['name'].upper()
+            name = r['name']
+            if name is not None:
+                name = name.upper()
+
             value = r['value']
 
             if name == 'COMMENT':

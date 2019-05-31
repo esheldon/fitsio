@@ -145,11 +145,13 @@ class FITSHDR(object):
 
         # only append when this name already exists if it is
         # a comment or history field, otherwise simply over-write
-        key = record['name'].upper()
+        key = record['name']
+        if key is not None:
+            key = key.upper()
 
         key_exists = key in self._record_map
 
-        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE'):
+        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE', None):
             # append new record
             self._record_list.append(record)
             index = len(self._record_list)-1
@@ -381,12 +383,14 @@ class FITSHDR(object):
         """
         name = record['name']
         value = record['value']
+        comment = record.get('comment', '')
 
         v_isstring = isstring(value)
 
-        if name == 'COMMENT':
-            # card = 'COMMENT   %s' % value
-            card = 'COMMENT %s' % value
+        if name is None:
+            card = '         %s' % comment
+        elif name == 'COMMENT':
+            card = 'COMMENT %s' % comment
         elif name == 'CONTINUE':
             card = 'CONTINUE   %s' % value
         elif name == 'HISTORY':
@@ -411,6 +415,11 @@ class FITSHDR(object):
                 else:
                     vstr = "''"
             else:
+                if value is True:
+                    value = 'T'
+                elif value is False:
+                    value = 'F'
+
                 vstr = '%20s' % value
 
             card += vstr
@@ -507,6 +516,9 @@ class FITSRecord(dict):
             raise ValueError("each record must have a 'value' field")
 
 
+_BLANK = '       '
+
+
 class FITSCard(FITSRecord):
     """
     class to represent ordinary FITS cards.
@@ -537,16 +549,18 @@ class FITSCard(FITSRecord):
 
             front = card_string[0:7]
             if (not self.has_equals() or
-                    front in ['COMMENT', 'HISTORY', 'CONTINU']):
+                    front in ['COMMENT', 'HISTORY', 'CONTINU', _BLANK]):
 
                 if front == 'HISTORY':
                     self._set_as_history()
                 elif front == 'CONTINU':
                     self._set_as_continue()
+                elif front == _BLANK:
+                    self._set_as_blank()
                 else:
-                    # note anything without an = and not history is
-                    # treated as comment; this is built into cfitsio
-                    # as well
+                    # note anything without an = and not history and not blank
+                    # key comment is treated as COMMENT; this is built into
+                    # cfitsio as well
                     self._set_as_comment()
 
                 if self.has_equals():
@@ -604,6 +618,12 @@ class FITSCard(FITSRecord):
         self['value'] = self._convert_value(value)
         self['dtype'] = dtype
         self['comment'] = comment
+
+    def _set_as_blank(self):
+        self['class'] = TYP_USER_KEY
+        self['name'] = None
+        self['value'] = None
+        self['comment'] = self['card_string'][8:]
 
     def _set_as_comment(self):
         comment = self._extract_comm_or_hist_value()

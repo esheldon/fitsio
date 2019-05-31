@@ -2299,6 +2299,45 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
 }
 
 
+/*
+    case for writing an entire record
+*/
+static PyObject *
+PyFITSObject_write_record(struct PyFITSObject* self, PyObject* args) {
+    int status=0;
+    int hdunum=0;
+    int hdutype=0;
+
+    char* cardin=NULL;
+    char card[FLEN_CARD];
+ 
+    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &cardin)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+    strncpy(card, cardin, FLEN_CARD);
+
+    if (fits_write_record(self->fits, card, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
  
 
 // let python do the conversions
@@ -4051,7 +4090,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
-    int is_comment=0;
+    int is_comment=0, is_blank_key=0;
     char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
@@ -4112,86 +4151,96 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         ls=strlen(keyname);
         tocomp = (ls < lcont) ? ls : lcont;
 
-        // skip CONTINUE, we already read the data
-        if (strncmp(keyname,"CONTINUE",tocomp)==0) {
-            continue;
-        }
-
-        if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
-            Py_XDECREF(list);
-            set_ioerr_string_from_status(status);
-            return NULL;
-        }
-
-        if (strncmp(card,"HIERARCH",8)==0) {
-            is_comment=0;
-            if (hierarch_is_string(card)) {
-                is_string_value=1;
-            } else {
-                is_string_value=0;
-            }
+        is_blank_key = 0;
+        if (ls==0) {
+            is_blank_key=1;
         } else {
-            has_equals = (card[8] == '=') ? 1 : 0;
-            has_quote = (card[10] == '\'') ? 1 : 0;
-            if (has_equals && has_quote) {
-                is_string_value=1;
-            } else {
-                is_string_value=0;
+
+            // skip CONTINUE, we already read the data
+            if (strncmp(keyname,"CONTINUE",tocomp)==0) {
+                continue;
             }
 
-            if ( strncmp(keyname,"COMMENT",tocomp)==0) {
-                is_comment=1;
+            if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
+                Py_XDECREF(list);
+                set_ioerr_string_from_status(status);
+                return NULL;
+            }
+
+            is_comment = 0;
+            if (strncmp(card,"HIERARCH",8)==0) {
+                if (hierarch_is_string(card)) {
+                    is_string_value=1;
+                } else {
+                    is_string_value=0;
+                }
             } else {
-                is_comment=0;
+                has_equals = (card[8] == '=') ? 1 : 0;
+                has_quote = (card[10] == '\'') ? 1 : 0;
+                if (has_equals && has_quote) {
+                    is_string_value=1;
+                } else {
+                    is_string_value=0;
+                }
+
+                if ( strncmp(keyname,"COMMENT",tocomp)==0) {
+                    is_comment=1;
+                }
             }
         }
 
         dict = PyDict_New();
-        add_string_to_dict(dict,"name",keyname);
-        add_string_to_dict(dict,"comment",comment);
-
-        // if not a comment but empty value, put in None
-        tocomp = (ls < lcomm) ? ls : lcomm;
-        if (!is_string_value && 0==strlen(longstr) && !is_comment) {
-
-            add_none_to_dict(dict, "value");
-
+        if (is_blank_key) {
+            add_none_to_dict(dict,"name");
+            add_string_to_dict(dict,"value","");
+            add_string_to_dict(dict,"comment",comment);
         } else {
+            add_string_to_dict(dict,"name",keyname);
+            add_string_to_dict(dict,"comment",comment);
 
-            if (is_string_value) {
-                add_string_to_dict(dict,"value",longstr);
-            } else if (is_comment) {
-                add_string_to_dict(dict,"value",longstr);
-            } else if ( longstr[0]=='T' ) {
-                add_true_to_dict(dict, "value");
-            } else if (longstr[0]=='F') {
-                add_false_to_dict(dict, "value");
-            } else if ( 
-                    (strchr(longstr,'.') != NULL)
-                    || (strchr(longstr,'E') != NULL)
-                    || (strchr(longstr,'e') != NULL) ) {
-                // we found a floating point value
-                fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
-                add_double_to_dict(dict,"value",dval);
+            // if not a comment but empty value, put in None
+            tocomp = (ls < lcomm) ? ls : lcomm;
+            if (!is_string_value && 0==strlen(longstr) && !is_comment) {
+
+                add_none_to_dict(dict, "value");
+
             } else {
 
-                // we might have found an integer
-                if (fits_read_key(self->fits,
-                                  TLONGLONG,
-                                  keyname,
-                                  &lval,
-                                  comment,
-                                  &status)) {
-
-                    // something non standard, just store it as a string
+                if (is_string_value) {
                     add_string_to_dict(dict,"value",longstr);
-                    status=0;
-
+                } else if (is_comment) {
+                    add_string_to_dict(dict,"value",longstr);
+                } else if ( longstr[0]=='T' ) {
+                    add_true_to_dict(dict, "value");
+                } else if (longstr[0]=='F') {
+                    add_false_to_dict(dict, "value");
+                } else if ( 
+                           (strchr(longstr,'.') != NULL)
+                           || (strchr(longstr,'E') != NULL)
+                           || (strchr(longstr,'e') != NULL) ) {
+                    // we found a floating point value
+                    fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment, &status);
+                    add_double_to_dict(dict,"value",dval);
                 } else {
-                    add_long_long_to_dict(dict,"value",(long long)lval);
-                }
-            }
 
+                    // we might have found an integer
+                    if (fits_read_key(self->fits,
+                                      TLONGLONG,
+                                      keyname,
+                                      &lval,
+                                      comment,
+                                      &status)) {
+
+                        // something non standard, just store it as a string
+                        add_string_to_dict(dict,"value",longstr);
+                        status=0;
+
+                    } else {
+                        add_long_long_to_dict(dict,"value",(long long)lval);
+                    }
+                }
+
+            }
         }
 
         free(longstr); longstr=NULL;
@@ -4514,6 +4563,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     //{"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specified hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specified hdu."},
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specified hdu from an object array."},
+    {"write_record",         (PyCFunction)PyFITSObject_write_record,     METH_VARARGS,  "write_record\n\nWrite a header card."},
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 

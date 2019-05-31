@@ -486,6 +486,130 @@ class TestReadWrite(unittest.TestCase):
         self.assertEqual(hdr.get_comment('key1'), 'My comment1',
                          'comment not preserved')
 
+    def testBlankKeyComments(self):
+        """
+        test a few different comments
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderComments-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                records = [
+                    # empty should return empty
+                    {'name':None, 'value':'', 'comment':''},
+                    # this will also return empty
+                    {'name':None, 'value':'', 'comment':' '},
+                    # this will return exactly
+                    {'name':None, 'value':'', 'comment':' h'},
+                    # this will return exactly
+                    {'name':None, 'value':'', 'comment':'--- test comment ---'},
+                ]
+                header = fitsio.FITSHDR(records)
+
+                fits.write(None, header=header)
+
+                rh = fits[0].read_header()
+
+                rrecords = rh.records()
+
+                for i, ri in ((0, 6), (1,7), (2, 8)):
+                    rec = records[i]
+                    rrec = rrecords[ri]
+
+                    self.assertEqual(
+                        rec['name'],
+                        None,
+                        'checking name is None',
+                    )
+                    comment = rec['comment']
+                    rcomment = rrec['comment']
+                    if '' == comment.strip():
+                        comment = ''
+
+                    self.assertEqual(
+                        comment,
+                        rcomment,
+                        "check empty key comment",
+                    )
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testBlankKeyCommentsFromCards(self):
+        """
+        test a few different comments
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-HeaderComments-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                records = [
+                    '                                                                                ',
+                    '         --- testing comment ---                                                ',
+                    '        --- testing comment ---                                                 ',
+                    "COMMENT testing                                                                 ",
+                ]
+                header = fitsio.FITSHDR(records)
+
+                fits.write(None, header=header)
+
+                rh = fits[0].read_header()
+
+                rrecords = rh.records()
+                from pprint import pprint
+                print()
+                pprint(rrecords)
+
+                self.assertEqual(
+                    rrecords[6]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[6]['comment'],
+                    '',
+                    "check empty key comment",
+                )
+                self.assertEqual(
+                    rrecords[7]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[7]['comment'],
+                    ' --- testing comment ---',
+                    "check empty key comment",
+                )
+                self.assertEqual(
+                    rrecords[8]['name'],
+                    None,
+                    'checking name is None',
+                )
+                self.assertEqual(
+                    rrecords[8]['comment'],
+                    '--- testing comment ---',
+                    "check empty key comment",
+                )
+
+
+                self.assertEqual(
+                    rrecords[5]['name'],
+                    'COMMENT',
+                    'checking name is COMMENT',
+                )
+                self.assertEqual(
+                    rrecords[5]['comment'],
+                    'testing',
+                    "check comment",
+                )
+
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
     def testHeaderFromCards(self):
         """
         test generating a header from cards, writing it out and getting
