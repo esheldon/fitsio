@@ -1,3 +1,19 @@
+version 1.0.4
+---------------------------------
+
+New Features
+
+    - support for empty keywords in header, which are supported
+      by the standard and are used for cosmetic comments
+
+Bug Fixes
+
+    - Fix for inserting bit columns and appending data with bitcols
+    - deal with non-standard header values such as NAN
+      [by returning as strings
+    - fixed many bugs reading headers; these were a casualty of
+      the header reading optimizations put in for  1.0.1
+
 version 1.0.3
 ---------------------------------
 
