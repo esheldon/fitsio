@@ -307,14 +307,18 @@ class FITSHDR(object):
             name = item
 
         found = False
-        name = name.upper()
-        if name in self._record_map:
-            found = True
-        elif name[0:8] == 'HIERARCH':
-            if len(name) > 9:
-                name = name[9:]
-                if name in self._record_map:
-                    found = True
+        if name is None:
+            if None in self._record_map:
+                found = True
+        else:
+            name = name.upper()
+            if name in self._record_map:
+                found = True
+            elif name[0:8] == 'HIERARCH':
+                if len(name) > 9:
+                    name = name[9:]
+                    if name in self._record_map:
+                        found = True
 
         return found, name
 
