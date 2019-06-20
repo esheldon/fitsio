@@ -958,15 +958,18 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
             break;
 
         case NPY_INT64:
-            //*fits_img_type = LONGLONG_IMG;
-            if (sizeof(int) == sizeof(npy_int64)) {
-                // there is no UINT_IMG, so use ULONG_IMG
-                *fits_img_type = LONG_IMG;
-                *fits_datatype = TINT;
+            if (sizeof(LONGLONG) == sizeof(npy_int64)) {
+                *fits_img_type = LONGLONG_IMG;
+                *fits_datatype = TLONGLONG;
             } else if (sizeof(long) == sizeof(npy_int64)) {
                 *fits_img_type = LONG_IMG;
                 *fits_datatype = TLONG;
+            } else if (sizeof(int) == sizeof(npy_int64)) {
+                // there is no UINT_IMG, so use ULONG_IMG
+                *fits_img_type = LONG_IMG;
+                *fits_datatype = TINT;
             } else if (sizeof(long long) == sizeof(npy_int64)) {
+                // we don't expect to get here
                 *fits_img_type = LONGLONG_IMG;
                 *fits_datatype = TLONGLONG;
             } else {
