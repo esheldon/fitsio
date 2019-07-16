@@ -656,8 +656,7 @@ class TableHDU(HDUBase):
             # read_columns so we pass colnums=None here to get all columns
             data = self.read_rows(
                 rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings,
-                colnums=None)
+                upper=upper, lower=lower, trim_strings=trim_strings)
         else:
             data = self._read_all(
                 vstorage=vstorage,

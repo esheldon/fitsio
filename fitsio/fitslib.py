@@ -48,7 +48,9 @@ PLIO_1 = 31
 HCOMPRESS_1 = 41
 
 
-def read(filename, ext=None, extver=None, **keys):
+def read(filename, ext=None, extver=None, columns=None, rows=None,
+         header=False, case_sensitive=False, upper=False, lower=False,
+         vstorage='fixed', verbose=False, trim_strings=False):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -87,17 +89,38 @@ def read(filename, ext=None, extver=None, **keys):
         Match column names and extension names with case-sensitivity.  Default
         is False.
     lower: bool, optional
-        If True, force all columns names to lower case in output
+        If True, force all columns names to lower case in output. Default is
+        False.
     upper: bool, optional
-        If True, force all columns names to upper case in output
+        If True, force all columns names to upper case in output. Default is
+        False.
     vstorage: string, optional
         Set the default method to store variable length columns.  Can be
-        'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        'fixed' or 'object'.  See docs on fitsio.FITS for details. Default is
+        'fixed'.
+    trim_strings: bool, optional
+        If True, trim trailing spaces from strings. Will over-ride the
+        trim_strings= keyword from constructor.
+    verbose: bool, optional
+        If True, print more info when doing various FITS operations.
     """
 
-    with FITS(filename, **keys) as fits:
+    kwargs = {
+        'lower': lower,
+        'upper': upper,
+        'vstorage': vstorage,
+        'case_sensitive': case_sensitive,
+        'verbose': verbose,
+        'trim_strings': trim_strings
+    }
 
-        header = keys.pop('header', False)
+    read_kwargs = {}
+    if columns is not None:
+        read_kwargs['columns'] = columns
+    if rows is not None:
+        read_kwargs['rows'] = rows
+
+    with FITS(filename, **kwargs) as fits:
 
         if ext is None:
             for i in xrange(len(fits)):
@@ -109,7 +132,7 @@ def read(filename, ext=None, extver=None, **keys):
 
         item = _make_item(ext, extver=extver)
 
-        data = fits[item].read(**keys)
+        data = fits[item].read(**read_kwargs)
         if header:
             h = fits[item].read_header()
             return data, h
@@ -117,7 +140,7 @@ def read(filename, ext=None, extver=None, **keys):
             return data
 
 
-def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
+def read_header(filename, ext=0, extver=None, case_sensitive=False):
     """
     Convenience function to read the header from the specified FITS HDU
 
@@ -235,9 +258,9 @@ def _make_item(ext, extver=None):
     return item
 
 
-def write(filename, data, extname=None, extver=None, units=None,
-          compress=None, table_type='binary', header=None,
-          clobber=False, **keys):
+def write(filename, data, extname=None, extver=None, header=None,
+          clobber=False, ignore_empty=False, units=None, table_type='binary',
+          names=None, write_bitcols=False, compress=None, tile_dims=None):
     """
     Convenience function to create a new HDU and write the data.
 
@@ -249,7 +272,7 @@ def write(filename, data, extname=None, extver=None, units=None,
     ----------
     filename: string
         A filename.
-    data:
+    data: numpy.ndarray or recarray
         Either a normal n-dimensional array or a recarray.  Images are written
         to a new IMAGE_HDU and recarrays are written to BINARY_TBl or
         ASCII_TBL hdus.
@@ -262,17 +285,6 @@ def write(filename, data, extname=None, extver=None, units=None,
         be represented in the header with keyname EXTVER.  The extver must
         be an integer > 0.  If extver is not sent, the first one will be
         selected.  If ext is an integer, the extver is ignored.
-    compress: string, optional
-        A string representing the compression algorithm for images,
-        default None.
-        Can be one of
-           'RICE'
-           'GZIP'
-           'GZIP_2'
-           'PLIO' (no unsigned or negative integers)
-           'HCOMPRESS'
-        (case-insensitive) See the cfitsio manual for details.
-
     header: FITSHDR, list, dict, optional
         A set of header keys to write. The keys are written before the data
         is written to the table, preventing a resizing of the table area.
@@ -284,20 +296,15 @@ def write(filename, data, extname=None, extver=None, units=None,
             - a dictionary of keyword-value pairs; no comments are written
               in this case, and the order is arbitrary.
         Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
-
     clobber: bool, optional
         If True, overwrite any existing file. Default is to append
         a new extension on existing files.
-
     ignore_empty: bool, optional
         Default False.  Unless set to True, only allow
         empty HDUs in the zero extension.
 
-
-    table keywords
-    --------------
-    These keywords are only active when writing tables.
-
+    table-only keywords
+    -------------------
     units: list
         A list of strings representing units for each column.
     table_type: string, optional
@@ -305,10 +312,30 @@ def write(filename, data, extname=None, extver=None, units=None,
         Matching is case-insensitive
     write_bitcols: bool, optional
         Write boolean arrays in the FITS bitcols format, default False
+    names: list, optional
+        If data is a list of arrays, you must send `names` as a list
+        of names or column numbers.
 
-
+    image-only keywords
+    -------------------
+    compress: string, optional
+        A string representing the compression algorithm for images,
+        default None.
+        Can be one of
+           'RICE'
+           'GZIP'
+           'GZIP_2'
+           'PLIO' (no unsigned or negative integers)
+           'HCOMPRESS'
+        (case-insensitive) See the cfitsio manual for details.
+    tile_dims: tuple of ints, optional
+        The size of the tiles used to compress images.
     """
-    with FITS(filename, 'rw', clobber=clobber, **keys) as fits:
+    kwargs = {
+        'clobber': clobber,
+        'ignore_empty': ignore_empty
+    }
+    with FITS(filename, 'rw', **kwargs) as fits:
         fits.write(data,
                    table_type=table_type,
                    units=units,
@@ -316,7 +343,9 @@ def write(filename, data, extname=None, extver=None, units=None,
                    extver=extver,
                    compress=compress,
                    header=header,
-                   **keys)
+                   names=names,
+                   write_bitcols=write_bitcols,
+                   tile_dims=tile_dims)
 
 
 class FITS(object):
@@ -368,6 +397,8 @@ class FITS(object):
     ignore_empty: bool, optional
         Default False.  Unless set to True, only allow
         empty HDUs in the zero extension.
+    verbose: bool, optional
+        If True, print more info when doing various FITS operations.
 
     See the docs at https://github.com/esheldon/fitsio
     """
@@ -510,27 +541,33 @@ class FITS(object):
                   in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
 
-        Image-only keywords:
-            compress: string, optional
-                A string representing the compression algorithm for images,
-                default None.
-                Can be one of
-                    'RICE'
-                    'GZIP'
-                    'GZIP_2'
-                    'PLIO' (no unsigned or negative integers)
-                    'HCOMPRESS'
-                (case-insensitive) See the cfitsio manual for details.
+        image-only keywords
+        -------------------
+        compress: string, optional
+            A string representing the compression algorithm for images,
+            default None.
+            Can be one of
+                'RICE'
+                'GZIP'
+                'GZIP_2'
+                'PLIO' (no unsigned or negative integers)
+                'HCOMPRESS'
+            (case-insensitive) See the cfitsio manual for details.
+        tile_dims: tuple of ints, optional
+            The size of the tiles used to compress images.
 
-        Table-only keywords:
-            units: list/dec, optional:
-                A list of strings with units for each column.
-            table_type: string, optional
-                Either 'binary' or 'ascii', default 'binary'
-                Matching is case-insensitive
-            write_bitcols: bool, optional
-                Write boolean arrays in the FITS bitcols format, default False
-
+        table-only keywords
+        -------------------
+        units: list/dec, optional:
+            A list of strings with units for each column.
+        table_type: string, optional
+            Either 'binary' or 'ascii', default 'binary'
+            Matching is case-insensitive
+        write_bitcols: bool, optional
+            Write boolean arrays in the FITS bitcols format, default False
+        names: list, optional
+            If data is a list of arrays, you must send `names` as a list
+            of names or column numbers.
 
         restrictions
         ------------
@@ -583,6 +620,8 @@ class FITS(object):
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
             (case-insensitive) See the cfitsio manual for details.
+        tile_dims: tuple of ints, optional
+            The size of the tiles used to compress images.
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
@@ -671,7 +710,8 @@ class FITS(object):
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
             (case-insensitive) See the cfitsio manual for details.
-
+        tile_dims: tuple of ints, optional
+            The size of the tiles used to compress images.
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
