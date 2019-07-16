@@ -22,28 +22,15 @@ class HDUBase(object):
     """
     A representation of a FITS HDU
 
-    construction parameters
-    -----------------------
+    parameters
+    ----------
     fits: FITS object
         An instance of a _fistio_wrap.FITS object.  This is the low-level
         python object, not the FITS object defined above.
     ext: integer
         The extension number.
-    case_sensitive: bool, optional
-        Match column names and extension names with case-sensitivity.  Default
-        is False.
-    lower: bool, optional
-        If True, force all columns names to lower case in output
-    upper: bool, optional
-        If True, force all columns names to upper case in output
-    vstorage: string, optional
-        Set the default method to store variable length columns.  Can be
-        'fixed' or 'object'.  See docs on fitsio.FITS for details.
-    iter_row_buffer: integer
-        Number of rows to buffer when iterating over table HDUs.
-        Default is 1.
     """
-    def __init__(self, fits, ext, **keys):
+    def __init__(self, fits, ext):
         self._FITS = fits
         self._ext = ext
 

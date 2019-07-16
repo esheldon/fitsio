@@ -47,19 +47,49 @@ if IS_PY3:
 
 class TableHDU(HDUBase):
     """
-    A class representing a table HDU
+    A table HDU
+
+    parameters
+    ----------
+    fits: FITS object
+        An instance of a _fistio_wrap.FITS object.  This is the low-level
+        python object, not the FITS object defined above.
+    ext: integer
+        The extension number.
+    lower: bool, optional
+        If True, force all columns names to lower case in output
+    upper: bool, optional
+        If True, force all columns names to upper case in output
+    trim_strings: bool, optional
+        If True, trim trailing spaces from strings. Default is False.
+    vstorage: string, optional
+        Set the default method to store variable length columns.  Can be
+        'fixed' or 'object'.  See docs on fitsio.FITS for details.
+    case_sensitive: bool, optional
+        Match column names and extension names with case-sensitivity.  Default
+        is False.
+    iter_row_buffer: integer
+        Number of rows to buffer when iterating over table HDUs.
+        Default is 1.
+    write_bitcols: bool, optional
+        If True, write logicals a a bit column. Default is False.
     """
-    def __init__(self, fits, ext, **keys):
-        super(TableHDU, self).__init__(fits, ext, **keys)
+    def __init__(self, fits, ext,
+                 lower=False, upper=False, trim_strings=False,
+                 vstorage='fixed', case_sensitive=False, iter_row_buffer=1,
+                 write_bitcols=False):
+        # NOTE: The defaults of False above cannot be changed since they
+        # are or'ed with the method defaults below.
+        super(TableHDU, self).__init__(fits, ext)
 
-        self.lower = keys.get('lower', False)
-        self.upper = keys.get('upper', False)
-        self.trim_strings = keys.get('trim_strings', False)
+        self.lower = lower
+        self.upper = upper
+        self.trim_strings = trim_strings
 
-        self._vstorage = keys.get('vstorage', 'fixed')
-        self.case_sensitive = keys.get('case_sensitive', False)
-        self._iter_row_buffer = keys.get('iter_row_buffer', 1)
-        self.write_bitcols = keys.get('write_bitcols', False)
+        self._vstorage = vstorage
+        self.case_sensitive = case_sensitive
+        self._iter_row_buffer = iter_row_buffer
+        self.write_bitcols = write_bitcols
 
         if self._info['hdutype'] == ASCII_TBL:
             self._table_type_str = 'ascii'
@@ -125,7 +155,7 @@ class TableHDU(HDUBase):
         """
         return self._FITS.where(self._ext+1, expression)
 
-    def write(self, data, **keys):
+    def write(self, data, firstrow=0, columns=None, names=None, slow=False):
         """
         Write data into this HDU
 
@@ -143,26 +173,29 @@ class TableHDU(HDUBase):
             Default 0.
         columns: list, optional
             If data is a list of arrays, you must send columns as a list
-            of names or column numbers
-
-            You can also send names=
+            of names or column numbers. You can also use the `names` keyword
+            argument.
         names: list, optional
-            same as columns=
+            If data is a list of arrays, you must send columns as a list
+            of names or column numbers. You can also use the `columns` keyword
+            argument.
+        slow: bool, optional
+            If True, use a slower method to write one column at a time. Useful
+            for debugging.
         """
-
-        slow = keys.get('slow', False)
 
         isrec = False
         if isinstance(data, (list, dict)):
             if isinstance(data, list):
                 data_list = data
-                columns_all = keys.get('columns', None)
-                if columns_all is None:
-                    columns_all = keys.get('names', None)
-                    if columns_all is None:
-                        raise ValueError(
-                            "you must send columns with a list of arrays")
-
+                if columns is not None:
+                    columns_all = columns
+                elif names is not None:
+                    columns_all = names
+                else:
+                    raise ValueError(
+                        "you must send `columns` or `names` "
+                        "with a list of arrays")
             else:
                 columns_all = list(data.keys())
                 data_list = [data[n] for n in columns_all]
@@ -201,7 +234,7 @@ class TableHDU(HDUBase):
         if slow:
             for i, name in enumerate(names):
                 if not isobj[i]:
-                    self.write_column(name, data_list[i], **keys)
+                    self.write_column(name, data_list[i], firstrow=firstrow)
         else:
 
             nonobj_colnums = []
@@ -226,7 +259,6 @@ class TableHDU(HDUBase):
                 self._verify_column_data(tcolnum, tdata)
 
             if len(nonobj_arrays) > 0:
-                firstrow = keys.get('firstrow', 0)
                 self._FITS.write_columns(
                     self._ext+1, nonobj_colnums, nonobj_arrays,
                     firstrow=firstrow+1, write_bitcols=self.write_bitcols)
@@ -235,11 +267,11 @@ class TableHDU(HDUBase):
         # need to make sure this works for array fields
         for i, name in enumerate(names):
             if isobj[i]:
-                self.write_var_column(name, data_list[i], **keys)
+                self.write_var_column(name, data_list[i], firstrow=firstrow)
 
         self._update_info()
 
-    def write_column(self, column, data, **keys):
+    def write_column(self, column, data, firstrow=0):
         """
         Write data to a column in this HDU
 
@@ -249,7 +281,7 @@ class TableHDU(HDUBase):
         ----------
         column: scalar string/integer
             The column in which to write.  Can be the name or number (0 offset)
-        column: ndarray
+        data: ndarray
             Numerical python array to write.  This should match the
             shape of the column.  You are probably better using
             fits.write_table() to be sure.
@@ -257,8 +289,6 @@ class TableHDU(HDUBase):
             At which row you should begin writing.  Be sure you know what you
             are doing!  For appending see the append() method.  Default 0.
         """
-
-        firstrow = keys.get('firstrow', 0)
 
         colnum = self._extract_colnum(column)
 
@@ -360,7 +390,7 @@ class TableHDU(HDUBase):
                 "bad input shape for column '%s': "
                 "expected '%s', got '%s'" % (col_name, col_shape, this_shape))
 
-    def write_var_column(self, column, data, firstrow=0, **keys):
+    def write_var_column(self, column, data, firstrow=0):
         """
         Write data to a variable-length column in this HDU
 
@@ -386,7 +416,7 @@ class TableHDU(HDUBase):
                                     firstrow=firstrow+1)
         self._update_info()
 
-    def insert_column(self, name, data, colnum=None, **kw):
+    def insert_column(self, name, data, colnum=None, write_bitcols=None):
         """
         Insert a new column.
 
@@ -399,18 +429,18 @@ class TableHDU(HDUBase):
         colnum: int, optional
             The column number for the new column, zero-offset.  Default
             is to add the new column after the existing ones.
-        write_bitcols: bool
+        write_bitcols: bool, optional
             If set, write logical as bit cols. This can over-ride the
-            internal class setting.
+            internal class setting. Default of None respects the inner
+            class setting.
 
         Notes
         -----
         This method is used un-modified by ascii tables as well.
         """
 
-        write_bitcols = self.write_bitcols
-        if 'write_bitcols' in kw:
-            write_bitcols = kw['write_bitcols']
+        if write_bitcols is None:
+            write_bitcols = self.write_bitcols
 
         if name in self._colnames:
             raise ValueError("column '%s' already exists" % name)
@@ -454,28 +484,28 @@ class TableHDU(HDUBase):
 
         self.write_column(name, data)
 
-    def append(self, data, **keys):
+    def append(self, data, columns=None, names=None):
         """
         Append new rows to a table HDU
 
         parameters
         ----------
         data: ndarray or list of arrays
-
             A numerical python array with fields (recarray) or a list of
             arrays.  Should have the same fields as the existing table. If only
             a subset of the table columns are present, the other columns are
             filled with zeros.
-
         columns: list, optional
-            if a list of arrays is sent, also send the columns
-            of names or column numbers
+            If data is a list of arrays, you must send columns as a list
+            of names or column numbers. You can also use the `names` keyword
+            argument.
+        names: list, optional
+            If data is a list of arrays, you must send columns as a list
+            of names or column numbers. You can also use the `columns` keyword
+            argument.
         """
-
         firstrow = self._info['nrows']
-
-        keys['firstrow'] = firstrow
-        self.write(data, **keys)
+        self.write(data, firstrow=firstrow, columns=None, names=None)
 
     def delete_rows(self, rows):
         """
@@ -538,7 +568,6 @@ class TableHDU(HDUBase):
         New added rows are zerod, except for 'i1', 'u2' and 'u4' data types
         which get -128,32768,2147483648 respectively
 
-
         parameters
         ----------
         nrows: int
@@ -575,53 +604,69 @@ class TableHDU(HDUBase):
 
         self._update_info()
 
-    def read(self, **keys):
+    def read(self, columns=None, rows=None, vstorage=None,
+             upper=False, lower=False, trim_strings=False):
         """
-        read data from this HDU
+        Read data from this HDU
 
-        By default, all data are read.
+        By default, all data are read. You can set the `columns` and/or
+        `rows` keywords to read subsets of the data.
 
-        send columns= and rows= to select subsets of the data.
-        Table data are read into a recarray; use read_column() to get a single
-        column as an ordinary array.  You can alternatively use slice notation
-            fits=fitsio.FITS(filename)
-            fits[ext][:]
-            fits[ext][2:5]
-            fits[ext][200:235:2]
-            fits[ext][rows]
-            fits[ext][cols][rows]
+        Table data is read into a numpy recarray. To get a single column as
+        a numpy.ndarray, use the `read_column` method.
+
+        Slice notation is also supported for `TableHDU` types.
+
+            >>> fits = fitsio.FITS(filename)
+            >>> fits[ext][:]
+            >>> fits[ext][2:5]
+            >>> fits[ext][200:235:2]
+            >>> fits[ext][rows]
+            >>> fits[ext][cols][rows]
 
         parameters
         ----------
         columns: optional
-            An optional set of columns to read from table HDUs.  Default is to
-            read all.  Can be string or number.  If a sequence, a recarray
-            is always returned.  If a scalar, an ordinary array is returned.
+            An optional set of columns to read from table HDUs. Default is to
+            read all. Can be string or number. If a sequence, a recarray
+            is always returned. If a scalar, an ordinary array is returned.
         rows: optional
             An optional list of rows to read from table HDUS.  Default is to
             read all.
         vstorage: string, optional
-            Over-ride the default method to store variable length columns.  Can
-            be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+            Over-ride the default method to store variable length columns. Can
+            be 'fixed' or 'object'. See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
 
-        columns = keys.get('columns', None)
-        rows = keys.get('rows', None)
-
         if columns is not None:
-            if 'columns' in keys:
-                del keys['columns']
-            data = self.read_columns(columns, **keys)
+            data = self.read_columns(
+                columns, rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
         elif rows is not None:
-            if 'rows' in keys:
-                del keys['rows']
-            data = self.read_rows(rows, **keys)
+            # combinations of row and column subsets are covered by
+            # read_columns so we pass colnums=None here to get all columns
+            data = self.read_rows(
+                rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings,
+                colnums=None)
         else:
-            data = self._read_all(**keys)
+            data = self._read_all(
+                vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
         return data
 
-    def _read_all(self, **keys):
+    def _read_all(self, vstorage=None,
+                  upper=False, lower=False, trim_strings=False, colnums=None):
         """
         Read all data in the HDU.
 
@@ -636,26 +681,37 @@ class TableHDU(HDUBase):
         upper: bool, optional
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
+        colnums: integer array, optional
+            The column numbers, 0 offset
         """
 
-        dtype, offsets, isvar = self.get_rec_dtype(**keys)
+        dtype, offsets, isvar = self.get_rec_dtype(
+            colnums=colnums, vstorage=vstorage)
 
         w, = numpy.where(isvar == True)  # noqa
         has_tbit = self._check_tbit()
 
         if w.size > 0:
-            vstorage = keys.get('vstorage', self._vstorage)
+            if vstorage is None:
+                _vstorage = self._vstorage
+            else:
+                _vstorage = vstorage
             colnums = self._extract_colnums()
             rows = None
             array = self._read_rec_with_var(colnums, rows, dtype,
-                                            offsets, isvar, vstorage)
+                                            offsets, isvar, _vstorage)
         elif has_tbit:
             # drop down to read_columns since we can't stuff into a
             # contiguous array
             colnums = self._extract_colnums()
-            array = self.read_columns(colnums, **keys)
+            array = self.read_columns(
+                colnums,
+                rows=None, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
         else:
-
             firstrow = 1  # noqa - not used?
             nrows = self._info['nrows']
             array = numpy.zeros(nrows, dtype=dtype)
@@ -670,49 +726,62 @@ class TableHDU(HDUBase):
                     name,
                     self._info['colinfo'][colnum]['tscale'],
                     self._info['colinfo'][colnum]['tzero'])
-        lower = keys.get('lower', False)
-        upper = keys.get('upper', False)
+
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
-        self._maybe_trim_strings(array, **keys)
+        self._maybe_trim_strings(array, trim_strings=trim_strings)
         return array
 
-    def read_column(self, col, **keys):
+    def read_column(self, col, rows=None, vstorage=None,
+                    upper=False, lower=False, trim_strings=False):
         """
         Read the specified column
 
         Alternatively, you can use slice notation
-            fits=fitsio.FITS(filename)
-            fits[ext][colname][:]
-            fits[ext][colname][2:5]
-            fits[ext][colname][200:235:2]
-            fits[ext][colname][rows]
+
+            >>> fits=fitsio.FITS(filename)
+            >>> fits[ext][colname][:]
+            >>> fits[ext][colname][2:5]
+            >>> fits[ext][colname][200:235:2]
+            >>> fits[ext][colname][rows]
 
         Note, if reading multiple columns, it is more efficient to use
         read(columns=) or slice notation with a list of column names.
 
         parameters
         ----------
-        col: string/int,  required
+        col: string/int, required
             The column name or number.
         rows: optional
             An optional set of row numbers to read.
         vstorage: string, optional
             Over-ride the default method to store variable length columns.  Can
             be 'fixed' or 'object'.  See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
 
-        res = self.read_columns([col], **keys)
+        res = self.read_columns(
+            [col], rows=rows, vstorage=vstorage,
+            upper=upper, lower=lower, trim_strings=trim_strings)
         colname = res.dtype.names[0]
         data = res[colname]
 
-        self._maybe_trim_strings(data, **keys)
+        self._maybe_trim_strings(data, trim_strings=trim_strings)
         return data
 
-    def read_rows(self, rows, **keys):
+    def read_rows(self, rows, vstorage=None,
+                  upper=False, lower=False, trim_strings=False):
         """
         Read the specified rows.
 
@@ -729,24 +798,31 @@ class TableHDU(HDUBase):
         upper: bool, optional
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
         if rows is None:
             # we actually want all rows!
             return self._read_all()
 
         if self._info['hdutype'] == ASCII_TBL:
-            keys['rows'] = rows
-            return self.read(**keys)
+            return self.read(
+                rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
         rows = self._extract_rows(rows)
-        dtype, offsets, isvar = self.get_rec_dtype(**keys)
+        dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
         w, = numpy.where(isvar == True)  # noqa
         if w.size > 0:
-            vstorage = keys.get('vstorage', self._vstorage)
+            if vstorage is None:
+                _vstorage = self._vstorage
+            else:
+                _vstorage = vstorage
             colnums = self._extract_colnums()
             return self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, vstorage)
+                colnums, rows, dtype, offsets, isvar, _vstorage)
         else:
             array = numpy.zeros(rows.size, dtype=dtype)
             self._FITS.read_rows_as_rec(self._ext+1, array, rows)
@@ -760,18 +836,17 @@ class TableHDU(HDUBase):
                     self._info['colinfo'][colnum]['tscale'],
                     self._info['colinfo'][colnum]['tzero'])
 
-        lower = keys.get('lower', False)
-        upper = keys.get('upper', False)
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
-        self._maybe_trim_strings(array, **keys)
+        self._maybe_trim_strings(array, trim_strings=trim_strings)
 
         return array
 
-    def read_columns(self, columns, **keys):
+    def read_columns(self, columns, rows=None, vstorage=None,
+                     upper=False, lower=False, trim_strings=False):
         """
         read a subset of columns from this binary table HDU
 
@@ -797,32 +872,41 @@ class TableHDU(HDUBase):
         upper: bool, optional
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
 
         if self._info['hdutype'] == ASCII_TBL:
-            keys['columns'] = columns
-            return self.read(**keys)
-
-        rows = keys.get('rows', None)
+            return self.read(
+                columns=columns, rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
         if isinstance(colnums, int):
             # scalar sent, don't read as a recarray
-            return self.read_column(columns, **keys)
+            return self.read_column(
+                columns,
+                rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
         # if rows is None still returns None, and is correctly interpreted
         # by the reader to mean all
         rows = self._extract_rows(rows)
 
         # this is the full dtype for all columns
-        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
+        dtype, offsets, isvar = self.get_rec_dtype(
+            colnums=colnums, vstorage=vstorage)
 
         w, = numpy.where(isvar == True)  # noqa
         if w.size > 0:
-            vstorage = keys.get('vstorage', self._vstorage)
+            if vstorage is None:
+                _vstorage = self._vstorage
+            else:
+                _vstorage = vstorage
             array = self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, vstorage)
+                colnums, rows, dtype, offsets, isvar, _vstorage)
         else:
 
             if rows is None:
@@ -849,18 +933,18 @@ class TableHDU(HDUBase):
         if (self._check_tbit(colnums=colnums)):
             array = self._fix_tbit_dtype(array, colnums)
 
-        lower = keys.get('lower', False)
-        upper = keys.get('upper', False)
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
-        self._maybe_trim_strings(array, **keys)
+        self._maybe_trim_strings(array, trim_strings=trim_strings)
 
         return array
 
-    def read_slice(self, firstrow, lastrow, step=1, **keys):
+    def read_slice(self, firstrow, lastrow, step=1,
+                   vstorage=None, lower=False, upper=False,
+                   trim_strings=False):
         """
         Read the specified row slice from a table.
 
@@ -887,14 +971,17 @@ class TableHDU(HDUBase):
         upper: bool, optional
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
 
         if self._info['hdutype'] == ASCII_TBL:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
-            keys['rows'] = rows
-            return self.read_ascii(**keys)
+            return self.read_ascii(
+                rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
-        step = keys.get('step', 1)
         if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
 
@@ -903,15 +990,18 @@ class TableHDU(HDUBase):
             raise ValueError(
                 "slice must specify a sub-range of [%d,%d]" % (0, maxrow))
 
-        dtype, offsets, isvar = self.get_rec_dtype(**keys)
+        dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
         w, = numpy.where(isvar == True)  # noqa
         if w.size > 0:
-            vstorage = keys.get('vstorage', self._vstorage)
+            if vstorage is None:
+                _vstorage = self._vstorage
+            else:
+                _vstorage = vstorage
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, vstorage)
+                colnums, rows, dtype, offsets, isvar, _vstorage)
         else:
             if step != 1:
                 rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -935,30 +1025,30 @@ class TableHDU(HDUBase):
                         self._info['colinfo'][colnum]['tscale'],
                         self._info['colinfo'][colnum]['tzero'])
 
-        lower = keys.get('lower', False)
-        upper = keys.get('upper', False)
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
-        self._maybe_trim_strings(array, **keys)
+        self._maybe_trim_strings(array, trim_strings=trim_strings)
 
         return array
 
-    def get_rec_dtype(self, **keys):
+    def get_rec_dtype(self, colnums=None, vstorage=None):
         """
         Get the dtype for the specified columns
 
         parameters
         ----------
-        colnums: integer array
+        colnums: integer array, optional
             The column numbers, 0 offset
         vstorage: string, optional
             See docs in read_columns
         """
-        colnums = keys.get('colnums', None)
-        vstorage = keys.get('vstorage', self._vstorage)
+        if vstorage is None:
+            _vstorage = self._vstorage
+        else:
+            _vstorage = vstorage
 
         if colnums is None:
             colnums = self._extract_colnums()
@@ -966,7 +1056,7 @@ class TableHDU(HDUBase):
         descr = []
         isvararray = numpy.zeros(len(colnums), dtype=numpy.bool)
         for i, colnum in enumerate(colnums):
-            dt, isvar = self.get_rec_column_descr(colnum, vstorage)
+            dt, isvar = self.get_rec_column_descr(colnum, _vstorage)
             descr.append(dt)
             isvararray[i] = isvar
         dtype = numpy.dtype(descr)
@@ -976,7 +1066,7 @@ class TableHDU(HDUBase):
             offsets[i] = dtype.fields[n][1]
         return dtype, offsets, isvararray
 
-    def _check_tbit(self, **keys):
+    def _check_tbit(self, colnums=None):
         """
         Check if one of the columns is a TBIT column
 
@@ -984,8 +1074,6 @@ class TableHDU(HDUBase):
         ----------
         colnums: integer array, optional
         """
-        colnums = keys.get('colnums', None)
-
         if colnums is None:
             colnums = self._extract_colnums()
 
@@ -1326,12 +1414,11 @@ class TableHDU(HDUBase):
             zval = numpy.array(zero, dtype=array.dtype)
             array += zval
 
-    def _maybe_trim_strings(self, array, **keys):
+    def _maybe_trim_strings(self, array, trim_strings=False):
         """
         if requested, trim trailing white space from
         all string fields in the input array
         """
-        trim_strings = keys.get('trim_strings', False)
         if self.trim_strings or trim_strings:
             _trim_strings(array)
 
@@ -1726,7 +1813,8 @@ class TableHDU(HDUBase):
 
 
 class AsciiTableHDU(TableHDU):
-    def read(self, **keys):
+    def read(self, rows=None, columns=None, vstorage=None,
+             upper=False, lower=False, trim_strings=False):
         """
         read a data from an ascii table HDU
 
@@ -1752,16 +1840,18 @@ class AsciiTableHDU(TableHDU):
         upper: bool, optional
             If True, force all columns names to upper case in output. Will over
             ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
-
-        rows = keys.get('rows', None)
-        columns = keys.get('columns', None)
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
         if isinstance(colnums, int):
             # scalar sent, don't read as a recarray
-            return self.read_column(columns, **keys)
+            return self.read_column(
+                columns, rows=rows, vstorage=vstorage,
+                upper=upper, lower=lower, trim_strings=trim_strings)
 
         rows = self._extract_rows(rows)
         if rows is None:
@@ -1774,7 +1864,8 @@ class AsciiTableHDU(TableHDU):
         rows = self._extract_rows(rows)
 
         # this is the full dtype for all columns
-        dtype, offsets, isvar = self.get_rec_dtype(colnums=colnums, **keys)
+        dtype, offsets, isvar = self.get_rec_dtype(
+            colnums=colnums, vstorage=vstorage)
         array = numpy.zeros(nrows, dtype=dtype)
 
         # note reading into existing data
@@ -1820,14 +1911,12 @@ class AsciiTableHDU(TableHDU):
                             ncopy = len(item)
                             array[name][irow][0:ncopy] = item[:]
 
-        lower = keys.get('lower', False)
-        upper = keys.get('upper', False)
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
         elif self.upper or upper:
             _names_to_upper_if_recarray(array)
 
-        self._maybe_trim_strings(array, **keys)
+        self._maybe_trim_strings(array, trim_strings=trim_strings)
 
         return array
 
@@ -1862,7 +1951,7 @@ class TableColumnSubset(object):
 
     def __init__(self, fitshdu, columns):
         """
-        Input is the SFile instance and a list of column names.
+        Input is the FITS instance and a list of column names.
         """
 
         self.columns = columns
@@ -1881,18 +1970,48 @@ class TableColumnSubset(object):
 
         self.fitshdu = fitshdu
 
-    def read(self, **keys):
+    def read(self, columns=None, rows=None, vstorage=None, lower=False,
+             upper=False, trim_strings=False):
         """
         Read the data from disk and return as a numpy array
+
+        parameters
+        ----------
+        columns: list/array, optional
+            An optional set of columns to read from table HDUs.  Can be string
+            or number. If a sequence, a recarray is always returned.  If a
+            scalar, an ordinary array is returned.
+        rows: optional
+            An optional list of rows to read from table HDUS.  Default is to
+            read all.
+        vstorage: string, optional
+            Over-ride the default method to store variable length columns. Can
+            be 'fixed' or 'object'. See docs on fitsio.FITS for details.
+        lower: bool, optional
+            If True, force all columns names to lower case in output. Will over
+            ride the lower= keyword from construction.
+        upper: bool, optional
+            If True, force all columns names to upper case in output. Will over
+            ride the lower= keyword from construction.
+        trim_strings: bool, optional
+            If True, trim trailing spaces from strings. Will over-ride the
+            trim_strings= keyword from constructor.
         """
 
         if self.is_scalar:
-            data = self.fitshdu.read_column(self.columns, **keys)
+            data = self.fitshdu.read_column(
+                self.columns,
+                rows=rows, vstorage=vstorage, lower=lower, upper=upper,
+                trim_strings=trim_strings)
         else:
-            c = keys.get('columns', None)
-            if c is None:
-                keys['columns'] = self.columns
-            data = self.fitshdu.read(**keys)
+            if columns is None:
+                c = self.columns
+            else:
+                c = columns
+            data = self.fitshdu.read(
+                columns=c,
+                rows=rows, vstorage=vstorage, lower=lower, upper=upper,
+                trim_strings=trim_strings)
 
         return data
 
