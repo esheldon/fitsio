@@ -1,3 +1,20 @@
+version 1.1.0
+---------------------------------
+
+Deprecations
+
+    - Removed the use of `**kwargs` in various read/write routines. This
+      pattern was causing silent bugs. All functions now use explicit
+      keyword arguments.
+
+version 1.0.5
+---------------------------------
+
+Bug Fixes
+
+    - fixed bug getting `None` keywords
+    - fixed bug writing 64 bit images (#256, #257)
+
 version 1.0.4
 ---------------------------------
 
