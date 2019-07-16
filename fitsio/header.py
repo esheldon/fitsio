@@ -475,7 +475,7 @@ class FITSRecord(dict):
     def __init__(self, record):
         self.set_record(record)
 
-    def set_record(self, record, **kw):
+    def set_record(self, record):
         """
         check the record is valid and set keys in the dict
 

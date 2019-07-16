@@ -371,18 +371,25 @@ class FITS(object):
 
     See the docs at https://github.com/esheldon/fitsio
     """
-    def __init__(self, filename, mode='r', **keys):
-        self.keys = keys
+    def __init__(self, filename, mode='r', lower=False, upper=False,
+                 trim_strings=False, vstorage='fixed', case_sensitive=False,
+                 iter_row_buffer=1, write_bitcols=False, ignore_empty=False,
+                 verbose=False, clobber=False):
+        self.lower = lower
+        self.upper = upper
+        self.trim_strings = trim_strings
+        self.vstorage = vstorage
+        self.case_sensitive = case_sensitive
+        self.iter_row_buffer = iter_row_buffer
+        self.write_bitcols = write_bitcols
         filename = extract_filename(filename)
         self._filename = filename
 
         # self.mode=keys.get('mode','r')
         self.mode = mode
-        self.case_sensitive = keys.get('case_sensitive', False)
-        self.ignore_empty = keys.get('ignore_empty', False)
+        self.ignore_empty = ignore_empty
 
-        self.verbose = keys.get('verbose', False)
-        clobber = keys.get('clobber', False)
+        self.verbose = verbose
 
         if self.mode not in _int_modemap:
             raise IOError("mode should be one of 'r', 'rw', "
@@ -473,10 +480,8 @@ class FITS(object):
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None,
-              compress=None, tile_dims=None,
-              header=None,
-              names=None,
-              table_type='binary', write_bitcols=False, **keys):
+              compress=None, tile_dims=None, header=None, names=None,
+              table_type='binary', write_bitcols=False):
         """
         Write the data to a new HDU.
 
@@ -941,7 +946,7 @@ class FITS(object):
         """
 
         # record this for the TableHDU object
-        self.keys['write_bitcols'] = write_bitcols
+        write_bitcols = self.write_bitcols or write_bitcols
 
         # can leave as turn
         table_type_int = _extract_table_type(table_type)
@@ -1063,11 +1068,23 @@ class FITS(object):
         hdu_type = self._FITS.movabs_hdu(ext+1)
 
         if hdu_type == IMAGE_HDU:
-            hdu = ImageHDU(self._FITS, ext, **self.keys)
+            hdu = ImageHDU(self._FITS, ext)
         elif hdu_type == BINARY_TBL:
-            hdu = TableHDU(self._FITS, ext, **self.keys)
+            hdu = TableHDU(
+                self._FITS, ext,
+                lower=self.lower, upper=self.upper,
+                trim_strings=self.trim_strings,
+                vstorage=self.vstorage, case_sensitive=self.case_sensitive,
+                iter_row_buffer=self.iter_row_buffer,
+                write_bitcols=self.write_bitcols)
         elif hdu_type == ASCII_TBL:
-            hdu = AsciiTableHDU(self._FITS, ext, **self.keys)
+            hdu = AsciiTableHDU(
+                self._FITS, ext,
+                lower=self.lower, upper=self.upper,
+                trim_strings=self.trim_strings,
+                vstorage=self.vstorage, case_sensitive=self.case_sensitive,
+                iter_row_buffer=self.iter_row_buffer,
+                write_bitcols=self.write_bitcols)
         else:
             mess = ("extension %s is of unknown type %s "
                     "this is probably a bug")
