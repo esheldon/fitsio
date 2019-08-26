@@ -37,7 +37,7 @@ class HDUBase(object):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         self._FITS = fits
         self._ext = ext

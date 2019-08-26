@@ -491,7 +491,7 @@ class FITSRecord(dict):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         if isstring(record):
             card = FITSCard(record)

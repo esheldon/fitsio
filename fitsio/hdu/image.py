@@ -125,7 +125,7 @@ class ImageHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         dims = self.get_dims()
 
@@ -175,7 +175,7 @@ class ImageHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         if not self.has_data():
             return None

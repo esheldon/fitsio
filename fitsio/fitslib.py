@@ -110,7 +110,7 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!",
-            warnings.DeprecationWarning)
+            DeprecationWarning)
 
     kwargs = {
         'lower': lower,
@@ -176,7 +176,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!",
-            warnings.DeprecationWarning)
+            DeprecationWarning)
 
     filename = extract_filename(filename)
 
@@ -351,7 +351,7 @@ def write(filename, data, extname=None, extver=None, header=None,
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!",
-            warnings.DeprecationWarning)
+            DeprecationWarning)
 
     kwargs = {
         'clobber': clobber,
@@ -434,7 +434,7 @@ class FITS(object):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         self.lower = lower
         self.upper = upper
@@ -609,7 +609,7 @@ class FITS(object):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                warnings.DeprecationWarning)
+                DeprecationWarning)
 
         isimage = False
         if data is None:
