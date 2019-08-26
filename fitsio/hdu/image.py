@@ -120,6 +120,13 @@ class ImageHDU(HDUBase):
             in N-dimensional space to start.
         """
 
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                DeprecationWarning)
+
         dims = self.get_dims()
 
         if img.dtype.fields is not None:
@@ -162,6 +169,14 @@ class ImageHDU(HDUBase):
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                DeprecationWarning)
+
         if not self.has_data():
             return None
 
