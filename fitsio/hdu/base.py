@@ -30,7 +30,15 @@ class HDUBase(object):
     ext: integer
         The extension number.
     """
-    def __init__(self, fits, ext):
+    def __init__(self, fits, ext, **keys):
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         self._FITS = fits
         self._ext = ext
 

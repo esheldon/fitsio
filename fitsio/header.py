@@ -475,7 +475,7 @@ class FITSRecord(dict):
     def __init__(self, record):
         self.set_record(record)
 
-    def set_record(self, record):
+    def set_record(self, record, **keys):
         """
         check the record is valid and set keys in the dict
 
@@ -485,6 +485,13 @@ class FITSRecord(dict):
             Dict representing a record or a string representing a FITS header
             card
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         if isstring(record):
             card = FITSCard(record)

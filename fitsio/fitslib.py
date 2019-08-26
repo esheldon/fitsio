@@ -50,7 +50,7 @@ HCOMPRESS_1 = 41
 
 def read(filename, ext=None, extver=None, columns=None, rows=None,
          header=False, case_sensitive=False, upper=False, lower=False,
-         vstorage='fixed', verbose=False, trim_strings=False):
+         vstorage='fixed', verbose=False, trim_strings=False, **keys):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -105,6 +105,13 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         If True, print more info when doing various FITS operations.
     """
 
+    if not keys:
+        import warnings
+        warnings.warn(
+            "The keyword arguments '%s' are being ignored! This warning "
+            "will be an error in a future version of `fitsio`!",
+            warnings.DeprecationWarning)
+
     kwargs = {
         'lower': lower,
         'upper': upper,
@@ -140,7 +147,7 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
             return data
 
 
-def read_header(filename, ext=0, extver=None, case_sensitive=False):
+def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     """
     Convenience function to read the header from the specified FITS HDU
 
@@ -163,6 +170,13 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False):
     case_sensitive: bool, optional
         Match extension names with case-sensitivity.  Default is False.
     """
+
+    if not keys:
+        import warnings
+        warnings.warn(
+            "The keyword arguments '%s' are being ignored! This warning "
+            "will be an error in a future version of `fitsio`!",
+            warnings.DeprecationWarning)
 
     filename = extract_filename(filename)
 
@@ -260,7 +274,8 @@ def _make_item(ext, extver=None):
 
 def write(filename, data, extname=None, extver=None, header=None,
           clobber=False, ignore_empty=False, units=None, table_type='binary',
-          names=None, write_bitcols=False, compress=None, tile_dims=None):
+          names=None, write_bitcols=False, compress=None, tile_dims=None,
+          **keys):
     """
     Convenience function to create a new HDU and write the data.
 
@@ -331,6 +346,13 @@ def write(filename, data, extname=None, extver=None, header=None,
     tile_dims: tuple of ints, optional
         The size of the tiles used to compress images.
     """
+    if not keys:
+        import warnings
+        warnings.warn(
+            "The keyword arguments '%s' are being ignored! This warning "
+            "will be an error in a future version of `fitsio`!",
+            warnings.DeprecationWarning)
+
     kwargs = {
         'clobber': clobber,
         'ignore_empty': ignore_empty
@@ -405,7 +427,15 @@ class FITS(object):
     def __init__(self, filename, mode='r', lower=False, upper=False,
                  trim_strings=False, vstorage='fixed', case_sensitive=False,
                  iter_row_buffer=1, write_bitcols=False, ignore_empty=False,
-                 verbose=False, clobber=False):
+                 verbose=False, clobber=False, **keys):
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         self.lower = lower
         self.upper = upper
         self.trim_strings = trim_strings
@@ -512,7 +542,7 @@ class FITS(object):
 
     def write(self, data, units=None, extname=None, extver=None,
               compress=None, tile_dims=None, header=None, names=None,
-              table_type='binary', write_bitcols=False):
+              table_type='binary', write_bitcols=False, **keys):
         """
         Write the data to a new HDU.
 
@@ -573,6 +603,13 @@ class FITS(object):
         ------------
         The File must be opened READWRITE
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         isimage = False
         if data is None:

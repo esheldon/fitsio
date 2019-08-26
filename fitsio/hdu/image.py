@@ -101,7 +101,7 @@ class ImageHDU(HDUBase):
         adims = numpy.array(dims, ndmin=1, dtype='i8')
         self._FITS.reshape_image(self._ext+1, adims)
 
-    def write(self, img, start=0):
+    def write(self, img, start=0, **keys):
         """
         Write the image into this HDU
 
@@ -119,6 +119,13 @@ class ImageHDU(HDUBase):
             into the entire array, or a sequence determining where
             in N-dimensional space to start.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         dims = self.get_dims()
 
@@ -155,13 +162,21 @@ class ImageHDU(HDUBase):
         self._FITS.write_image(self._ext+1, img_send, offset+1)
         self._update_info()
 
-    def read(self):
+    def read(self, **keys):
         """
         Read the image.
 
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if not self.has_data():
             return None
 

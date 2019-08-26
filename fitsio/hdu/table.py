@@ -77,7 +77,15 @@ class TableHDU(HDUBase):
     def __init__(self, fits, ext,
                  lower=False, upper=False, trim_strings=False,
                  vstorage='fixed', case_sensitive=False, iter_row_buffer=1,
-                 write_bitcols=False):
+                 write_bitcols=False, **keys):
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         # NOTE: The defaults of False above cannot be changed since they
         # are or'ed with the method defaults below.
         super(TableHDU, self).__init__(fits, ext)
@@ -155,7 +163,8 @@ class TableHDU(HDUBase):
         """
         return self._FITS.where(self._ext+1, expression)
 
-    def write(self, data, firstrow=0, columns=None, names=None, slow=False):
+    def write(self, data, firstrow=0, columns=None, names=None, slow=False,
+              **keys):
         """
         Write data into this HDU
 
@@ -183,6 +192,13 @@ class TableHDU(HDUBase):
             If True, use a slower method to write one column at a time. Useful
             for debugging.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         isrec = False
         if isinstance(data, (list, dict)):
@@ -271,7 +287,7 @@ class TableHDU(HDUBase):
 
         self._update_info()
 
-    def write_column(self, column, data, firstrow=0):
+    def write_column(self, column, data, firstrow=0, **keys):
         """
         Write data to a column in this HDU
 
@@ -289,6 +305,13 @@ class TableHDU(HDUBase):
             At which row you should begin writing.  Be sure you know what you
             are doing!  For appending see the append() method.  Default 0.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         colnum = self._extract_colnum(column)
 
@@ -390,7 +413,7 @@ class TableHDU(HDUBase):
                 "bad input shape for column '%s': "
                 "expected '%s', got '%s'" % (col_name, col_shape, this_shape))
 
-    def write_var_column(self, column, data, firstrow=0):
+    def write_var_column(self, column, data, firstrow=0, **keys):
         """
         Write data to a variable-length column in this HDU
 
@@ -407,6 +430,13 @@ class TableHDU(HDUBase):
             are doing!  For appending see the append() method.  Default 0.
         """
 
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if not is_object(data):
             raise ValueError("Only object fields can be written to "
                              "variable-length arrays")
@@ -416,7 +446,8 @@ class TableHDU(HDUBase):
                                     firstrow=firstrow+1)
         self._update_info()
 
-    def insert_column(self, name, data, colnum=None, write_bitcols=None):
+    def insert_column(self, name, data, colnum=None, write_bitcols=None,
+                      **keys):
         """
         Insert a new column.
 
@@ -438,6 +469,13 @@ class TableHDU(HDUBase):
         -----
         This method is used un-modified by ascii tables as well.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         if write_bitcols is None:
             write_bitcols = self.write_bitcols
@@ -484,7 +522,7 @@ class TableHDU(HDUBase):
 
         self.write_column(name, data)
 
-    def append(self, data, columns=None, names=None):
+    def append(self, data, columns=None, names=None, **keys):
         """
         Append new rows to a table HDU
 
@@ -504,6 +542,13 @@ class TableHDU(HDUBase):
             of names or column numbers. You can also use the `columns` keyword
             argument.
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         firstrow = self._info['nrows']
         self.write(data, firstrow=firstrow, columns=None, names=None)
 
@@ -605,7 +650,7 @@ class TableHDU(HDUBase):
         self._update_info()
 
     def read(self, columns=None, rows=None, vstorage=None,
-             upper=False, lower=False, trim_strings=False):
+             upper=False, lower=False, trim_strings=False, **keys):
         """
         Read data from this HDU
 
@@ -647,6 +692,13 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if columns is not None:
             data = self.read_columns(
                 columns, rows=rows, vstorage=vstorage,
@@ -665,7 +717,8 @@ class TableHDU(HDUBase):
         return data
 
     def _read_all(self, vstorage=None,
-                  upper=False, lower=False, trim_strings=False, colnums=None):
+                  upper=False, lower=False, trim_strings=False, colnums=None,
+                  **keys):
         """
         Read all data in the HDU.
 
@@ -686,6 +739,13 @@ class TableHDU(HDUBase):
         colnums: integer array, optional
             The column numbers, 0 offset
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
@@ -735,7 +795,7 @@ class TableHDU(HDUBase):
         return array
 
     def read_column(self, col, rows=None, vstorage=None,
-                    upper=False, lower=False, trim_strings=False):
+                    upper=False, lower=False, trim_strings=False, **keys):
         """
         Read the specified column
 
@@ -770,6 +830,13 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         res = self.read_columns(
             [col], rows=rows, vstorage=vstorage,
             upper=upper, lower=lower, trim_strings=trim_strings)
@@ -780,7 +847,7 @@ class TableHDU(HDUBase):
         return data
 
     def read_rows(self, rows, vstorage=None,
-                  upper=False, lower=False, trim_strings=False):
+                  upper=False, lower=False, trim_strings=False, **keys):
         """
         Read the specified rows.
 
@@ -801,6 +868,13 @@ class TableHDU(HDUBase):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if rows is None:
             # we actually want all rows!
             return self._read_all()
@@ -845,7 +919,7 @@ class TableHDU(HDUBase):
         return array
 
     def read_columns(self, columns, rows=None, vstorage=None,
-                     upper=False, lower=False, trim_strings=False):
+                     upper=False, lower=False, trim_strings=False, **keys):
         """
         read a subset of columns from this binary table HDU
 
@@ -875,6 +949,13 @@ class TableHDU(HDUBase):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         if self._info['hdutype'] == ASCII_TBL:
             return self.read(
@@ -943,7 +1024,7 @@ class TableHDU(HDUBase):
 
     def read_slice(self, firstrow, lastrow, step=1,
                    vstorage=None, lower=False, upper=False,
-                   trim_strings=False):
+                   trim_strings=False, **keys):
         """
         Read the specified row slice from a table.
 
@@ -974,6 +1055,13 @@ class TableHDU(HDUBase):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
+
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         if self._info['hdutype'] == ASCII_TBL:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -1033,7 +1121,7 @@ class TableHDU(HDUBase):
 
         return array
 
-    def get_rec_dtype(self, colnums=None, vstorage=None):
+    def get_rec_dtype(self, colnums=None, vstorage=None, **keys):
         """
         Get the dtype for the specified columns
 
@@ -1044,6 +1132,13 @@ class TableHDU(HDUBase):
         vstorage: string, optional
             See docs in read_columns
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if vstorage is None:
             _vstorage = self._vstorage
         else:
@@ -1065,7 +1160,7 @@ class TableHDU(HDUBase):
             offsets[i] = dtype.fields[n][1]
         return dtype, offsets, isvararray
 
-    def _check_tbit(self, colnums=None):
+    def _check_tbit(self, colnums=None, **keys):
         """
         Check if one of the columns is a TBIT column
 
@@ -1073,6 +1168,13 @@ class TableHDU(HDUBase):
         ----------
         colnums: integer array, optional
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if colnums is None:
             colnums = self._extract_colnums()
 
@@ -1413,11 +1515,18 @@ class TableHDU(HDUBase):
             zval = numpy.array(zero, dtype=array.dtype)
             array += zval
 
-    def _maybe_trim_strings(self, array, trim_strings=False):
+    def _maybe_trim_strings(self, array, trim_strings=False, **keys):
         """
         if requested, trim trailing white space from
         all string fields in the input array
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
+
         if self.trim_strings or trim_strings:
             _trim_strings(array)
 
@@ -1813,7 +1922,7 @@ class TableHDU(HDUBase):
 
 class AsciiTableHDU(TableHDU):
     def read(self, rows=None, columns=None, vstorage=None,
-             upper=False, lower=False, trim_strings=False):
+             upper=False, lower=False, trim_strings=False, **keys):
         """
         read a data from an ascii table HDU
 
@@ -1843,6 +1952,12 @@ class AsciiTableHDU(TableHDU):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
@@ -1970,7 +2085,7 @@ class TableColumnSubset(object):
         self.fitshdu = fitshdu
 
     def read(self, columns=None, rows=None, vstorage=None, lower=False,
-             upper=False, trim_strings=False):
+             upper=False, trim_strings=False, **keys):
         """
         Read the data from disk and return as a numpy array
 
@@ -1996,6 +2111,12 @@ class TableColumnSubset(object):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
+        if not keys:
+            import warnings
+            warnings.warn(
+                "The keyword arguments '%s' are being ignored! This warning "
+                "will be an error in a future version of `fitsio`!",
+                warnings.DeprecationWarning)
 
         if self.is_scalar:
             data = self.fitshdu.read_column(
