@@ -1,5 +1,5 @@
---- cfitsio3430/configure.in	2018-03-01 10:28:51.000000000 -0600
-+++ cfitsio3430/configure.in	2018-12-14 08:39:20.000000000 -0600
+--- cfitsio3470/configure.in	2018-03-01 10:28:51.000000000 -0600
++++ cfitsio3470/configure.in	2018-12-14 08:39:20.000000000 -0600
 @@ -42,6 +42,13 @@
    [ if test $enableval = yes; then SSE_FLAGS="$SSE_FLAGS -mssse3"; fi ]
  )
