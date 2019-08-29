@@ -1,3 +1,25 @@
+version 1.1.0
+---------------------------------
+
+New Features
+
+    - Updated to cfitsio version 3.470 (#261)
+
+Deprecations
+
+    - Removed the use of `**kwargs` in various read/write routines. This
+      pattern was causing silent bugs. All functions now use explicit
+      keyword arguments. A warning will be raised in any keyword arguments
+      are passed. In version `1.2`, this warning will become an error.
+
+version 1.0.5
+---------------------------------
+
+Bug Fixes
+
+    - fixed bug getting `None` keywords
+    - fixed bug writing 64 bit images (#256, #257)
+
 version 1.0.4
 ---------------------------------
 
