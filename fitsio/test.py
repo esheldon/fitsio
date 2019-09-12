@@ -50,8 +50,11 @@ class TestWarnings(unittest.TestCase):
                 value={'test':3}
                 fits[-1].write_key("odd",value)
 
-            assert len(w) == 1
-            assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
+            # DeprecationWarnings have crept into the Warning list...
+            filtered_warnings = list(filter(lambda x: 'FITSRuntimeWarning' in '{}'.format(x.category), w))
+
+            assert len(filtered_warnings) == 1, 'Wrong length of output (Expected {} but got {}.)'.format(1, len(filtered_warnings))
+            assert issubclass(filtered_warnings[-1].category, fitsio.FITSRuntimeWarning)
 
 class TestReadWrite(unittest.TestCase):
 
