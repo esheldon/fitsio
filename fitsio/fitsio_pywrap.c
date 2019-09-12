@@ -4045,8 +4045,6 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    fprintf(stderr, "FITSIO ignore_scaling = %d\n", ignore_scaling);
-
     if (ignore_scaling == TRUE
         && fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
         return NULL;
