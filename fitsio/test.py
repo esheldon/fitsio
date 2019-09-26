@@ -50,8 +50,11 @@ class TestWarnings(unittest.TestCase):
                 value={'test':3}
                 fits[-1].write_key("odd",value)
 
-            assert len(w) == 1
-            assert issubclass(w[-1].category, fitsio.FITSRuntimeWarning)
+            # DeprecationWarnings have crept into the Warning list...
+            filtered_warnings = list(filter(lambda x: 'FITSRuntimeWarning' in '{}'.format(x.category), w))
+
+            assert len(filtered_warnings) == 1, 'Wrong length of output (Expected {} but got {}.)'.format(1, len(filtered_warnings))
+            assert issubclass(filtered_warnings[-1].category, fitsio.FITSRuntimeWarning)
 
 class TestReadWrite(unittest.TestCase):
 
@@ -2552,6 +2555,41 @@ DATASUM =                      / checksum of the data records\n"""
                 self.compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
 
 
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+
+    def _record_exists(self, header_records, key, value):
+        for rec in header_records:
+            if rec['name'] == key and rec['value'] == value:
+                return True
+
+        return False
+
+    def testReadCommentHistory(self):
+        fname=tempfile.mktemp(prefix='fitsio-TableBitcolInsert-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data = numpy.arange(100).reshape(10, 10)
+                fits.create_image_hdu(data)
+                hdu = fits[-1]
+                hdu.write_comment('A COMMENT 1')
+                hdu.write_comment('A COMMENT 2')
+                hdu.write_history('SOME HISTORY 1')
+                hdu.write_history('SOME HISTORY 2')
+                fits.close()
+
+            with fitsio.FITS(fname, 'r') as fits:
+                hdu = fits[-1]
+                header = hdu.read_header()
+                records = header.records()
+                self.assertTrue(self._record_exists(records, 'COMMENT', 'A COMMENT 1'))
+                self.assertTrue(self._record_exists(records, 'COMMENT', 'A COMMENT 2'))
+                self.assertTrue(self._record_exists(records, 'HISTORY', 'SOME HISTORY 1'))
+                self.assertTrue(self._record_exists(records, 'HISTORY', 'SOME HISTORY 2'))
 
         finally:
             if os.path.exists(fname):
