@@ -984,7 +984,17 @@ DATASUM =                      / checksum of the data records\n"""
                     fits.write_image(data, header=header)
                     rdata = fits[-1][4:12, 9:17]
 
-                    self.compare_array(data[4:12,9:17], rdata, "images")
+                    # For proper FITS cutouts in Python, we need to start back
+                    # one due to how Python array indexes are handled.
+                    #
+                    # FITS expects an inclusive slice, so we need to start at 
+                    # the index before the requested one.
+                    #
+                    # See https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node97.html
+                    # at88mph 2019.09.26
+                    #
+                    # self.compare_array(data[4:12, 9:17], rdata, "images with dtype %s" % dtype)
+                    self.compare_array(data[3:12, 8:17], rdata, "images with dtype %s" % dtype)
 
                     rh = fits[-1].read_header()
                     self.check_header(header, rh)
