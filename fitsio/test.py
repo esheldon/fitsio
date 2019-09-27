@@ -1047,20 +1047,28 @@ DATASUM =                      / checksum of the data records\n"""
         Test reading an image slice with a flip along the second axis
         """
         fname=tempfile.mktemp(prefix='fitsio-ImageSliceFlip-',suffix='.fits')
+        scaled_dtypes = ['u2','i2','<u4']
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
                 # note mixing up byte orders a bit
                 for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
                     data = numpy.arange(160 * 200,dtype=dtype).reshape(160, 200)
-                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    header={
+                        'DTYPE':dtype,
+                        'NBYTES':data.dtype.itemsize
+                        }
+
+                    # For those floating-point types that want to scale, prevent it.
+                    if dtype in scaled_dtypes:
+                        header['BSCALE'] = 1.0
+                        header['BZERO'] = 0.0
+
                     fits.write_image(data, header=header)
-                    rdata = fits[-1][40:100, 160:90]
-
-                    self.compare_array(data[39:100, 161:90:-1], rdata, "images")
-
-                    rh = fits[-1].read_header()
+                    hdu = fits[-1]
+                    rdata = hdu[40:100, 160:90]
+                    rh = hdu.read_header()
                     self.check_header(header, rh)
-
+                    self.compare_array(data[39:100, 159:88:-1], rdata, "images with dtype %s" % dtype)
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
