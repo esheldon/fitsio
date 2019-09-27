@@ -987,7 +987,76 @@ DATASUM =                      / checksum of the data records\n"""
                     fits.write_image(data, header=header)
                     rdata = fits[-1][4:12, 9:17]
 
-                    self.compare_array(data[4:12,9:17], rdata, "images")
+                    # For proper FITS cutouts in Python, we need to start back
+                    # one due to how Python array indexes are handled.
+                    #
+                    # FITS expects an inclusive slice, so we need to start at
+                    # the index before the requested one.
+                    #
+                    # See https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node97.html
+                    # at88mph 2019.09.26
+                    #
+                    # self.compare_array(data[4:12, 9:17], rdata, "images with dtype %s" % dtype)
+                    self.compare_array(data[3:12, 8:17], rdata, "images with dtype %s" % dtype)
+
+                    rh = fits[-1].read_header()
+                    self.check_header(header, rh)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+    def testImageSliceStriding(self):
+        """
+        test reading an image slice
+        """
+        fname=tempfile.mktemp(prefix='fitsio-ImageSlice-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
+                    data = numpy.arange(16*20,dtype=dtype).reshape(16,20)
+                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    fits.write_image(data, header=header)
+                    rdata = fits[-1][4:16:4, 2:20:2]
+
+                    # For proper FITS cutouts in Python, we need to start back
+                    # one due to how Python array indexes are handled.
+                    #
+                    # FITS expects an inclusive slice, so we need to start at
+                    # the index before the requested one.
+                    #
+                    # See https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node97.html
+                    # at88mph 2019.09.26
+                    #
+                    # self.compare_array(data[4:12, 9:17], rdata, "images with dtype %s" % dtype)
+                    expected_data = data[3:16:4, 1:20:2]
+                    self.assertEqual(rdata.shape, expected_data.shape, "Shapes differ with dtype %s" % dtype)
+                    self.compare_array(expected_data, rdata, "images with dtype %s" % dtype)
+
+                    rh = fits[-1].read_header()
+                    self.check_header(header, rh)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
+
+    def testImageSliceFlip(self):
+        """
+        Test reading an image slice with a flip along the second axis
+        """
+        fname=tempfile.mktemp(prefix='fitsio-ImageSliceFlip-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
+                    data = numpy.arange(160 * 200,dtype=dtype).reshape(160, 200)
+                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    fits.write_image(data, header=header)
+                    rdata = fits[-1][40:100, 160:90]
+
+                    self.compare_array(data[39:100, 161:90:-1], rdata, "images")
 
                     rh = fits[-1].read_header()
                     self.check_header(header, rh)

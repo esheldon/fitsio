@@ -23,6 +23,7 @@ See the main docs at https://github.com/esheldon/fitsio
 from __future__ import with_statement, print_function
 from functools import reduce
 
+from math import floor, ceil
 import numpy
 
 from .base import HDUBase, IMAGE_HDU
@@ -263,37 +264,40 @@ class ImageHDU(HDUBase):
             start = slc.start
             stop = slc.stop
             step = slc.step
+            max_stop = dims[dim]
 
             if start is None:
                 start = 0
             if stop is None:
-                stop = dims[dim]
+                stop = max_stop
             if step is None:
                 step = 1
             if step < 1:
                 raise ValueError("slice steps must be >= 1")
 
             if start < 0:
-                start = dims[dim] + start
+                start = max_stop + start
                 if start < 0:
                     raise IndexError("Index out of bounds")
 
             if stop < 0:
-                stop = dims[dim] + start + 1
+                stop = max_stop + start + 1
 
-            # move to 1-offset
-            start = start + 1
+            if stop > max_stop:
+                stop = max_stop
 
             if stop < start:
-                raise ValueError("python slices but include at least one "
-                                 "element, got %s" % slc)
-            if stop > dims[dim]:
-                stop = dims[dim]
+                dimension = int(abs(ceil((stop - (start + 1)) / (step * -1))))
+            else:
+                # move to 1 offset when zero.
+                if start == 0:
+                    start += 1
+                dimension = int(abs(floor((stop - start) / step))) + 1
 
             first.append(start)
             last.append(stop)
             steps.append(step)
-            arrdims.append(stop-start+1)
+            arrdims.append(dimension)
 
             dim += 1
 
