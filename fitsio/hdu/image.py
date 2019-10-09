@@ -62,7 +62,7 @@ class ImageHDU(HDUBase):
             return False
         else:
             return True
-            
+
     def is_compressed(self):
         """
         returns true of this extension is compressed
