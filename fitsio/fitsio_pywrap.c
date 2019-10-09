@@ -4186,7 +4186,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                     is_string_value=0;
                 }
 
-                if ( strncmp(keyname,"COMMENT",tocomp)==0) {
+                if ( strncmp(keyname,"COMMENT",tocomp)==0 || strncmp(keyname,"HISTORY",tocomp)==0 ) {
                     is_comment=1;
                 }
             }
@@ -4212,7 +4212,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 if (is_string_value) {
                     add_string_to_dict(dict,"value",longstr);
                 } else if (is_comment) {
-                    add_string_to_dict(dict,"value",longstr);
+                    add_string_to_dict(dict,"value",comment);
                 } else if ( longstr[0]=='T' ) {
                     add_true_to_dict(dict, "value");
                 } else if (longstr[0]=='F') {
