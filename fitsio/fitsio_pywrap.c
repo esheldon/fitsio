@@ -543,7 +543,7 @@ PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
 // get info for the specified HDU
 static PyObject *
 PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
-    int hdunum=0, hdutype=0, ext=0;
+    int hdunum=0, hdutype=0, ext=0, ignore_scaling=FALSE;
     int status=0, tstatus=0, is_compressed=0;
     PyObject* dict=NULL;
 
@@ -560,7 +560,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!PyArg_ParseTuple(args, (char*)"i", &hdunum)) {
+    if (!PyArg_ParseTuple(args, (char*)"ii", &hdunum, &ignore_scaling)) {
         return NULL;
     }
 
@@ -569,9 +569,10 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-
-
-
+    if (ignore_scaling == TRUE
+        && fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+        return NULL;
+    }
 
     dict = PyDict_New();
     ext=hdunum-1;
@@ -646,7 +647,13 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             add_long_to_dict(dict,"ndims",(long)ndims);
             add_long_to_dict(dict,"img_type",(long)bitpix);
 
-            fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
+            if (ignore_scaling == TRUE) {
+                // Get the raw type if scaling is being ignored.
+                fits_get_img_type(self->fits, &bitpix_equiv, &status);
+            } else {
+                fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
+            }
+
             add_long_to_dict(dict,"img_equiv_type",(long)bitpix_equiv);
 
             tstatus=0;
@@ -4017,6 +4024,7 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
     PyObject* fpix_arr=NULL;
     PyObject* lpix_arr=NULL;
     PyObject* step_arr=NULL;
+    int ignore_scaling=FALSE;
     PyObject* array=NULL;
     long* fpix=NULL;
     long* lpix=NULL;
@@ -4027,13 +4035,18 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
 
     int anynul=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"iOOOO", 
-                &hdunum, &fpix_arr, &lpix_arr, &step_arr,
+    if (!PyArg_ParseTuple(args, (char*)"iOOOiO",
+                &hdunum, &fpix_arr, &lpix_arr, &step_arr, &ignore_scaling,
                 &array)) {
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        return NULL;
+    }
+
+    if (ignore_scaling == TRUE
+        && fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
         return NULL;
     }
 

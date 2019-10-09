@@ -41,9 +41,31 @@ class HDUBase(object):
 
         self._FITS = fits
         self._ext = ext
+        self._ignore_scaling = False
 
         self._update_info()
         self._filename = self._FITS.filename()
+
+    @property
+    def ignore_scaling(self):
+        """
+        :return: Flag to indicate whether scaling (BZERO/BSCALE) values should
+        be ignored.
+        """
+        return self._ignore_scaling
+
+    @ignore_scaling.setter
+    def ignore_scaling(self, ignore_scaling_flag):
+        """
+        Set the flag to ignore scaling.
+        """
+        old_val = self._ignore_scaling
+        self._ignore_scaling = ignore_scaling_flag
+
+        # Only endure the overhead of updating the info if the new value is
+        # actually different.
+        if old_val != self._ignore_scaling:
+            self._update_info()
 
     def get_extnum(self):
         """
@@ -344,7 +366,7 @@ class HDUBase(object):
         except IOError:
             raise RuntimeError("no such hdu")
 
-        self._info = self._FITS.get_hdu_info(self._ext+1)
+        self._info = self._FITS.get_hdu_info(self._ext+1, self._ignore_scaling)
 
     def _get_repr_list(self):
         """
