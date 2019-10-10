@@ -1149,27 +1149,34 @@ DATASUM =                      / checksum of the data records\n"""
                 dtype = 'i2'
                 data = numpy.arange(10 * 20, dtype=dtype).reshape(10, 20)
                 header={
-                    'DTYPE':dtype,
+                    'DTYPE': dtype,
                     'BITPIX': 16,
-                    'NBYTES':data.dtype.itemsize,
+                    'NBYTES': data.dtype.itemsize,
                     'BZERO': 9.33,
                     'BSCALE': 3.281
                     }
 
                 fits.write_image(data, header=header)
                 hdu = fits[-1]
-                rdata = hdu.read()
 
+                rdata = hdu.read()
                 self.assertEqual(rdata.dtype, numpy.float32, 'Wrong dtype.')
 
                 hdu.ignore_scaling = True
-                rdata = hdu.read()
+                rdata = hdu[:,:]
                 self.assertEqual(rdata.dtype, dtype, 'Wrong dtype when ignoring.')
+                numpy.testing.assert_array_equal(data, rdata, err_msg='Wrong unscaled data.')
 
                 rh = fits[-1].read_header()
                 self.check_header(header, rh)
+
+                hdu.ignore_scaling = False
+                rdata = hdu[:,:]
+                self.assertEqual(rdata.dtype, numpy.float32, 'Wrong dtype when not ignoring.')
+                numpy.testing.assert_array_equal(data.astype(numpy.float32), rdata, err_msg='Wrong scaled data returned.')
         finally:
-            # Clean up.
+            # Clean up, if necessary.  Using the "with" keyword above _should_
+            # take care of this auatomatically.
             if os.path.exists(fname):
                 os.remove(fname)
 
