@@ -25,6 +25,7 @@ from functools import reduce
 
 import numpy
 
+from math import floor
 from .base import HDUBase, IMAGE_HDU
 from ..util import IS_PY3, array_to_native
 
@@ -284,16 +285,17 @@ class ImageHDU(HDUBase):
             # move to 1-offset
             start = start + 1
 
-            if stop < start:
-                raise ValueError("python slices but include at least one "
-                                 "element, got %s" % slc)
             if stop > dims[dim]:
                 stop = dims[dim]
+            if stop < start:
+                dimension = int(floor((stop - start) / (step * -1))) + 1
+            else:
+                dimension = int(floor((stop - start) / step)) + 1
 
             first.append(start)
             last.append(stop)
             steps.append(step)
-            arrdims.append(stop-start+1)
+            arrdims.append(dimension)
 
             dim += 1
 
