@@ -1056,7 +1056,7 @@ DATASUM =                      / checksum of the data records\n"""
                 rdata = hdu[:,130:70]
 
                 # Expanded by two to emulate adding one to the start value, and adding one to the calculated dimension.
-                expected_data = data[:,130:68:-1]
+                expected_data = data[:,130:70:-1]
 
                 numpy.testing.assert_array_equal(expected_data, rdata,
                         "Data are not the same (Expected shape: {}, actual shape: {}.".format(
@@ -1065,12 +1065,11 @@ DATASUM =                      / checksum of the data records\n"""
                 rdata = hdu[:,130:70:6]
 
                 # Expanded by two to emulate adding one to the start value, and adding one to the calculated dimension.
-                expected_data = data[:,130:68:-6]
+                expected_data = data[:,130:70:-6]
 
                 numpy.testing.assert_array_equal(expected_data, rdata,
                         "Data are not the same (Expected shape: {}, actual shape: {}.".format(
                             expected_data.shape, rdata.shape))
-
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
