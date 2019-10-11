@@ -1041,6 +1041,27 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testImageSliceStriding(self):
+        """
+        test reading an image slice
+        """
+        fname=tempfile.mktemp(prefix='fitsio-ImageSliceStriding-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note mixing up byte orders a bit
+                for dtype in ['u1','i1','u2','i2','<u4','i4','i8','>f4','f8']:
+                    data = numpy.arange(16*20,dtype=dtype).reshape(16,20)
+                    header={'DTYPE':dtype,'NBYTES':data.dtype.itemsize}
+                    fits.write_image(data, header=header)
+
+                    rdata = fits[-1][4:16:4, 2:20:2]
+                    expected_data = data[4:16:4, 2:20:2]
+                    self.assertEqual(rdata.shape, expected_data.shape, "Shapes differ with dtype %s" % dtype)
+                    self.compare_array(expected_data, rdata, "images with dtype %s" % dtype)
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testPLIOTileCompressedWriteRead(self):
         """
         test writing and readin PLIO compressed image

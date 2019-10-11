@@ -25,6 +25,7 @@ from functools import reduce
 
 import numpy
 
+from math import floor
 from .base import HDUBase, IMAGE_HDU
 from ..util import IS_PY3, array_to_native
 
@@ -293,7 +294,7 @@ class ImageHDU(HDUBase):
             first.append(start)
             last.append(stop)
             steps.append(step)
-            arrdims.append(stop-start+1)
+            arrdims.append(int(floor((stop - start) / step)) + 1)
 
             dim += 1
 
