@@ -307,7 +307,8 @@ class ImageHDU(HDUBase):
 
         npy_dtype = self._get_image_numpy_dtype()
         array = numpy.zeros(arrdims, dtype=npy_dtype)
-        self._FITS.read_image_slice(self._ext+1, first, last, steps, array)
+        self._FITS.read_image_slice(self._ext+1, first, last, steps,
+                                    self._ignore_scaling, array)
         return array
 
     def _expand_if_needed(self, dims, write_dims, start, offset):
