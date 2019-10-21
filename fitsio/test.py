@@ -1062,7 +1062,7 @@ DATASUM =                      / checksum of the data records\n"""
                         "Data are not the same (Expected shape: {}, actual shape: {}.".format(
                             expected_data.shape, rdata.shape))
 
-                rdata = hdu[:,130:70:6]
+                rdata = hdu[:,130:70:-6]
 
                 # Expanded by two to emulate adding one to the start value, and adding one to the calculated dimension.
                 expected_data = data[:,130:70:-6]
@@ -1070,6 +1070,18 @@ DATASUM =                      / checksum of the data records\n"""
                 numpy.testing.assert_array_equal(expected_data, rdata,
                         "Data are not the same (Expected shape: {}, actual shape: {}.".format(
                             expected_data.shape, rdata.shape))
+
+                try:
+                    hdu[:,90:60:4]  # Positive step integer does not follow numpy syntax.
+                    raise AssertionError('Should raise ValueError.')
+                except ValueError as value_error:
+                    self.assertEqual('{}'.format(str(value_error)), 'slice steps must be < 0 when stop < start')
+
+                try:
+                    hdu[:,60:90:-4]
+                    raise AssertionError('Should raise ValueError.')
+                except ValueError as value_error:
+                    self.assertEqual('{}'.format(str(value_error)), 'slice steps must be >= 1 when start < stop')
         finally:
             if os.path.exists(fname):
                 os.remove(fname)

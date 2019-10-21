@@ -270,10 +270,17 @@ class ImageHDU(HDUBase):
             if stop is None:
                 stop = dims[dim]
             if step is None:
-                step = 1
-            if step < 1:
-                raise ValueError("slice steps must be >= 1")
+                # Ensure sane defaults.
+                if start <= stop:
+                    step = 1
+                else:
+                    step = -1
 
+            # Sanity checks for proper syntax.
+            if step < 0 and start < stop:
+                raise ValueError("slice steps must be >= 1 when start < stop")
+            elif step > 0 and stop < start:
+                raise ValueError("slice steps must be < 0 when stop < start")
             if start < 0:
                 start = dims[dim] + start
                 if start < 0:
@@ -294,14 +301,15 @@ class ImageHDU(HDUBase):
                 # accomplish what this offset is glossing over.
                 # @at88mph 2019.10.10
                 stop = stop + 2
-                dimension = int(floor((stop - start) / (step * -1))) + 1
-            else:
-                dimension = int(floor((stop - start) / step)) + 1
-
+            
             first.append(start)
             last.append(stop)
-            steps.append(step)
-            arrdims.append(dimension)
+
+            # Negative step values are not used in CFITSIO as the dimension is already
+            # properly calcualted.
+            # @at88mph 2019.10.21
+            steps.append(abs(step))
+            arrdims.append(int(floor((stop - start) / step)) + 1)
 
             dim += 1
 
