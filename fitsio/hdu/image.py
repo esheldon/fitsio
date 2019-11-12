@@ -256,6 +256,7 @@ class ImageHDU(HDUBase):
         first = []
         last = []
         steps = []
+        npy_dtype = self._get_image_numpy_dtype()
 
         # check the args and reverse dimensions since
         # fits is backwards from numpy
@@ -277,10 +278,8 @@ class ImageHDU(HDUBase):
                     step = -1
 
             # Sanity checks for proper syntax.
-            if step < 0 and start < stop:
-                raise ValueError("slice steps must be >= 1 when start < stop")
-            elif step > 0 and stop < start:
-                raise ValueError("slice steps must be < 0 when stop < start")
+            if (step > 0 and stop < start) or (step < 0 and start < stop):
+                return numpy.empty(0, dtype=npy_dtype)
             if start < 0:
                 start = dims[dim] + start
                 if start < 0:
@@ -320,7 +319,6 @@ class ImageHDU(HDUBase):
         last = numpy.array(last, dtype='i8')
         steps = numpy.array(steps, dtype='i8')
 
-        npy_dtype = self._get_image_numpy_dtype()
         array = numpy.zeros(arrdims, dtype=npy_dtype)
         self._FITS.read_image_slice(self._ext+1, first, last, steps,
                                     self._ignore_scaling, array)
