@@ -84,7 +84,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         # NOTE: The defaults of False above cannot be changed since they
         # are or'ed with the method defaults below.
@@ -198,7 +198,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         isrec = False
         if isinstance(data, (list, dict)):
@@ -311,7 +311,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         colnum = self._extract_colnum(column)
 
@@ -435,7 +435,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if not is_object(data):
             raise ValueError("Only object fields can be written to "
@@ -475,7 +475,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if write_bitcols is None:
             write_bitcols = self.write_bitcols
@@ -547,7 +547,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         firstrow = self._info['nrows']
         self.write(data, firstrow=firstrow, columns=None, names=None)
@@ -697,7 +697,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if columns is not None:
             data = self.read_columns(
@@ -745,7 +745,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
@@ -835,7 +835,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         res = self.read_columns(
             [col], rows=rows, vstorage=vstorage,
@@ -873,7 +873,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if rows is None:
             # we actually want all rows!
@@ -955,7 +955,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if self._info['hdutype'] == ASCII_TBL:
             return self.read(
@@ -1061,7 +1061,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if self._info['hdutype'] == ASCII_TBL:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -1137,7 +1137,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if vstorage is None:
             _vstorage = self._vstorage
@@ -1173,7 +1173,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if colnums is None:
             colnums = self._extract_colnums()
@@ -1525,7 +1525,7 @@ class TableHDU(HDUBase):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if self.trim_strings or trim_strings:
             _trim_strings(array)
@@ -1957,7 +1957,7 @@ class AsciiTableHDU(TableHDU):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
@@ -2116,7 +2116,7 @@ class TableColumnSubset(object):
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                DeprecationWarning, stacklevel=2)
 
         if self.is_scalar:
             data = self.fitshdu.read_column(
