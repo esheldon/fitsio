@@ -1402,7 +1402,7 @@ class TableHDU(HDUBase):
             rows = numpy.unique(rows)
 
             maxrow = self._info['nrows']-1
-            if rows[0] < 0 or rows[-1] > maxrow:
+            if len(rows) > 0 and (rows[0] < 0 or rows[-1] > maxrow):
                 raise ValueError("rows must be in [%d,%d]" % (0, maxrow))
         return rows
 

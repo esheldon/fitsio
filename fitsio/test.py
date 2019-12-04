@@ -1568,6 +1568,27 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableReadEmptyRows(self):
+        """
+        test reading empty list of rows from an table.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWrite-',suffix='.fits')
+
+        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+            data = numpy.empty(1, dtype=[('Z', 'f8')])
+            data['Z'][:] = 1.0
+            fits.write_table(data)
+            fits.write_table(data)
+        try:
+            with fitsio.FITS(fname,'r',clobber=True) as fits:
+                assert len(fits[1].read(rows=[])) == 0
+                assert len(fits[1].read(rows=range(0, 0))) == 0
+                assert len(fits[1].read(rows=numpy.arange(0, 0))) == 0
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testTableFormatColumnSubset(self):
         """
         Test a basic table write, data and a header, then reading back in to
