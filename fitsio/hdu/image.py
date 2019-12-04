@@ -294,18 +294,19 @@ class ImageHDU(HDUBase):
             if stop > dims[dim]:
                 stop = dims[dim]
             if stop < start:
-                # A little black magic here.  The stop is offset by 2 to accommodate
-                # the 1-offset of CFITSIO, and to move past the end pixel to get the complete
-                # set after it is flipped along the axis.  Maybe there is a clearer way to
-                # accomplish what this offset is glossing over.
+                # A little black magic here.  The stop is offset by 2 to
+                # accommodate the 1-offset of CFITSIO, and to move past the end
+                # pixel to get the complete set after it is flipped along the
+                # axis.  Maybe there is a clearer way to accomplish what this
+                # offset is glossing over.
                 # @at88mph 2019.10.10
                 stop = stop + 2
-            
+
             first.append(start)
             last.append(stop)
 
-            # Negative step values are not used in CFITSIO as the dimension is already
-            # properly calcualted.
+            # Negative step values are not used in CFITSIO as the dimension is
+            # already properly calcualted.
             # @at88mph 2019.10.21
             steps.append(abs(step))
             arrdims.append(int(floor((stop - start) / step)) + 1)

@@ -4,8 +4,9 @@ version 1.1.0
 New Features
 
     - Updated to cfitsio version 3.470 (#261)
-    - Add ability to stride (step value) when slicing
-    - Add feature to flip along axis when slicing
+    - Add ability to stride (step value) when slicing (Dustin Jenkins)
+    - Add feature to flip along axis when slicing (Dustin Jenkins)
+    - Feature to ignore image scaling (Dustin Jenkins)
 
 Deprecations
 
