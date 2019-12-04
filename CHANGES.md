@@ -8,6 +8,11 @@ New Features
     - Add feature to flip along axis when slicing (Dustin Jenkins)
     - Feature to ignore image scaling (Dustin Jenkins)
 
+Bug Fixes
+
+    - return zero length result when requested rows have
+      zero length (rainwoodman)
+
 Deprecations
 
     - Removed the use of `**kwargs` in various read/write routines. This
