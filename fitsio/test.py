@@ -1041,6 +1041,52 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testReadFlipAxisSlice(self):
+        """
+        Test reading a slice when the slice's start is less than the slice's stop.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-ReadFlipAxisSlice-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname, 'rw', clobber=True) as fits:
+                dtype = numpy.int16
+                data = numpy.arange(100 * 200, dtype=dtype).reshape(100, 200)
+                fits.write_image(data)
+                hdu = fits[-1]
+                rdata = hdu[:,130:70]
+
+                # Expanded by two to emulate adding one to the start value, and adding one to the calculated dimension.
+                expected_data = data[:,130:70:-1]
+
+                numpy.testing.assert_array_equal(expected_data, rdata,
+                        "Data are not the same (Expected shape: {}, actual shape: {}.".format(
+                            expected_data.shape, rdata.shape))
+
+                rdata = hdu[:,130:70:-6]
+
+                # Expanded by two to emulate adding one to the start value, and adding one to the calculated dimension.
+                expected_data = data[:,130:70:-6]
+
+                numpy.testing.assert_array_equal(expected_data, rdata,
+                        "Data are not the same (Expected shape: {}, actual shape: {}.".format(
+                            expected_data.shape, rdata.shape))
+
+                
+                rdata = hdu[:,90:60:4]  # Positive step integer with start > stop will return an empty array
+                expected_data = numpy.empty(0, dtype=dtype)
+                numpy.testing.assert_array_equal(expected_data, rdata,
+                        "Data are not the same (Expected shape: {}, actual shape: {}.".format(
+                            expected_data.shape, rdata.shape))
+
+                rdata = hdu[:,60:90:-4]  # Negative step integer with start < stop will return an empty array.
+                expected_data = numpy.empty(0, dtype=dtype)
+                numpy.testing.assert_array_equal(expected_data, rdata,
+                        "Data are not the same (Expected shape: {}, actual shape: {}.".format(
+                            expected_data.shape, rdata.shape))
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+    
     def testImageSliceStriding(self):
         """
         test reading an image slice

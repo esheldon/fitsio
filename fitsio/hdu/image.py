@@ -256,6 +256,7 @@ class ImageHDU(HDUBase):
         first = []
         last = []
         steps = []
+        npy_dtype = self._get_image_numpy_dtype()
 
         # check the args and reverse dimensions since
         # fits is backwards from numpy
@@ -270,10 +271,15 @@ class ImageHDU(HDUBase):
             if stop is None:
                 stop = dims[dim]
             if step is None:
-                step = 1
-            if step < 1:
-                raise ValueError("slice steps must be >= 1")
+                # Ensure sane defaults.
+                if start <= stop:
+                    step = 1
+                else:
+                    step = -1
 
+            # Sanity checks for proper syntax.
+            if (step > 0 and stop < start) or (step < 0 and start < stop):
+                return numpy.empty(0, dtype=npy_dtype)
             if start < 0:
                 start = dims[dim] + start
                 if start < 0:
@@ -285,15 +291,23 @@ class ImageHDU(HDUBase):
             # move to 1-offset
             start = start + 1
 
-            if stop < start:
-                raise ValueError("python slices but include at least one "
-                                 "element, got %s" % slc)
             if stop > dims[dim]:
                 stop = dims[dim]
-
+            if stop < start:
+                # A little black magic here.  The stop is offset by 2 to accommodate
+                # the 1-offset of CFITSIO, and to move past the end pixel to get the complete
+                # set after it is flipped along the axis.  Maybe there is a clearer way to
+                # accomplish what this offset is glossing over.
+                # @at88mph 2019.10.10
+                stop = stop + 2
+            
             first.append(start)
             last.append(stop)
-            steps.append(step)
+
+            # Negative step values are not used in CFITSIO as the dimension is already
+            # properly calcualted.
+            # @at88mph 2019.10.21
+            steps.append(abs(step))
             arrdims.append(int(floor((stop - start) / step)) + 1)
 
             dim += 1
@@ -305,7 +319,6 @@ class ImageHDU(HDUBase):
         last = numpy.array(last, dtype='i8')
         steps = numpy.array(steps, dtype='i8')
 
-        npy_dtype = self._get_image_numpy_dtype()
         array = numpy.zeros(arrdims, dtype=npy_dtype)
         self._FITS.read_image_slice(self._ext+1, first, last, steps,
                                     self._ignore_scaling, array)

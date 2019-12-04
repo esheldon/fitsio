@@ -4,6 +4,8 @@ version 1.1.0
 New Features
 
     - Updated to cfitsio version 3.470 (#261)
+    - Add ability to stride (step value) when slicing
+    - Add feature to flip along axis when slicing
 
 Deprecations
 
@@ -19,6 +21,7 @@ Bug Fixes
 
     - fixed bug getting `None` keywords
     - fixed bug writing 64 bit images (#256, #257)
+    - fixed HISTORY card value not being read
 
 version 1.0.4
 ---------------------------------

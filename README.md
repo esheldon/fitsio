@@ -164,6 +164,13 @@ data = fits[1][10:20]
 data = fits[1][10:20:2]
 data = fits[1][[1,5,18]]
 
+# Using EXTNAME and EXTVER values
+data = fits['SCI',2][10:20]
+
+# Slicing with reverse (flipped) striding
+data = fits[1][40:25]
+data = fits[1][40:25:-5]
+
 # all rows of column 'x'
 data = fits[1]['x'][:]
 
