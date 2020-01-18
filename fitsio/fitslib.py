@@ -466,8 +466,8 @@ class FITS(object):
         if self.mode in [READWRITE, 'rw']:
             if clobber:
                 create = 1
-                if os.path.exists(filename):
-                    os.remove(filename)
+                if filename[0] != '!':
+                    filename = '!' + filename
             else:
                 if os.path.exists(filename):
                     create = 0

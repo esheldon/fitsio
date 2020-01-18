@@ -1347,7 +1347,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         }
 
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
-        if (comptype >= 0) {
+        // if (comptype >= 0) {
+        if (comptype > 0) {
             // exception strings are set internally
             if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
                 goto create_image_hdu_cleanup;
