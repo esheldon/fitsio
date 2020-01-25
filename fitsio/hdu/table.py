@@ -1452,7 +1452,7 @@ class TableHDU(HDUBase):
 
         tstart = self._fix_range(start)
         tstop = self._fix_range(stop)
-        if tstart == 0 and tstop == nrows:
+        if tstart == 0 and tstop == nrows and step is None:
             # this is faster: if all fields are also requested, then a
             # single fread will be done
             return None

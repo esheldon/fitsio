@@ -2174,6 +2174,12 @@ DATASUM =                      / checksum of the data records\n"""
                 for f in self.data.dtype.names:
                     d = fits[1][f][1:3]
                     self.compare_array(self.data[f][1:3], d, "test %s row slice" % f)
+                for f in self.data.dtype.names:
+                    d = fits[1][f][1:4:2]
+                    self.compare_array(self.data[f][1:4:2], d, "test %s row slice with step" % f)
+                for f in self.data.dtype.names:
+                    d = fits[1][f][::2]
+                    self.compare_array(self.data[f][::2], d, "test %s row slice with only setp" % f)
 
                 # now list of columns
                 cols=['u2scalar','f4vec','Sarr']
