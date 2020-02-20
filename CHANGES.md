@@ -1,12 +1,26 @@
 version 1.1.0
 ---------------------------------
 
+Bumping the minor version due to the update of the cfitsio version
+
+This reverts to the behavior that compression settings are set as a toggle,
+which is the cfitsio convention.  The user needs to turn compression on and off
+selectively.  The alternative behavior, introduced in 1.0.1, broke the mode
+where compression is set in the filename, as well as breaking with convention.
+
 New Features
 
     - Updated to cfitsio version 3.470 (#261)
     - Add ability to stride (step value) when slicing (Dustin Jenkins)
     - Add feature to flip along axis when slicing (Dustin Jenkins)
     - Feature to ignore image scaling (Dustin Jenkins)
+
+Bug Fixes
+
+    - Fix error reading with an empty rows argument (rainwoodman)
+    - Fix bug when reading slice with step, but no start/stop (Mike Jarvis)
+    - Fix bug with clobber when compression is sent in filename
+
 
 Deprecations
 

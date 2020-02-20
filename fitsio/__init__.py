@@ -4,7 +4,7 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__ = '1.0.7'
+__version__ = '1.1.0'
 
 from . import fitslib   # noqa
 
