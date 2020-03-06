@@ -1,3 +1,10 @@
+version 1.1.1
+
+Bug Fixes
+
+    - Fix bug in drvrnet.c in printf statement, causing compile
+      issues on some systems.
+
 version 1.1.0
 ---------------------------------
 
