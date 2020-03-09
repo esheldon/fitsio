@@ -79,12 +79,12 @@ class TableHDU(HDUBase):
                  vstorage='fixed', case_sensitive=False, iter_row_buffer=1,
                  write_bitcols=False, **keys):
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         # NOTE: The defaults of False above cannot be changed since they
         # are or'ed with the method defaults below.
@@ -193,12 +193,12 @@ class TableHDU(HDUBase):
             for debugging.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         isrec = False
         if isinstance(data, (list, dict)):
@@ -306,12 +306,12 @@ class TableHDU(HDUBase):
             are doing!  For appending see the append() method.  Default 0.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         colnum = self._extract_colnum(column)
 
@@ -430,12 +430,12 @@ class TableHDU(HDUBase):
             are doing!  For appending see the append() method.  Default 0.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if not is_object(data):
             raise ValueError("Only object fields can be written to "
@@ -470,12 +470,12 @@ class TableHDU(HDUBase):
         This method is used un-modified by ascii tables as well.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if write_bitcols is None:
             write_bitcols = self.write_bitcols
@@ -542,12 +542,12 @@ class TableHDU(HDUBase):
             of names or column numbers. You can also use the `columns` keyword
             argument.
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         firstrow = self._info['nrows']
         self.write(data, firstrow=firstrow, columns=None, names=None)
@@ -692,12 +692,12 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if columns is not None:
             data = self.read_columns(
@@ -740,12 +740,12 @@ class TableHDU(HDUBase):
             The column numbers, 0 offset
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
@@ -830,12 +830,12 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         res = self.read_columns(
             [col], rows=rows, vstorage=vstorage,
@@ -868,12 +868,12 @@ class TableHDU(HDUBase):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if rows is None:
             # we actually want all rows!
@@ -950,12 +950,12 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if self._info['hdutype'] == ASCII_TBL:
             return self.read(
@@ -1056,12 +1056,12 @@ class TableHDU(HDUBase):
             trim_strings= keyword from constructor.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if self._info['hdutype'] == ASCII_TBL:
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -1132,12 +1132,12 @@ class TableHDU(HDUBase):
         vstorage: string, optional
             See docs in read_columns
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if vstorage is None:
             _vstorage = self._vstorage
@@ -1168,12 +1168,12 @@ class TableHDU(HDUBase):
         ----------
         colnums: integer array, optional
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if colnums is None:
             colnums = self._extract_colnums()
@@ -1520,12 +1520,12 @@ class TableHDU(HDUBase):
         if requested, trim trailing white space from
         all string fields in the input array
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if self.trim_strings or trim_strings:
             _trim_strings(array)
@@ -1952,12 +1952,12 @@ class AsciiTableHDU(TableHDU):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
@@ -2111,12 +2111,12 @@ class TableColumnSubset(object):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if self.is_scalar:
             data = self.fitshdu.read_column(
