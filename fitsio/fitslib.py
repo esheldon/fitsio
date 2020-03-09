@@ -105,11 +105,11 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         If True, print more info when doing various FITS operations.
     """
 
-    if not keys:
+    if keys:
         import warnings
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
-            "will be an error in a future version of `fitsio`!",
+            "will be an error in a future version of `fitsio`!" % keys,
             DeprecationWarning)
 
     kwargs = {
