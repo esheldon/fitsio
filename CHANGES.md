@@ -1,4 +1,12 @@
+unreleased
+---------------------------------
+
+Bug Fixes
+
+    - Fixed deprecation warnings for extra keyword arguments.
+
 version 1.1.1
+---------------------------------
 
 Bug Fixes
 
