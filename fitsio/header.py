@@ -486,12 +486,12 @@ class FITSRecord(dict):
             card
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if isstring(record):
             card = FITSCard(record)

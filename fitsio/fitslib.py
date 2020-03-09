@@ -105,12 +105,12 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         If True, print more info when doing various FITS operations.
     """
 
-    if not keys:
+    if keys:
         import warnings
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
-            "will be an error in a future version of `fitsio`!",
-            DeprecationWarning)
+            "will be an error in a future version of `fitsio`!" % keys,
+            DeprecationWarning, stacklevel=2)
 
     kwargs = {
         'lower': lower,
@@ -171,12 +171,12 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
         Match extension names with case-sensitivity.  Default is False.
     """
 
-    if not keys:
+    if keys:
         import warnings
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
-            "will be an error in a future version of `fitsio`!",
-            DeprecationWarning)
+            "will be an error in a future version of `fitsio`!" % keys,
+            DeprecationWarning, stacklevel=2)
 
     filename = extract_filename(filename)
 
@@ -346,12 +346,12 @@ def write(filename, data, extname=None, extver=None, header=None,
     tile_dims: tuple of ints, optional
         The size of the tiles used to compress images.
     """
-    if not keys:
+    if keys:
         import warnings
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
-            "will be an error in a future version of `fitsio`!",
-            DeprecationWarning)
+            "will be an error in a future version of `fitsio`!" % keys,
+            DeprecationWarning, stacklevel=2)
 
     kwargs = {
         'clobber': clobber,
@@ -429,12 +429,12 @@ class FITS(object):
                  iter_row_buffer=1, write_bitcols=False, ignore_empty=False,
                  verbose=False, clobber=False, **keys):
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         self.lower = lower
         self.upper = upper
@@ -604,12 +604,12 @@ class FITS(object):
         The File must be opened READWRITE
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         isimage = False
         if data is None:

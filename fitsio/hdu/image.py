@@ -121,12 +121,12 @@ class ImageHDU(HDUBase):
             in N-dimensional space to start.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         dims = self.get_dims()
 
@@ -171,12 +171,12 @@ class ImageHDU(HDUBase):
         and scaling are dealt with properly.
         """
 
-        if not keys:
+        if keys:
             import warnings
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!",
-                DeprecationWarning)
+                "will be an error in a future version of `fitsio`!" % keys,
+                DeprecationWarning, stacklevel=2)
 
         if not self.has_data():
             return None
