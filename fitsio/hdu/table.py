@@ -231,7 +231,7 @@ class TableHDU(HDUBase):
                                  "write_column to write to a single column, "
                                  "or instead write to an image hdu")
 
-            if data.shape is ():
+            if data.shape == ():
                 raise ValueError("cannot write data with shape ()")
 
             isrec = True
