@@ -4,6 +4,7 @@ unreleased
 Bug Fixes
 
     - Fixed deprecation warnings for extra keyword arguments.
+    - Fixed SyntaxWarning: "is" with a literal (Michka Popoff)
 
 version 1.1.1
 ---------------------------------
