@@ -4,6 +4,8 @@ version XXXX
 Bug Fixes
 
     - Write integer keywords using the long long support rather than long
+    - Fix bug where a new file is started and the user can access a
+      fictional HDU, causing book keeping problems
 
 version 1.1.2
 ---------------------------------
