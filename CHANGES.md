@@ -1,3 +1,10 @@
+version XXXX
+---------------------------------
+
+Bug Fixes
+
+    - Write integer keywords using the long long support rather than long
+
 version 1.1.2
 ---------------------------------
 

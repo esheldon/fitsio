@@ -258,10 +258,10 @@ class HDUBase(object):
                                         float(value),
                                         str(comment))
         elif isinstance(value, _itypes):
-            self._FITS.write_long_key(self._ext+1,
-                                      str(name),
-                                      int(value),
-                                      str(comment))
+            self._FITS.write_long_long_key(self._ext+1,
+                                           str(name),
+                                           int(value),
+                                           str(comment))
         elif isinstance(value, (tuple, list)):
             vl = [str(el) for el in value]
             sval = ','.join(vl)

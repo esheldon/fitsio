@@ -2440,17 +2440,17 @@ PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
 }
  
 static PyObject *
-PyFITSObject_write_long_key(struct PyFITSObject* self, PyObject* args) {
+PyFITSObject_write_long_long_key(struct PyFITSObject* self, PyObject* args) {
     int status=0;
     int hdunum=0;
     int hdutype=0;
 
     char* keyname=NULL;
-    long value=0;
+    long long value=0;
     char* comment=NULL;
     char* comment_in=NULL;
  
-    if (!PyArg_ParseTuple(args, (char*)"isls", &hdunum, &keyname, &value, &comment_in)) {
+    if (!PyArg_ParseTuple(args, (char*)"isLs", &hdunum, &keyname, &value, &comment_in)) {
         return NULL;
     }
 
@@ -4584,7 +4584,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_string_key",     (PyCFunction)PyFITSObject_write_string_key,     METH_VARARGS,  "write_string_key\n\nWrite a string key into the specified HDU."},
     {"write_double_key",     (PyCFunction)PyFITSObject_write_double_key,     METH_VARARGS,  "write_double_key\n\nWrite a double key into the specified HDU."},
 
-    {"write_long_key",       (PyCFunction)PyFITSObject_write_long_key,       METH_VARARGS,  "write_long_key\n\nWrite a long key into the specified HDU."},
+    {"write_long_long_key",       (PyCFunction)PyFITSObject_write_long_long_key,       METH_VARARGS,  "write_long_long_key\n\nWrite a long long key into the specified HDU."},
     {"write_logical_key",    (PyCFunction)PyFITSObject_write_logical_key,    METH_VARARGS,  "write_logical_key\n\nWrite a logical key into the specified HDU."},
 
     {"write_comment",        (PyCFunction)PyFITSObject_write_comment,        METH_VARARGS,  "write_comment\n\nWrite a comment into the header of the specified HDU."},
