@@ -220,6 +220,7 @@ class TestReadWrite(unittest.TestCase):
         self.data = data
 
         # use a dict list so we can have comments
+        # for long key we used the largest possible
         self.keys = [{'name':'test1','value':35},
                      {'name':'empty','value':''},
                      {'name':'long_keyword_name','value':'stuff'},
