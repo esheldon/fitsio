@@ -226,7 +226,7 @@ class TestReadWrite(unittest.TestCase):
                      {'name':'test2','value':'stuff','comment':'this is a string keyword'},
                      {'name':'dbl', 'value':23.299843,'comment':"this is a double keyword"},
                      {'name':'edbl', 'value':1.384123233e+43,'comment':"double keyword with exponent"},
-                     {'name':'lng','value':3423432,'comment':'this is a long keyword'},
+                     {'name':'lng','value':2**63-1,'comment':'this is a long keyword'},
                      {'name':'lngstr','value':lorem_ipsum,'comment':'long string'}]
 
         # a second extension using the convenience function
