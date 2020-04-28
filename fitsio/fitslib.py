@@ -474,6 +474,7 @@ class FITS(object):
                 else:
                     create = 1
 
+        self._did_create = (create == 1)
         self._FITS = _fitsio_wrap.FITS(filename, self.intmode, create)
 
     def close(self):
@@ -1237,7 +1238,14 @@ class FITS(object):
         Get an hdu by number, name, and possibly version
         """
         if not hasattr(self, 'hdu_list'):
+            if self._did_create:
+                # we created the file and haven't written anything yet
+                raise ValueError("Requested hdu '%s' not present" % item)
+
             self.update_hdu_list()
+
+        if len(self) == 0:
+            raise ValueError("Requested hdu '%s' not present" % item)
 
         ext, ver, ver_sent = self._extract_item(item)
 
@@ -1282,24 +1290,27 @@ class FITS(object):
         Text representation of some fits file metadata
         """
         spacing = ' '*2
-        if not hasattr(self, 'hdu_list'):
-            self.update_hdu_list()
-
         rep = ['']
         rep.append("%sfile: %s" % (spacing, self._filename))
         rep.append("%smode: %s" % (spacing, _modeprint_map[self.intmode]))
 
         rep.append('%sextnum %-15s %s' % (spacing, "hdutype", "hduname[v]"))
-        for i, hdu in enumerate(self.hdu_list):
-            t = hdu._info['hdutype']
-            name = hdu.get_extname()
-            if name != '':
-                ver = hdu.get_extver()
-                if ver != 0:
-                    name = '%s[%s]' % (name, ver)
 
-            rep.append(
-                "%s%-6d %-15s %s" % (spacing, i, _hdu_type_map[t], name))
+        if not hasattr(self, 'hdu_list'):
+            if not self._did_create:
+                # we expect some stuff
+                self.update_hdu_list()
+
+                for i, hdu in enumerate(self.hdu_list):
+                    t = hdu._info['hdutype']
+                    name = hdu.get_extname()
+                    if name != '':
+                        ver = hdu.get_extver()
+                        if ver != 0:
+                            name = '%s[%s]' % (name, ver)
+
+                    rep.append(
+                        "%s%-6d %-15s %s" % (spacing, i, _hdu_type_map[t], name))
 
         rep = '\n'.join(rep)
         return rep
