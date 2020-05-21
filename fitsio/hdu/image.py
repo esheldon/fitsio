@@ -341,9 +341,6 @@ class ImageHDU(HDUBase):
         required_size = offset + reduce(mul, write_dims, 1)
 
         if required_size > existing_size:
-            print(
-                "    required size:", required_size,
-                "existing size:", existing_size)
             # we need to expand the image
             ndim = len(dims)
             idim = len(write_dims)
@@ -377,7 +374,6 @@ class ImageHDU(HDUBase):
 
                 new_dims.append(dimsize)
 
-            print("    reshaping image to:", new_dims)
             self.reshape(new_dims)
 
     def __repr__(self):
