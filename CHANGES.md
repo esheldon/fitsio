@@ -1,4 +1,4 @@
-version XXXX
+version 1.1.3 (not released)
 ---------------------------------
 
 BACKWARDS INCOMPATIBLE CHANGES
