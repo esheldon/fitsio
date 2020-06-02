@@ -1,6 +1,14 @@
 version XXXX
 ---------------------------------
 
+BACKWARDS INCOMPATIBLE CHANGES
+
+    - non-ascii junk in headers is replaced by ascii characters to
+      avoid segmentation faults in the python standard library
+      when non-unicode characters are detected.  This will cause
+      codes that check for consistency between copied headers
+      to fail, since the header data is modified.
+
 Bug Fixes
 
     - Write integer keywords using the long long support rather than long
