@@ -14,6 +14,8 @@ Bug Fixes
     - Write integer keywords using the long long support rather than long
     - Fix bug where a new file is started and the user can access a
       fictional HDU, causing book keeping problems
+    - return zero length result when requested rows have
+      zero length (rainwoodman)
 
 version 1.1.2
 ---------------------------------
