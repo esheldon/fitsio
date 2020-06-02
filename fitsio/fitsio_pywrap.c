@@ -60,8 +60,8 @@ int is_python_string(const PyObject* obj)
 
 
 /*
-    Ensure all elements of the null terminated are ascii, replacing non-ascii
-    characters with a ?
+   Ensure all elements of the null terminated string are ascii, replacing
+   non-ascii characters with a ?
 */
 
 static void convert_to_ascii(char* str) {
@@ -78,13 +78,13 @@ static void convert_to_ascii(char* str) {
 }
 
 /*
-   Replace bad keyword characters with ascii.
+   Replace bad keyword characters with valid keyword ascii characters,
+   namely A-Z,a-z,0-9,_,-
 
-   To make it clear what has happened, the first
-   four characters will be replaced with J U N K 
-   and later bad characters with underscore.
+   To make it clear what has happened, the first four characters will be
+   replaced with J U N K and later bad characters with underscore.
 
-   Does not check the keyword is otherwize valid
+   Does not check the keyword is otherwise valid
 */
 static void convert_keyword_to_allowed_ascii(char* str) {
     int isgood=0;
