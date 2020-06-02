@@ -1,11 +1,21 @@
-version XXXX
+version 1.1.3 (not released)
 ---------------------------------
+
+BACKWARDS INCOMPATIBLE CHANGES
+
+    - non-ascii junk in headers is replaced by ascii characters to
+      avoid segmentation faults in the python standard library
+      when non-unicode characters are detected.  This will cause
+      codes that check for consistency between copied headers
+      to fail, since the header data is modified.
 
 Bug Fixes
 
     - Write integer keywords using the long long support rather than long
     - Fix bug where a new file is started and the user can access a
       fictional HDU, causing book keeping problems
+    - Return zero length result when requested rows have
+      zero length (rainwoodman)
 
 version 1.1.2
 ---------------------------------
