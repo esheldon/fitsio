@@ -1230,6 +1230,10 @@ DATASUM =                      / checksum of the data records\n"""
                     else:
                         data = numpy.arange(5*20, dtype=dtype).reshape(5,20)
 
+                    # smoke test on these keywords
+                    fits.write_image(data, compress=compress, qlevel=16,
+                                     hcomp_scale=1, hcomp_smooth=True)
+
                     fits.write_image(data, compress=compress, qlevel=16)
                     rdata = fits[-1].read()
 
