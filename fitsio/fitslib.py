@@ -1741,7 +1741,10 @@ def get_qmethod(qmethod):
         if isinstance(qmethod, str):
             qmethod = qmethod.upper()
         elif isinstance(qmethod, bytes):
-            qmethod = str(qmethod, 'ascii').upper()
+            if IS_PY3:
+                qmethod = str(qmethod, 'ascii').upper()
+            else:
+                qmethod = str(qmethod).upper()
 
     if qmethod not in _qmethod_map:
         raise ValueError(
