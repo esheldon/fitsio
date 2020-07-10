@@ -1366,17 +1366,46 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
     char* extname=NULL;
     int extver=0;
+    float qlevel=0;
+    int qmethod=0;
+    float hcomp_scale=0;
+    int hcomp_smooth=0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    static char *kwlist[] = 
-        {"array","nkeys","dims","comptype","tile_dims","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOsi", kwlist,
-                          &array, &nkeys, &dims_obj, &comptype, &tile_dims_obj,
-                          &extname, &extver)) {
+    static char *kwlist[] = {
+        "array","nkeys",
+         "dims",
+         "comptype",
+         "tile_dims",
+
+         "qlevel",
+         "qmethod",
+
+         "hcomp_scale",
+         "hcomp_smooth",
+
+         "extname",
+         "extver",
+         NULL,
+    };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifisi", kwlist,
+                          &array, &nkeys,
+                          &dims_obj,
+                          &comptype,
+                          &tile_dims_obj,
+
+                          &qlevel,
+                          &qmethod,
+
+                          &hcomp_scale,
+                          &hcomp_smooth,
+
+                          &extname,
+                          &extver)) {
         goto create_image_hdu_cleanup;
     }
 
@@ -1426,6 +1455,25 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             // exception strings are set internally
             if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
                 goto create_image_hdu_cleanup;
+            }
+
+            if (fits_set_quantize_level(self->fits, qlevel, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+
+            if (fits_set_quantize_method(self->fits, qmethod, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+
+            if (comptype == HCOMPRESS_1) {
+
+                if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
+                    goto create_image_hdu_cleanup;
+                }
+                if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
+                    goto create_image_hdu_cleanup;
+                }
+
             }
         }
 

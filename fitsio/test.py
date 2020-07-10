@@ -999,49 +999,6 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
-
-    def testRiceTileCompressedWriteRead(self):
-        """
-        Test writing and reading a rice compressed image
-        """
-        nrows=30
-        ncols=100
-        tile_dims=[5,10]
-        compress='rice'
-        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
-        dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
-
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note i8 not supported for compressed!
-
-                for dtype in dtypes:
-                    data = numpy.arange(nrows*ncols,dtype=dtype).reshape(nrows,ncols)
-                    fits.write_image(data, compress=compress)
-                    #fits.reopen()
-                    rdata = fits[-1].read()
-
-                    self.compare_array(data, rdata,
-                                       "%s compressed images ('%s')" % (compress,dtype))
-
-
-                    fits.write_image(data, compress=compress, tile_dims=tile_dims)
-                    #fits.reopen()
-                    rdata = fits[-1].read()
-
-                    self.compare_array(data, rdata,
-                                       ("%s tile dims compressed images "
-                                        "('%s')" % (compress,dtype)))
-
-            with fitsio.FITS(fname) as fits:
-                for ii in xrange(len(dtypes)):
-                    i=ii+1
-                    self.assertEqual(fits[i].is_compressed(), True, "is compressed")
-
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
-
     def testReadFlipAxisSlice(self):
         """
         Test reading a slice when the slice's start is less than the slice's stop.
@@ -1072,7 +1029,7 @@ DATASUM =                      / checksum of the data records\n"""
                         "Data are not the same (Expected shape: {}, actual shape: {}.".format(
                             expected_data.shape, rdata.shape))
 
-                
+
                 rdata = hdu[:,90:60:4]  # Positive step integer with start > stop will return an empty array
                 expected_data = numpy.empty(0, dtype=dtype)
                 numpy.testing.assert_array_equal(expected_data, rdata,
@@ -1087,7 +1044,7 @@ DATASUM =                      / checksum of the data records\n"""
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
-    
+
     def testImageSliceStriding(self):
         """
         test reading an image slice
@@ -1109,26 +1066,86 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testRiceTileCompressedWriteRead(self):
+        """
+        Test writing and reading a rice compressed image
+        """
+        nrows=30
+        ncols=100
+        tile_dims=[5,10]
+        compress='rice'
+        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+        dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
+
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                # note i8 not supported for compressed!
+
+                for dtype in dtypes:
+                    if dtype[0] == 'f':
+                        data = numpy.random.normal(size=nrows*ncols).reshape(nrows,ncols).astype(dtype)
+                    else:
+                        data = numpy.arange(nrows*ncols,dtype=dtype).reshape(nrows,ncols)
+
+                    fits.write_image(data, compress=compress, qlevel=16)
+                    rdata = fits[-1].read()
+
+                    if dtype[0] == 'f':
+                        self.compare_array_abstol(
+                            data,
+                            rdata,
+                            0.2,
+                            "%s compressed images ('%s')" % (compress,dtype),
+                        )
+                    else:
+                        # for integers we have chosen a wide range of values, so
+                        # there will be no quantization and we expect no information
+                        # loss
+                        self.compare_array(data, rdata,
+                                           "%s compressed images ('%s')" % (compress,dtype))
+
+            with fitsio.FITS(fname) as fits:
+                for ii in xrange(len(dtypes)):
+                    i=ii+1
+                    self.assertEqual(fits[i].is_compressed(), True, "is compressed")
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testPLIOTileCompressedWriteRead(self):
         """
-        test writing and readin PLIO compressed image
+        Test writing and reading gzip compressed image
         """
 
         compress='plio'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note i8 not supported for compressed!
-                # also no writing unsigned, need to address
-                dtypes = ['u1','i1','u2','i2','i4','f4','f8']
+                dtypes = ['i1','i2','i4','f4','f8']
 
                 for dtype in dtypes:
-                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
-                    fits.write_image(data, compress=compress)
-                    #fits.reopen()
+
+                    if dtype[0] == 'f':
+                        data = numpy.random.normal(size=5*20).reshape(5,20).astype(dtype).clip(min=0)
+                    else:
+                        data = numpy.arange(5*20, dtype=dtype).reshape(5,20)
+
+                    fits.write_image(data, compress=compress, qlevel=16)
                     rdata = fits[-1].read()
 
-                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+                    if dtype[0] == 'f':
+                        self.compare_array_abstol(
+                            data,
+                            rdata,
+                            0.2,
+                            "%s compressed images ('%s')" % (compress,dtype),
+                        )
+                    else:
+                        # for integers we have chosen a wide range of values, so
+                        # there will be no quantization and we expect no information
+                        # loss
+                        self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
 
         finally:
             if os.path.exists(fname):
@@ -1139,73 +1156,140 @@ DATASUM =                      / checksum of the data records\n"""
         Test writing and reading gzip compressed image
         """
 
-        compress='gzip'
-        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note i8 not supported for compressed!
-                dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
+        for compress in ['gzip', 'gzip_2']:
+            fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                    dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
-                for dtype in dtypes:
-                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
-                    fits.write_image(data, compress=compress)
-                    rdata = fits[-1].read()
+                    for dtype in dtypes:
 
-                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+                        if dtype[0] == 'f':
+                            data = numpy.random.normal(size=5*20).reshape(5,20).astype(dtype)
+                        else:
+                            data = numpy.arange(5*20, dtype=dtype).reshape(5,20)
 
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
+                        fits.write_image(data, compress=compress, qlevel=16)
+                        rdata = fits[-1].read()
 
-    def testGZIP2TileCompressedWriteRead(self):
+                        if dtype[0] == 'f':
+                            self.compare_array_abstol(
+                                data,
+                                rdata,
+                                0.2,
+                                "%s compressed images ('%s')" % (compress,dtype),
+                            )
+                        else:
+                            # for integers we have chosen a wide range of values, so
+                            # there will be no quantization and we expect no information
+                            # loss
+                            self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
+
+    def testGZIPTileCompressedWriteReadLossless(self):
         """
-        Test writing and reading gzip2 compressed image
+        Test writing and reading gzip compressed image
         """
 
-        compress='gzip_2'
-        fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
-        try:
-            with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note i8 not supported for compressed!
-                dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
+        for compress in ['gzip', 'gzip_2']:
+            fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                    # note i8 not supported for compressed!
+                    dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
-                for dtype in dtypes:
-                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
-                    fits.write_image(data, compress=compress)
-                    rdata = fits[-1].read()
+                    for dtype in dtypes:
+                        data = numpy.random.normal(size=50*20).reshape(50, 20)
+                        fits.write_image(data, compress=compress, qlevel=None)
+                        rdata = fits[-1].read()
 
-                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+                        self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
 
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
     def testHCompressTileCompressedWriteRead(self):
         """
-        Test writing and reading hcompress compressed image
+        Test writing and reading gzip compressed image
         """
 
         compress='hcompress'
         fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
         try:
             with fitsio.FITS(fname,'rw',clobber=True) as fits:
-                # note i8 not supported for compressed!
                 dtypes = ['u1','i1','u2','i2','u4','i4','f4','f8']
 
                 for dtype in dtypes:
-                    if (dtype == 'u2') and ('SKIP_HCOMPRESS_U2_TEST' in os.environ):
-                        continue
-                    data = numpy.arange(5*20,dtype=dtype).reshape(5,20)
-                    fits.write_image(data, compress=compress)
-                    #fits.reopen()
+
+                    if dtype[0] == 'f':
+                        data = numpy.random.normal(size=5*20).reshape(5,20).astype(dtype)
+                    else:
+                        data = numpy.arange(5*20, dtype=dtype).reshape(5,20)
+
+                    # smoke test on these keywords
+                    fits.write_image(data, compress=compress, qlevel=16,
+                                     hcomp_scale=1, hcomp_smooth=True)
+
+                    fits.write_image(data, compress=compress, qlevel=16)
                     rdata = fits[-1].read()
 
-                    self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
+                    if dtype[0] == 'f':
+                        self.compare_array_abstol(
+                            data,
+                            rdata,
+                            0.2,
+                            "%s compressed images ('%s')" % (compress,dtype),
+                        )
+                    else:
+                        # for integers we have chosen a wide range of values, so
+                        # there will be no quantization and we expect no information
+                        # loss
+                        self.compare_array(data, rdata, "%s compressed images ('%s')" % (compress,dtype))
 
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testCompressPreserveZeros(self):
+        """
+        Test writing and reading gzip compressed image
+        """
+
+        zinds = [
+            (1, 3),
+            (2, 9),
+        ]
+        for compress in ['gzip', 'gzip_2', 'rice', 'hcompress']:
+            fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                    dtypes = ['f4','f8']
+
+                    for dtype in dtypes:
+
+                        data = numpy.random.normal(size=5*20).reshape(5,20).astype(dtype)
+                        for zind in zinds:
+                            data[zind[0], zind[1]] = 0.0
+
+                        fits.write_image(
+                            data,
+                            compress=compress,
+                            qlevel=16,
+                            qmethod='SUBTRACTIVE_DITHER_2',
+                        )
+                        rdata = fits[-1].read()
+
+                        for zind in zinds:
+                            assert rdata[zind[0], zind[1]] == 0.0
+
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
     def testReadIgnoreScaling(self):
         """
@@ -2785,6 +2869,20 @@ DATASUM =                      / checksum of the data records\n"""
                          "input %s, read: %s" % (name, arr1.shape, arr2.shape))
 
         adiff = numpy.abs( (arr1-arr2)/arr1 )
+        maxdiff = adiff.max()
+        res=numpy.where(adiff  > tol)
+        for i,w in enumerate(res):
+            self.assertEqual(w.size,0,
+                             "testing array '%s' dim %d are "
+                             "equal within tolerance %e, found "
+                             "max diff %e" % (name,i,tol,maxdiff))
+
+    def compare_array_abstol(self, arr1, arr2, tol, name):
+        self.assertEqual(arr1.shape, arr2.shape,
+                         "testing arrays '%s' shapes are equal: "
+                         "input %s, read: %s" % (name, arr1.shape, arr2.shape))
+
+        adiff = numpy.abs(arr1-arr2)
         maxdiff = adiff.max()
         res=numpy.where(adiff  > tol)
         for i,w in enumerate(res):
