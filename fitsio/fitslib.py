@@ -47,7 +47,6 @@ GZIP_2 = 22
 PLIO_1 = 31
 HCOMPRESS_1 = 41
 
-
 NO_DITHER = -1
 SUBTRACTIVE_DITHER_1 = 1
 SUBTRACTIVE_DITHER_2 = 2
@@ -55,6 +54,7 @@ SUBTRACTIVE_DITHER_2 = 2
 # defaults follow fpack
 DEFAULT_QLEVEL = 4.0
 DEFAULT_QMETHOD = 'SUBTRACTIVE_DITHER_1'
+DEFAULT_HCOMP_SCALE = 0.0
 
 
 def read(filename, ext=None, extver=None, columns=None, rows=None,
@@ -286,6 +286,8 @@ def write(filename, data, extname=None, extver=None, header=None,
           names=None, write_bitcols=False, compress=None, tile_dims=None,
           qlevel=DEFAULT_QLEVEL,
           qmethod=DEFAULT_QMETHOD,
+          hcomp_scale=DEFAULT_HCOMP_SCALE,
+          hcomp_smooth=False,
           **keys):
     """
     Convenience function to create a new HDU and write the data.
@@ -372,6 +374,12 @@ def write(filename, data, extname=None, extver=None, header=None,
                 Preserves zeros
 
         Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+
+    hcomp_scale: float
+        Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
+        following the fpack defaults.
+    hcomp_smooth: bool
+        If True, apply smoothing when decompressing.  Default False
     """
     if keys:
         import warnings
@@ -391,13 +399,16 @@ def write(filename, data, extname=None, extver=None, header=None,
             units=units,
             extname=extname,
             extver=extver,
-            compress=compress,
             header=header,
             names=names,
             write_bitcols=write_bitcols,
+
+            compress=compress,
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            hcomp_scale=hcomp_scale,
+            hcomp_smooth=hcomp_smooth,
         )
 
 
@@ -577,6 +588,8 @@ class FITS(object):
               tile_dims=None,
               qlevel=DEFAULT_QLEVEL,
               qmethod=DEFAULT_QMETHOD,
+              hcomp_scale=DEFAULT_HCOMP_SCALE,
+              hcomp_smooth=False,
               header=None, names=None,
               table_type='binary', write_bitcols=False, **keys):
         """
@@ -638,6 +651,12 @@ class FITS(object):
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
+        hcomp_scale: float
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
+            following the fpack defaults.
+        hcomp_smooth: bool
+            If True, apply smoothing when decompressing.  Default False
+
         table-only keywords
         -------------------
         units: list/dec, optional:
@@ -676,6 +695,8 @@ class FITS(object):
                              tile_dims=tile_dims,
                              qlevel=qlevel,
                              qmethod=qmethod,
+                             hcomp_scale=hcomp_scale,
+                             hcomp_smooth=hcomp_smooth,
                              header=header)
         else:
             self.write_table(data, units=units,
@@ -688,6 +709,8 @@ class FITS(object):
                     compress=None, tile_dims=None,
                     qlevel=DEFAULT_QLEVEL,
                     qmethod=DEFAULT_QMETHOD,
+                    hcomp_scale=DEFAULT_HCOMP_SCALE,
+                    hcomp_smooth=False,
                     header=None):
         """
         Create a new image extension and write the data.
@@ -733,6 +756,13 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+
+        hcomp_scale: float
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
+            following the fpack defaults.
+        hcomp_smooth: bool
+            If True, apply smoothing when decompressing.  Default False
+
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
@@ -757,6 +787,8 @@ class FITS(object):
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            hcomp_scale=hcomp_scale,
+            hcomp_smooth=hcomp_smooth,
         )
 
         if header is not None:
@@ -776,6 +808,8 @@ class FITS(object):
                          tile_dims=None,
                          qlevel=DEFAULT_QLEVEL,
                          qmethod=DEFAULT_QMETHOD,
+                         hcomp_scale=DEFAULT_HCOMP_SCALE,
+                         hcomp_smooth=False,
                          header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
@@ -847,6 +881,13 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+
+        hcomp_scale: float
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
+            following the fpack defaults.
+        hcomp_smooth: bool
+            If True, apply smoothing when decompressing.  Default False
+
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
@@ -947,8 +988,13 @@ class FITS(object):
             dims=dims2send,
             comptype=comptype,
             tile_dims=tile_dims,
+
             qlevel=qlevel,
             qmethod=qmethod,
+
+            hcomp_scale=hcomp_scale,
+            hcomp_smooth=hcomp_smooth,
+
             extname=extname,
             extver=extver,
         )

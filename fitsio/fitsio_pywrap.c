@@ -1368,6 +1368,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int extver=0;
     float qlevel=0;
     int qmethod=0;
+    float hcomp_scale=0;
+    int hcomp_smooth=0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -1379,19 +1381,29 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          "dims",
          "comptype",
          "tile_dims",
+
          "qlevel",
          "qmethod",
+
+         "hcomp_scale",
+         "hcomp_smooth",
+
          "extname",
          "extver",
          NULL,
     };
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfisi", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifpsi", kwlist,
                           &array, &nkeys,
                           &dims_obj,
                           &comptype,
                           &tile_dims_obj,
+
                           &qlevel,
                           &qmethod,
+
+                          &hcomp_scale,
+                          &hcomp_smooth,
+
                           &extname,
                           &extver)) {
         goto create_image_hdu_cleanup;
@@ -1451,6 +1463,17 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
                 goto create_image_hdu_cleanup;
+            }
+
+            if (comptype == HCOMPRESS_1) {
+
+                if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
+                    goto create_image_hdu_cleanup;
+                }
+                if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
+                    goto create_image_hdu_cleanup;
+                }
+
             }
         }
 
