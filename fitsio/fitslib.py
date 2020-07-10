@@ -348,10 +348,11 @@ def write(filename, data, extname=None, extver=None, header=None,
     tile_dims: tuple of ints, optional
         The size of the tiles used to compress images.
     qlevel: float, optional
-        Quantization level.  Lower generally result in more compression, we
-        recommend one reads the FITS standard or cfitsio manual to fully
-        understand the effects of quantization.  None or 0 means no
-        quantization, and for gzip also implies lossless.  Default is 4.0
+        Quantization level for floating point data.  Lower generally result in
+        more compression, we recommend one reads the FITS standard or cfitsio
+        manual to fully understand the effects of quantization.  None or 0
+        means no quantization, and for gzip also implies lossless.  Default is
+        4.0
     """
     if keys:
         import warnings
@@ -598,10 +599,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level.  Lower generally result in more compression, we
-            recommend one reads the FITS standard or cfitsio manual to fully
-            understand the effects of quantization.  None or 0 means no
-            quantization, and for gzip also implies lossless.  Default is 4.0
+            Quantization level for floating point data.  Lower generally result in
+            more compression, we recommend one reads the FITS standard or cfitsio
+            manual to fully understand the effects of quantization.  None or 0
+            means no quantization, and for gzip also implies lossless.  Default is
+            4.0
 
         table-only keywords
         -------------------
@@ -680,10 +682,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level.  Lower generally result in more compression, we
-            recommend one reads the FITS standard or cfitsio manual to fully
-            understand the effects of quantization.  None or 0 means no
-            quantization, and for gzip also implies lossless.  Default is 4.0
+            Quantization level for floating point data.  Lower generally result in
+            more compression, we recommend one reads the FITS standard or cfitsio
+            manual to fully understand the effects of quantization.  None or 0
+            means no quantization, and for gzip also implies lossless.  Default is
+            4.0
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
@@ -781,10 +784,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level.  Lower generally result in more compression, we
-            recommend one reads the FITS standard or cfitsio manual to fully
-            understand the effects of quantization.  None or 0 means no
-            quantization, and for gzip also implies lossless.  Default is 4.0
+            Quantization level for floating point data.  Lower generally result in
+            more compression, we recommend one reads the FITS standard or cfitsio
+            manual to fully understand the effects of quantization.  None or 0
+            means no quantization, and for gzip also implies lossless.  Default is
+            4.0
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
