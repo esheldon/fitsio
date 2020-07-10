@@ -1392,7 +1392,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          "extver",
          NULL,
     };
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifpsi", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifisi", kwlist,
                           &array, &nkeys,
                           &dims_obj,
                           &comptype,

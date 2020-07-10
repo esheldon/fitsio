@@ -982,6 +982,11 @@ class FITS(object):
         else:
             nkeys = 0
 
+        if hcomp_smooth:
+            hcomp_smooth = 1
+        else:
+            hcomp_smooth = 0
+
         self._FITS.create_image_hdu(
             img2send,
             nkeys,
@@ -1741,10 +1746,9 @@ def get_qmethod(qmethod):
         if isinstance(qmethod, str):
             qmethod = qmethod.upper()
         elif isinstance(qmethod, bytes):
-            if IS_PY3:
-                qmethod = str(qmethod, 'ascii').upper()
-            else:
-                qmethod = str(qmethod).upper()
+            # in py27, bytes are str, so we can safely assume
+            # py3 here
+            qmethod = str(qmethod, 'ascii').upper()
 
     if qmethod not in _qmethod_map:
         raise ValueError(
