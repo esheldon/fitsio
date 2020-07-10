@@ -1,6 +1,18 @@
 version 1.1.3 (not released)
 ---------------------------------
 
+New Features
+
+    - Added keywords to control compression
+        - qlevel control the quantization level
+        - qmethod set the quantization method
+        - hcomp_scale, hcomp_smooth HCOMPRESS specific settings
+
+        A nice result of this is that one can do lossless gzip compression
+        (setting qlevel=0) and
+    - Work around some types of garbage characters that might appear
+      in headers
+
 BACKWARDS INCOMPATIBLE CHANGES
 
     - non-ascii junk in headers is replaced by ascii characters to
