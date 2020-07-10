@@ -1250,6 +1250,43 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testCompressPreserveZeros(self):
+        """
+        Test writing and reading gzip compressed image
+        """
+
+        zinds = [
+            (1, 3),
+            (2, 9),
+        ]
+        for compress in ['gzip', 'gzip_2', 'rice', 'hcompress']:
+            fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
+            try:
+                with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                    dtypes = ['f4','f8']
+
+                    for dtype in dtypes:
+
+                        data = numpy.random.normal(size=5*20).reshape(5,20).astype(dtype)
+                        for zind in zinds:
+                            data[zind[0], zind[1]] = 0.0
+
+                        fits.write_image(
+                            data,
+                            compress=compress,
+                            qlevel=16,
+                            qmethod='SUBTRACTIVE_DITHER_2',
+                        )
+                        rdata = fits[-1].read()
+
+                        for zind in zinds:
+                            assert rdata[zind[0], zind[1]] == 0.0
+
+
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
+
     def testReadIgnoreScaling(self):
         """
         Test the flag to ignore scaling when reading an HDU.

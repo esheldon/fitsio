@@ -47,7 +47,15 @@ GZIP_2 = 22
 PLIO_1 = 31
 HCOMPRESS_1 = 41
 
+
+NO_DITHER = -1
+SUBTRACTIVE_DITHER_1 = 1
+SUBTRACTIVE_DITHER_2 = 2
+
+# defaults follow fpack
 DEFAULT_QLEVEL = 4.0
+DEFAULT_QMETHOD = 'SUBTRACTIVE_DITHER_1'
+
 
 def read(filename, ext=None, extver=None, columns=None, rows=None,
          header=False, case_sensitive=False, upper=False, lower=False,
@@ -277,6 +285,7 @@ def write(filename, data, extname=None, extver=None, header=None,
           clobber=False, ignore_empty=False, units=None, table_type='binary',
           names=None, write_bitcols=False, compress=None, tile_dims=None,
           qlevel=DEFAULT_QLEVEL,
+          qmethod=DEFAULT_QMETHOD,
           **keys):
     """
     Convenience function to create a new HDU and write the data.
@@ -352,7 +361,17 @@ def write(filename, data, extname=None, extver=None, header=None,
         more compression, we recommend one reads the FITS standard or cfitsio
         manual to fully understand the effects of quantization.  None or 0
         means no quantization, and for gzip also implies lossless.  Default is
-        4.0
+        4.0 which follows the fpack defaults
+    qmethod: string or int
+        The quantization method as string or integer.
+            'NO_DITHER' or fitsio.NO_DITHER (-1)
+               No dithering is performed
+            'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
+                Standard dithering
+            'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
+                Preserves zeros
+
+        Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
     """
     if keys:
         import warnings
@@ -378,6 +397,7 @@ def write(filename, data, extname=None, extver=None, header=None,
             write_bitcols=write_bitcols,
             tile_dims=tile_dims,
             qlevel=qlevel,
+            qmethod=qmethod,
         )
 
 
@@ -553,7 +573,10 @@ class FITS(object):
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None,
-              compress=None, tile_dims=None, qlevel=DEFAULT_QLEVEL,
+              compress=None,
+              tile_dims=None,
+              qlevel=DEFAULT_QLEVEL,
+              qmethod=DEFAULT_QMETHOD,
               header=None, names=None,
               table_type='binary', write_bitcols=False, **keys):
         """
@@ -603,7 +626,17 @@ class FITS(object):
             more compression, we recommend one reads the FITS standard or cfitsio
             manual to fully understand the effects of quantization.  None or 0
             means no quantization, and for gzip also implies lossless.  Default is
-            4.0
+            4.0 which follows the fpack defaults
+        qmethod: string or int
+            The quantization method as string or integer.
+                'NO_DITHER' or fitsio.NO_DITHER (-1)
+                   No dithering is performed
+                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
+                    Standard dithering
+                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
+                    Preserves zeros
+
+            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
         table-only keywords
         -------------------
@@ -642,6 +675,7 @@ class FITS(object):
                              compress=compress,
                              tile_dims=tile_dims,
                              qlevel=qlevel,
+                             qmethod=qmethod,
                              header=header)
         else:
             self.write_table(data, units=units,
@@ -651,7 +685,9 @@ class FITS(object):
                              write_bitcols=write_bitcols)
 
     def write_image(self, img, extname=None, extver=None,
-                    compress=None, tile_dims=None, qlevel=DEFAULT_QLEVEL,
+                    compress=None, tile_dims=None,
+                    qlevel=DEFAULT_QLEVEL,
+                    qmethod=DEFAULT_QMETHOD,
                     header=None):
         """
         Create a new image extension and write the data.
@@ -686,7 +722,17 @@ class FITS(object):
             more compression, we recommend one reads the FITS standard or cfitsio
             manual to fully understand the effects of quantization.  None or 0
             means no quantization, and for gzip also implies lossless.  Default is
-            4.0
+            4.0 which follows the fpack defaults
+        qmethod: string or int
+            The quantization method as string or integer.
+                'NO_DITHER' or fitsio.NO_DITHER (-1)
+                   No dithering is performed
+                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
+                    Standard dithering
+                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
+                    Preserves zeros
+
+            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
@@ -710,6 +756,7 @@ class FITS(object):
             compress=compress,
             tile_dims=tile_dims,
             qlevel=qlevel,
+            qmethod=qmethod,
         )
 
         if header is not None:
@@ -728,6 +775,7 @@ class FITS(object):
                          compress=None,
                          tile_dims=None,
                          qlevel=DEFAULT_QLEVEL,
+                         qmethod=DEFAULT_QMETHOD,
                          header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
@@ -788,7 +836,17 @@ class FITS(object):
             more compression, we recommend one reads the FITS standard or cfitsio
             manual to fully understand the effects of quantization.  None or 0
             means no quantization, and for gzip also implies lossless.  Default is
-            4.0
+            4.0 which follows the fpack defaults.
+        qmethod: string or int
+            The quantization method as string or integer.
+                'NO_DITHER' or fitsio.NO_DITHER (-1)
+                   No dithering is performed
+                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
+                    Standard dithering
+                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
+                    Preserves zeros
+
+            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
@@ -866,6 +924,8 @@ class FITS(object):
             extver = 0
 
         comptype = get_compress_type(compress)
+        qmethod = get_qmethod(qmethod)
+
         tile_dims = get_tile_dims(tile_dims, dims)
         if qlevel is None:
             # 0.0 is the sentinel value for "no quantization" in cfitsio
@@ -881,14 +941,17 @@ class FITS(object):
         else:
             nkeys = 0
 
-        self._FITS.create_image_hdu(img2send,
-                                    nkeys,
-                                    dims=dims2send,
-                                    comptype=comptype,
-                                    tile_dims=tile_dims,
-                                    qlevel=qlevel,
-                                    extname=extname,
-                                    extver=extver)
+        self._FITS.create_image_hdu(
+            img2send,
+            nkeys,
+            dims=dims2send,
+            comptype=comptype,
+            tile_dims=tile_dims,
+            qlevel=qlevel,
+            qmethod=qmethod,
+            extname=extname,
+            extver=extver,
+        )
 
         # don't rebuild the whole list unless this is the first hdu
         # to be created
@@ -1627,6 +1690,20 @@ def get_compress_type(compress):
     return _compress_map[compress]
 
 
+def get_qmethod(qmethod):
+    if qmethod not in _qmethod_map:
+        if isinstance(qmethod, str):
+            qmethod = qmethod.upper()
+        elif isinstance(qmethod, bytes):
+            qmethod = str(qmethod, 'ascii').upper()
+
+    if qmethod not in _qmethod_map:
+        raise ValueError(
+            "qmethod must be one of %s" % list(_qmethod_map.keys()))
+
+    return _qmethod_map[qmethod]
+
+
 def check_comptype_img(comptype, dtype_str):
 
     if comptype == NOCOMPRESS:
@@ -1686,7 +1763,18 @@ _compress_map = {
     GZIP_1: 'GZIP_1',
     GZIP_2: 'GZIP_2',
     PLIO_1: 'PLIO_1',
-    HCOMPRESS_1: 'HCOMPRESS_1'}
+    HCOMPRESS_1: 'HCOMPRESS_1',
+}
+
+_qmethod_map = {
+    None: NO_DITHER,
+    'NO_DITHER': NO_DITHER,
+    'SUBTRACTIVE_DITHER_1': SUBTRACTIVE_DITHER_1,
+    'SUBTRACTIVE_DITHER_2': SUBTRACTIVE_DITHER_2,
+    NO_DITHER: NO_DITHER,
+    SUBTRACTIVE_DITHER_1: SUBTRACTIVE_DITHER_1,
+    SUBTRACTIVE_DITHER_2: SUBTRACTIVE_DITHER_2,
+}
 
 _modeprint_map = {
     'r': 'READONLY', 'rw': 'READWRITE', 0: 'READONLY', 1: 'READWRITE'}

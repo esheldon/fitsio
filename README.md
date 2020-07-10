@@ -280,6 +280,14 @@ fits.write(img)
 # write an image with rice compression
 fits.write(img, compress='rice')
 
+# control the compression
+fimg=np.random.normal(size=2*3).reshape(2, 3)
+fits.write(img, compress='rice', qlevel=16, qmethod='SUBTRACTIVE_DITHER_2')
+
+# lossless gzip compression for integers or floating point
+fits.write(img, compress='gzip', qlevel=None)
+fits.write(fimg, compress='gzip', qlevel=None)
+
 # overwrite the image
 fits[ext].write(img2)
 

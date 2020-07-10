@@ -1367,21 +1367,33 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     char* extname=NULL;
     int extver=0;
     float qlevel=0;
+    int qmethod=0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    static char *kwlist[] = 
-        {"array","nkeys","dims","comptype","tile_dims","qlevel","extname", "extver", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfsi", kwlist,
+    static char *kwlist[] = {
+        "array","nkeys",
+         "dims",
+         "comptype",
+         "tile_dims",
+         "qlevel",
+         "qmethod",
+         "extname",
+         "extver",
+         NULL,
+    };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfisi", kwlist,
                           &array, &nkeys,
                           &dims_obj,
                           &comptype,
                           &tile_dims_obj,
                           &qlevel,
-                          &extname, &extver)) {
+                          &qmethod,
+                          &extname,
+                          &extver)) {
         goto create_image_hdu_cleanup;
     }
 
@@ -1434,6 +1446,10 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             }
 
             if (fits_set_quantize_level(self->fits, qlevel, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+
+            if (fits_set_quantize_method(self->fits, qmethod, &status)) {
                 goto create_image_hdu_cleanup;
             }
         }
