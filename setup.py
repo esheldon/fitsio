@@ -27,7 +27,7 @@ class build_ext_subclass(build_ext):
          "Path to look for cfitsio library; default is "
          "the system search path."),
     ]
-    cfitsio_version = '3470'
+    cfitsio_version = '3490'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
