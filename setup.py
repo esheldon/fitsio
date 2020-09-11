@@ -253,7 +253,6 @@ class build_ext_subclass(build_ext):
 
 
 sources = ["fitsio/fitsio_pywrap.c"]
-data_files = []
 
 ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
 
@@ -284,7 +283,7 @@ setup(
     setup_requires=['numpy'],
     install_requires=['numpy'],
     packages=find_packages(),
-    data_files=data_files,
+    include_package_data=True,
     ext_modules=[ext],
     cmdclass={"build_ext": build_ext_subclass}
 )
