@@ -1218,9 +1218,8 @@ DATASUM =                      / checksum of the data records\n"""
         Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
         """
         gzip_file = resource_filename(__name__, 'test_images/test_gzip_compressed_image.fits.fz')
-        with fitsio.FITS(gzip_file, 'r') as fits:
-            data = fits[0].read()
-            self.compare_array(data, data*0.0, "astropy lossless compressed image")
+        data = fitsio.read(gzip_file)
+        self.compare_array(data, data*0.0, "astropy lossless compressed image")
 
     def testHCompressTileCompressedWriteRead(self):
         """
