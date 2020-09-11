@@ -1,5 +1,5 @@
 include *.txt
 include README.md
-recursive-include cfitsio3470 *
+recursive-include cfitsio3490 *
 recursive-include patches *
 recursive-include fitsio/test_images *
