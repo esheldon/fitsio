@@ -22,9 +22,9 @@ before_install:
     - ./miniconda.sh -b -p $HOME/miniconda
     - export PATH=$HOME/miniconda/bin:$PATH
     - conda update --yes conda
-    - wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-3.47.tar.gz
-    - tar -xzvf cfitsio-3.47.tar.gz
-    - (cd cfitsio-3.47; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
+    - wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-3.49.tar.gz
+    - tar -xzvf cfitsio-3.49.tar.gz
+    - (cd cfitsio-3.49; ./configure --disable-shared --prefix=$HOME/cfitsio-static-install; make install -j 4)
 
 install:
     - conda create --yes -n test python=$PYTHON_VERSION
