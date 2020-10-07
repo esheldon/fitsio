@@ -1,5 +1,8 @@
-version 1.1.3 (not released)
+version 1.1.3
 ---------------------------------
+
+This release moves to cfitsio 3.49, which has bug fixes and now properly
+supports reading certain classes of lossless compressed files
 
 New Features
 
