@@ -565,8 +565,8 @@ class TestReadWrite(unittest.TestCase):
 
                 rrecords = rh.records()
                 from pprint import pprint
-                print()
-                pprint(rrecords)
+                # print()
+                # pprint(rrecords)
 
                 self.assertEqual(
                     rrecords[6]['name'],
@@ -601,12 +601,12 @@ class TestReadWrite(unittest.TestCase):
 
 
                 self.assertEqual(
-                    rrecords[5]['name'],
+                    rrecords[9]['name'],
                     'COMMENT',
                     'checking name is COMMENT',
                 )
                 self.assertEqual(
-                    rrecords[5]['comment'],
+                    rrecords[9]['comment'],
                     'testing',
                     "check comment",
                 )
