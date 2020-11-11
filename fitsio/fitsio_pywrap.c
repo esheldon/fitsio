@@ -4229,12 +4229,13 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
-    int is_comment=0, is_blank_key=0;
+    int is_comment_or_history=0, is_blank_key=0;
     char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
     char value[FLEN_VALUE];
     char comment[FLEN_COMMENT];
+    char scomment[FLEN_COMMENT];
     char card[FLEN_CARD];
     long is_string_value=0;
 
@@ -4280,19 +4281,18 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
         // this just returns the character string stored in the header; we
         // can eval in python
-        if (fits_read_keyn(self->fits, i+1, keyname, value, comment, &status)) {
+        if (fits_read_keyn(self->fits, i+1, keyname, value, scomment, &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status);
             return NULL;
         }
 
-
-        ls=strlen(keyname);
+        ls = strlen(keyname);
         tocomp = (ls < lcont) ? ls : lcont;
 
         is_blank_key = 0;
-        if (ls==0) {
-            is_blank_key=1;
+        if (ls == 0) {
+            is_blank_key = 1;
         } else {
 
             // skip CONTINUE, we already read the data
@@ -4300,40 +4300,52 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 continue;
             }
 
-            if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
-                Py_XDECREF(list);
-                set_ioerr_string_from_status(status);
-                return NULL;
-            }
+            if (strncmp(keyname, "COMMENT", tocomp) ==0
+                    || strncmp(keyname, "HISTORY", tocomp )==0) {
+                is_comment_or_history = 1;
 
-            is_comment = 0;
-            if (strncmp(card,"HIERARCH",8)==0) {
-                if (hierarch_is_string(card)) {
-                    is_string_value=1;
-                } else {
-                    is_string_value=0;
-                }
             } else {
-                has_equals = (card[8] == '=') ? 1 : 0;
-                has_quote = (card[10] == '\'') ? 1 : 0;
-                if (has_equals && has_quote) {
-                    is_string_value=1;
-                } else {
-                    is_string_value=0;
+                is_comment_or_history = 0;
+
+                if (fits_read_key_longstr(self->fits, keyname, &longstr, comment, &status)) {
+                    Py_XDECREF(list);
+                    set_ioerr_string_from_status(status);
+                    return NULL;
                 }
 
-                if ( strncmp(keyname,"COMMENT",tocomp)==0 || strncmp(keyname,"HISTORY",tocomp)==0 ) {
-                    is_comment=1;
+                if (strncmp(card,"HIERARCH",8)==0) {
+                    if (hierarch_is_string(card)) {
+                        is_string_value=1;
+                    } else {
+                        is_string_value=0;
+                    }
+                } else {
+                    has_equals = (card[8] == '=') ? 1 : 0;
+                    has_quote = (card[10] == '\'') ? 1 : 0;
+                    if (has_equals && has_quote) {
+                        is_string_value=1;
+                    } else {
+                        is_string_value=0;
+                    }
                 }
             }
         }
 
         dict = PyDict_New();
+
         if (is_blank_key) {
-            add_none_to_dict(dict,"name");
-            add_string_to_dict(dict,"value","");
-            convert_to_ascii(comment);
-            add_string_to_dict(dict,"comment",comment);
+            add_none_to_dict(dict, "name");
+            add_string_to_dict(dict, "value", "");
+            convert_to_ascii(scomment);
+            add_string_to_dict(dict, "comment", scomment);
+
+        } else if (is_comment_or_history) {
+            // comment or history
+            convert_to_ascii(scomment);
+            add_string_to_dict(dict, "name", keyname);
+            add_string_to_dict(dict, "value", scomment);
+            add_string_to_dict(dict, "comment", scomment);
+
         } else {
             convert_keyword_to_allowed_ascii(keyname);
             add_string_to_dict(dict,"name",keyname);
@@ -4342,7 +4354,8 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
             // if not a comment but empty value, put in None
             tocomp = (ls < lcomm) ? ls : lcomm;
-            if (!is_string_value && 0==strlen(longstr) && !is_comment) {
+            // if (!is_string_value && 0==strlen(longstr) && !is_comment) {
+            if (!is_string_value && 0==strlen(longstr)) {
 
                 add_none_to_dict(dict, "value");
 
@@ -4351,9 +4364,6 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 if (is_string_value) {
                     convert_to_ascii(longstr);
                     add_string_to_dict(dict,"value",longstr);
-                } else if (is_comment) {
-                    convert_to_ascii(comment);
-                    add_string_to_dict(dict,"value",comment);
                 } else if ( longstr[0]=='T' ) {
                     add_true_to_dict(dict, "value");
                 } else if (longstr[0]=='F') {
