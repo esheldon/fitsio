@@ -441,10 +441,11 @@ class FITSHDR(object):
     def __repr__(self):
         rep = ['']
         for r in self._record_list:
-            if 'card_string' not in r:
-                card = self._record2card(r)
-            else:
-                card = r['card_string']
+            card = self._record2card(r)
+            # if 'card_string' not in r:
+            #     card = self._record2card(r)
+            # else:
+            #     card = r['card_string']
 
             rep.append(card)
         return '\n'.join(rep)
