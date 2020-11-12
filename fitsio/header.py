@@ -222,7 +222,7 @@ class FITSHDR(object):
             'SIMPLE', 'EXTEND', 'XTENSION', 'BITPIX', 'PCOUNT', 'GCOUNT',
             'THEAP',
             'EXTNAME',
-            'BLANK',
+            # 'BLANK',
             'ZQUANTIZ', 'ZDITHER0', 'ZIMAGE', 'ZCMPTYPE',
             'ZSIMPLE', 'ZTENSION', 'ZPCOUNT', 'ZGCOUNT',
             'ZBITPIX', 'ZEXTEND',
