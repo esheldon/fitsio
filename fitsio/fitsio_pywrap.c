@@ -4329,7 +4329,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         }
 
         dict = PyDict_New();
-        add_string_to_dict(dict, "raw_card_string", card);
+        add_string_to_dict(dict, "card_string", card);
 
         if (is_blank_key) {
             add_none_to_dict(dict,"name");
