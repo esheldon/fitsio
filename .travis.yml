@@ -3,6 +3,9 @@ os:
     - osx
 
 language: c
+arch:
+    - amd64
+    - ppc64le
 
 # use the containers for a faster build
 sudo: false
@@ -14,9 +17,13 @@ env:
 
 before_install:
     - if  [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
       else
-      wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+       	if [[ "$TRAVIS_CPU_ARCH" == "ppc64le" ]]; then 
+          wget  https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-ppc64le.sh -O miniconda.sh;
+        else
+          wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        fi
       fi
     - chmod +x miniconda.sh
     - ./miniconda.sh -b -p $HOME/miniconda
