@@ -32,7 +32,7 @@ jobs:
       - name: install conda deps
         shell: bash -l {0}
         run: |
-          conda install numpy nose cython wget make
+          conda install numpy=1.16 nose cython wget make
 
       - name: build external cfitsio
         shell: bash -l {0}
