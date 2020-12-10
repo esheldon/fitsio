@@ -1,7 +1,7 @@
 A python library to read from and write to FITS files.
 
 [![Build Status (master)](https://travis-ci.com/esheldon/fitsio.svg?branch=master)](https://travis-ci.com/esheldon/fitsio)
-
+[![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
 
 ## Description
 

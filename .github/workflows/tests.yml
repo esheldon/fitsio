@@ -1,0 +1,85 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+jobs:
+  tests:
+    name: tests
+    strategy:
+      matrix:
+        pyver: [3.7, 3.8, 3.8]
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.pyver }}
+          channels: conda-forge,defaults
+          channel-priority: strict
+          show-channel-urls: true
+
+      - name: install conda deps
+        shell: bash -l {0}
+        run: |
+          conda install numpy=1.16 nose cython wget make
+
+      - name: build external cfitsio
+        shell: bash -l {0}
+        run: |
+          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-3.49.tar.gz
+          tar -xzvf cfitsio-3.49.tar.gz
+          cd cfitsio-3.49
+          ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
+          make install -j 4
+          cd ..
+
+      - name: test bundled build
+        shell: bash -l {0}
+        run: |
+          python setup.py clean -a
+          FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
+          export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python${{ matrix.pyver }}/site-packages:$PYTHONPATH
+
+          mkdir -p $FITSIO_INSTALL_DIR/lib/python${{ matrix.pyver }}/site-packages
+
+          export INSTALLFLAGS="--prefix=$FITSIO_INSTALL_DIR --single-version-externally-managed --record rec.txt"
+          python setup.py install $INSTALLFLAGS
+
+          pushd /tmp
+          SKIP_BZIP_TEST=true python -c "import fitsio; fitsio.test.test()"
+          popd
+          rm -rf $FITSIO_INSTALL_DIR
+
+      - name: test non-bundled build
+        shell: bash -l {0}
+        run: |
+          python setup.py clean -a
+          FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
+          export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python${{ matrix.pyver }}/site-packages:$PYTHONPATH
+
+          mkdir -p $FITSIO_INSTALL_DIR/lib/python${{ matrix.pyver }}/site-packages
+          python setup.py install $INSTALLFLAGS build_ext --use-system-fitsio --system-fitsio-includedir=$HOME/cfitsio-static-install/include --system-fitsio-libdir=$HOME/cfitsio-static-install/lib
+
+          pushd /tmp
+          SKIP_BZIP_TEST=true SKIP_HCOMPRESS_U2_TEST=true python -c "import fitsio; fitsio.test.test()"
+          popd
+          rm -rf $FITSIO_INSTALL_DIR
+
+      - name: test build steps clean out files and run ok
+        shell: bash -l {0}
+        run: |
+          python setup.py clean -a
+          python setup.py build
+          python setup.py clean -a
+          python setup.py build_ext
