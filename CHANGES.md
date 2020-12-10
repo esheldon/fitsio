@@ -1,3 +1,12 @@
+unreleased
+---------------------------------
+
+New Features
+
+    - Moved most testing to GitHub actions (linux, osx).
+    - Added testing on ppc64le w/ TravisCI (thanks @asellappen)
+
+
 version 1.1.3
 ---------------------------------
 
