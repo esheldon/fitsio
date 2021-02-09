@@ -219,7 +219,7 @@ class TableHDU(HDUBase):
             colnums_all = [self._extract_colnum(c) for c in columns_all]
             names = [self.get_colname(c) for c in colnums_all]
 
-            isobj = numpy.zeros(len(data_list), dtype=numpy.bool)
+            isobj = numpy.zeros(len(data_list), dtype=bool)
             for i in xrange(len(data_list)):
                 isobj[i] = is_object(data_list[i])
 
@@ -1148,7 +1148,7 @@ class TableHDU(HDUBase):
             colnums = self._extract_colnums()
 
         descr = []
-        isvararray = numpy.zeros(len(colnums), dtype=numpy.bool)
+        isvararray = numpy.zeros(len(colnums), dtype=bool)
         for i, colnum in enumerate(colnums):
             dt, isvar = self.get_rec_column_descr(colnum, _vstorage)
             descr.append(dt)
@@ -1489,7 +1489,7 @@ class TableHDU(HDUBase):
         numpy boolean values
         """
         self._rescale_array(array[name], scale, zero)
-        if array[name].dtype == numpy.bool:
+        if array[name].dtype == bool:
             array[name] = self._convert_bool_array(array[name])
         return array
 
@@ -1499,7 +1499,7 @@ class TableHDU(HDUBase):
         numpy boolean values
         """
         self._rescale_array(array, scale, zero)
-        if array.dtype == numpy.bool:
+        if array.dtype == bool:
             array = self._convert_bool_array(array)
 
         return array
@@ -1558,7 +1558,7 @@ class TableHDU(HDUBase):
         If input is a fits bool, convert to numpy boolean
         """
 
-        output = (array.view(numpy.int8) == ord('T')).astype(numpy.bool)
+        output = (array.view(numpy.int8) == ord('T')).astype(bool)
         return output
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):

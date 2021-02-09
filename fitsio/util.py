@@ -63,7 +63,7 @@ def is_object(arr):
 
 
 def fields_are_object(arr):
-    isobj = numpy.zeros(len(arr.dtype.names), dtype=numpy.bool_)
+    isobj = numpy.zeros(len(arr.dtype.names), dtype=bool)
     for i, name in enumerate(arr.dtype.names):
         if is_object(arr[name]):
             isobj[i] = True
