@@ -1,4 +1,4 @@
-unreleased
+version 1.1.4
 ---------------------------------
 
 New Features
@@ -6,6 +6,15 @@ New Features
     - Moved most testing to GitHub actions (linux, osx).
     - Added testing on ppc64le w/ TravisCI (thanks @asellappen)
 
+Bug Fixes
+
+    - Don't remove BLANK keywords in header clean
+    - Preserve order of comments in header
+
+Compatibility changes
+
+    - moved to sing `bool` rather than `np.bool` to be compativle
+      with numpy 1.2
 
 version 1.1.3
 ---------------------------------
