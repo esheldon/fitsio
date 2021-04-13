@@ -32,7 +32,7 @@ jobs:
         env:
           CIBW_BUILD: "cp3?-*"
           CIBW_SKIP: "cp35-* *-win32 *-manylinux_i686"
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+#           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_BEFORE_BUILD_LINUX: yum install -y bzip2-devel
           DISTUTILS_USE_SDK: 1
           MSSdk: 1
