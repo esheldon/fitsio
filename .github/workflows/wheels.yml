@@ -3,10 +3,12 @@ on:
   release:
     types:
       - published
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - master
-      - wheels
 
 jobs:
   build_wheels:
@@ -23,10 +25,7 @@ jobs:
       - uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: "cp3?-*"
-#           CIBW_SKIP: "*-manylinux_i686"
           CIBW_BEFORE_BUILD_LINUX: yum install -y bzip2-devel
-          DISTUTILS_USE_SDK: 1
-          MSSdk: 1
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -48,6 +47,7 @@ jobs:
         with:
           path: dist/*.tar.gz
 
+#   # Uncomment this section to automatically upload release to PyPI
 #   upload_pypi:
 #     needs: [build_wheels, build_sdist]
 #     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
 #           name: artifact
 #           path: dist
 
-#       - uses: pypa/gh-action-pypi-publish@master
+#       - uses: pypa/gh-action-pypi-publish@v1.4.2
 #         with:
 #           user: __token__
 #           password: ${{ secrets.pypi_password }}
