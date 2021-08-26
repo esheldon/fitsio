@@ -4230,6 +4230,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     int lcont=0, lcomm=0, ls=0;
     int tocomp=0;
     int is_comment_or_history=0, is_blank_key=0;
+    int is_hierarch=0;
     char *longstr=NULL;
 
     char keyname[FLEN_KEYWORD];
@@ -4291,6 +4292,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         tocomp = (ls < lcont) ? ls : lcont;
 
         is_blank_key = 0;
+        is_hierarch = 0;
         if (ls == 0) {
             is_blank_key = 1;
         } else {
@@ -4314,6 +4316,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 }
 
                 if (strncmp(card,"HIERARCH",8)==0) {
+                    is_hierarch=1;
                     if (hierarch_is_string(card)) {
                         is_string_value=1;
                     } else {
@@ -4349,7 +4352,8 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             add_string_to_dict(dict, "comment", scomment);
 
         } else {
-            convert_keyword_to_allowed_ascii(keyname);
+            if (!is_hierarch)
+                convert_keyword_to_allowed_ascii(keyname);
             add_string_to_dict(dict,"name",keyname);
             convert_to_ascii(comment);
             add_string_to_dict(dict,"comment",comment);
