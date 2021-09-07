@@ -685,6 +685,20 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testHeaderJunkNonAscii(self):
+        data = b"SIMPLE  =                    T / file does conform to FITS standard             BITPIX  =                   16 / number of bits per data pixel                  NAXIS   =                    0 / number of data axes                            EXTEND  =                    T / FITS dataset may contain extensions            COMMENT   FITS (Flexible Image Transport System) format is defined in 'AstronomyCOMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H @\x0f@\x0f \x02\x05\x18@\x02\x02\xc5@\x0c\x03\xf3@\x080\x02\x03\xbc@\x0f@@@@@@@@                                                END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "
+
+        fname = tempfile.mktemp(prefix='fitsio-HeaderJunkNonAscii-', suffix='.fits')
+        try:
+            with open(fname, 'wb') as fobj:
+                fobj.write(data)
+
+            h = fitsio.read_header(fname)
+            self.assertTrue(h["JUNK"] is None)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
 
     def testHeaderTemplate(self):
         """
