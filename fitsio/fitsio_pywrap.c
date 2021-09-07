@@ -4334,7 +4334,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         }
 
         dict = PyDict_New();
-
+        convert_to_ascii(card);
         add_string_to_dict(dict, "card_string", card);
 
         if (is_blank_key) {

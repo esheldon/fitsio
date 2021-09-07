@@ -8,6 +8,8 @@ Bug Fixes
       we cannot convert the value because fits_read_key
       can segfault in some scenarios.  We instead return
       a string
+    - Fixed residual segfaults for header cards with non-ascii 
+      characters.
 
 version 1.1.4
 ---------------------------------
