@@ -86,8 +86,8 @@ static void convert_to_ascii(char* str) {
 
    Does not check the keyword is otherwise valid
 */
-static void convert_keyword_to_allowed_ascii(char* str) {
-    int isgood=0;
+static int convert_keyword_to_allowed_ascii(char* str) {
+    int isgood=0, was_converted=0;
     size_t size=0, i=0;
     int cval=0;
 
@@ -108,6 +108,7 @@ static void convert_keyword_to_allowed_ascii(char* str) {
 
 
         if (!isgood) {
+            was_converted = 1;
             if (i==0) {
                 str[i] = 'J';
             } else if (i==1) {
@@ -121,6 +122,7 @@ static void convert_keyword_to_allowed_ascii(char* str) {
             }
         }
     }
+    return was_converted;
 }
 
 
@@ -4243,7 +4245,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     double dval=0;
 
     int nkeys=0, morekeys=0, i=0;
-    int has_equals=0, has_quote=0;
+    int has_equals=0, has_quote=0, was_converted=0;
 
     PyObject* list=NULL;
     PyObject* dict=NULL;  // to hold the dict for each record
@@ -4349,7 +4351,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             add_string_to_dict(dict, "comment", scomment);
 
         } else {
-            convert_keyword_to_allowed_ascii(keyname);
+            was_converted = convert_keyword_to_allowed_ascii(keyname);
             add_string_to_dict(dict,"name",keyname);
             convert_to_ascii(comment);
             add_string_to_dict(dict,"comment",comment);
@@ -4363,6 +4365,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
             } else {
 
+                // if its a stringwe just store it.
                 if (is_string_value) {
                     convert_to_ascii(longstr);
                     add_string_to_dict(dict,"value",longstr);
@@ -4370,6 +4373,13 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                     add_true_to_dict(dict, "value");
                 } else if (longstr[0]=='F') {
                     add_false_to_dict(dict, "value");
+                } else if (was_converted) {
+                    // if we had to convert bad characters in the keyword name
+                    // we can't attempt to get a numerical value using
+                    // fits_read_key because some characters in a keyword name
+                    // cause a seg fault
+                    convert_to_ascii(longstr);
+                    add_string_to_dict(dict,"value",longstr);
                 } else if ( 
                            (strchr(longstr,'.') != NULL)
                            || (strchr(longstr,'E') != NULL)
