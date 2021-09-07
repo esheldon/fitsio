@@ -1,3 +1,14 @@
+version 1.1.5 (not yet released)
+---------------------------------
+
+Bug Fixes
+
+    - Deal with case that a header keyword has non-ascii
+      characters and the value is numerical.  In this case
+      we cannot convert the value because fits_read_key
+      can segfault in some scenarios.  We instead return
+      a string
+
 version 1.1.4
 ---------------------------------
 
