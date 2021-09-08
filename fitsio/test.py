@@ -707,17 +707,19 @@ class TestReadWrite(unittest.TestCase):
         Test that an invalid header raises.
         """
 
-        fname = tempfile.mktemp(prefix='BadHeaderWriteRaises-', suffix='.fits')
-        try:
-            hdr = {'bla??g': 3}
-            data = numpy.zeros(10)
+        from .hdu.base import INVALID_HDR_CHARS
+        for c in INVALID_HDR_CHARS:
+            fname = tempfile.mktemp(prefix='BadHeaderWriteRaises-', suffix='.fits')
+            try:
+                hdr = {'bla%sg' % c: 3}
+                data = numpy.zeros(10)
 
-            fitsio.write(fname, data, header=hdr, clobber=True)
-        except Exception as e:
-            self.assertTrue("header key 'BLA??G' has" in str(e))
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
+                fitsio.write(fname, data, header=hdr, clobber=True)
+            except Exception as e:
+                self.assertTrue("header key 'BLA%sG' has" % c in str(e))
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
     def testHeaderTemplate(self):
         """
