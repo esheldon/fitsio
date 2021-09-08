@@ -660,33 +660,35 @@ class TestReadWrite(unittest.TestCase):
         test lenient treatment of garbage written by IDL mwrfits
         """
 
-        data="""SIMPLE  =                    T /Primary Header created by MWRFITS v1.11         BITPIX  =                   16 /                                                NAXIS   =                    0 /                                                EXTEND  =                    T /Extensions may be present                       BLAT    =                    1 /integer                                         FOO     =              1.00000 /float (or double?)                              BAR     =                  NAN /float NaN                                       BIZ     =                  NaN /double NaN                                      BAT     =                  INF /1.0 / 0.0                                       BOO     =                 -INF /-1.0 / 0.0                                      QUAT    = '        '           /blank string                                    QUIP    = '1.0     '           /number in quotes                                QUIZ    = ' 1.0    '           /number in quotes with a leading space           QUIL    = 'NaN     '           /NaN in quotes                                   QU.D    = 'Inf     '           /Inf in quotes                                   END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """ # noqa
+        data=b"""SIMPLE  =                    T /Primary Header created by MWRFITS v1.11         BITPIX  =                   16 /                                                NAXIS   =                    0 /                                                EXTEND  =                    T /Extensions may be present                       BLAT    =                    1 /integer                                         FOO     =              1.00000 /float (or double?)                              BAR@    =                  NAN /float NaN                                       BI.Z    =                  NaN /double NaN                                      BAT     =                  INF /1.0 / 0.0                                       BOO     =                 -INF /-1.0 / 0.0                                      QUAT    = '        '           /blank string                                    QUIP    = '1.0     '           /number in quotes                                QUIZ    = ' 1.0    '           /number in quotes with a leading space           QUI\xf4\x04   = 'NaN     '           /NaN in quotes                                   HIERARCH QU.@D = 'Inf     '                                                     END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """ # noqa
 
-        fname=tempfile.mktemp(prefix='fitsio-HeaderJunk-',suffix='.fits')
+        fname = tempfile.mktemp(prefix='fitsio-HeaderJunk-', suffix='.fits')
         try:
-            with open(fname,'w') as fobj:
+            with open(fname, 'wb') as fobj:
                 fobj.write(data)
 
             h = fitsio.read_header(fname)
-            self.assertEqual(h['bar'],'NAN', "NAN garbage")
-            self.assertEqual(h['biz'],'NaN', "NaN garbage")
-            self.assertEqual(h['bat'],'INF', "INF garbage")
-            self.assertEqual(h['boo'],'-INF', "-INF garbage")
+            # these keys are not hierarch but we can parse the name and then
+            # leave the value as a string, so we do that.
+            self.assertEqual(h['bar@'], 'NAN', "NAN garbage")
+            self.assertEqual(h['bi.z'], 'NaN', "NaN garbage")
+            self.assertEqual(h['bat'], 'INF', "INF garbage")
+            self.assertEqual(h['boo'], '-INF', "-INF garbage")
             self.assertEqual(h['quat'], '', 'blank')
             self.assertEqual(h['quip'], '1.0', '1.0 in quotes')
             self.assertEqual(h['quiz'], ' 1.0', '1.0 in quotes')
-            self.assertEqual(h['quil'], 'NaN', 'NaN in quotes')
-            # note replacement of junk '.' in index 2 N from
-            # index 2 of JUNK___
-            self.assertEqual(h['qund'], 'Inf', 'Inf in quotes')
-
+            # the key in the header is 'QUI' + two non-ascii chars and gets
+            # translated to `QUI__`
+            self.assertEqual(h['qui__'], 'NaN', 'NaN in quotes')
+            # this key is `HIERARCH QU.@D` in the header and so gets read as is
+            self.assertEqual(h['qu.@d'], 'Inf', 'Inf in quotes')
 
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
 
     def testHeaderJunkNonAscii(self):
-        data = b"SIMPLE  =                    T / file does conform to FITS standard             BITPIX  =                   16 / number of bits per data pixel                  NAXIS   =                    0 / number of data axes                            EXTEND  =                    T / FITS dataset may contain extensions            COMMENT   FITS (Flexible Image Transport System) format is defined in 'AstronomyCOMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H @\x0f@\x0f \x02\x05\x18@\x02\x02\xc5@\x0c\x03\xf3@\x080\x02\x03\xbc@\x0f@@@@@@@@                                                END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "
+        data = b"SIMPLE  =                    T / file does conform to FITS standard             BITPIX  =                   16 / number of bits per data pixel                  NAXIS   =                    0 / number of data axes                            EXTEND  =                    T / FITS dataset may contain extensions            COMMENT   FITS (Flexible Image Transport System) format is defined in 'AstronomyCOMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H @\x0f@\x0f \x02\x05\x18@\x02\x02\xc5@\x0c\x03\xf3@\x080\x02\x03\xbc@\x0f@@@@@@@@                                                END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             " # noqa
 
         fname = tempfile.mktemp(prefix='fitsio-HeaderJunkNonAscii-', suffix='.fits')
         try:
@@ -694,11 +696,30 @@ class TestReadWrite(unittest.TestCase):
                 fobj.write(data)
 
             h = fitsio.read_header(fname)
-            self.assertTrue(h["JUNK"] is None)
+            self.assertTrue(h["@_@_"] is None)
 
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
+
+    def testBadHeaderWriteRaises(self):
+        """
+        Test that an invalid header raises.
+        """
+
+        from .hdu.base import INVALID_HDR_CHARS
+        for c in INVALID_HDR_CHARS:
+            fname = tempfile.mktemp(prefix='BadHeaderWriteRaises-', suffix='.fits')
+            try:
+                hdr = {'bla%sg' % c: 3}
+                data = numpy.zeros(10)
+
+                fitsio.write(fname, data, header=hdr, clobber=True)
+            except Exception as e:
+                self.assertTrue("header key 'BLA%sG' has" % c in str(e))
+            finally:
+                if os.path.exists(fname):
+                    os.remove(fname)
 
     def testHeaderTemplate(self):
         """
@@ -3046,10 +3067,3 @@ DATASUM =                      / checksum of the data records\n"""
             else:
                 self.compare_array(rec1[f], rec2[f],
                                    "testing '%s' num field '%s' equal" % (name,f))
-
-
-
-
-
-if __name__ == '__main__':
-    test()

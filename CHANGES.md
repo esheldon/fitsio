@@ -4,12 +4,20 @@ version 1.1.5 (not yet released)
 Bug Fixes
 
     - Deal with case that a header keyword has non-ascii
-      characters and the value is numerical.  In this case
+      characters and the value is numerical. In this case
       we cannot convert the value because fits_read_key
       can segfault in some scenarios.  We instead return
-      a string
-    - Fixed residual segfaults for header cards with non-ascii 
+      a string.
+    - Fixed residual segfaults for header cards with non-ascii
       characters.
+    - HIERARCH keywords are now properly parsed.
+    - Header keywords with `*`, `#` or `?` in them now properly raise an error
+      before writing since the generated FITS files cannot be read.
+
+Changes
+
+    - Non-allowed characters in header keywords are now converted to `_` instead
+      of `JUNK___...`.
 
 version 1.1.4
 ---------------------------------
@@ -26,7 +34,7 @@ Bug Fixes
 
 Compatibility changes
 
-    - moved to sing `bool` rather than `np.bool` to be compativle
+    - moved to sing `bool` rather than `np.bool` to be compatible
       with numpy 1.2
 
 version 1.1.3

@@ -1,9 +1,12 @@
+import re
 import copy
 import warnings
 
 from ..util import _stypes, _itypes, _ftypes, FITSRuntimeWarning
 from ..header import FITSHDR
 
+INVALID_HDR_CHARS_RE = re.compile(r"(\?|\*|#)+")
+INVALID_HDR_CHARS = {"?", "*", "#"}
 ANY_HDU = -1
 IMAGE_HDU = 0
 ASCII_TBL = 1
@@ -319,6 +322,12 @@ class HDUBase(object):
             name = r['name']
             if name is not None:
                 name = name.upper()
+
+                if INVALID_HDR_CHARS_RE.search(name):
+                    raise RuntimeError(
+                        "header key '%s' has invalid characters! Characters in "
+                        "%s are not allowed!" % (name, INVALID_HDR_CHARS)
+                    )
 
             value = r['value']
 
