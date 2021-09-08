@@ -4393,9 +4393,27 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         } else {
 
             if (is_hierarch) {
+              // if a key is hierarch, then any ascii character is allowed except
+              // *, ? and #. Thus we convert any of those (and any chars we find
+              // that don't correspond to something written, ascii <= 32 or 127)
+              // to an underscore
+              // if the key is converted, then we cannot parse it further with
+              // cfitsio
               was_converted = convert_keyword_to_allowed_ascii_template_and_nonascii_only(keyname);
             } else {
+              // for non-hierach keys, we cannot use the cfitsio functions if any
+              // character besides those in the fits conventions (A-Z,a-z,0-9,_,-)
+              // are present. Thus we flag those and store their values as a string
+              // if this happens.
               was_converted = has_invalid_keyword_chars(keyname);
+
+              // in order to actually store the key in the python dict, we have to cut
+              // out any non-ascii chars
+              // we additionally convert the template chars to that the fits data
+              // we make can be written back without error
+              // note that the check by has_invalid_keyword_chars is more stringent
+              // than the checks done here, so if any conversion is done it has already
+              // been flagged above.
               convert_keyword_to_allowed_ascii_template_and_nonascii_only(keyname);
             }
             add_string_to_dict(dict,"name",keyname);
