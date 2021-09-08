@@ -321,12 +321,6 @@ class HDUBase(object):
             if name is not None:
                 name = name.upper()
 
-                if not all(c in VALID_HDR_CHARS or c.isalnum() for c in name):
-                    raise RuntimeError(
-                        "header key '%s' has invalid characters! The only "
-                        "valid characters are {0-9,A-Z,a-z,_,-,.}." % name
-                    )
-
             value = r['value']
 
             if name == 'COMMENT':

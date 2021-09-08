@@ -660,7 +660,7 @@ class TestReadWrite(unittest.TestCase):
         test lenient treatment of garbage written by IDL mwrfits
         """
 
-        data="""SIMPLE  =                    T /Primary Header created by MWRFITS v1.11         BITPIX  =                   16 /                                                NAXIS   =                    0 /                                                EXTEND  =                    T /Extensions may be present                       BLAT    =                    1 /integer                                         FOO     =              1.00000 /float (or double?)                              BAR@    =                  NAN /float NaN                                       BI.Z    =                  NaN /double NaN                                      BAT     =                  INF /1.0 / 0.0                                       BOO     =                 -INF /-1.0 / 0.0                                      QUAT    = '        '           /blank string                                    QUIP    = '1.0     '           /number in quotes                                QUIZ    = ' 1.0    '           /number in quotes with a leading space           QUIL    = 'NaN     '           /NaN in quotes                                   HIERARCH QU.D = 'Inf     '                                                      END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """ # noqa
+        data="""SIMPLE  =                    T /Primary Header created by MWRFITS v1.11         BITPIX  =                   16 /                                                NAXIS   =                    0 /                                                EXTEND  =                    T /Extensions may be present                       BLAT    =                    1 /integer                                         FOO     =              1.00000 /float (or double?)                              BAR@    =                  NAN /float NaN                                       BI.Z    =                  NaN /double NaN                                      BAT     =                  INF /1.0 / 0.0                                       BOO     =                 -INF /-1.0 / 0.0                                      QUAT    = '        '           /blank string                                    QUIP    = '1.0     '           /number in quotes                                QUIZ    = ' 1.0    '           /number in quotes with a leading space           QUIL    = 'NaN     '           /NaN in quotes                                   HIERARCH QU.@D = 'Inf     '                                                     END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             """ # noqa
 
         fname=tempfile.mktemp(prefix='fitsio-HeaderJunk-',suffix='.fits')
         try:
@@ -676,7 +676,7 @@ class TestReadWrite(unittest.TestCase):
             self.assertEqual(h['quip'], '1.0', '1.0 in quotes')
             self.assertEqual(h['quiz'], ' 1.0', '1.0 in quotes')
             self.assertEqual(h['quil'], 'NaN', 'NaN in quotes')
-            self.assertEqual(h['qu.d'], 'Inf', 'Inf in quotes')
+            self.assertEqual(h['qu.@d'], 'Inf', 'Inf in quotes')
 
 
         finally:
@@ -694,23 +694,6 @@ class TestReadWrite(unittest.TestCase):
             h = fitsio.read_header(fname)
             self.assertTrue(h["____"] is None)
 
-        finally:
-            if os.path.exists(fname):
-                os.remove(fname)
-
-    def testBadHeaderWriteRaises(self):
-        """
-        Test that an invalid header raises.
-        """
-
-        fname = tempfile.mktemp(prefix='BadHeaderWriteRaises-', suffix='.fits')
-        try:
-            hdr = {'bla??g': 3}
-            data = numpy.zeros(10)
-
-            fitsio.write(fname, data, header=hdr, clobber=True)
-        except Exception as e:
-            self.assertTrue("header key 'BLA??G' has" in str(e))
         finally:
             if os.path.exists(fname):
                 os.remove(fname)
