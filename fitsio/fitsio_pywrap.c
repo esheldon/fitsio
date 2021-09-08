@@ -109,17 +109,18 @@ static int convert_keyword_to_allowed_ascii(char* str, int is_hierarch) {
 
         if (!isgood) {
             was_converted = 1;
-            if (i==0) {
-                str[i] = 'J';
-            } else if (i==1) {
-                str[i] = 'U';
-            } else if (i==2) {
-                str[i] = 'N';
-            } else if (i==3) {
-                str[i] = 'K';
-            } else {
-                str[i] = '_';
-            }
+            str[i] = '_';
+            // if (i==0) {
+            //     str[i] = 'J';
+            // } else if (i==1) {
+            //     str[i] = 'U';
+            // } else if (i==2) {
+            //     str[i] = 'N';
+            // } else if (i==3) {
+            //     str[i] = 'K';
+            // } else {
+            //     str[i] = '_';
+            // }
         }
     }
     return was_converted;
