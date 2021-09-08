@@ -86,7 +86,7 @@ static void convert_to_ascii(char* str) {
 
    Does not check the keyword is otherwise valid
 */
-static int convert_keyword_to_allowed_ascii(char* str, int is_hierarch) {
+static int convert_keyword_to_allowed_ascii(char* str) {
     int isgood=0, was_converted=0;
     size_t size=0, i=0;
     int cval=0;
@@ -104,28 +104,66 @@ static int convert_keyword_to_allowed_ascii(char* str, int is_hierarch) {
             ||
             (cval == '-')
             ||
-            (cval == '_')
-            || (is_hierarch == 1);
+            (cval == '_');
 
-        if ((!isgood) || cval < 0 || cval > 127) {
+        if (!isgood) {
             was_converted = 1;
             str[i] = '_';
-            // if (i==0) {
-            //     str[i] = 'J';
-            // } else if (i==1) {
-            //     str[i] = 'U';
-            // } else if (i==2) {
-            //     str[i] = 'N';
-            // } else if (i==3) {
-            //     str[i] = 'K';
-            // } else {
-            //     str[i] = '_';
-            // }
         }
     }
     return was_converted;
 }
 
+
+/*
+   Replace bad keyword characters (?, *, #) or non-ascii with valid _ characters.
+*/
+static int convert_keyword_to_allowed_ascii_template_and_nonascii_only(char *str) {
+    int isbad=0, was_converted=0;
+    size_t size=0, i=0;
+    int cval=0;
+
+    size = strlen(str);
+    for (i=0; i < size; i++) {
+        cval = (int)str[i];
+
+        isbad = (cval == '?') || (cval == '*') || (cval == '#');
+
+        if (isbad || cval < 32 || cval > 126) {
+            was_converted = 1;
+            str[i] = '_';
+        }
+    }
+    return was_converted;
+
+}
+
+/*
+return 1 if a keyword has non-standard FITS keyword characters.
+*/
+static int has_invalid_keyword_chars(char *str) {
+  int isbad=0;
+  size_t size=0, i=0;
+  int cval=0;
+
+  size = strlen(str);
+  for (i=0; i < size; i++) {
+      cval = (int)str[i];
+
+      isbad = !(
+          (cval >= 'A' && cval <= 'Z')
+          ||
+          (cval >= 'a' && cval <= 'z')
+          ||
+          (cval >= '0' && cval <= '9')
+          ||
+          (cval == '-')
+          ||
+          (cval == '_')
+      );
+  }
+  return isbad;
+}
 
 /*
 
@@ -653,7 +691,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(extname, 0);
+        convert_keyword_to_allowed_ascii(extname);
         add_string_to_dict(dict, "extname", extname);
     } else {
         add_string_to_dict(dict, "extname", "");
@@ -661,7 +699,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(hduname, 0);
+        convert_keyword_to_allowed_ascii(hduname);
         add_string_to_dict(dict, "hduname", hduname);
     } else {
         add_string_to_dict(dict, "hduname", "");
@@ -4353,7 +4391,13 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             add_string_to_dict(dict, "comment", scomment);
 
         } else {
-            was_converted = convert_keyword_to_allowed_ascii(keyname, is_hierarch);
+
+            if (is_hierarch) {
+              was_converted = convert_keyword_to_allowed_ascii_template_and_nonascii_only(keyname);
+            } else {
+              was_converted = has_invalid_keyword_chars(keyname);
+              convert_keyword_to_allowed_ascii_template_and_nonascii_only(keyname);
+            }
             add_string_to_dict(dict,"name",keyname);
             convert_to_ascii(comment);
             add_string_to_dict(dict,"comment",comment);

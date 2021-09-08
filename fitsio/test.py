@@ -668,10 +668,10 @@ class TestReadWrite(unittest.TestCase):
                 fobj.write(data)
 
             h = fitsio.read_header(fname)
-            # 'BAR@' in the header gets translated to `BAR_` to make a valid key
-            self.assertEqual(h['bar_'], 'NAN', "NAN garbage")
-            # `BI.Z` in the header gets translated to `BI_Z` to make a valid key
-            self.assertEqual(h['bi_z'], 'NaN', "NaN garbage")
+            # these keys are not hierarch but we can parse the name and then
+            # leave the value as a string, so we do that.
+            self.assertEqual(h['bar@'], 'NAN', "NAN garbage")
+            self.assertEqual(h['bi.z'], 'NaN', "NaN garbage")
             self.assertEqual(h['bat'], 'INF', "INF garbage")
             self.assertEqual(h['boo'], '-INF', "-INF garbage")
             self.assertEqual(h['quat'], '', 'blank')
@@ -696,7 +696,7 @@ class TestReadWrite(unittest.TestCase):
                 fobj.write(data)
 
             h = fitsio.read_header(fname)
-            self.assertTrue(h["____"] is None)
+            self.assertTrue(h["@_@_"] is None)
 
         finally:
             if os.path.exists(fname):
@@ -3067,10 +3067,3 @@ DATASUM =                      / checksum of the data records\n"""
             else:
                 self.compare_array(rec1[f], rec2[f],
                                    "testing '%s' num field '%s' equal" % (name,f))
-
-
-
-
-
-if __name__ == '__main__':
-    test()
