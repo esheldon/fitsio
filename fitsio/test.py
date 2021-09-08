@@ -698,6 +698,23 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testBadHeaderWriteRaises(self):
+        """
+        Test that an invalid header raises.
+        """
+
+        fname = tempfile.mktemp(prefix='BadHeaderWriteRaises-', suffix='.fits')
+        try:
+            hdr = {'bla??g': 3}
+            data = numpy.zeros(10)
+
+            fitsio.write(fname, data, header=hdr, clobber=True)
+        except Exception as e:
+            self.assertTrue("header key 'BLA??G' has" in str(e))
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testHeaderTemplate(self):
         """
         test adding bunch of cards from a split template
