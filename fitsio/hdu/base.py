@@ -4,7 +4,6 @@ import warnings
 from ..util import _stypes, _itypes, _ftypes, FITSRuntimeWarning
 from ..header import FITSHDR
 
-VALID_HDR_CHARS = ("-", "_", ".")
 ANY_HDU = -1
 IMAGE_HDU = 0
 ASCII_TBL = 1
