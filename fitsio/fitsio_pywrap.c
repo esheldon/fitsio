@@ -25,7 +25,7 @@
 #include "fitsio.h"
 #include "fitsio2.h"
 //#include "fitsio_pywrap_lists.h"
-#include <numpy/arrayobject.h> 
+#include <numpy/arrayobject.h>
 
 
 // this is not defined anywhere in cfitsio except in
@@ -86,7 +86,7 @@ static void convert_to_ascii(char* str) {
 
    Does not check the keyword is otherwise valid
 */
-static int convert_keyword_to_allowed_ascii(char* str) {
+static int convert_keyword_to_allowed_ascii(char* str, int is_hierarch) {
     int isgood=0, was_converted=0;
     size_t size=0, i=0;
     int cval=0;
@@ -95,7 +95,7 @@ static int convert_keyword_to_allowed_ascii(char* str) {
     for (i=0; i < size; i++) {
         cval = (int)str[i];
 
-        isgood = 
+        isgood =
             (cval >= 'A' && cval <= 'Z')
             ||
             (cval >= 'a' && cval <= 'z')
@@ -104,8 +104,8 @@ static int convert_keyword_to_allowed_ascii(char* str) {
             ||
             (cval == '-')
             ||
-            (cval == '_');
-
+            (cval == '_')
+            || (is_hierarch == 1 && cval == '.');
 
         if (!isgood) {
             was_converted = 1;
@@ -203,8 +203,7 @@ static char* get_object_as_string(PyObject* obj)
     return strdata;
 }
 
-static void 
-set_ioerr_string_from_status(int status) {
+static void set_ioerr_string_from_status(int status) {
     char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
     char message[1024];
 
@@ -303,8 +302,8 @@ static void stringlist_print(struct stringlist* slist) {
 */
 
 
-static int stringlist_addfrom_listobj(struct stringlist* slist, 
-                                      PyObject* listObj, 
+static int stringlist_addfrom_listobj(struct stringlist* slist,
+                                      PyObject* listObj,
                                       const char* listname) {
     size_t size=0, i=0;
     char* tmpstr=NULL;
@@ -318,7 +317,7 @@ static int stringlist_addfrom_listobj(struct stringlist* slist,
     for (i=0; i<size; i++) {
         PyObject* tmp = PyList_GetItem(listObj, i);
         if (!is_python_string(tmp)) {
-            PyErr_Format(PyExc_ValueError, 
+            PyErr_Format(PyExc_ValueError,
                          "Expected only strings in %s list.", listname);
             return 1;
         }
@@ -537,7 +536,7 @@ static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
     // on some platforms, creating an 'i8' array gives it a longlong
     // dtype.  Just make sure it is 8 bytes
     check=
-        (npy_type == NPY_INT64) 
+        (npy_type == NPY_INT64)
         |
         (npy_type==NPY_LONGLONG && sizeof(npy_longlong)==sizeof(npy_int64));
 	if (!check) {
@@ -579,7 +578,7 @@ PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
-    
+
     fits_get_hdu_num(self->fits, &hdunum);
     return PyLong_FromLong((long)hdunum);
 }
@@ -623,7 +622,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
     long long header_start;
     long long data_start;
     long long data_end;
- 
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
@@ -653,7 +652,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(extname);
+        convert_keyword_to_allowed_ascii(extname, 0);
         add_string_to_dict(dict, "extname", extname);
     } else {
         add_string_to_dict(dict, "extname", "");
@@ -661,7 +660,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(hduname);
+        convert_keyword_to_allowed_ascii(hduname, 0);
         add_string_to_dict(dict, "hduname", hduname);
     } else {
         add_string_to_dict(dict, "hduname", "");
@@ -696,7 +695,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
         add_long_long_to_dict(dict, "data_start", -1);
         add_long_long_to_dict(dict, "data_end", -1);
     }
- 
+
 
     int ndims=0;
     int maxdim=CFITSIO_MAX_ARRAY_DIMS;
@@ -728,7 +727,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
             add_long_to_dict(dict,"img_equiv_type",(long)bitpix_equiv);
 
             tstatus=0;
-            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", 
+            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE",
                               comptype, NULL, &tstatus)==0) {
                 convert_to_ascii(comptype);
                 add_string_to_dict(dict,"comptype",comptype);
@@ -769,8 +768,8 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 stringlist_push_size(tforms, 70);
             }
             // just get the names: no other way to do it!
-            fits_read_btblhdrll(self->fits, ncols, NULL, NULL, 
-                                names->data, tforms->data, 
+            fits_read_btblhdrll(self->fits, ncols, NULL, NULL,
+                                names->data, tforms->data,
                                 NULL, NULL, NULL, &tstatus);
 
             for (i=0; i<ncols; i++) {
@@ -793,7 +792,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 add_long_to_dict(d,"eqtype",(long)type);
 
                 tstatus=0;
-                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, 
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims,
                                      &tstatus)) {
                     add_none_to_dict(d,"tdim");
                 } else {
@@ -876,7 +875,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
                 add_long_to_dict(d,"eqtype",(long)type);
 
                 tstatus=0;
-                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims, 
+                if (fits_read_tdimll(self->fits, i+1, maxdim, &ndims, dims,
                                                       &tstatus)) {
                     add_none_to_dict(dict,"tdim");
                 } else {
@@ -918,7 +917,7 @@ PyFITSObject_get_hdu_name_version(struct PyFITSObject* self, PyObject* args) {
 
     char extname[FLEN_VALUE];
     int extver=0;
- 
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
@@ -948,7 +947,7 @@ PyFITSObject_get_hdu_name_version(struct PyFITSObject* self, PyObject* args) {
 
 
 // this is the parameter that goes in the type for fits_write_col
-static int 
+static int
 npy_to_fits_table_type(int npy_dtype, int write_bitcols) {
 
     char mess[255];
@@ -1027,7 +1026,7 @@ npy_to_fits_table_type(int npy_dtype, int write_bitcols) {
 
 
 
-static int 
+static int
 npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
 
     char mess[255];
@@ -1137,7 +1136,7 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
 }
 
 
-/* 
+/*
  * this is really only for reading variable length columns since we should be
  * able to just read the bytes for normal columns
  */
@@ -1254,7 +1253,7 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
             return NPY_STRING;
 
         default:
-            PyErr_Format(PyExc_TypeError,"Unsupported FITS table datatype %d", fits_dtype); 
+            PyErr_Format(PyExc_TypeError,"Unsupported FITS table datatype %d", fits_dtype);
             return -9999;
     }
 
@@ -1568,7 +1567,7 @@ PyFITSObject_reshape_image(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
- 
+
     // existing image params, just to get bitpix
     if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims_orig, dims_orig, &status)) {
         set_ioerr_string_from_status(status);
@@ -1619,7 +1618,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
- 
+
     if (!PyArray_Check(array)) {
         PyErr_SetString(PyExc_TypeError, "input must be an array.");
         return NULL;
@@ -1655,7 +1654,7 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
  *
  * The keys are written as TDIM{colnum}
  */
-static int 
+static int
 add_tdims_from_listobj(fitsfile* fits, PyObject* tdimObj, int ncols) {
     int status=0, i=0;
     size_t size=0;
@@ -1764,7 +1763,7 @@ PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         }
     }
     nfields = ttyp->size;
-    if ( fits_create_tbl(self->fits, table_type, nrows, nfields, 
+    if ( fits_create_tbl(self->fits, table_type, nrows, nfields,
                          ttyp->data, tform->data, tunit->data, extname_use, &status) ) {
         set_ioerr_string_from_status(status);
         goto create_table_cleanup;
@@ -1877,7 +1876,7 @@ PyFITSObject_insert_col(struct PyFITSObject* self, PyObject* args, PyObject* kwd
 
 // No error checking performed here
 static
-int write_string_column( 
+int write_string_column(
         fitsfile *fits,  /* I - FITS file pointer                       */
         int  colnum,     /* I - number of column to write (1 = 1st col) */
         LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
@@ -1949,7 +1948,7 @@ PyFITSObject_write_column(struct PyFITSObject* self, PyObject* args, PyObject* k
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOLi", 
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOLi",
                                      kwlist, &hdunum, &colnum, &array, &firstrow_py, &write_bitcols)) {
         return NULL;
     }
@@ -2055,7 +2054,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOLi", 
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOLi",
                                      kwlist, &hdunum, &colnum_list, &array_list, &firstrow_py, &write_bitcols)) {
         return NULL;
     }
@@ -2153,12 +2152,12 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         for (icol=0; icol<ncols; icol++) {
             data=PyArray_GETPTR1(array_ptrs[icol], irow);
             if (is_string[icol]) {
-                if (write_string_column(self->fits, 
-                                        colnums[icol], 
-                                        thisrow, 
-                                        firstelem, 
-                                        nperrow[icol], 
-                                        (char*)data, 
+                if (write_string_column(self->fits,
+                                        colnums[icol],
+                                        thisrow,
+                                        firstelem,
+                                        nperrow[icol],
+                                        (char*)data,
                                         &status)) {
                     set_ioerr_string_from_status(status);
                     goto _fitsio_pywrap_write_columns_bail;
@@ -2176,13 +2175,13 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
                     goto _fitsio_pywrap_write_columns_bail;
                 }
             } else {
-                if( fits_write_col(self->fits, 
-                                   fits_dtypes[icol], 
-                                   colnums[icol], 
-                                   thisrow, 
-                                   firstelem, 
-                                   nperrow[icol], 
-                                   data, 
+                if( fits_write_col(self->fits,
+                                   fits_dtypes[icol],
+                                   colnums[icol],
+                                   thisrow,
+                                   firstelem,
+                                   nperrow[icol],
+                                   data,
                                    &status)) {
                     set_ioerr_string_from_status(status);
                     goto _fitsio_pywrap_write_columns_bail;
@@ -2200,7 +2199,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
             set_ioerr_string_from_status(status);
             return NULL;
         }
-        
+
     } else {
         if( fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status)) {
             set_ioerr_string_from_status(status);
@@ -2236,7 +2235,7 @@ _fitsio_pywrap_write_columns_bail:
 
 // No error checking performed here
 static
-int write_var_string_column( 
+int write_var_string_column(
         fitsfile *fits,  /* I - FITS file pointer                       */
         int  colnum,     /* I - number of column to write (1 = 1st col) */
         LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
@@ -2264,8 +2263,8 @@ int write_var_string_column(
 
         // just a container
         strarr[0] = strdata;
-        res=fits_write_col_str(fits, colnum, 
-                               firstrow+i, firstelem, nelem, 
+        res=fits_write_col_str(fits, colnum,
+                               firstrow+i, firstelem, nelem,
                                strarr, status);
 
         free(strdata);
@@ -2283,15 +2282,15 @@ write_var_string_column_cleanup:
     return 0;
 }
 
-/* 
+/*
  * No error checking performed here
  */
 static
-int write_var_num_column( 
+int write_var_num_column(
         fitsfile *fits,  /* I - FITS file pointer                       */
         int  colnum,     /* I - number of column to write (1 = 1st col) */
         LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
-        int fits_dtype, 
+        int fits_dtype,
         PyObject* array,
         int  *status) {   /* IO - error status                           */
 
@@ -2308,10 +2307,10 @@ int write_var_num_column(
 
     int mindepth=1, maxdepth=0;
     PyObject* context=NULL;
-    int requirements = 
-        NPY_C_CONTIGUOUS 
-        | NPY_ALIGNED 
-        | NPY_NOTSWAPPED 
+    int requirements =
+        NPY_C_CONTIGUOUS
+        | NPY_ALIGNED
+        | NPY_NOTSWAPPED
         | NPY_ELEMENTSTRIDES;
 
     int res=0;
@@ -2324,8 +2323,8 @@ int write_var_num_column(
         el = PyArray_GETITEM(array, ptr);
 
         // a copy is only made if needed
-        el_array = PyArray_CheckFromAny(el, PyArray_DescrFromType(npy_dtype), 
-                                        mindepth, maxdepth, 
+        el_array = PyArray_CheckFromAny(el, PyArray_DescrFromType(npy_dtype),
+                                        mindepth, maxdepth,
                                         requirements, context);
         if (el_array == NULL) {
             // error message will already be set
@@ -2334,7 +2333,7 @@ int write_var_num_column(
 
         nelem=PyArray_SIZE(el);
         data=PyArray_DATA(el_array);
-        res=fits_write_col(fits, abs(fits_dtype), colnum, 
+        res=fits_write_col(fits, abs(fits_dtype), colnum,
                            firstrow+i, firstelem, (LONGLONG) nelem, data, status);
         Py_XDECREF(el_array);
 
@@ -2350,7 +2349,7 @@ int write_var_num_column(
 
 
 
-/* 
+/*
  * write a variable length column, starting at firstrow.  On the python side,
  * the firstrow kwd should default to 1.  You can append rows using firstrow =
  * nrows+1
@@ -2379,7 +2378,7 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL", 
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL",
                   kwlist, &hdunum, &colnum, &array, &firstrow_py)) {
         return NULL;
     }
@@ -2445,7 +2444,7 @@ PyFITSObject_write_record(struct PyFITSObject* self, PyObject* args) {
 
     char* cardin=NULL;
     char card[FLEN_CARD];
- 
+
     if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &cardin)) {
         return NULL;
     }
@@ -2473,7 +2472,7 @@ PyFITSObject_write_record(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 
 // let python do the conversions
 static PyObject *
@@ -2486,7 +2485,7 @@ PyFITSObject_write_string_key(struct PyFITSObject* self, PyObject* args) {
     char* value=NULL;
     char* comment=NULL;
     char* comment_in=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"isss", &hdunum, &keyname, &value, &comment_in)) {
         return NULL;
     }
@@ -2517,7 +2516,7 @@ PyFITSObject_write_string_key(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 static PyObject *
 PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
     int status=0;
@@ -2530,7 +2529,7 @@ PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
     double value=0;
     char* comment=NULL;
     char* comment_in=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"isds", &hdunum, &keyname, &value, &comment_in)) {
         return NULL;
     }
@@ -2562,7 +2561,7 @@ PyFITSObject_write_double_key(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 static PyObject *
 PyFITSObject_write_long_long_key(struct PyFITSObject* self, PyObject* args) {
     int status=0;
@@ -2573,7 +2572,7 @@ PyFITSObject_write_long_long_key(struct PyFITSObject* self, PyObject* args) {
     long long value=0;
     char* comment=NULL;
     char* comment_in=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"isLs", &hdunum, &keyname, &value, &comment_in)) {
         return NULL;
     }
@@ -2604,7 +2603,7 @@ PyFITSObject_write_long_long_key(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 static PyObject *
 PyFITSObject_write_logical_key(struct PyFITSObject* self, PyObject* args) {
     int status=0;
@@ -2615,7 +2614,7 @@ PyFITSObject_write_logical_key(struct PyFITSObject* self, PyObject* args) {
     int value=0;
     char* comment=NULL;
     char* comment_in=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"isis", &hdunum, &keyname, &value, &comment_in)) {
         return NULL;
     }
@@ -2646,7 +2645,7 @@ PyFITSObject_write_logical_key(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 // let python do the conversions
 static PyObject *
 PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
@@ -2655,7 +2654,7 @@ PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     char* comment=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &comment)) {
         return NULL;
     }
@@ -2682,7 +2681,7 @@ PyFITSObject_write_comment(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 // let python do the conversions
 static PyObject *
 PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
@@ -2691,7 +2690,7 @@ PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     char* history=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &history)) {
         return NULL;
     }
@@ -2757,7 +2756,7 @@ PyFITSObject_write_continue(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     char* value=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &value)) {
         return NULL;
     }
@@ -2795,7 +2794,7 @@ PyFITSObject_write_undefined_key(struct PyFITSObject* self, PyObject* args) {
     char* keyname=NULL;
     char* comment=NULL;
     char* comment_in=NULL;
- 
+
     if (!PyArg_ParseTuple(args, (char*)"iss", &hdunum, &keyname, &comment_in)) {
         return NULL;
     }
@@ -2826,7 +2825,7 @@ PyFITSObject_write_undefined_key(struct PyFITSObject* self, PyObject* args) {
 
     Py_RETURN_NONE;
 }
- 
+
 
 
 /*
@@ -3100,7 +3099,7 @@ static int read_ascii_column_byrow(
         dorows=1;
         nrows = PyArray_SIZE(rowsObj);
         if (nrows != nelem) {
-            PyErr_Format(PyExc_ValueError, 
+            PyErr_Format(PyExc_ValueError,
                     "input array[%ld] and rows[%ld] have different size", nelem,nrows);
             return 1;
         }
@@ -3150,12 +3149,12 @@ static int read_ascii_column(fitsfile* fits, int colnum, PyObject* array, PyObje
 // read a subset of rows for the input column
 // the row array is assumed to be unique and sorted.
 static int read_binary_column(
-        fitsfile* fits, 
-        int colnum, 
-        npy_intp nrows, 
-        npy_int64* rows, 
-        void* data, 
-        npy_intp stride, 
+        fitsfile* fits,
+        int colnum,
+        npy_intp nrows,
+        npy_int64* rows,
+        void* data,
+        npy_intp stride,
         int* status) {
 
     FITSfile* hdu=NULL;
@@ -3202,7 +3201,7 @@ static int read_binary_column(
 
 
 
-/* 
+/*
  * read from a column into an input array
  */
 static PyObject *
@@ -3294,7 +3293,7 @@ read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* s
 
     str=calloc(nchar+1,sizeof(char));
     if (str == NULL) {
-        PyErr_Format(PyExc_MemoryError, 
+        PyErr_Format(PyExc_MemoryError,
                      "Could not allocate string of size %lld", nchar);
         return NULL;
     }
@@ -3310,7 +3309,7 @@ read_var_string(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nchar, int* s
     stringObj = Py_BuildValue("s",str);
 #endif
     if (NULL == stringObj) {
-        PyErr_Format(PyExc_MemoryError, 
+        PyErr_Format(PyExc_MemoryError,
                      "Could not allocate py string of size %lld", nchar);
         goto read_var_string_cleanup;
     }
@@ -3321,7 +3320,7 @@ read_var_string_cleanup:
     return stringObj;
 }
 static PyObject*
-read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem, 
+read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem,
               int fits_dtype, int npy_dtype, int* status) {
     LONGLONG firstelem=1;
     PyObject* arrayObj=NULL;
@@ -3335,7 +3334,7 @@ read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem,
     dims[0] = nelem;
     arrayObj=PyArray_ZEROS(1, dims, npy_dtype, fortran);
     if (arrayObj==NULL) {
-        PyErr_Format(PyExc_MemoryError, 
+        PyErr_Format(PyExc_MemoryError,
                      "Could not allocate array type %d size %lld",npy_dtype,nelem);
         return NULL;
     }
@@ -3411,10 +3410,10 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
         return NULL;
     }
     if (!isvariable) {
-        PyErr_Format(PyExc_TypeError,"Column %d not a variable length %d", colnum, fits_dtype); 
+        PyErr_Format(PyExc_TypeError,"Column %d not a variable length %d", colnum, fits_dtype);
         return NULL;
     }
-    
+
     if (rowsObj == Py_None) {
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         get_all_rows=1;
@@ -3469,12 +3468,12 @@ read_var_column_cleanup:
 
     return listObj;
 }
- 
+
 
 // read specified columns and rows
 static int read_binary_rec_columns(
-        fitsfile* fits, 
-        npy_intp ncols, npy_int64* colnums, 
+        fitsfile* fits,
+        npy_intp ncols, npy_int64* colnums,
         npy_intp nrows, npy_int64* rows,
         void* data, int* status) {
     FITSfile* hdu=NULL;
@@ -3601,7 +3600,7 @@ recread_columns_cleanup:
 
 
 
-/* 
+/*
  * read specified columns and rows
  *
  * Move by offset instead of just groupsize; this allows us to read into a
@@ -3612,14 +3611,14 @@ recread_columns_cleanup:
  */
 
 static int read_columns_as_rec_byoffset(
-        fitsfile* fits, 
-        npy_intp ncols, 
+        fitsfile* fits,
+        npy_intp ncols,
         const npy_int64* colnums,         // columns to read from file
         const npy_int64* field_offsets,   // offsets of corresponding fields within array
-        npy_intp nrows, 
+        npy_intp nrows,
         const npy_int64* rows,
-        char* data, 
-        npy_intp recsize, 
+        char* data,
+        npy_intp recsize,
         int* status) {
 
     FITSfile* hdu=NULL;
@@ -3722,7 +3721,7 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
         PyErr_SetString(PyExc_RuntimeError, "Cannot read IMAGE_HDU into a recarray");
         return NULL;
     }
-    
+
     colnums = (const npy_int64*) get_int64_from_array(columnsObj, &ncols);
     if (colnums == NULL) {
         return NULL;
@@ -3732,8 +3731,8 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
         return NULL;
     }
     if (noffsets != ncols) {
-        PyErr_Format(PyExc_ValueError, 
-                     "%ld columns requested but got %ld offsets", 
+        PyErr_Format(PyExc_ValueError,
+                     "%ld columns requested but got %ld offsets",
                      ncols, noffsets);
         return NULL;
     }
@@ -3747,11 +3746,11 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
     data = PyArray_DATA(array);
     recsize = PyArray_ITEMSIZE(array);
     if (read_columns_as_rec_byoffset(
-                self->fits, 
+                self->fits,
                 ncols, colnums, offsets,
-                nrows, 
-                rows, 
-                (char*) data, 
+                nrows,
+                rows,
+                (char*) data,
                 recsize,
                 &status) > 0) {
         goto recread_columns_byoffset_cleanup;
@@ -3765,12 +3764,12 @@ recread_columns_byoffset_cleanup:
     }
     Py_RETURN_NONE;
 }
- 
+
 
 
 // read specified rows, all columns
 static int read_rec_bytes_byrow(
-        fitsfile* fits, 
+        fitsfile* fits,
         npy_intp nrows, npy_int64* rows,
         void* data, int* status) {
 
@@ -3804,7 +3803,7 @@ static int read_rec_bytes_byrow(
 // read specified rows, all columns
 /*
 static int read_rec_bytes_byrowold(
-        fitsfile* fits, 
+        fitsfile* fits,
         npy_intp nrows, npy_int64* rows,
         void* data, int* status) {
     FITSfile* hdu=NULL;
@@ -3878,7 +3877,7 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     if (rows == NULL) {
         return NULL;
     }
- 
+
     if (read_rec_bytes_byrow(self->fits, nrows, rows, data, &status)) {
         goto recread_byrow_cleanup;
     }
@@ -3891,7 +3890,7 @@ recread_byrow_cleanup:
     }
     Py_RETURN_NONE;
 }
- 
+
 
 
 
@@ -3962,8 +3961,8 @@ recread_asrec_cleanup:
     }
     Py_RETURN_NONE;
 }
- 
- 
+
+
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
 // Note numpy allows a maximum of 32 dimensions
@@ -4000,7 +3999,7 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, 
+    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis,
                              naxes, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
@@ -4017,7 +4016,7 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 
     if (size != arrsize) {
         PyErr_Format(PyExc_RuntimeError,
-          "Input array size is %ld but on disk array size is %lld", 
+          "Input array size is %ld but on disk array size is %lld",
           arrsize, size);
         return NULL;
     }
@@ -4119,7 +4118,7 @@ static int get_long_slices(PyObject* fpix_arr,
     ssize=PyArray_SIZE(step_arr);
 
     if (lsize != fsize || ssize != fsize) {
-        PyErr_SetString(PyExc_RuntimeError, 
+        PyErr_SetString(PyExc_RuntimeError,
                         "start/end/step must be same len");
         return 1;
     }
@@ -4245,7 +4244,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
     double dval=0;
 
     int nkeys=0, morekeys=0, i=0;
-    int has_equals=0, has_quote=0, was_converted=0;
+    int has_equals=0, has_quote=0, was_converted=0, is_hierarch=0;
 
     PyObject* list=NULL;
     PyObject* dict=NULL;  // to hold the dict for each record
@@ -4293,6 +4292,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
         tocomp = (ls < lcont) ? ls : lcont;
 
         is_blank_key = 0;
+        is_hierarch = 0;
         if (ls == 0) {
             is_blank_key = 1;
         } else {
@@ -4316,6 +4316,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                 }
 
                 if (strncmp(card,"HIERARCH",8)==0) {
+                    is_hierarch = 1;
                     if (hierarch_is_string(card)) {
                         is_string_value=1;
                     } else {
@@ -4351,7 +4352,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
             add_string_to_dict(dict, "comment", scomment);
 
         } else {
-            was_converted = convert_keyword_to_allowed_ascii(keyname);
+            was_converted = convert_keyword_to_allowed_ascii(keyname, is_hierarch);
             add_string_to_dict(dict,"name",keyname);
             convert_to_ascii(comment);
             add_string_to_dict(dict,"comment",comment);
@@ -4380,7 +4381,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                     // cause a seg fault
                     convert_to_ascii(longstr);
                     add_string_to_dict(dict,"value",longstr);
-                } else if ( 
+                } else if (
                            (strchr(longstr,'.') != NULL)
                            || (strchr(longstr,'E') != NULL)
                            || (strchr(longstr,'e') != NULL) ) {
@@ -4419,7 +4420,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
     return list;
 }
- 
+
 static PyObject *
 PyFITSObject_write_checksum(struct PyFITSObject* self, PyObject* args) {
     int status=0;
@@ -4831,9 +4832,9 @@ static PyMethodDef fitstype_methods[] = {
 #endif
 PyMODINIT_FUNC
 #if PY_MAJOR_VERSION >= 3
-PyInit__fitsio_wrap(void) 
+PyInit__fitsio_wrap(void)
 #else
-init_fitsio_wrap(void) 
+init_fitsio_wrap(void)
 #endif
 {
     PyObject* m;

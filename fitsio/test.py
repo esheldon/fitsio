@@ -676,9 +676,7 @@ class TestReadWrite(unittest.TestCase):
             self.assertEqual(h['quip'], '1.0', '1.0 in quotes')
             self.assertEqual(h['quiz'], ' 1.0', '1.0 in quotes')
             self.assertEqual(h['quil'], 'NaN', 'NaN in quotes')
-            # note replacement of junk '.' in index 2 N from
-            # index 2 of JUNK___
-            self.assertEqual(h['qund'], 'Inf', 'Inf in quotes')
+            self.assertEqual(h['qu.d'], 'Inf', 'Inf in quotes')
 
 
         finally:

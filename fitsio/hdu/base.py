@@ -4,6 +4,7 @@ import warnings
 from ..util import _stypes, _itypes, _ftypes, FITSRuntimeWarning
 from ..header import FITSHDR
 
+VALID_HDR_CHARS = ("-", "_", ".")
 ANY_HDU = -1
 IMAGE_HDU = 0
 ASCII_TBL = 1
@@ -319,6 +320,12 @@ class HDUBase(object):
             name = r['name']
             if name is not None:
                 name = name.upper()
+
+                if not all(c in VALID_HDR_CHARS or c.isalnum() for c in name):
+                    raise RuntimeError(
+                        "header key '%s' has invalid characters! The only "
+                        "valid characters are {0-9,A-Z,a-z,_,-,.}." % name
+                    )
 
             value = r['value']
 
