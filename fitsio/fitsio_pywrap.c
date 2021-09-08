@@ -107,7 +107,7 @@ static int convert_keyword_to_allowed_ascii(char* str, int is_hierarch) {
             (cval == '_')
             || (is_hierarch == 1);
 
-        if (!isgood) {
+        if ((!isgood) || cval < 0 || cval > 127) {
             was_converted = 1;
             str[i] = '_';
             // if (i==0) {
