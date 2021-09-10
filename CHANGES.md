@@ -1,4 +1,4 @@
-version 1.1.5 (not yet released)
+version 1.1.5
 ---------------------------------
 
 Bug Fixes
