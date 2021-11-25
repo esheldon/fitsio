@@ -202,8 +202,17 @@ class FITSHDR(object):
         else:
             if name in self._record_map:
                 del self._record_map[name]
+                # Store current index value
+                cur_index = self._index_map[name]
+                # Delete in index map
+                del self._index_map[name]
                 self._record_list = [
                     r for r in self._record_list if r['name'] != name]
+
+                # Change index map for superior indexes, only
+                for k, v in self._index_map.items():
+                    if v > cur_index:
+                        self._index_map[k] = v - 1
 
     def clean(self, is_table=False):
         """

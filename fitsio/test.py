@@ -28,7 +28,10 @@ def test():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestReadWrite)
     res2=unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
-    if not res1 or not res2:
+    suite_header = unittest.TestLoader().loadTestsFromTestCase(TestFITSHDR)
+    res3=unittest.TextTestRunner(verbosity=2).run(suite_header).wasSuccessful()
+
+    if not res1 or not res2 or not res3:
         sys.exit(1)
 
 class TestWarnings(unittest.TestCase):
@@ -58,6 +61,45 @@ class TestWarnings(unittest.TestCase):
 
             assert len(filtered_warnings) == 1, 'Wrong length of output (Expected {} but got {}.)'.format(1, len(filtered_warnings))
             assert issubclass(filtered_warnings[-1].category, fitsio.FITSRuntimeWarning)
+
+
+class TestFITSHDR(unittest.TestCase):
+    """
+    tests to handle FITSHDR, only
+    """
+    def setUp(self):
+        pass
+
+    def testAddDeleteAndUpdateRecords(self):
+        # Build a FITSHDR from a few records (no need to write on disk)
+        # Record names have to be in upper case to match with FITSHDR.add_record
+        recs = [{'name': "First_record".upper(), 'value' : 1,
+                 'comment' : "number 1"},
+                {'name': "Second_record".upper(), 'value' : "2"},
+                {'name': "Third_record".upper(), 'value' : "3"},
+                {'name': "Last_record".upper(), 'value' : 4,
+                 'comment' : "number 4"}]
+        hdr = fitsio.FITSHDR(recs)
+
+        # Add a new record
+        hdr.add_record({'name': "New_record".upper(), 'value': 5})
+
+        # Delete number 2 and 4
+        hdr.delete("Second_record".upper())
+        hdr.delete("Last_record".upper())
+
+        # Update records : first and new one
+        hdr["First_record"] = 11
+        hdr["New_record"] = 3
+
+        # Do some checks : len and get value/comment
+        assert len(hdr) == 3
+        assert hdr["First_record"] == 11
+        assert hdr["New_record"] == 3
+        assert hdr["Third_record"] == "3"
+        assert hdr.get_comment("First_record") == "number 1"
+        assert not hdr.get_comment("New_record")
+
 
 class TestReadWrite(unittest.TestCase):
 
