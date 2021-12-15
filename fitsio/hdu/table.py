@@ -130,7 +130,8 @@ class TableHDU(HDUBase):
         """
         if colnum < 0 or colnum > (len(self._colnames)-1):
             raise ValueError(
-                "colnum out of range [0,%s-1]" % (0, len(self._colnames)))
+                "colnum out of range [0,%s-1]" % len(self._colnames)
+            )
         return self._colnames[colnum]
 
     def get_vstorage(self):
@@ -1730,7 +1731,8 @@ class TableHDU(HDUBase):
 
             if (colnum < 0) or (colnum > (self._ncol-1)):
                 raise ValueError(
-                    "column number should be in [0,%d]" % (0, self._ncol-1))
+                    "column number should be in [0,%d]" % (self._ncol-1)
+                )
         else:
             colstr = mks(col)
             try:

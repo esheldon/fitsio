@@ -260,13 +260,13 @@ def read_scamp_head(fname, header=None):
     with open(fname) as fobj:
         lines = fobj.readlines()
 
-    lines = [l.strip() for l in lines if l[0:3] != 'END']
+    lines = [line.strip() for line in lines if line[0:3] != 'END']
 
     # if header is None an empty FITSHDR is created
     hdr = FITSHDR(header)
 
-    for l in lines:
-        hdr.add_record(l)
+    for line in lines:
+        hdr.add_record(line)
 
     return hdr
 
@@ -376,8 +376,8 @@ def write(filename, data, extname=None, extver=None, header=None,
         Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
     hcomp_scale: float
-        Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
-        following the fpack defaults.
+        Scale value for HCOMPRESS, 0.0 means lossless compression. Default is
+        0.0 following the fpack defaults.
     hcomp_smooth: bool
         If True, apply smoothing when decompressing.  Default False
     """
@@ -635,11 +635,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result in
-            more compression, we recommend one reads the FITS standard or cfitsio
-            manual to fully understand the effects of quantization.  None or 0
-            means no quantization, and for gzip also implies lossless.  Default is
-            4.0 which follows the fpack defaults
+            Quantization level for floating point data.  Lower generally result
+            in more compression, we recommend one reads the FITS standard or
+            cfitsio manual to fully understand the effects of quantization.
+            None or 0 means no quantization, and for gzip also implies
+            lossless.  Default is 4.0 which follows the fpack defaults
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
@@ -652,8 +652,8 @@ class FITS(object):
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
         hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
-            following the fpack defaults.
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
+            is 0.0 following the fpack defaults.
         hcomp_smooth: bool
             If True, apply smoothing when decompressing.  Default False
 
@@ -741,11 +741,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result in
-            more compression, we recommend one reads the FITS standard or cfitsio
-            manual to fully understand the effects of quantization.  None or 0
-            means no quantization, and for gzip also implies lossless.  Default is
-            4.0 which follows the fpack defaults
+            Quantization level for floating point data.  Lower generally result
+            in more compression, we recommend one reads the FITS standard or
+            cfitsio manual to fully understand the effects of quantization.
+            None or 0 means no quantization, and for gzip also implies
+            lossless.  Default is 4.0 which follows the fpack defaults
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
@@ -758,8 +758,8 @@ class FITS(object):
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
         hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
-            following the fpack defaults.
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
+            is 0.0 following the fpack defaults.
         hcomp_smooth: bool
             If True, apply smoothing when decompressing.  Default False
 
@@ -866,11 +866,11 @@ class FITS(object):
         tile_dims: tuple of ints, optional
             The size of the tiles used to compress images.
         qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result in
-            more compression, we recommend one reads the FITS standard or cfitsio
-            manual to fully understand the effects of quantization.  None or 0
-            means no quantization, and for gzip also implies lossless.  Default is
-            4.0 which follows the fpack defaults.
+            Quantization level for floating point data.  Lower generally result
+            in more compression, we recommend one reads the FITS standard or
+            cfitsio manual to fully understand the effects of quantization.
+            None or 0 means no quantization, and for gzip also implies
+            lossless.  Default is 4.0 which follows the fpack defaults.
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
@@ -883,8 +883,8 @@ class FITS(object):
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
 
         hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default is 0.0
-            following the fpack defaults.
+            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
+            is 0.0 following the fpack defaults.
         hcomp_smooth: bool
             If True, apply smoothing when decompressing.  Default False
 
@@ -1469,7 +1469,10 @@ class FITS(object):
                             name = '%s[%s]' % (name, ver)
 
                     rep.append(
-                        "%s%-6d %-15s %s" % (spacing, i, _hdu_type_map[t], name))
+                        "%s%-6d %-15s %s" % (
+                            spacing, i, _hdu_type_map[t], name
+                        )
+                    )
 
         rep = '\n'.join(rep)
         return rep
