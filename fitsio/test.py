@@ -2405,6 +2405,22 @@ DATASUM =                      / checksum of the data records\n"""
                 h = fits[1].read_header()
                 self.compare_headerlist_header(self.keys, h)
 
+                # append with list of arrays and names
+                names = self.data.dtype.names
+                data3 = [numpy.array(self.data[name]) for name in names]
+                fits[1].append(data3, names=names)
+
+                d = fits[1].read()
+                self.assertEqual(d.size, self.data.size*3)
+                self.compare_rec(self.data, d[2*self.data.size:], "Comparing appended data")
+
+                # append with list of arrays and columns
+                fits[1].append(data3, columns=names)
+
+                d = fits[1].read()
+                self.assertEqual(d.size, self.data.size*4)
+                self.compare_rec(self.data, d[3*self.data.size:], "Comparing appended data")
+
         finally:
             if os.path.exists(fname):
                 os.remove(fname)

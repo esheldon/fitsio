@@ -550,7 +550,7 @@ class TableHDU(HDUBase):
                 DeprecationWarning, stacklevel=2)
 
         firstrow = self._info['nrows']
-        self.write(data, firstrow=firstrow, columns=None, names=None)
+        self.write(data, firstrow=firstrow, columns=columns, names=names)
 
     def delete_rows(self, rows):
         """
