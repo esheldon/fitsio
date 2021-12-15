@@ -1,3 +1,12 @@
+version 1.1.6
+-------------
+
+Bug Fixes
+
+    - fixed bug where Updating an existing record in an image header raises an
+      exception (user ussegliog)
+    - fix bug append not forwarding arguments to write (Nicolas Tessore)
+
 version 1.1.5
 ---------------------------------
 
