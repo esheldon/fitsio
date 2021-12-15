@@ -325,8 +325,10 @@ class HDUBase(object):
 
                 if INVALID_HDR_CHARS_RE.search(name):
                     raise RuntimeError(
-                        "header key '%s' has invalid characters! Characters in "
-                        "%s are not allowed!" % (name, INVALID_HDR_CHARS)
+                        "header key '%s' has invalid characters! "
+                        "Characters in %s are not allowed!" % (
+                            name, INVALID_HDR_CHARS
+                        )
                     )
 
             value = r['value']
