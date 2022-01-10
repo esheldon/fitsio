@@ -407,7 +407,7 @@ class FITSHDR(object):
         elif name == 'CONTINUE':
             card = 'CONTINUE   %s' % value
         elif name == 'HISTORY':
-            card = 'HISTORY   %s' % value
+            card = 'HISTORY %s' % value
         else:
             if len(name) > 8:
                 card = 'HIERARCH %s= ' % name
@@ -433,7 +433,8 @@ class FITSHDR(object):
                 elif value is False:
                     value = 'F'
 
-                vstr = '%20s' % value
+                # upper for things like 1.0E20 rather than 1.0e20
+                vstr = ('%20s' % value).upper()
 
             card += vstr
 

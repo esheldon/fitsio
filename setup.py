@@ -77,22 +77,17 @@ class build_ext_subclass(build_ext):
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
 
-            # there is some issue with non-aligned data with optimizations
-            # set to '-O3' on some versions of gcc.  It appears to be
-            # a disagreement between gcc 4 and gcc 5
-
             CCold = self.compiler.compiler
-            CC = []
-            for val in CCold:
-                if val == '-O3':
-                    print("replacing '-O3' with '-O2' to address "
-                          "gcc bug")
-                    val = '-O2'
-                if val == 'ccache':
-                    print("removing ccache from the compiler options")
-                    continue
+            if 'ccache' in CCold:
+                CC = []
+                for val in CCold:
+                    if val == 'ccache':
+                        print("removing ccache from the compiler options")
+                        continue
 
-                CC.append(val)
+                    CC.append(val)
+            else:
+                CC = None
 
             self.configure_cfitsio(
                 CC=CC,
@@ -208,8 +203,9 @@ class build_ext_subclass(build_ext):
             return
 
         args = ''
-        args += ' CC="%s"' % ' '.join(CC[:1])
-        args += ' CFLAGS="%s"' % ' '.join(CC[1:])
+        if CC is not None:
+            args += ' CC="%s"' % ' '.join(CC[:1])
+            args += ' CFLAGS="%s"' % ' '.join(CC[1:])
 
         if ARCHIVE:
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
@@ -271,7 +267,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.1.6",
+    version="1.1.7",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
