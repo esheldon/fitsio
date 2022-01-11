@@ -1,3 +1,13 @@
+version 1.1.7 (not yet released)
+--------------------------------
+
+
+Bug Fixes
+
+    - Bugs in the repr of headers where history keywords had extra spaces.
+      Also a bug with not upper casing things like 1.0E20 which is the
+      fits standard
+
 version 1.1.6
 -------------
 
