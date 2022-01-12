@@ -78,16 +78,10 @@ static void convert_to_ascii(char* str) {
 }
 
 /*
-   Replace bad keyword characters with valid keyword ascii characters,
-   namely A-Z,a-z,0-9,_,-
-
-   To make it clear what has happened, the first four characters will be
-   replaced with J U N K and later bad characters with underscore.
-
-   Does not check the keyword is otherwise valid
+   Replace non ascii characters with _
 */
-static int convert_keyword_to_allowed_ascii(char* str) {
-    int isgood=0, was_converted=0;
+static int convert_extname_to_ascii(char* str) {
+    int was_converted=0;
     size_t size=0, i=0;
     int cval=0;
 
@@ -95,18 +89,7 @@ static int convert_keyword_to_allowed_ascii(char* str) {
     for (i=0; i < size; i++) {
         cval = (int)str[i];
 
-        isgood =
-            (cval >= 'A' && cval <= 'Z')
-            ||
-            (cval >= 'a' && cval <= 'z')
-            ||
-            (cval >= '0' && cval <= '9')
-            ||
-            (cval == '-')
-            ||
-            (cval == '_');
-
-        if (!isgood) {
+        if (cval < 0 || cval > 127) {
             was_converted = 1;
             str[i] = '_';
         }
@@ -691,7 +674,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(extname);
+        convert_extname_to_ascii(extname);
         add_string_to_dict(dict, "extname", extname);
     } else {
         add_string_to_dict(dict, "extname", "");
@@ -699,7 +682,7 @@ PyFITSObject_get_hdu_info(struct PyFITSObject* self, PyObject* args) {
 
     tstatus=0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL, &tstatus)==0) {
-        convert_keyword_to_allowed_ascii(hduname);
+        convert_extname_to_ascii(hduname);
         add_string_to_dict(dict, "hduname", hduname);
     } else {
         add_string_to_dict(dict, "hduname", "");
