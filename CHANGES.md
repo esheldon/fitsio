@@ -4,6 +4,8 @@ version 1.1.7 (not yet released)
 
 Bug Fixes
 
+    - Bug converting extension names, should just ensure ascii rather than
+      subset of ascii
     - Bugs in the repr of headers where history keywords had extra spaces.
       Also a bug with not upper casing things like 1.0E20 which is the
       fits standard
