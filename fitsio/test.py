@@ -1351,7 +1351,8 @@ DATASUM =                      / checksum of the data records\n"""
             (1, 3),
             (2, 9),
         ]
-        for compress in ['gzip', 'gzip_2', 'rice', 'hcompress']:
+        # Do not test hcompress as it doesn't support SUBTRACTIVE_DITHER_2
+        for compress in ['gzip', 'gzip_2', 'rice']:
             fname=tempfile.mktemp(prefix='fitsio-ImageWrite-',suffix='.fits.fz')
             try:
                 with fitsio.FITS(fname,'rw',clobber=True) as fits:
