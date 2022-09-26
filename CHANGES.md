@@ -1,6 +1,11 @@
-version 1.1.7 (not yet released)
---------------------------------
+version 1.1.8
+-------------
 
+Bug Fixes
+    - Bug in repr of FITS where it only worked the first time it was generated
+
+version 1.1.7
+-------------
 
 Bug Fixes
 
@@ -9,7 +14,6 @@ Bug Fixes
     - Bugs in the repr of headers where history keywords had extra spaces.
       Also a bug with not upper casing things like 1.0E20 which is the
       fits standard
-    - Bug in repr of FITS where it only worked the first type it was generated
 
 version 1.1.6
 -------------
