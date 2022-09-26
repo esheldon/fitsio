@@ -1460,19 +1460,19 @@ class FITS(object):
                 # we expect some stuff
                 self.update_hdu_list()
 
-                for i, hdu in enumerate(self.hdu_list):
-                    t = hdu._info['hdutype']
-                    name = hdu.get_extname()
-                    if name != '':
-                        ver = hdu.get_extver()
-                        if ver != 0:
-                            name = '%s[%s]' % (name, ver)
+        for i, hdu in enumerate(self.hdu_list):
+            t = hdu._info['hdutype']
+            name = hdu.get_extname()
+            if name != '':
+                ver = hdu.get_extver()
+                if ver != 0:
+                    name = '%s[%s]' % (name, ver)
 
-                    rep.append(
-                        "%s%-6d %-15s %s" % (
-                            spacing, i, _hdu_type_map[t], name
-                        )
-                    )
+            rep.append(
+                "%s%-6d %-15s %s" % (
+                    spacing, i, _hdu_type_map[t], name
+                )
+            )
 
         rep = '\n'.join(rep)
         return rep
