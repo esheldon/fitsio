@@ -13,7 +13,10 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         pyver: ["3.8", "3.9", "3.10", "3.11"]
-        npver: ["1.21"]
+        npver: ["1.20", "1.23"]
+        exclude:
+          - pyver: "3.11"
+            npver: "1.20"
     runs-on: ${{ matrix.os }}
 
     steps:
