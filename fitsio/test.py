@@ -1303,7 +1303,7 @@ DATASUM =                      / checksum of the data records\n"""
         Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
         """
         if importlib_resources is not None:
-            ref = importlib_resources.files(__name__) / 'test_images/test_gzip_compressed_image.fits.fz'
+            ref = importlib_resources.files("fitsio") / 'test_images' / 'test_gzip_compressed_image.fits.fz'
             with importlib_resources.as_file(ref) as gzip_file:
                 data = fitsio.read(gzip_file)
             self.compare_array(data, data*0.0, "astropy lossless compressed image")
