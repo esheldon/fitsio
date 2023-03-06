@@ -1,3 +1,10 @@
+unreleased
+----------
+
+Changes
+
+    - Removed deprecated `pkg_resources` from tests.
+
 version 1.1.8
 -------------
 
