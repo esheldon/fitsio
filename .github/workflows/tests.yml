@@ -11,6 +11,7 @@ jobs:
     name: tests
     strategy:
       matrix:
+        os: [macos-latest, ubuntu-latest]
         include:
           - pyver: "3.8"
             npver: "1.20"
@@ -20,7 +21,6 @@ jobs:
             npver: "1.20"
           - pyver: "3.11"
             npver: "1.21"
-        os: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
