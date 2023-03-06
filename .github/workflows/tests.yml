@@ -10,8 +10,8 @@ jobs:
   tests:
     name: tests
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         os: [macos-latest, ubuntu-latest]
         pyver: ["3.8", "3.9", "3.10", "3.11"]
         npver: ["1.20", "1.21", "1.23"]
