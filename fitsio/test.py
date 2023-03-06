@@ -4,13 +4,6 @@ import tempfile
 import warnings
 import numpy
 from numpy import arange, array
-try:
-    import importlib.resources as importlib_resources
-except ImportError:
-    try:
-        import importlib_resources
-    except ImportError:
-        importlib_resources = None
 import fitsio
 
 from ._fitsio_wrap import cfitsio_use_standard_strings
@@ -1302,13 +1295,20 @@ DATASUM =                      / checksum of the data records\n"""
         """
         Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
         """
-        if importlib_resources is not None:
+        try:
+            import importlib.resources
             ref = importlib_resources.files("fitsio") / 'test_images' / 'test_gzip_compressed_image.fits.fz'
             with importlib_resources.as_file(ref) as gzip_file:
                 data = fitsio.read(gzip_file)
-            self.compare_array(data, data*0.0, "astropy lossless compressed image")
-        else:
-            self.assertFalse()
+        except Exception:
+            gzip_file = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "test_images",
+                "test_gzip_compressed_image.fits.fz",
+            )
+            data = fitsio.read(gzip_file)
+
+        self.compare_array(data, data*0.0, "astropy lossless compressed image")
 
     def testHCompressTileCompressedWriteRead(self):
         """
