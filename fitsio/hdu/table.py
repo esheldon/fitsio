@@ -152,7 +152,7 @@ class TableHDU(HDUBase):
         else:
             return False
 
-    def where(self, expression):
+    def where(self, expression, firstrow=None, lastrow=None):
         """
         Return the indices where the expression evaluates to true.
 
@@ -161,8 +161,21 @@ class TableHDU(HDUBase):
         expression: string
             A fits row selection expression.  E.g.
             "x > 3 && y < 5"
+        firstrow, lastrow : int
+            Range of rows for evaluation.
         """
-        return self._FITS.where(self._ext+1, expression)
+        if firstrow is None:
+            firstrow = 0
+        elif firstrow < 0:
+            raise ValueError('firstrow cannot be negative')
+        if lastrow is None:
+            lastrow = self._info['nrows']
+        elif lastrow < firstrow:
+            raise ValueError('lastrow cannot be less than firstrow')
+        elif lastrow > self._info['nrows']:
+            raise ValueError('lastrow cannot be greater than nrows')
+        nrows = lastrow - firstrow
+        return self._FITS.where(self._ext+1, expression, firstrow+1, nrows)
 
     def write(self, data, firstrow=0, columns=None, names=None, slow=False,
               **keys):

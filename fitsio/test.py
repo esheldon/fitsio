@@ -2239,6 +2239,37 @@ DATASUM =                      / checksum of the data records\n"""
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testTableWhere(self):
+        """
+        Use the where method to get indices for a row filter expression
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-TableWhere-',suffix='.fits')
+        try:
+
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                fits.write_table(self.data2)
+
+            #
+            # get all indices
+            #
+            with fitsio.FITS(fname) as fits:
+                a = fits[1].where('x > 3 && y < 8')
+            b = numpy.where((self.data2['x'] > 3) & (self.data2['y'] < 8))[0]
+            numpy.testing.assert_array_equal(a, b)
+
+            #
+            # get slice of indices
+            #
+            with fitsio.FITS(fname) as fits:
+                a = fits[1].where('x > 3 && y < 8', 2, 8)
+            b = numpy.where((self.data2['x'][2:8] > 3) & (self.data2['y'][2:8] < 8))[0]
+            numpy.testing.assert_array_equal(a, b)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testTableResize(self):
         """
         Use the resize method to change the size of a table

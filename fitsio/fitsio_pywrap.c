@@ -4542,9 +4542,8 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
     char* expression=NULL;
 
-    LONGLONG nrows=0;
-
-    long firstrow=1;
+    long firstrow;
+    long nrows;
     long ngood=0;
     char* row_status=NULL;
 
@@ -4557,16 +4556,18 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
     long i=0;
 
 
-    if (!PyArg_ParseTuple(args, (char*)"is", &hdunum, &expression)) {
+    if (!PyArg_ParseTuple(args, (char*)"isll", &hdunum, &expression,
+                          &firstrow, &nrows)) {
+        return NULL;
+    }
+
+    if (firstrow < 1 || nrows < 1) {
+        PyErr_SetString(PyExc_ValueError,
+                        "firstrow and nrows must be positive integers");
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status);
-        return NULL;
-    }
-
-    if (fits_get_num_rowsll(self->fits, &nrows, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
@@ -4577,7 +4578,7 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (fits_find_rows(self->fits, expression, firstrow, (long) nrows, &ngood, row_status, &status)) {
+    if (fits_find_rows(self->fits, expression, firstrow, nrows, &ngood, row_status, &status)) {
         set_ioerr_string_from_status(status);
         goto where_function_cleanup;
     }
