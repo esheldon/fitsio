@@ -162,7 +162,8 @@ class TableHDU(HDUBase):
             A fits row selection expression.  E.g.
             "x > 3 && y < 5"
         firstrow, lastrow : int
-            Range of rows for evaluation.
+            Range of rows for evaluation.  This follows the Python list
+            slice convention that the last element is not included.
         """
         if firstrow is None:
             firstrow = 0
