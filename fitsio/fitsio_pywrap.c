@@ -2525,7 +2525,7 @@ PyFITSObject_write_string_key(struct PyFITSObject* self, PyObject* args) {
         comment=comment_in;
     }
 
-    if (fits_write_key_longstr(self->fits, keyname, value, comment, &status)) {
+    if (fits_update_key_longstr(self->fits, keyname, value, comment, &status)) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
