@@ -488,6 +488,49 @@ class TestReadWrite(unittest.TestCase):
             if os.path.exists(fname):
                 os.remove(fname)
 
+    def testHeaderUpdate(self):
+        """Test header updates.
+
+        For each basic type, test that `HDU.write_keys()` updates existing cards
+        and adds new cards.
+        """
+
+        fname=tempfile.mktemp(prefix='fitsio-Update-',suffix='.fits')
+        try:
+            with fitsio.FITS(fname,'rw',clobber=True) as fits:
+                data=numpy.zeros(10)
+                header1={
+                    'SCARD':'one',
+                    'ICARD':1,
+                    'FCARD':1.0,
+                    'LCARD':True
+                }
+                header2={
+                    'SCARD':'two',
+                    'ICARD':2,
+                    'FCARD':2.0,
+                    'LCARD':False,
+
+                    'SNEW':'two',
+                    'INEW':2,
+                    'FNEW':2.0,
+                    'LNEW':False
+                }
+                fits.write_image(data, header=header1)
+                rh = fits[0].read_header()
+                self.check_header(header1, rh)
+
+                # Update header
+                fits[0].write_keys(header2)
+
+            with fitsio.FITS(fname) as fits:
+                rh = fits[0].read_header()
+                self.check_header(header2, rh)
+
+        finally:
+            if os.path.exists(fname):
+                os.remove(fname)
+
     def testReadHeaderCase(self):
         """
         Test read_header with and without case sensitivity
