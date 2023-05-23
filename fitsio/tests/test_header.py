@@ -451,3 +451,34 @@ def test_corrupt_continue():
                 fits.write(None, header=hdr_from_cards)
 
             read_header(fname)
+
+
+def record_exists(header_records, key, value):
+    for rec in header_records:
+        if rec['name'] == key and rec['value'] == value:
+            return True
+
+    return False
+
+
+def test_read_comment_history():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with FITS(fname, 'rw') as fits:
+            data = np.arange(100).reshape(10, 10)
+            fits.create_image_hdu(data)
+            hdu = fits[-1]
+            hdu.write_comment('A COMMENT 1')
+            hdu.write_comment('A COMMENT 2')
+            hdu.write_history('SOME HISTORY 1')
+            hdu.write_history('SOME HISTORY 2')
+            fits.close()
+
+        with FITS(fname, 'r') as fits:
+            hdu = fits[-1]
+            header = hdu.read_header()
+            records = header.records()
+            assert record_exists(records, 'COMMENT', 'A COMMENT 1')
+            assert record_exists(records, 'COMMENT', 'A COMMENT 2')
+            assert record_exists(records, 'HISTORY', 'SOME HISTORY 1')
+            assert record_exists(records, 'HISTORY', 'SOME HISTORY 2')
