@@ -267,7 +267,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.1.8",
+    version="1.1.9",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',

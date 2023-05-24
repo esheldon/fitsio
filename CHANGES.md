@@ -1,9 +1,15 @@
-unreleased
-----------
+version 1.1.9
+-------------
 
 Changes
 
-    - Removed deprecated `pkg_resources` from tests.
+    - Removed deprecated `pkg_resources` from tests (M. Becker).
+    - converted tests to use pytest
+    - Improved doc strings (N. Tessore)
+
+Bug Fixes
+    - Bug updating header string cards was adding new key rather than updating
+    - Bug gzip compression when not using quantization
 
 version 1.1.8
 -------------
