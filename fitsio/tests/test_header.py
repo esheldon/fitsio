@@ -145,9 +145,9 @@ def test_read_header_case():
 
         with FITS(fname, 'rw') as fits:
             data = np.zeros(10)
-            _, keys, _, _, _, _ = make_data()
-            fits.write_image(data, header=keys, extname='First')
-            fits.write_image(data, header=keys, extname='second')
+            adata = make_data()
+            fits.write_image(data, header=adata['keys'], extname='First')
+            fits.write_image(data, header=adata['keys'], extname='second')
 
         cases = [
             ('First', True),
@@ -157,7 +157,7 @@ def test_read_header_case():
         ]
         for ext, ci in cases:
             h = read_header(fname, ext=ext, case_sensitive=ci)
-            compare_headerlist_header(keys, h)
+            compare_headerlist_header(adata['keys'], h)
 
 
 def test_blank_key_comments():
@@ -485,7 +485,7 @@ def test_read_comment_history():
             assert record_exists(records, 'HISTORY', 'SOME HISTORY 2')
 
 
-def testWriteKeyDict():
+def test_write_key_dict():
     """
     test that write_key works using a standard key dict
     """

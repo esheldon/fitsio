@@ -171,7 +171,7 @@ def compare_rec_subrows(rec1, rec2, rows, name):
             assert w.size == 0, "testing column %s" % f
 
 
-def compare_rec_with_var(self, rec1, rec2, name, rows=None):
+def compare_rec_with_var(rec1, rec2, name, rows=None):
     """
 
     First one *must* be the one with object arrays

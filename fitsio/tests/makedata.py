@@ -373,4 +373,11 @@ def make_data():
         arr = (np.arange(nrows*ashape[0]*ashape[1]) % 2 == 0).astype('?')
         bdata[t+'arr'] = arr.reshape(nrows, ashape[0], ashape[1])
 
-    return data, keys, data2, ascii_data, vardata, bdata
+    return {
+        'data': data,
+        'keys': keys,
+        'data2': data2,
+        'ascii_data': ascii_data,
+        'vardata': vardata,
+        'bdata': bdata,
+    }
