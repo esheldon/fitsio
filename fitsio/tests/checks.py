@@ -132,6 +132,7 @@ def compare_rec(rec1, rec2, name):
     for f in rec1.dtype.names:
         rec1_shape = cast_shape(rec1[f].shape)
         rec2_shape = cast_shape(rec2[f].shape)
+
         assert rec1_shape == rec2_shape, (
             "testing '%s' field '%s' shapes are equal: "
             "input %s, read: %s" % (
@@ -144,9 +145,10 @@ def compare_rec(rec1, rec2, name):
         else:
             _rec1f = rec1[f]
 
-        res = np.where(_rec1f != rec2[f])
-        for w in res:
-            assert w.size == 0, "testing column %s" % f
+        assert np.all(_rec1f == rec2[f])
+        # res = np.where(_rec1f != rec2[f])
+        # for w in res:
+        #     assert w.size == 0, "testing column %s" % f
 
 
 def compare_rec_subrows(rec1, rec2, rows, name):
@@ -203,3 +205,15 @@ def compare_rec_with_var(rec1, rec2, name, rows=None):
                 rec1[f][rows], rec2[f],
                 "testing '%s' num field '%s' equal" % (name, f)
             )
+
+
+def compare_names(read_names, true_names, lower=False, upper=False):
+    for nread, ntrue in zip(read_names, true_names):
+        if lower:
+            tname = ntrue.lower()
+            mess = "lower: '%s' vs '%s'" % (nread, tname)
+        else:
+            tname = ntrue.upper()
+            mess = "upper: '%s' vs '%s'" % (nread, tname)
+
+        assert nread == tname, mess
