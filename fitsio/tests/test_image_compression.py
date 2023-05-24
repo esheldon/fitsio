@@ -1,4 +1,5 @@
 import pytest
+import sys
 import os
 import tempfile
 from .checks import (
@@ -90,6 +91,8 @@ def test_compressed_write_read(compress):
                 assert fits[i].is_compressed(), "is compressed"
 
 
+@pytest.mark.skipif(sys.version_info < (3, 9),
+                    reason='importlib bug in 3.8')
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
