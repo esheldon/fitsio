@@ -80,6 +80,25 @@ def test_table_read_write():
                     )
 
 
+def test_table_read_unsorted():
+
+    adata = make_data()
+    data = adata['data']
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(data)
+
+        # now test read_column
+        with FITS(fname) as fits:
+
+            rows = [3, 0, 1]
+            d = fits[1].read(rows=rows)
+            compare_rec(data[rows], d, "unsorted")
+
+
 def test_table_column_index_scalar():
     """
     Test a basic table write, data and a header, then reading back in to

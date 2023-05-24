@@ -899,7 +899,7 @@ class TableHDU(HDUBase):
                 rows=rows, vstorage=vstorage,
                 upper=upper, lower=lower, trim_strings=trim_strings)
 
-        rows = self._extract_rows(rows)
+        rows, sortind = self._extract_rows(rows)
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
         w, = numpy.where(isvar == True)  # noqa
@@ -913,7 +913,7 @@ class TableHDU(HDUBase):
                 colnums, rows, dtype, offsets, isvar, _vstorage)
         else:
             array = numpy.zeros(rows.size, dtype=dtype)
-            self._FITS.read_rows_as_rec(self._ext+1, array, rows)
+            self._FITS.read_rows_as_rec(self._ext+1, array, rows, sortind)
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
@@ -1414,12 +1414,18 @@ class TableHDU(HDUBase):
         if rows is not None:
             rows = numpy.array(rows, ndmin=1, copy=False, dtype='i8')
             # returns unique, sorted
-            rows = numpy.unique(rows)
+            sortind = rows.argsort()
 
             maxrow = self._info['nrows']-1
-            if len(rows) > 0 and (rows[0] < 0 or rows[-1] > maxrow):
+            firstrow = rows[sortind[0]]
+            lastrow = rows[sortind[-1]]
+
+            if len(rows) > 0 and (firstrow < 0 or lastrow > maxrow):
                 raise ValueError("rows must be in [%d,%d]" % (0, maxrow))
-        return rows
+        else:
+            sortind = None
+
+        return rows, sortind
 
     def _process_slice(self, arg):
         """

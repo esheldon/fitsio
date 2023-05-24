@@ -3794,32 +3794,38 @@ recread_columns_byoffset_cleanup:
 // read specified rows, all columns
 static int read_rec_bytes_byrow(
         fitsfile* fits,
-        npy_intp nrows, npy_int64* rows,
-        void* data, int* status) {
+        npy_intp nrows, npy_int64* rows, npy_int64* sortind,
+        void* vdata, int* status) {
 
     FITSfile* hdu=NULL;
 
-    npy_intp irow=0;
+    npy_intp irow=0, si=0;
     LONGLONG firstrow=1;
     LONGLONG firstchar=1;
 
     // use char for pointer arith.  It's actually ok to use void as char but
     // this is just in case.
-    unsigned char* ptr;
+    unsigned char* ptr, *data;
 
     // using struct defs here, could cause problems
     hdu = fits->Fptr;
-    ptr = (unsigned char*) data;
+    // ptr = (unsigned char*) data;
+    data = (unsigned char*) vdata;
 
-    for (irow=0; irow<nrows; irow++) {
+    for (irow=0; irow < nrows; irow++) {
+
+        si = sortind[irow];
+
         // Input is zero-offset
-        firstrow = 1 + (LONGLONG) rows[irow];
+        firstrow = 1 + (LONGLONG) rows[si];
+
+        ptr = data + si * hdu->rowlength;
 
         if (fits_read_tblbytes(fits, firstrow, firstchar, hdu->rowlength, ptr, status)) {
             return 1;
         }
 
-        ptr += hdu->rowlength;
+        // ptr += hdu->rowlength;
     }
 
     return 0;
@@ -3875,10 +3881,12 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     void* data=NULL;
 
     PyObject* rowsObj=NULL;
-    npy_intp nrows=0;
+    PyObject* sortindObj=NULL;
+    npy_intp nrows=0, nsortind=0;
     npy_int64* rows=NULL;
+    npy_int64* sortind=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iOO", &hdunum, &array, &rowsObj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOOO", &hdunum, &array, &rowsObj, &sortindObj)) {
         return NULL;
     }
 
@@ -3901,8 +3909,12 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     if (rows == NULL) {
         return NULL;
     }
+    sortind = get_int64_from_array(sortindObj, &nsortind);
+    if (sortind == NULL) {
+        return NULL;
+    }
 
-    if (read_rec_bytes_byrow(self->fits, nrows, rows, data, &status)) {
+    if (read_rec_bytes_byrow(self->fits, nrows, rows, sortind, data, &status)) {
         goto recread_byrow_cleanup;
     }
 
