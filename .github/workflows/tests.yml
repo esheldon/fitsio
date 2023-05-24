@@ -80,9 +80,12 @@ jobs:
           # popd
           # rm -rf $FITSIO_INSTALL_DIR
 
-      # - name: test non-bundled build
-      #   shell: bash -l {0}
-      #   run: |
+      - name: test non-bundled build
+        shell: bash -l {0}
+        run: |
+        pip install -e . --global-option="build_ext" --global-option "--use-system-fitsio"
+        SKIP_BZIP_TEST=true pytest -vv fitsio
+
       #     python setup.py clean -a
       #     FITSIO_INSTALL_DIR=$HOME/fitsio-temp-install
       #     export PYTHONPATH=$FITSIO_INSTALL_DIR/lib/python${{ matrix.pyver }}/site-packages:$PYTHONPATH
