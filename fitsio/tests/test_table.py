@@ -1197,147 +1197,147 @@ def test_lower_upper():
                               lower=lower, upper=upper)
 
 
-'''
-def testReadRaw(self):
+def test_read_raw():
     """
     testing reading the file as raw bytes
     """
-    fname=tempfile.mktemp(prefix='fitsio-readraw-',suffix='.fits')
+    rng = np.random.RandomState(8908)
 
-    dt=[('MyName','f8'),('StuffThings','i4'),('Blah','f4')]
-    data=numpy.zeros(3, dtype=dt)
-    data['MyName'] = numpy.random.random(data.size)
-    data['StuffThings'] = numpy.random.random(data.size)
-    data['Blah'] = numpy.random.random(data.size)
+    dt = [('MyName', 'f8'), ('StuffThings', 'i4'), ('Blah', 'f4')]
+    data = np.zeros(3, dtype=dt)
+    data['MyName'] = rng.uniform(data.size)
+    data['StuffThings'] = rng.uniform(data.size)
+    data['Blah'] = rng.uniform(data.size)
 
-    try:
-        with fitsio.FITS(fname,'rw',clobber=True) as fits:
-            fits.write(data)
-            raw1 = fits.read_raw()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
 
-        with fitsio.FITS('mem://', 'rw') as fits:
-            fits.write(data)
-            raw2 = fits.read_raw()
+        try:
+            with FITS(fname, 'rw') as fits:
+                fits.write(data)
+                raw1 = fits.read_raw()
 
-        f = open(fname, 'rb')
-        raw3 = f.read()
-        f.close()
+            with FITS('mem://', 'rw') as fits:
+                fits.write(data)
+                raw2 = fits.read_raw()
 
-        self.assertEqual(raw1, raw2)
-        self.assertEqual(raw1, raw3)
-    except:
-        import traceback
-        traceback.print_exc()
-        self.assertTrue(False, 'Exception in testing read_raw')
+            with open(fname, 'rb') as fobj:
+                raw3 = fobj.read()
 
-def testTableBitcolReadWrite(self):
+            assert raw1 == raw2
+            assert raw1 == raw3
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            assert False, 'Exception in testing read_raw'
+
+
+def test_table_bitcol_read_write():
     """
     Test basic write/read with bitcols
     """
 
-    fname=tempfile.mktemp(prefix='fitsio-TableWriteBitcol-',suffix='.fits')
-    try:
-        with fitsio.FITS(fname,'rw',clobber=True) as fits:
-            try:
-                fits.write_table(self.bdata, extname='mytable', write_bitcols=True)
-                write_success=True
-            except:
-                write_success=False
+    adata = make_data()
+    bdata = adata['bdata']
 
-            self.assertTrue(write_success,"testing write does not raise an error")
-            if not write_success:
-                self.skipTest("cannot test result if write failed")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
 
-            d=fits[1].read()
-            self.compare_rec(self.bdata, d, "table read/write")
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(bdata, extname='mytable', write_bitcols=True)
+
+            d = fits[1].read()
+            compare_rec(bdata, d, "table read/write")
 
         # now test read_column
-        with fitsio.FITS(fname) as fits:
+        with FITS(fname) as fits:
 
-            for f in self.bdata.dtype.names:
+            for f in bdata.dtype.names:
                 d = fits[1].read_column(f)
-                self.compare_array(self.bdata[f], d, "table 1 single field read '%s'" % f)
+                compare_array(
+                    bdata[f], d, "table 1 single field read '%s'" % f
+                )
 
             # now list of columns
-            for cols in [['b1vec','b1arr']]:
+            for cols in [['b1vec', 'b1arr']]:
                 d = fits[1].read(columns=cols)
                 for f in d.dtype.names:
-                    self.compare_array(self.bdata[f][:], d[f], "test column list %s" % f)
+                    compare_array(bdata[f][:], d[f], "test column list %s" % f)
 
-                rows = [1,3]
+                rows = [1, 3]
                 d = fits[1].read(columns=cols, rows=rows)
                 for f in d.dtype.names:
-                    self.compare_array(self.bdata[f][rows], d[f], "test column list %s row subset" % f)
+                    compare_array(
+                        bdata[f][rows],
+                        d[f],
+                        "test column list %s row subset" % f
+                    )
 
-    finally:
-        if os.path.exists(fname):
-            os.remove(fname)
 
-def testTableBitcolAppend(self):
+def test_table_bitcol_append():
     """
     Test creating a table with bitcol support and appending new rows.
     """
+    adata = make_data()
+    bdata = adata['bdata']
 
-    fname=tempfile.mktemp(prefix='fitsio-TableAppendBitcol-',suffix='.fits')
-    try:
-        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
 
             # initial write
-            fits.write_table(self.bdata, extname='mytable', write_bitcols=True)
+            fits.write_table(bdata, extname='mytable', write_bitcols=True)
 
-        with fitsio.FITS(fname,'rw') as fits:
+        with FITS(fname, 'rw') as fits:
             # now append
-            bdata2 = self.bdata.copy()
+            bdata2 = bdata.copy()
             fits[1].append(bdata2)
 
             d = fits[1].read()
-            self.assertEqual(d.size, self.bdata.size*2)
+            assert d.size == bdata.size*2
 
-            self.compare_rec(self.bdata, d[0:self.data.size], "Comparing initial write")
-            self.compare_rec(bdata2, d[self.data.size:], "Comparing appended data")
+            compare_rec(bdata, d[0:bdata.size], "Comparing initial write")
+            compare_rec(bdata2, d[bdata.size:], "Comparing appended data")
 
-    finally:
-        if os.path.exists(fname):
-            os.remove(fname)
 
-def testTableBitcolInsert(self):
+def test_table_bitcol_insert():
     """
     Test creating a table with bitcol support and appending new rows.
     """
 
-    fname=tempfile.mktemp(prefix='fitsio-TableBitcolInsert-',suffix='.fits')
-    try:
-        with fitsio.FITS(fname,'rw',clobber=True) as fits:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
 
             # initial write
-            nrows=3
-            d = numpy.zeros(nrows, dtype=[('ra','f8')])
+            nrows = 3
+            d = np.zeros(nrows, dtype=[('ra', 'f8')])
             d['ra'] = range(d.size)
             fits.write(d)
 
-        with fitsio.FITS(fname,'rw') as fits:
-            bcol = numpy.array([True,False,True])
+        with FITS(fname, 'rw') as fits:
+            bcol = np.array([True, False, True])
 
             # now append
-            fits[-1].insert_column('bscalar_inserted', bcol, write_bitcols=True)
+            fits[-1].insert_column(
+                'bscalar_inserted', bcol, write_bitcols=True
+            )
 
             d = fits[-1].read()
-            self.assertEqual(d.size, nrows,'read size equals')
-            self.compare_array(bcol, d['bscalar_inserted'], "inserted bitcol")
+            assert d.size == nrows, 'read size equals'
+            compare_array(bcol, d['bscalar_inserted'], "inserted bitcol")
 
-            bvec = numpy.array([[True,False], [False,True], [True,True] ])
+            bvec = np.array(
+                [[True, False],
+                 [False, True],
+                 [True, True]]
+            )
 
             # now append
             fits[-1].insert_column('bvec_inserted', bvec, write_bitcols=True)
 
             d = fits[-1].read()
-            self.assertEqual(d.size, nrows,'read size equals')
-            self.compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
-
-
-
-    finally:
-        if os.path.exists(fname):
-            os.remove(fname)
-
-'''
+            assert d.size == nrows, 'read size equals'
+            compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
