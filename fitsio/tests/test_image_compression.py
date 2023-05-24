@@ -97,17 +97,9 @@ def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
     """
-    try:
-        import importlib.resources
-        ref = importlib.resources.files("fitsio") / 'test_images' / 'test_gzip_compressed_image.fits.fz'  # noqa
-        with importlib.resources.as_file(ref) as gzip_file:
-            data = read(gzip_file)
-    except Exception:
-        gzip_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "test_images",
-            "test_gzip_compressed_image.fits.fz",
-        )
+    import importlib.resources
+    ref = importlib.resources.files("fitsio") / 'test_images' / 'test_gzip_compressed_image.fits.fz'  # noqa
+    with importlib.resources.as_file(ref) as gzip_file:
         data = read(gzip_file)
 
     compare_array(data, data*0.0, "astropy lossless compressed image")
