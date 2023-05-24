@@ -604,7 +604,7 @@ class TableHDU(HDUBase):
                 # rows must be 1-offset
                 rows = slice(rows.start+1, rows.stop+1)
         else:
-            rows = self._extract_rows(rows)
+            rows, sortind = self._extract_rows(rows)
             # rows must be 1-offset
             rows += 1
 
@@ -614,7 +614,7 @@ class TableHDU(HDUBase):
             if rows.size == 0:
                 return
 
-            self._FITS.delete_rows(self._ext+1, rows)
+            self._FITS.delete_rows(self._ext+1, rows, sortind)
 
         self._update_info()
 
@@ -1432,11 +1432,12 @@ class TableHDU(HDUBase):
             sortind = rows.argsort()
 
             maxrow = self._info['nrows']-1
-            firstrow = rows[sortind[0]]
-            lastrow = rows[sortind[-1]]
+            if rows.size > 0:
+                firstrow = rows[sortind[0]]
+                lastrow = rows[sortind[-1]]
 
-            if len(rows) > 0 and (firstrow < 0 or lastrow > maxrow):
-                raise ValueError("rows must be in [%d,%d]" % (0, maxrow))
+                if len(rows) > 0 and (firstrow < 0 or lastrow > maxrow):
+                    raise ValueError("rows must be in [%d,%d]" % (0, maxrow))
         else:
             sortind = None
 
@@ -2006,7 +2007,7 @@ class AsciiTableHDU(TableHDU):
                 columns, rows=rows, vstorage=vstorage,
                 upper=upper, lower=lower, trim_strings=trim_strings)
 
-        rows = self._extract_rows(rows)
+        rows, sortind = self._extract_rows(rows)
         if rows is None:
             nrows = self._info['nrows']
         else:
