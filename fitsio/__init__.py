@@ -35,5 +35,3 @@ from .hdu import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
 from . import util
 from .util import cfitsio_version, FITSRuntimeWarning
-
-from . import test

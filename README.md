@@ -429,7 +429,7 @@ has already impacted your work https://github.com/numpy/numpy/issues/6467
 The unit tests should all pass for full support.
 
 ```bash
-python -c "import fitsio; fitsio.test.test()"
+pytest fitsio
 ```
 
 Some tests may fail if certain libraries are not available, such
