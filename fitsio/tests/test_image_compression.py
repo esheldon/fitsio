@@ -7,7 +7,10 @@ from .checks import (
     compare_array_abstol,
 )
 import numpy as np
-from ..fitslib import FITS, read
+from ..fitslib import (
+    FITS,
+    # read,
+)
 
 
 @pytest.mark.parametrize(
