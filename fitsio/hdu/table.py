@@ -775,8 +775,11 @@ class TableHDU(HDUBase):
                 _vstorage = vstorage
             colnums = self._extract_colnums()
             rows = None
-            array = self._read_rec_with_var(colnums, rows, dtype,
-                                            offsets, isvar, _vstorage)
+            sortind = None
+            array = self._read_rec_with_var(
+                colnums, rows, sortind, dtype,
+                offsets, isvar, _vstorage,
+            )
         elif has_tbit:
             # drop down to read_columns since we can't stuff into a
             # contiguous array
@@ -910,7 +913,8 @@ class TableHDU(HDUBase):
                 _vstorage = vstorage
             colnums = self._extract_colnums()
             return self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, _vstorage)
+                colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
+            )
         else:
             array = numpy.zeros(rows.size, dtype=dtype)
             self._FITS.read_rows_as_rec(self._ext+1, array, rows, sortind)
@@ -984,11 +988,12 @@ class TableHDU(HDUBase):
             return self.read_column(
                 columns,
                 rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                upper=upper, lower=lower, trim_strings=trim_strings,
+            )
 
         # if rows is None still returns None, and is correctly interpreted
         # by the reader to mean all
-        rows = self._extract_rows(rows)
+        rows, sortind = self._extract_rows(rows)
 
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(
@@ -1001,18 +1006,22 @@ class TableHDU(HDUBase):
             else:
                 _vstorage = vstorage
             array = self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, _vstorage)
+                colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
+            )
         else:
 
             if rows is None:
                 nrows = self._info['nrows']
             else:
                 nrows = rows.size
+
             array = numpy.zeros(nrows, dtype=dtype)
 
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
-            self._FITS.read_columns_as_rec(self._ext+1, colnumsp, array, rows)
+            self._FITS.read_columns_as_rec(
+                self._ext+1, colnumsp, array, rows, sortind
+            )
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
@@ -1101,9 +1110,10 @@ class TableHDU(HDUBase):
             else:
                 _vstorage = vstorage
             rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+            sortind = numpy.arange(rows.size)
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
-                colnums, rows, dtype, offsets, isvar, _vstorage)
+                colnums, rows, sortind, dtype, offsets, isvar, _vstorage)
         else:
             if step != 1:
                 rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
@@ -1320,7 +1330,7 @@ class TableHDU(HDUBase):
         return descr, isvar
 
     def _read_rec_with_var(
-            self, colnums, rows, dtype, offsets, isvar, vstorage):
+            self, colnums, rows, sortind, dtype, offsets, isvar, vstorage):
         """
         Read columns from a table into a rec array, including variable length
         columns.  This is special because, for efficiency, it involves reading
@@ -1344,11 +1354,14 @@ class TableHDU(HDUBase):
             # this will be contiguous (not true for slices)
             thesecol = colnumsp[wnotvar]
             theseoff = offsets[wnotvar]
-            self._FITS.read_columns_as_rec_byoffset(self._ext+1,
-                                                    thesecol,
-                                                    theseoff,
-                                                    array,
-                                                    rows)
+            self._FITS.read_columns_as_rec_byoffset(
+                self._ext+1,
+                thesecol,
+                theseoff,
+                array,
+                rows,
+                sortind,
+            )
             for i in xrange(thesecol.size):
 
                 name = array.dtype.names[wnotvar[i]]
@@ -1357,7 +1370,8 @@ class TableHDU(HDUBase):
                     array,
                     name,
                     self._info['colinfo'][colnum]['tscale'],
-                    self._info['colinfo'][colnum]['tzero'])
+                    self._info['colinfo'][colnum]['tzero'],
+                )
 
         array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
@@ -1371,7 +1385,8 @@ class TableHDU(HDUBase):
                 colnump = thesecol[i]
                 name = array.dtype.names[wvar[i]]
                 dlist = self._FITS.read_var_column_as_list(
-                    self._ext+1, colnump, rows)
+                    self._ext+1, colnump, rows, sortind,
+                )
 
                 if (isinstance(dlist[0], str) or
                         (IS_PY3 and isinstance(dlist[0], bytes))):
@@ -1668,7 +1683,7 @@ class TableHDU(HDUBase):
 
         return result, flags
 
-    def _read_var_column(self, colnum, rows, vstorage):
+    def _read_var_column(self, colnum, rows, sortind, vstorage):
         """
 
         first read as a list of arrays, then copy into either a fixed length
@@ -1681,7 +1696,9 @@ class TableHDU(HDUBase):
         else:
             stype = str
 
-        dlist = self._FITS.read_var_column_as_list(self._ext+1, colnum+1, rows)
+        dlist = self._FITS.read_var_column_as_list(
+            self._ext+1, colnum+1, rows, sortind,
+        )
 
         if vstorage == 'fixed':
             tform = self._info['colinfo'][colnum]['tform']
@@ -1997,7 +2014,7 @@ class AsciiTableHDU(TableHDU):
 
         # if rows is None still returns None, and is correctly interpreted
         # by the reader to mean all
-        rows = self._extract_rows(rows)
+        rows, sortind = self._extract_rows(rows)
 
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(
@@ -2011,7 +2028,7 @@ class AsciiTableHDU(TableHDU):
                 colnum = colnums[i]
                 name = array.dtype.names[i]
                 a = array[name].copy()
-                self._FITS.read_column(self._ext+1, colnum+1, a, rows)
+                self._FITS.read_column(self._ext+1, colnum+1, a, rows, sortind)
                 array[name] = a
                 del a
 
@@ -2023,7 +2040,8 @@ class AsciiTableHDU(TableHDU):
                 colnum = colnums[i]
                 name = array.dtype.names[i]
                 dlist = self._FITS.read_var_column_as_list(
-                    self._ext+1, colnum+1, rows)
+                    self._ext+1, colnum+1, rows, sortind,
+                )
                 if (isinstance(dlist[0], str) or
                         (IS_PY3 and isinstance(dlist[0], bytes))):
                     is_string = True

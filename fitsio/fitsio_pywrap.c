@@ -3497,22 +3497,24 @@ read_var_column_cleanup:
 // read specified columns and rows
 static int read_binary_rec_columns(
         fitsfile* fits,
-        npy_intp ncols, npy_int64* colnums,
-        npy_intp nrows, npy_int64* rows,
-        void* data, int* status) {
+        npy_intp ncols,
+        npy_int64* colnums,
+        npy_intp nrows,
+        npy_int64* rows,
+        npy_int64* sortind,
+        PyObject *array,
+        int* status
+) {
     FITSfile* hdu=NULL;
     tcolumn* colptr=NULL;
     LONGLONG file_pos=0;
     npy_intp col=0;
     npy_int64 colnum=0;
+    char* ptr=NULL;
 
     int rows_sent=0;
     npy_intp irow=0;
-    npy_int64 row=0;
-
-    // use char for pointer arith.  It's actually ok to use void as char but
-    // this is just in case.
-    char* ptr;
+    npy_int64 row=0, si=0;
 
     LONGLONG gsize=0; // number of bytes in column
     LONGLONG repeat=0;
@@ -3521,15 +3523,18 @@ static int read_binary_rec_columns(
     // using struct defs here, could cause problems
     hdu = fits->Fptr;
 
-    rows_sent = nrows == hdu->numrows ? 0 : 1;
+    rows_sent = (nrows == hdu->numrows) ? 0 : 1;
 
-    ptr = (char*) data;
-    for (irow=0; irow<nrows; irow++) {
+    for (irow=0; irow < nrows; irow++) {
         if (rows_sent) {
-            row = rows[irow];
+            si = sortind[irow];
+            row = rows[si];
         } else {
+            si = irow;
             row = irow;
         }
+
+        ptr = (char *) PyArray_GETPTR1(array, si);
         for (col=0; col < ncols; col++) {
 
             colnum = colnums[col];
@@ -3537,12 +3542,11 @@ static int read_binary_rec_columns(
 
             repeat = colptr->trepeat;
             width = colptr->tdatatype == TSTRING ? 1 : colptr->twidth;
-            gsize = repeat*width;
 
             file_pos = hdu->datastart + row*hdu->rowlength + colptr->tbcol;
 
             if (colptr->tdatatype == TBIT) {
-                if (fits_read_col_bit(fits, colnum, row+1, 1, repeat, (char*)ptr, status)) {
+                if (fits_read_col_bit(fits, colnum, row+1, 1, repeat, ptr, status)) {
                     return 1;
                 }
             } else {
@@ -3552,7 +3556,10 @@ static int read_binary_rec_columns(
                     return 1;
                 }
             }
+
+            gsize = repeat * width;
             ptr += gsize;
+
         }
     }
 
@@ -3574,11 +3581,15 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     PyObject* columnsobj=NULL;
     PyObject* array=NULL;
-    void* data=NULL;
 
-    PyObject* rowsobj=NULL;
+    PyObject* rowsObj=NULL;
+    PyObject* sortindObj=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iOOO", &hdunum, &columnsobj, &array, &rowsobj)) {
+    npy_intp nrows, nsortind;
+    npy_int64* rows=NULL, *sortind=NULL;
+
+    if (!PyArg_ParseTuple(args, (char*)"iOOOO",
+                          &hdunum, &columnsobj, &array, &rowsObj, &sortindObj)) {
         return NULL;
     }
 
@@ -3601,15 +3612,16 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
     }
 
     hdu = self->fits->Fptr;
-    data = PyArray_DATA(array);
-    npy_intp nrows;
-    npy_int64* rows=NULL;
-    if (rowsobj == Py_None) {
+
+    if (rowsObj == Py_None) {
         nrows = hdu->numrows;
     } else {
-        rows = get_int64_from_array(rowsobj, &nrows);
+        rows = get_int64_from_array(rowsObj, &nrows);
+        sortind = get_int64_from_array(sortindObj, &nsortind);
     }
-    if (read_binary_rec_columns(self->fits, ncols, colnums, nrows, rows, data, &status)) {
+    if (read_binary_rec_columns(
+            self->fits, ncols, colnums,
+            nrows, rows, sortind, array, &status)) {
         goto recread_columns_cleanup;
     }
 

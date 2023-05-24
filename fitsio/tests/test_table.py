@@ -98,6 +98,14 @@ def test_table_read_unsorted():
             d = fits[1].read(rows=rows)
             compare_rec(data[rows], d, "unsorted")
 
+            columns = ['f8scalar', 'i4vec', 'i2arr']
+            d = fits[1].read(
+                columns=columns,
+                rows=rows,
+            )
+            for col in columns:
+                compare_array(d[col], data[col][rows], 'unsorted col')
+
 
 def test_table_column_index_scalar():
     """
