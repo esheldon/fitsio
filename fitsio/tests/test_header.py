@@ -464,6 +464,7 @@ def record_exists(header_records, key, value):
 def test_read_comment_history():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
+
         with FITS(fname, 'rw') as fits:
             data = np.arange(100).reshape(10, 10)
             fits.create_image_hdu(data)
@@ -482,3 +483,28 @@ def test_read_comment_history():
             assert record_exists(records, 'COMMENT', 'A COMMENT 2')
             assert record_exists(records, 'HISTORY', 'SOME HISTORY 1')
             assert record_exists(records, 'HISTORY', 'SOME HISTORY 2')
+
+
+def testWriteKeyDict():
+    """
+    test that write_key works using a standard key dict
+    """
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with FITS(fname, 'rw') as fits:
+
+            im = np.zeros((10, 10), dtype='i2')
+            fits.write(im)
+
+            keydict = {
+                'name': 'test',
+                'value': 35,
+                'comment': 'keydict test',
+            }
+            fits[-1].write_key(**keydict)
+
+            h = fits[-1].read_header()
+
+            assert h['test'] == keydict['value']
+            assert h.get_comment('test') == keydict['comment']

@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from functools import lru_cache
 
 from .._fitsio_wrap import cfitsio_use_standard_strings
 
@@ -10,6 +11,7 @@ lorem_ipsum = (
 )
 
 
+@lru_cache
 def make_data():
 
     nvec = 2
