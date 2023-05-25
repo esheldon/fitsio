@@ -71,7 +71,7 @@ def test_table_read_write():
                         adata['data'][f][:], d[f], "test column list %s" % f
                     )
 
-                for rows in [[1, 3], [3, 1]]:
+                for rows in [[1, 3], [3, 1], [2, 2, 1]]:
                     d = fits[1].read(columns=cols, rows=rows)
                     for col in d.dtype.names:
                         compare_array(
