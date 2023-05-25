@@ -25,7 +25,7 @@ import copy
 import warnings
 from functools import reduce
 
-import numpy
+import numpy as np
 
 from ..util import (
     IS_PY3,
@@ -234,7 +234,7 @@ class TableHDU(HDUBase):
             colnums_all = [self._extract_colnum(c) for c in columns_all]
             names = [self.get_colname(c) for c in colnums_all]
 
-            isobj = numpy.zeros(len(data_list), dtype=bool)
+            isobj = np.zeros(len(data_list), dtype=bool)
             for i in xrange(len(data_list)):
                 isobj[i] = is_object(data_list[i])
 
@@ -335,7 +335,7 @@ class TableHDU(HDUBase):
 
         if not data.flags['C_CONTIGUOUS']:
             # this always makes a copy
-            data_send = numpy.ascontiguousarray(data)
+            data_send = np.ascontiguousarray(data)
             # this is a copy, we can make sure it is native
             # and modify in place if needed
             array_to_native(data_send, inplace=True)
@@ -394,17 +394,6 @@ class TableHDU(HDUBase):
 
         if col_shape is not None and not isinstance(col_shape, tuple):
             col_shape = (col_shape,)
-
-        """
-        print('column name:',col_name)
-        print(data.shape)
-        print('col tdim', info['tdim'])
-        print('column dtype:',npy_type)
-        print('input dtype:',this_npy_type)
-        print('column shape:',col_shape)
-        print('input shape:',this_shape)
-        print()
-        """
 
         # this mismatch is OK
         if npy_type == 'i1' and this_npy_type == 'b1':
@@ -504,7 +493,7 @@ class TableHDU(HDUBase):
             # the numpy API is probably safer
             # this also avoids doing a dtype conversion on every array
             # element which could b expensive
-            descr = numpy.empty(1).astype(data.dtype).astype('S').dtype.descr
+            descr = np.empty(1).astype(data.dtype).astype('S').dtype.descr
         else:
             descr = data.dtype.descr
 
@@ -595,7 +584,7 @@ class TableHDU(HDUBase):
         if isinstance(rows, slice):
             rows = self._process_slice(rows)
             if rows.step is not None and rows.step != 1:
-                rows = numpy.arange(
+                rows = np.arange(
                     rows.start+1,
                     rows.stop+1,
                     rows.step,
@@ -604,7 +593,7 @@ class TableHDU(HDUBase):
                 # rows must be 1-offset
                 rows = slice(rows.start+1, rows.stop+1)
         else:
-            rows, sortind = self._extract_rows(rows)
+            rows, sortind = self._extract_rows(rows, sort=True)
             # rows must be 1-offset
             rows += 1
 
@@ -614,7 +603,7 @@ class TableHDU(HDUBase):
             if rows.size == 0:
                 return
 
-            self._FITS.delete_rows(self._ext+1, rows, sortind)
+            self._FITS.delete_rows(self._ext+1, rows)
 
         self._update_info()
 
@@ -765,7 +754,7 @@ class TableHDU(HDUBase):
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
 
-        w, = numpy.where(isvar == True)  # noqa
+        w, = np.where(isvar == True)  # noqa
         has_tbit = self._check_tbit()
 
         if w.size > 0:
@@ -791,7 +780,7 @@ class TableHDU(HDUBase):
         else:
             firstrow = 1  # noqa - not used?
             nrows = self._info['nrows']
-            array = numpy.zeros(nrows, dtype=dtype)
+            array = np.zeros(nrows, dtype=dtype)
 
             self._FITS.read_as_rec(self._ext+1, 1, nrows, array)
 
@@ -905,7 +894,7 @@ class TableHDU(HDUBase):
         rows, sortind = self._extract_rows(rows)
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
-        w, = numpy.where(isvar == True)  # noqa
+        w, = np.where(isvar == True)  # noqa
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -916,7 +905,7 @@ class TableHDU(HDUBase):
                 colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
             )
         else:
-            array = numpy.zeros(rows.size, dtype=dtype)
+            array = np.zeros(rows.size, dtype=dtype)
             self._FITS.read_rows_as_rec(self._ext+1, array, rows, sortind)
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
@@ -999,7 +988,7 @@ class TableHDU(HDUBase):
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
 
-        w, = numpy.where(isvar == True)  # noqa
+        w, = np.where(isvar == True)  # noqa
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -1015,7 +1004,7 @@ class TableHDU(HDUBase):
             else:
                 nrows = rows.size
 
-            array = numpy.zeros(nrows, dtype=dtype)
+            array = np.zeros(nrows, dtype=dtype)
 
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
@@ -1088,7 +1077,7 @@ class TableHDU(HDUBase):
                 DeprecationWarning, stacklevel=2)
 
         if self._info['hdutype'] == ASCII_TBL:
-            rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+            rows = np.arange(firstrow, lastrow, step, dtype='i8')
             return self.read_ascii(
                 rows=rows, vstorage=vstorage,
                 upper=upper, lower=lower, trim_strings=trim_strings)
@@ -1103,25 +1092,25 @@ class TableHDU(HDUBase):
 
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
-        w, = numpy.where(isvar == True)  # noqa
+        w, = np.where(isvar == True)  # noqa
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
             else:
                 _vstorage = vstorage
-            rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
-            sortind = numpy.arange(rows.size)
+            rows = np.arange(firstrow, lastrow, step, dtype='i8')
+            sortind = np.arange(rows.size)
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
                 colnums, rows, sortind, dtype, offsets, isvar, _vstorage)
         else:
             if step != 1:
-                rows = numpy.arange(firstrow, lastrow, step, dtype='i8')
+                rows = np.arange(firstrow, lastrow, step, dtype='i8')
                 array = self.read(rows=rows)
             else:
                 # no +1 because lastrow is non-inclusive
                 nrows = lastrow - firstrow
-                array = numpy.zeros(nrows, dtype=dtype)
+                array = np.zeros(nrows, dtype=dtype)
 
                 # only first needs to be +1.  This is becuase the c code is
                 # inclusive
@@ -1173,14 +1162,14 @@ class TableHDU(HDUBase):
             colnums = self._extract_colnums()
 
         descr = []
-        isvararray = numpy.zeros(len(colnums), dtype=bool)
+        isvararray = np.zeros(len(colnums), dtype=bool)
         for i, colnum in enumerate(colnums):
             dt, isvar = self.get_rec_column_descr(colnum, _vstorage)
             descr.append(dt)
             isvararray[i] = isvar
-        dtype = numpy.dtype(descr)
+        dtype = np.dtype(descr)
 
-        offsets = numpy.zeros(len(colnums), dtype='i8')
+        offsets = np.zeros(len(colnums), dtype='i8')
         for i, n in enumerate(dtype.names):
             offsets[i] = dtype.fields[n][1]
         return dtype, offsets, isvararray
@@ -1346,10 +1335,10 @@ class TableHDU(HDUBase):
             nrows = self._info['nrows']
         else:
             nrows = rows.size
-        array = numpy.zeros(nrows, dtype=dtype)
+        array = np.zeros(nrows, dtype=dtype)
 
         # read from the main table first
-        wnotvar, = numpy.where(isvar == False)  # noqa
+        wnotvar, = np.where(isvar == False)  # noqa
         if wnotvar.size > 0:
             # this will be contiguous (not true for slices)
             thesecol = colnumsp[wnotvar]
@@ -1377,7 +1366,7 @@ class TableHDU(HDUBase):
 
         # now read the variable length arrays we may be able to speed this up
         # by storing directly instead of reading first into a list
-        wvar, = numpy.where(isvar == True)  # noqa
+        wvar, = np.where(isvar == True)  # noqa
         if wvar.size > 0:
             # this will be contiguous (not true for slices)
             thesecol = colnumsp[wvar]
@@ -1398,11 +1387,15 @@ class TableHDU(HDUBase):
                     # storing in object array
                     # get references to each, no copy made
                     for irow, item in enumerate(dlist):
+                        if sortind is not None:
+                            irow = sortind[irow]
                         if IS_PY3 and isinstance(item, bytes):
                             item = item.decode('ascii')
                         array[name][irow] = item
                 else:
                     for irow, item in enumerate(dlist):
+                        if sortind is not None:
+                            irow = sortind[irow]
                         if IS_PY3 and isinstance(item, bytes):
                             item = item.decode('ascii')
 
@@ -1422,12 +1415,16 @@ class TableHDU(HDUBase):
 
         return array
 
-    def _extract_rows(self, rows):
+    def _extract_rows(self, rows, sort=False):
         """
         Extract an array of rows from an input scalar or sequence
         """
         if rows is not None:
-            rows = numpy.array(rows, ndmin=1, copy=False, dtype='i8')
+            rows = np.array(rows, ndmin=1, copy=False, dtype='i8')
+            if sort:
+                rows = np.unique(rows)
+                return rows, None
+
             # returns unique, sorted
             sortind = rows.argsort()
 
@@ -1495,7 +1492,7 @@ class TableHDU(HDUBase):
             return None
         if stop < start:
             raise ValueError("start is greater than stop in slice")
-        return numpy.arange(tstart, tstop, step, dtype='i8')
+        return np.arange(tstart, tstop, step, dtype='i8')
 
     def _fix_range(self, num, isslice=True):
         """
@@ -1546,10 +1543,10 @@ class TableHDU(HDUBase):
         Scale the input array
         """
         if scale != 1.0:
-            sval = numpy.array(scale, dtype=array.dtype)
+            sval = np.array(scale, dtype=array.dtype)
             array *= sval
         if zero != 0.0:
-            zval = numpy.array(zero, dtype=array.dtype)
+            zval = np.array(zero, dtype=array.dtype)
             array += zval
 
     def _maybe_trim_strings(self, array, trim_strings=False, **keys):
@@ -1595,7 +1592,7 @@ class TableHDU(HDUBase):
         If input is a fits bool, convert to numpy boolean
         """
 
-        output = (array.view(numpy.int8) == ord('T')).astype(bool)
+        output = (array.view(np.int8) == ord('T')).astype(bool)
         return output
 
     def _get_tbl_numpy_dtype(self, colnum, include_endianness=True):
@@ -1656,7 +1653,7 @@ class TableHDU(HDUBase):
 
         flags = set()
         #
-        if isinstance(arg, (tuple, list, numpy.ndarray)):
+        if isinstance(arg, (tuple, list, np.ndarray)):
             # a sequence was entered
             if isstring(arg[0]):
                 result = arg
@@ -1679,7 +1676,7 @@ class TableHDU(HDUBase):
             # Probably should apply some more checking on this
             result = arg
             flags.add('isrows')
-            if numpy.ndim(arg) == 0:
+            if np.ndim(arg) == 0:
                 flags.add('isscalar')
 
         return result, flags
@@ -1722,19 +1719,24 @@ class TableHDU(HDUBase):
 
             if isinstance(dlist[0], stype):
                 descr = 'S%d' % max_size
-                array = numpy.fromiter(dlist, descr)
+                array = np.fromiter(dlist, descr)
                 if IS_PY3:
                     array = array.astype('U', copy=False)
             else:
                 descr = dlist[0].dtype.str
-                array = numpy.zeros((len(dlist), max_size), dtype=descr)
+                array = np.zeros((len(dlist), max_size), dtype=descr)
 
                 for irow, item in enumerate(dlist):
+                    if sortind is not None:
+                        irow = sortind[irow]
                     ncopy = len(item)
                     array[irow, 0:ncopy] = item[:]
         else:
-            array = numpy.zeros(len(dlist), dtype='O')
+            array = np.zeros(len(dlist), dtype='O')
             for irow, item in enumerate(dlist):
+                if sortind is not None:
+                    irow = sortind[irow]
+
                 if IS_PY3 and isinstance(item, bytes):
                     item = item.decode('ascii')
                 array[irow] = item
@@ -1746,18 +1748,18 @@ class TableHDU(HDUBase):
         Extract an array of columns from the input
         """
         if columns is None:
-            return numpy.arange(self._ncol, dtype='i8')
+            return np.arange(self._ncol, dtype='i8')
 
-        if not isinstance(columns, (tuple, list, numpy.ndarray)):
+        if not isinstance(columns, (tuple, list, np.ndarray)):
             # is a scalar
             return self._extract_colnum(columns)
 
-        colnums = numpy.zeros(len(columns), dtype='i8')
+        colnums = np.zeros(len(columns), dtype='i8')
         for i in xrange(colnums.size):
             colnums[i] = self._extract_colnum(columns[i])
 
         # returns unique sorted
-        colnums = numpy.unique(colnums)
+        colnums = np.unique(colnums)
         return colnums
 
     def _extract_colnum(self, col):
@@ -2020,10 +2022,10 @@ class AsciiTableHDU(TableHDU):
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(
             colnums=colnums, vstorage=vstorage)
-        array = numpy.zeros(nrows, dtype=dtype)
+        array = np.zeros(nrows, dtype=dtype)
 
         # note reading into existing data
-        wnotvar, = numpy.where(isvar == False)  # noqa
+        wnotvar, = np.where(isvar == False)  # noqa
         if wnotvar.size > 0:
             for i in wnotvar:
                 colnum = colnums[i]
@@ -2035,7 +2037,7 @@ class AsciiTableHDU(TableHDU):
 
         array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
-        wvar, = numpy.where(isvar == True)  # noqa
+        wvar, = np.where(isvar == True)  # noqa
         if wvar.size > 0:
             for i in wvar:
                 colnum = colnums[i]
@@ -2053,11 +2055,15 @@ class AsciiTableHDU(TableHDU):
                     # storing in object array
                     # get references to each, no copy made
                     for irow, item in enumerate(dlist):
+                        if sortind is not None:
+                            irow = sortind[irow]
                         if IS_PY3 and isinstance(item, bytes):
                             item = item.decode('ascii')
                         array[name][irow] = item
                 else:
                     for irow, item in enumerate(dlist):
+                        if sortind is not None:
+                            irow = sortind[irow]
                         if IS_PY3 and isinstance(item, bytes):
                             item = item.decode('ascii')
                         if is_string:
@@ -2291,10 +2297,10 @@ def _trim_strings(data):
         # run through each field separately
         for n in names:
             if data[n].dtype.descr[0][1][1] in ['S', 'U']:
-                data[n] = numpy.char.rstrip(data[n])
+                data[n] = np.char.rstrip(data[n])
     else:
         if data.dtype.descr[0][1][1] in ['S', 'U']:
-            data[:] = numpy.char.rstrip(data[:])
+            data[:] = np.char.rstrip(data[:])
 
 
 def _extract_vararray_max(tform):
