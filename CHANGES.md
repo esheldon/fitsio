@@ -4,8 +4,8 @@ version 1.1.9
 Changes
 
     - Row subsets of table data are returned in the order sent by the user
-      rather than sorted and unique.  E.g. rows = [3, 1] will return
-      data corresponding to that order of rows.
+      rather than sorted and unique.  E.g. rows = [2, 2, 1] will return
+      data corresponding to that order of rows, including duplicates.
     - Removed deprecated `pkg_resources` from tests (M. Becker).
     - converted tests to use pytest
     - Improved doc strings (N. Tessore)
