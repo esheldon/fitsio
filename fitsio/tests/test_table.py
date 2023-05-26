@@ -71,13 +71,19 @@ def test_table_read_write():
                         adata['data'][f][:], d[f], "test column list %s" % f
                     )
 
-                rows = [1, 3]
-                d = fits[1].read(columns=cols, rows=rows)
-                for f in d.dtype.names:
-                    compare_array(
-                        adata['data'][f][rows], d[f],
-                        "test column list %s row subset" % f
-                    )
+                for rows in [[1, 3], [3, 1], [2, 2, 1]]:
+                    d = fits[1].read(columns=cols, rows=rows)
+                    for col in d.dtype.names:
+                        compare_array(
+                            adata['data'][col][rows], d[col],
+                            "test column list %s row subset" % col
+                        )
+                    for col in cols:
+                        d = fits[1].read_column(col, rows=rows)
+                        compare_array(
+                            adata['data'][col][rows], d,
+                            "test column list %s row subset" % col
+                        )
 
 
 def test_table_column_index_scalar():
@@ -351,80 +357,80 @@ def test_variable_length_columns():
                 # now same with sub rows
                 #
 
-                # reading multiple columns
-                rows = [0, 2]
-                d = fits[1].read(rows=rows)
-                compare_rec_with_var(
-                    vardata, d, "read subrows test '%s'" % vstorage,
-                    rows=rows,
-                )
+                # reading multiple columns, sorted and unsorted
+                for rows in [[0, 2], [2, 0]]:
+                    d = fits[1].read(rows=rows)
+                    compare_rec_with_var(
+                        vardata, d, "read subrows test '%s'" % vstorage,
+                        rows=rows,
+                    )
 
-                d = fits[1].read(columns=cols, rows=rows)
-                compare_rec_with_var(
-                    vardata,
-                    d,
-                    "read subrows test subcols '%s'" % vstorage,
-                    rows=rows,
-                )
+                    d = fits[1].read(columns=cols, rows=rows)
+                    compare_rec_with_var(
+                        vardata,
+                        d,
+                        "read subrows test subcols '%s'" % vstorage,
+                        rows=rows,
+                    )
 
-                # one at a time
-                for f in vardata.dtype.names:
-                    d = fits[1].read_column(f, rows=rows)
-                    if util.is_object(vardata[f]):
-                        compare_object_array(
-                            vardata[f], d,
-                            "read subrows field '%s'" % f,
-                            rows=rows,
-                        )
+                    # one at a time
+                    for f in vardata.dtype.names:
+                        d = fits[1].read_column(f, rows=rows)
+                        if util.is_object(vardata[f]):
+                            compare_object_array(
+                                vardata[f], d,
+                                "read subrows field '%s'" % f,
+                                rows=rows,
+                            )
 
-                # same as above with slices
-                # reading multiple columns
-                d = fits[1][rows]
-                compare_rec_with_var(
-                    vardata, d, "read subrows slice test '%s'" % vstorage,
-                    rows=rows,
-                )
-                d = fits[1][2:4]
-                compare_rec_with_var(
-                    vardata,
-                    d,
-                    "read slice test '%s'" % vstorage,
-                    rows=[2, 3],
-                )
+                    # same as above with slices
+                    # reading multiple columns
+                    d = fits[1][rows]
+                    compare_rec_with_var(
+                        vardata, d, "read subrows slice test '%s'" % vstorage,
+                        rows=rows,
+                    )
+                    d = fits[1][2:4]
+                    compare_rec_with_var(
+                        vardata,
+                        d,
+                        "read slice test '%s'" % vstorage,
+                        rows=[2, 3],
+                    )
 
-                d = fits[1][cols][rows]
-                compare_rec_with_var(
-                    vardata,
-                    d,
-                    "read subcols subrows slice test '%s'" % vstorage,
-                    rows=rows,
-                )
+                    d = fits[1][cols][rows]
+                    compare_rec_with_var(
+                        vardata,
+                        d,
+                        "read subcols subrows slice test '%s'" % vstorage,
+                        rows=rows,
+                    )
 
-                d = fits[1][cols][2:4]
+                    d = fits[1][cols][2:4]
 
-                compare_rec_with_var(
-                    vardata,
-                    d,
-                    "read subcols slice test '%s'" % vstorage,
-                    rows=[2, 3],
-                )
+                    compare_rec_with_var(
+                        vardata,
+                        d,
+                        "read subcols slice test '%s'" % vstorage,
+                        rows=[2, 3],
+                    )
 
-                # one at a time
-                for f in vardata.dtype.names:
-                    d = fits[1][f][rows]
-                    if util.is_object(vardata[f]):
-                        compare_object_array(
-                            vardata[f], d,
-                            "read subrows field '%s'" % f,
-                            rows=rows,
-                        )
-                    d = fits[1][f][2:4]
-                    if util.is_object(vardata[f]):
-                        compare_object_array(
-                            vardata[f], d,
-                            "read slice field '%s'" % f,
-                            rows=[2, 3],
-                        )
+                    # one at a time
+                    for f in vardata.dtype.names:
+                        d = fits[1][f][rows]
+                        if util.is_object(vardata[f]):
+                            compare_object_array(
+                                vardata[f], d,
+                                "read subrows field '%s'" % f,
+                                rows=rows,
+                            )
+                        d = fits[1][f][2:4]
+                        if util.is_object(vardata[f]):
+                            compare_object_array(
+                                vardata[f], d,
+                                "read slice field '%s'" % f,
+                                rows=[2, 3],
+                            )
 
 
 def test_table_iter():
@@ -489,15 +495,15 @@ def test_ascii_table_write_read():
                         ascii_data[f], d, "table field read '%s'" % f
                     )
 
-            rows = [1, 3]
-            for f in ascii_data.dtype.names:
-                d = fits[1].read_column(f, rows=rows)
-                if d.dtype == np.float64:
-                    compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+            for rows in [[1, 3], [3, 1]]:
+                for f in ascii_data.dtype.names:
+                    d = fits[1].read_column(f, rows=rows)
+                    if d.dtype == np.float64:
+                        compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+                                          "table field read subrows '%s'" % f)
+                    else:
+                        compare_array(ascii_data[f][rows], d,
                                       "table field read subrows '%s'" % f)
-                else:
-                    compare_array(ascii_data[f][rows], d,
-                                  "table field read subrows '%s'" % f)
 
             beg = 1
             end = 3
@@ -542,27 +548,27 @@ def test_ascii_table_write_read():
                             ascii_data[f], d, "table subcol, '%s'" % f
                         )
 
-            rows = [1, 3]
-            for f in ascii_data.dtype.names:
-                data = fits[1].read(columns=cols, rows=rows)
-                for f in data.dtype.names:
-                    d = data[f]
-                    if d.dtype == np.float64:
-                        compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+            for rows in [[1, 3], [3, 1]]:
+                for f in ascii_data.dtype.names:
+                    data = fits[1].read(columns=cols, rows=rows)
+                    for f in data.dtype.names:
+                        d = data[f]
+                        if d.dtype == np.float64:
+                            compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+                                              "table subcol, '%s'" % f)
+                        else:
+                            compare_array(ascii_data[f][rows], d,
                                           "table subcol, '%s'" % f)
-                    else:
-                        compare_array(ascii_data[f][rows], d,
-                                      "table subcol, '%s'" % f)
 
-                data = fits[1][cols][rows]
-                for f in data.dtype.names:
-                    d = data[f]
-                    if d.dtype == np.float64:
-                        compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+                    data = fits[1][cols][rows]
+                    for f in data.dtype.names:
+                        d = data[f]
+                        if d.dtype == np.float64:
+                            compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
+                                              "table subcol/row, '%s'" % f)
+                        else:
+                            compare_array(ascii_data[f][rows], d,
                                           "table subcol/row, '%s'" % f)
-                    else:
-                        compare_array(ascii_data[f][rows], d,
-                                      "table subcol/row, '%s'" % f)
 
             for f in ascii_data.dtype.names:
 
@@ -896,20 +902,22 @@ def test_table_subsets():
 
             fits.write_table(data, header=adata['keys'], extname='mytable')
 
-            rows = [1, 3]
-            d = fits[1].read(rows=rows)
-            compare_rec_subrows(data, d, rows, "table subset")
-            columns = ['i1scalar', 'f4arr']
-            d = fits[1].read(columns=columns, rows=rows)
+            for rows in [[1, 3], [3, 1]]:
+                d = fits[1].read(rows=rows)
+                compare_rec_subrows(data, d, rows, "table subset")
+                columns = ['i1scalar', 'f4arr']
+                d = fits[1].read(columns=columns, rows=rows)
 
-            for f in columns:
-                d = fits[1].read_column(f, rows=rows)
-                compare_array(
-                    data[f][rows], d, "row subset, multi-column '%s'" % f
-                )
-            for f in data.dtype.names:
-                d = fits[1].read_column(f, rows=rows)
-                compare_array(data[f][rows], d, "row subset, column '%s'" % f)
+                for f in columns:
+                    d = fits[1].read_column(f, rows=rows)
+                    compare_array(
+                        data[f][rows], d, "row subset, multi-column '%s'" % f
+                    )
+                for f in data.dtype.names:
+                    d = fits[1].read_column(f, rows=rows)
+                    compare_array(
+                        data[f][rows], d, "row subset, column '%s'" % f
+                    )
 
 
 def test_gz_write_read():
@@ -1264,14 +1272,14 @@ def test_table_bitcol_read_write():
                 for f in d.dtype.names:
                     compare_array(bdata[f][:], d[f], "test column list %s" % f)
 
-                rows = [1, 3]
-                d = fits[1].read(columns=cols, rows=rows)
-                for f in d.dtype.names:
-                    compare_array(
-                        bdata[f][rows],
-                        d[f],
-                        "test column list %s row subset" % f
-                    )
+                for rows in [[1, 3], [3, 1]]:
+                    d = fits[1].read(columns=cols, rows=rows)
+                    for f in d.dtype.names:
+                        compare_array(
+                            bdata[f][rows],
+                            d[f],
+                            "test column list %s row subset" % f
+                        )
 
 
 def test_table_bitcol_append():
