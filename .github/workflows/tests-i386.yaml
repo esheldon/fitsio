@@ -29,15 +29,10 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt-get  update
           sudo apt-get -y install --allow-downgrades gcc-multilib libglib2.0-dev:i386 python:i386
-          pip install numpy
+          pip install numpy pytest
 
       - name: test build
         shell: bash -l {0}
         run: |
           pip install -e . 
           SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 fitsio
