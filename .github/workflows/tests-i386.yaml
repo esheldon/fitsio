@@ -6,14 +6,12 @@ on:
       - master
   pull_request: null
 
+
 jobs:
   tests:
     name: tests
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
 
     steps:
       - name: cancel previous runs
@@ -21,20 +19,19 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          architecture: x86
+          python-version: '3.10'
+          cache: 'pip' # caching pip dependencies
 
       - name: install deps
         shell: bash -l {0}
-        run: |
-          sudo apt install build-essential:i386 python3-numpy:i386 python3-pytest:i386 python3-flake8:i386
+        run: pip install numpy
 
-      - name: test build
+      - name: test build and pytest
         shell: bash -l {0}
         run: |
           pip install -e . 
           SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 fitsio
