@@ -28,9 +28,9 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get -y install --allow-downgrades gcc-multilib g++-multilib libgcc-s1:i386 libstdc++6:i386 libpcre3-dev:i386 libglib2.0-dev:i386 python3:i386 libpython3-stdlib:i386
+          sudo apt-get -y install --allow-downgrades gcc-multilib g++-multilib libgcc-s1:i386 libstdc++6:i386 libpcre3-dev:i386 libglib2.0-dev:i386 python3:i386 python3-apt:i386 libpython3-stdlib:i386
 
-      - name: install deps
+      - name: install python deps
         shell: bash -l {0}
         run: |
           pip install numpy pytest
