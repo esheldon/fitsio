@@ -1,0 +1,40 @@
+name: tests-i386
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+jobs:
+  tests:
+    name: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v2
+
+      - name: install deps
+        shell: bash -l {0}
+        run: |
+          sudo apt install build-essential:i386 python3-numpy:i386 python3-pytest:i386 python3-flake8:i386
+
+      - name: test build
+        shell: bash -l {0}
+        run: |
+          pip install -e . 
+          SKIP_BZIP_TEST=true pytest -vv fitsio
+
+      - name: flake8
+        shell: bash -l {0}
+        run: |
+          flake8 fitsio
