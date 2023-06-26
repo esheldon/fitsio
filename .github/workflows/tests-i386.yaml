@@ -8,10 +8,11 @@ on:
 
 
 jobs:
-  tests:
-    name: tests
+  tests-i386:
+    name: tests-i386
     strategy:
       fail-fast: false
+    runs-on: ubuntu-latest
 
     steps:
       - name: cancel previous runs
