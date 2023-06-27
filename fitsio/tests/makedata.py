@@ -11,7 +11,7 @@ lorem_ipsum = (
 )
 
 
-@lru_cache
+@lru_cache(maxsize=1)
 def make_data():
 
     nvec = 2

@@ -1099,7 +1099,7 @@ class TableHDU(HDUBase):
             else:
                 _vstorage = vstorage
             rows = np.arange(firstrow, lastrow, step, dtype='i8')
-            sortind = np.arange(rows.size)
+            sortind = np.arange(rows.size, dtype='i8')
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
                 colnums, rows, sortind, dtype, offsets, isvar, _vstorage)
@@ -1425,8 +1425,8 @@ class TableHDU(HDUBase):
                 rows = np.unique(rows)
                 return rows, None
 
-            # returns unique, sorted
-            sortind = rows.argsort()
+            # returns unique, sorted.  Force i8 for 32-bit systems
+            sortind = np.array(rows.argsort(), dtype='i8', copy=False)
 
             maxrow = self._info['nrows']-1
             if rows.size > 0:
