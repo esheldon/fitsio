@@ -1425,8 +1425,8 @@ class TableHDU(HDUBase):
                 rows = np.unique(rows)
                 return rows, None
 
-            # returns unique, sorted
-            sortind = rows.argsort()
+            # returns unique, sorted.  Force i8 for 32-bit systems
+            sortind = np.array(rows.argsort(), dtype='i8', copy=False)
 
             maxrow = self._info['nrows']-1
             if rows.size > 0:
