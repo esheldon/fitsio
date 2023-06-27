@@ -1,3 +1,14 @@
+version 1.1.10 (unreleased)
+---------------------------
+
+Changes
+
+Bug Fixes
+
+    - Fix errors on 32 bit builds where default numpy integer
+      types were 32 rather than 64 bit assumed by the C code.
+    - Fix checks for rows being sent to C codes
+
 version 1.1.9
 -------------
 
