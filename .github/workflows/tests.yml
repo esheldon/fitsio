@@ -59,16 +59,16 @@ jobs:
           make install -j 4
           cd ..
 
-      - name: test bundled build
-        shell: bash -l {0}
-        run: |
-          pip install -e . 
-          SKIP_BZIP_TEST=true pytest -vv fitsio
-
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          pip install -e . --global-option="build_ext" --global-option "--use-system-fitsio"
+          pip install -e . --config-setting="build_ext" --config-setting="--use-system-fitsio"
+          SKIP_BZIP_TEST=true pytest -vv fitsio
+
+      - name: test bundled build
+        shell: bash -l {0}
+        run: |
+          pip install -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: flake8
