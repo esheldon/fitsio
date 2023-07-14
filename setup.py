@@ -191,6 +191,7 @@ class build_ext_subclass(build_ext):
             os.makedirs(self.cfitsio_patch_dir)
 
         copy_update(self.cfitsio_dir, self.cfitsio_build_dir)
+        copy_update('zlib', self.cfitsio_build_dir)
         copy_update('patches', self.cfitsio_patch_dir)
 
         # we patch the source in the buil dir to avoid mucking with the repo
