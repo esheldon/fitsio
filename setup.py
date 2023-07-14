@@ -16,24 +16,15 @@ import shutil
 
 
 class build_ext_subclass(build_ext):
-    boolean_options = build_ext.boolean_options + ['use-system-fitsio']
-
-    user_options = build_ext.user_options + [
-        ('use-system-fitsio', None, "Use the cfitsio installed in the system"),
-        ('system-fitsio-includedir=', None,
-         "Path to look for cfitsio header; default is "
-         "the system search path."),
-        ('system-fitsio-libdir=', None,
-         "Path to look for cfitsio library; default is "
-         "the system search path."),
-    ]
     cfitsio_version = '3490'
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
-        self.use_system_fitsio = False
-        self.system_fitsio_includedir = None
-        self.system_fitsio_libdir = None
+        self.use_system_fitsio = (
+            True
+            if "FITSIO_USE_SYSTEM_CFITSIO" in os.environ
+            else False
+        )
         build_ext.initialize_options(self)
 
     def finalize_options(self):
@@ -48,10 +39,21 @@ class build_ext_subclass(build_ext):
             self.build_temp, 'patches')
 
         if self.use_system_fitsio:
-            if self.system_fitsio_includedir:
-                self.include_dirs.insert(0, self.system_fitsio_includedir)
-            if self.system_fitsio_libdir:
-                self.library_dirs.insert(0, self.system_fitsio_libdir)
+            if "FITSIO_SYSTEM_CFITSIO_PREFIX" in os.environ:
+                self.include_dirs.insert(
+                    0,
+                    os.path.join(
+                        os.environ["FITSIO_SYSTEM_CFITSIO_PREFIX"],
+                        "include",
+                    )
+                )
+                self.library_dirs.insert(
+                    0,
+                    os.path.join(
+                        os.environ["FITSIO_SYSTEM_CFITSIO_PREFIX"],
+                        "lib",
+                    )
+                )
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.

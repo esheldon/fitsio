@@ -62,11 +62,9 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          python -m pip install -vv . \
-            --global-option=build_ext \
-            --global-option=--use-system-fitsio \
-            --global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib \
-            --global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include
+          export FITSIO_USE_SYSTEM_CFITSIO=1
+          export FITSIO_SYSTEM_CFITSIO_PREFIX=$HOME/cfitsio-static-install
+          python -m pip install -vv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
