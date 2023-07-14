@@ -3,6 +3,10 @@ version 1.1.10 (unreleased)
 
 Changes
 
+    - The installation now uses the environment variables `FITSIO_USE_SYSTEM_CFITSIO`
+      and `FITSIO_SYSTEM_CFITSIO_PREFIX` to control if fitsio builds the bundled
+      `cfitsio` and where to look for a system copy of `cfitsio`.
+
 Bug Fixes
 
     - Fix errors on 32 bit builds where default numpy integer
