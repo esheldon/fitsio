@@ -72,6 +72,7 @@ jobs:
       - name: test bundled build
         shell: bash -l {0}
         run: |
+          find . -name "*.so" -type f
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
