@@ -62,7 +62,7 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          python -m pip install -e . \
+          python -m pip install -vv -e . \
             --global-option=build_ext \
             --global-option=--use-system-fitsio \
             --global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib \
@@ -72,11 +72,12 @@ jobs:
       - name: test bundled build
         shell: bash -l {0}
         run: |
+          echo "removing SO files:"
           find . -name "*.so" -type f
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          pip install -e .
+          python -m pip install -vv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: flake8
