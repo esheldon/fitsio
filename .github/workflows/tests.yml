@@ -66,7 +66,7 @@ jobs:
             --global-option=build_ext \
             --global-option=--use-system-fitsio \
             --global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib \
-            --global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/lib
+            --global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
