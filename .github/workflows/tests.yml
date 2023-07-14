@@ -62,7 +62,7 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          python -m pip install -vv -e . \
+          python -m pip install -vv . \
             --global-option=build_ext \
             --global-option=--use-system-fitsio \
             --global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib \
