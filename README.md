@@ -443,6 +443,21 @@ We bundle cfitsio partly because many deployed versions of cfitsio in the
 wild do not have support for interesting features like tiled image compression.
 Bundling a version that meets our needs is a safe alternative.
 
+### unbundling cfitsio
+
+To unbundle cfitsio from fitsio, use the following env vars
+
+```bash
+export FITSIO_USE_SYSTEM_CFITSIO=1
+export FITSIO_SYSTEM_CFITSIO_PREFIX=/path/to/prefix
+```
+
+The first environment variable, `FITSIO_USE_SYSTEM_CFITSIO`, tells fitsio to
+search for cfitsio locally instead of building the bundled version. You will need
+to have a static library locally, not a dynamic one. The second variable,
+`FITSIO_SYSTEM_CFITSIO_PREFIX`, lets you point fitsio to a non-default
+location for the library and header files.
+
 ### array ordering
 
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
