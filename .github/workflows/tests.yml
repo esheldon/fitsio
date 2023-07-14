@@ -62,7 +62,7 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          pip install -e . --config-setting="build_ext" --config-setting="--use-system-fitsio"
+          pip install -e . --config-setting="--build-option=build_ext" --config-setting="--build-option=--use-system-fitsio"
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
