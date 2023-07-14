@@ -1,8 +1,8 @@
---- cfitsio3470/fitsio.h	2018-03-01 10:28:51.000000000 -0600
-+++ cfitsio3470/fitsio.h	2018-12-14 08:39:20.000000000 -0600
-@@ -797,6 +797,7 @@
+--- /home/esheldon/Downloads/cfitsio-4.2.0/fitsio.h	2022-10-31 14:40:23.000000000 -0400
++++ /home/esheldon/Downloads/cfitsio-4.2.0-mod/fitsio.h	2023-07-14 11:48:10.102506229 -0400
+@@ -811,6 +811,7 @@
  /*---------------- utility routines -------------*/
-
+ 
  float CFITS_API ffvers(float *version);
 +int CFITS_API fits_use_standard_strings(void);
  void CFITS_API ffupch(char *string);

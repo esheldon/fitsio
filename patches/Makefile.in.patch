@@ -1,0 +1,13 @@
+--- /home/esheldon/Downloads/cfitsio-4.2.0/Makefile.in	2022-10-31 14:40:23.000000000 -0400
++++ /home/esheldon/Downloads/cfitsio-4.2.0-mod/Makefile.in	2023-07-14 11:50:25.811296978 -0400
+@@ -69,7 +69,9 @@
+ 		pliocomp.c fits_hcompress.c fits_hdecompress.c \
+ 		simplerng.c @GSIFTP_SRC@
+ 
+-ZLIB_SOURCES =	zcompress.c zuncompress.c
++ZLIB_SOURCES =	adler32.c crc32.c deflate.c infback.c \
++		inffast.c inflate.c inftrees.c trees.c \
++		uncompr.c zutil.c zcompress.c zuncompress.c
+ 
+ SOURCES = ${CORE_SOURCES} ${ZLIB_SOURCES} @F77_WRAPPERS@
+ 
