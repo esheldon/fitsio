@@ -64,7 +64,7 @@ jobs:
         run: |
           export FITSIO_USE_SYSTEM_CFITSIO=1
           export FITSIO_SYSTEM_CFITSIO_PREFIX=$HOME/cfitsio-static-install
-          python -m pip install -vv -e .
+          python -m pip install -vvv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
@@ -75,7 +75,7 @@ jobs:
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          python -m pip install -vv -e .
+          python -m pip install -vvv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: flake8

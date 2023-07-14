@@ -8,11 +8,14 @@ from __future__ import print_function
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
+import sys
 import os
 import subprocess
 from subprocess import Popen, PIPE
 import glob
 import shutil
+
+print("outer:", sys.argv, flush=True)
 
 
 class build_ext_subclass(build_ext):
@@ -20,6 +23,8 @@ class build_ext_subclass(build_ext):
     cfitsio_dir = 'cfitsio%s' % cfitsio_version
 
     def initialize_options(self):
+        print("inner:", sys.argv, flush=True)
+
         self.use_system_fitsio = (
             True
             if "FITSIO_USE_SYSTEM_CFITSIO" in os.environ
