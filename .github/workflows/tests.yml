@@ -72,6 +72,9 @@ jobs:
       - name: test bundled build
         shell: bash -l {0}
         run: |
+          rm -rf build*
+          rm -rf $HOME/cfitsio-static-install
+          find . -name "*.so" -type f -delete
           pip install -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
