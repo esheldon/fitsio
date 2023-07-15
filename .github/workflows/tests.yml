@@ -79,7 +79,7 @@ jobs:
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          export FITSIO_USE_SYSTEM_FITSIO
+          export FITSIO_USE_SYSTEM_FITSIO=1
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
           pip install -vv -e .
