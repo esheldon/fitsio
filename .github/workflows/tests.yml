@@ -77,7 +77,6 @@ jobs:
         shell: bash -l {0}
         run: |
           rm -rf build*
-          rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
           export FITSIO_USE_SYSTEM_FITSIO=1
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
