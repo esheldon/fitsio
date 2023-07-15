@@ -6,6 +6,9 @@ on:
       - master
   pull_request: null
 
+env:
+  PY_COLORS: "1"
+
 jobs:
   tests:
     name: tests
@@ -68,6 +71,18 @@ jobs:
             --global-option="--use-system-fitsio" \
             --global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
             --global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
+          SKIP_BZIP_TEST=true pytest -vv fitsio
+
+      - name: test non-bundled build w/ env vars
+        shell: bash -l {0}
+        run: |
+          rm -rf build*
+          rm -rf $HOME/cfitsio-static-install
+          find . -name "*.so" -type f -delete
+          export FITSIO_USE_SYSTEM_FITSIO
+          export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
+          export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
+          pip install -vv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
