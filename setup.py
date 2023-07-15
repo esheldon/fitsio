@@ -73,7 +73,6 @@ class build_ext_subclass(build_ext):
     def finalize_options(self):
 
         build_ext.finalize_options(self)
-        print("inner:", sys.argv, flush=True)
 
         self.cfitsio_build_dir = os.path.join(
             self.build_temp, self.cfitsio_dir)
