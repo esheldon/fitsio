@@ -8,6 +8,7 @@ from __future__ import print_function
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
+import sys
 import os
 import subprocess
 from subprocess import Popen, PIPE
@@ -15,26 +16,59 @@ import glob
 import shutil
 
 
-class build_ext_subclass(build_ext):
-    boolean_options = build_ext.boolean_options + ['use-system-fitsio']
+if "--use-system-fitsio" in sys.argv:
+    del sys.argv[sys.argv.index("--use-system-fitsio")]
+    USE_SYSTEM_FITSIO = True
+else:
+    USE_SYSTEM_FITSIO = False or "FITSIO_USE_SYSTEM_FITSIO" in os.environ
 
-    user_options = build_ext.user_options + [
-        ('use-system-fitsio', None, "Use the cfitsio installed in the system"),
-        ('system-fitsio-includedir=', None,
-         "Path to look for cfitsio header; default is "
-         "the system search path."),
-        ('system-fitsio-libdir=', None,
-         "Path to look for cfitsio library; default is "
-         "the system search path."),
-    ]
+if (
+    "--system-fitsio-includedir" in sys.argv
+    or any(a.startswith("--system-fitsio-includedir=") for a in sys.argv)
+):
+    if "--system-fitsio-includedir" in sys.argv:
+        ind = sys.argv.index("--system-fitsio-includedir")
+        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind+1]
+        del sys.argv[ind+1]
+        del sys.argv[ind]
+    else:
+        for ind in range(len(sys.argv)):
+            if sys.argv[ind].startswith("--system-fitsio-includedir="):
+                break
+        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind].split("=", 1)[1]
+        del sys.argv[ind]
+else:
+    SYSTEM_FITSIO_INCLUDEDIR = os.environ.get(
+        "FITSIO_SYSTEM_FITSIO_INCLUDEDIR",
+        None,
+    )
+
+
+if (
+    "--system-fitsio-libdir" in sys.argv
+    or any(a.startswith("--system-fitsio-libdir=") for a in sys.argv)
+):
+    if "--system-fitsio-libdir" in sys.argv:
+        ind = sys.argv.index("--system-fitsio-libdir")
+        SYSTEM_FITSIO_LIBDIR = sys.argv[ind+1]
+        del sys.argv[ind+1]
+        del sys.argv[ind]
+    else:
+        for ind in range(len(sys.argv)):
+            if sys.argv[ind].startswith("--system-fitsio-libdir="):
+                break
+        SYSTEM_FITSIO_LIBDIR = sys.argv[ind].split("=", 1)[1]
+        del sys.argv[ind]
+else:
+    SYSTEM_FITSIO_LIBDIR = os.environ.get(
+        "FITSIO_SYSTEM_FITSIO_LIBDIR",
+        None,
+    )
+
+
+class build_ext_subclass(build_ext):
     cfitsio_version = '4.2.0'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
-
-    def initialize_options(self):
-        self.use_system_fitsio = False
-        self.system_fitsio_includedir = None
-        self.system_fitsio_libdir = None
-        build_ext.initialize_options(self)
 
     def finalize_options(self):
 
@@ -47,11 +81,11 @@ class build_ext_subclass(build_ext):
         self.cfitsio_patch_dir = os.path.join(
             self.build_temp, 'patches')
 
-        if self.use_system_fitsio:
-            if self.system_fitsio_includedir:
-                self.include_dirs.insert(0, self.system_fitsio_includedir)
-            if self.system_fitsio_libdir:
-                self.library_dirs.insert(0, self.system_fitsio_libdir)
+        if USE_SYSTEM_FITSIO:
+            if SYSTEM_FITSIO_INCLUDEDIR is not None:
+                self.include_dirs.insert(0, SYSTEM_FITSIO_INCLUDEDIR)
+            if SYSTEM_FITSIO_LIBDIR is not None:
+                self.library_dirs.insert(0, SYSTEM_FITSIO_LIBDIR)
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.
@@ -72,7 +106,7 @@ class build_ext_subclass(build_ext):
         build_ext.run(self)
 
     def build_extensions(self):
-        if not self.use_system_fitsio:
+        if not USE_SYSTEM_FITSIO:
 
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
