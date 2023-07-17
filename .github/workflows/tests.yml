@@ -45,7 +45,7 @@ jobs:
           miniforge-variant: Mambaforge
 
       - name: install zlib
-        apt install zlib1g-dev
+        run: apt install zlib1g-dev
 
       - name: install conda deps
         shell: bash -l {0}
