@@ -48,7 +48,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          mamba install numpy=${{ matrix.npver }} nose cython wget make pytest flake8
+          mamba install numpy=${{ matrix.npver }} nose cython wget make pytest flake8 zlib
           if [ "${{ matrix.pyver }}" == "3.8" ] || [ "${{ matrix.pyver }}" == "3.9" ] || [ "${{ matrix.pyver }}" == "3.10" ]; then
             mamba install importlib_resources
           fi
