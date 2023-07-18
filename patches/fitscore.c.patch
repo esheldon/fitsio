@@ -1,5 +1,5 @@
---- /home/esheldon/Downloads/cfitsio-4.2.0/fitscore.c	2022-10-31 14:40:23.000000000 -0400
-+++ /home/esheldon/Downloads/cfitsio-4.2.0-mod/fitscore.c	2023-07-14 11:47:54.870417064 -0400
+--- cfitsio-4.2.0/fitscore.c	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.2.0/fitscore.c	2023-07-14 11:47:54.870417064 -0400
 @@ -194,6 +194,21 @@
  
      return(*version);
