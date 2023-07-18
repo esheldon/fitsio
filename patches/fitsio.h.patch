@@ -1,5 +1,5 @@
---- /home/esheldon/Downloads/cfitsio-4.2.0/fitsio.h	2022-10-31 14:40:23.000000000 -0400
-+++ /home/esheldon/Downloads/cfitsio-4.2.0-mod/fitsio.h	2023-07-14 11:48:10.102506229 -0400
+--- cfitsio-4.2.0/fitsio.h	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.2.0/fitsio.h	2023-07-14 11:48:10.102506229 -0400
 @@ -811,6 +811,7 @@
  /*---------------- utility routines -------------*/
  
