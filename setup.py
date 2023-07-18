@@ -237,6 +237,7 @@ class build_ext_subclass(build_ext):
 
         if os.path.exists(makefile):
             # Makefile already there
+            print("found Makefile so not running configure!", flush=True)
             return
 
         args = ''
