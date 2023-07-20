@@ -67,8 +67,8 @@ else:
 
 
 class build_ext_subclass(build_ext):
-    cfitsio_version = '3490'
-    cfitsio_dir = 'cfitsio%s' % cfitsio_version
+    cfitsio_version = '4.2.0'
+    cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):
 
@@ -169,6 +169,8 @@ class build_ext_subclass(build_ext):
                 self.compiler.define_macro(
                     'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
+            self.compiler.add_library('z')
+
         # fitsio requires libm as well.
         self.compiler.add_library('m')
 
@@ -225,6 +227,7 @@ class build_ext_subclass(build_ext):
             os.makedirs(self.cfitsio_patch_dir)
 
         copy_update(self.cfitsio_dir, self.cfitsio_build_dir)
+        copy_update('zlib', self.cfitsio_build_dir)
         copy_update('patches', self.cfitsio_patch_dir)
 
         # we patch the source in the buil dir to avoid mucking with the repo
@@ -234,6 +237,7 @@ class build_ext_subclass(build_ext):
 
         if os.path.exists(makefile):
             # Makefile already there
+            print("found Makefile so not running configure!", flush=True)
             return
 
         args = ''
@@ -301,7 +305,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.1.10",
+    version="1.2.0",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
