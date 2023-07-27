@@ -110,6 +110,14 @@ class build_ext_subclass(build_ext):
 
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
+            # we put our include dir first to avoid other fitsio install's
+            # header files
+            CCold = self.compiler.compiler
+            self.compiler.compiler = (
+                [CCold[0]]
+                + ["-I%s" % self.cfitsio_build_dir]
+                + CCold[1:]
+            )
 
             CCold = self.compiler.compiler
             if 'ccache' in CCold:
