@@ -6,6 +6,11 @@ Changes
 
     - move to cfitsio 4
 
+Bug Fixes
+
+    - Fixed issue where the patched C fitsio headers were not 
+      first in the include path.
+
 version 1.1.10 (unreleased)
 ---------------------------
 
