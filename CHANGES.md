@@ -1,13 +1,17 @@
 version 1.2.0 (not yet released)
 --------------
 
-
 Changes
 
     - move to cfitsio 4
 
-version 1.1.10 (unreleased)
----------------------------
+Bug Fixes
+
+    - Fixed issue where the patched C fitsio headers were not 
+      first in the include path.
+
+version 1.1.10
+--------------
 
 Changes
 
