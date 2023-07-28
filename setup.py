@@ -113,7 +113,7 @@ class build_ext_subclass(build_ext):
 
             # turns out we need to set the include dirs here too
             # directly for the compiler
-            self.compiler.include_dirs.insert(self.cfitsio_build_dir)
+            self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
 
             CCold = self.compiler.compiler
             if 'ccache' in CCold:
