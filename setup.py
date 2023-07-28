@@ -87,11 +87,9 @@ class build_ext_subclass(build_ext):
             if SYSTEM_FITSIO_LIBDIR is not None:
                 self.library_dirs.insert(0, SYSTEM_FITSIO_LIBDIR)
         else:
-            # we put our include dir first to avoid other fitsio install's
-            # header files
-            self.include_dirs.insert(
-                0, os.path.join(".", self.cfitsio_build_dir)
-            )
+            # We defer configuration of the bundled cfitsio to build_extensions
+            # because we will know the compiler there.
+            self.include_dirs.insert(0, self.cfitsio_build_dir)
 
     def run(self):
         # For extensions that require 'numpy' in their include dirs,
@@ -115,10 +113,7 @@ class build_ext_subclass(build_ext):
 
             # turns out we need to set the include dirs here too
             # directly for the compiler
-            self.compiler.include_dirs.insert(
-                0,
-                os.path.join(".", self.cfitsio_build_dir),
-            )
+            self.compiler.include_dirs.insert(self.cfitsio_build_dir)
 
             CCold = self.compiler.compiler
             if 'ccache' in CCold:
