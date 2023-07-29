@@ -27,7 +27,6 @@
 //#include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h>
 
-
 // this is not defined anywhere in cfitsio except in
 // the fits file structure
 #define CFITSIO_MAX_ARRAY_DIMS 99
@@ -45,8 +44,12 @@ static int fits_use_standard_strings(void)
 {
     return 0;
 }
+#else
+#ifndef _FITSIO_H_FITS_USE_STANDARD_STRINGS
+#define _FITSIO_H_FITS_USE_STANDARD_STRINGS
+int CFITS_API fits_use_standard_strings(void);
 #endif
-
+#endif
 
 // check unicode for python3, string for python2
 int is_python_string(const PyObject* obj)
