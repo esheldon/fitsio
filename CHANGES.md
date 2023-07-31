@@ -7,8 +7,9 @@ Changes
 
 Bug Fixes
 
-    - Fixed issue where the patched C fitsio headers were not 
+    - Fixed issue where the patched C fitsio headers were not
       first in the include path.
+    - Added extra header guards and headers to help with compilation issues.
 
 version 1.1.10
 --------------
