@@ -247,7 +247,7 @@ class build_ext_subclass(build_ext):
         args = ''
         if CC is not None:
             args += ' CC="%s"' % ' '.join(CC[:1])
-            args += ' CFLAGS="%s"' % ' '.join(CC[1:])
+            args += ' CFLAGS="%s -fvisibility=hidden"' % ' '.join(CC[1:])
         else:
             args += ' CFLAGS="${CFLAGS} -fvisibility=hidden"'
 
@@ -255,8 +255,6 @@ class build_ext_subclass(build_ext):
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
-
-        args += ' LDFLAGS="${LDFLAGS} -fvisibility=hidden"'
 
         p = Popen(
             "sh ./configure --with-bzip2 --enable-standard-strings " + args,
