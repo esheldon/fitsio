@@ -300,7 +300,11 @@ class build_ext_subclass(build_ext):
 sources = ["fitsio/fitsio_pywrap.c"]
 
 ext = Extension(
-    "fitsio._fitsio_wrap", sources, include_dirs=['numpy'], extra_link_args=["-fvisibility=hidden"],
+    "fitsio._fitsio_wrap",
+    sources,
+    include_dirs=['numpy'],
+    extra_link_args=["-fvisibility=hidden"],
+    extra_compile_args=["-fvisibility=hidden"],
 )
 
 description = ("A full featured python library to read from and "
