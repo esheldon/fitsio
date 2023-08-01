@@ -269,7 +269,6 @@ class build_ext_subclass(build_ext):
     def compile_cfitsio(self):
         import multiprocessing
         cpus = multiprocessing.cpu_count()
-        assert cpus > 1, cpus
         p = Popen(
             "make -j %d" % max(cpus, 1),
             shell=True,
