@@ -148,7 +148,7 @@ class build_ext_subclass(build_ext):
             # (-fPIC), since we use the python compiler flags
 
             link_objects = glob.glob(
-                os.path.join(self.cfitsio_build_dir, '*.a'))
+                os.path.join(self.cfitsio_build_dir, '*.o'))
 
             self.compiler.set_link_objects(link_objects)
 
@@ -248,11 +248,15 @@ class build_ext_subclass(build_ext):
         if CC is not None:
             args += ' CC="%s"' % ' '.join(CC[:1])
             args += ' CFLAGS="%s"' % ' '.join(CC[1:])
+        else:
+            args += ' CFLAGS="${CFLAGS} -fvisibility=hidden"'
 
         if ARCHIVE:
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
+
+        args += ' LDFLAGS="${LDFLAGS} -fvisibility=hidden"'
 
         p = Popen(
             "sh ./configure --with-bzip2 --enable-standard-strings " + args,
@@ -265,8 +269,11 @@ class build_ext_subclass(build_ext):
                 "could not configure cfitsio %s" % self.cfitsio_version)
 
     def compile_cfitsio(self):
+        import multiprocessing
+        cpus = multiprocessing.cpu_count()
+        assert cpus > 1, cpus
         p = Popen(
-            "make",
+            "make -j %d" % max(cpus, 1),
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
@@ -292,7 +299,9 @@ class build_ext_subclass(build_ext):
 
 sources = ["fitsio/fitsio_pywrap.c"]
 
-ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
+ext = Extension(
+    "fitsio._fitsio_wrap", sources, include_dirs=['numpy'], extra_link_args=["-fvisibility=hidden"],
+)
 
 description = ("A full featured python library to read from and "
                "write to FITS files.")

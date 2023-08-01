@@ -115,3 +115,8 @@ dmypy.json
 
 # vscode
 .vscode/
+
+# stuff for cfitsio
+cfitsio-*/cfitsio.pc
+cfitsio-*/config.status
+cfitsio-*/Makefile
