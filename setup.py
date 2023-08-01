@@ -292,6 +292,7 @@ class build_ext_subclass(build_ext):
                     return True
                 else:
                     return False
+        return False
 
 
 sources = ["fitsio/fitsio_pywrap.c"]

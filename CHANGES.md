@@ -10,6 +10,8 @@ Bug Fixes
     - Fixed issue where the patched C fitsio headers were not
       first in the include path.
     - Added extra header guards and headers to help with compilation issues.
+    - Fixed builds of the bundled cfitsio code to hide symbols and directly
+      include the *.o files when linking.
 
 version 1.1.10
 --------------
