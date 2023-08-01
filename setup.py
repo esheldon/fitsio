@@ -267,10 +267,8 @@ class build_ext_subclass(build_ext):
                 "could not configure cfitsio %s" % self.cfitsio_version)
 
     def compile_cfitsio(self):
-        import multiprocessing
-        cpus = multiprocessing.cpu_count()
         p = Popen(
-            "make -j %d" % max(cpus, 1),
+            "make",
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
