@@ -52,6 +52,7 @@ int CFITS_API fits_use_standard_strings(void);
 #endif
 
 // check unicode for python3, string for python2
+static
 int is_python_string(const PyObject* obj)
 {
 #if PY_MAJOR_VERSION >= 3
@@ -395,6 +396,7 @@ void add_true_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_True);
     Py_XINCREF(Py_True);
 }
+static
 void add_false_to_dict(PyObject* dict, const char* key) {
     PyDict_SetItemString(dict, key, Py_False);
     Py_XINCREF(Py_False);
@@ -2746,6 +2748,7 @@ PyFITSObject_write_history(struct PyFITSObject* self, PyObject* args) {
 }
 
 //   ADW: Adapted from ffpcom and ffphis in putkey.c
+static
 int fits_write_continue( fitsfile *fptr,      /* I - FITS file pointer  */
                          const char *cont,    /* I - continue string    */
                          int   *status)       /* IO - error status      */

@@ -148,7 +148,7 @@ class build_ext_subclass(build_ext):
             # (-fPIC), since we use the python compiler flags
 
             link_objects = glob.glob(
-                os.path.join(self.cfitsio_build_dir, '*.a'))
+                os.path.join(self.cfitsio_build_dir, '*.o'))
 
             self.compiler.set_link_objects(link_objects)
 
@@ -247,7 +247,9 @@ class build_ext_subclass(build_ext):
         args = ''
         if CC is not None:
             args += ' CC="%s"' % ' '.join(CC[:1])
-            args += ' CFLAGS="%s"' % ' '.join(CC[1:])
+            args += ' CFLAGS="%s -fvisibility=hidden"' % ' '.join(CC[1:])
+        else:
+            args += ' CFLAGS="${CFLAGS} -fvisibility=hidden"'
 
         if ARCHIVE:
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
@@ -288,6 +290,7 @@ class build_ext_subclass(build_ext):
                     return True
                 else:
                     return False
+        return False
 
 
 sources = ["fitsio/fitsio_pywrap.c"]
