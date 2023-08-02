@@ -1,4 +1,4 @@
-version 1.2.0 (not yet released)
+version 1.2.0
 --------------
 
 Changes
