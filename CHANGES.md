@@ -1,3 +1,13 @@
+version 1.2.1 (not yet released)
+-------------
+
+Changes
+
+    - raise new fitsio.FITSFormatError exception when we detect format
+      errors in a FITS file.  Currently this only raises when extensions
+      are not properly marked with XTENSION but we can expand this over time
+
+
 version 1.2.0
 --------------
 
