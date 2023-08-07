@@ -32,6 +32,8 @@ from .hdu import (
     ImageHDU, AsciiTableHDU, TableHDU,
     _table_npy2fits_form, _npy2fits, _hdu_type_map)
 
+from .fits_exceptions import FITSFormatError
+
 # for python3 compat
 if IS_PY3:
     xrange = range
@@ -540,7 +542,7 @@ class FITS(object):
 
         In general, it is not necessary to use this method explicitly.
         """
-        return self._FITS.movabs_hdu(ext+1)
+        return self.movabs_hdu(ext+1)
 
     def movabs_hdu(self, hdunum):
         """
@@ -548,7 +550,25 @@ class FITS(object):
 
         In general, it is not necessary to use this method explicitly.
         """
-        return self._FITS.movabs_hdu(hdunum)
+
+        format_err = False
+
+        try:
+            hdu_type = self._FITS.movabs_hdu(hdunum)
+        except IOError as err:
+            # to support python 2 we can't use exception chaining.
+            # do this to avoid "During handling of the above exception, another
+            # exception occurred:"
+            serr = str(err)
+            if 'first keyword not XTENSION' in serr:
+                format_err = True
+            else:
+                raise
+
+        if format_err:
+            raise FITSFormatError(serr)
+
+        return hdu_type
 
     def movnam_ext(self, extname, hdutype=ANY_HDU, extver=0):
         """
@@ -570,8 +590,24 @@ class FITS(object):
 
         returns the one-offset extension number
         """
+        format_err = False
+
         extname = mks(extname)
-        hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+        try:
+            hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+        except IOError as err:
+            # to support python 2 we can't use exception chaining.
+            # do this to avoid "During handling of the above exception, another
+            # exception occurred:"
+            serr = str(err)
+            if 'first keyword not XTENSION' in serr:
+                format_err = True
+            else:
+                raise
+
+        if format_err:
+            raise FITSFormatError(serr)
+
         return hdu
 
     def reopen(self):
@@ -1302,7 +1338,7 @@ class FITS(object):
         """
 
         # raised IOError if not found
-        hdu_type = self._FITS.movabs_hdu(ext+1)
+        hdu_type = self.movabs_ext(ext)
 
         if hdu_type == IMAGE_HDU:
             hdu = ImageHDU(self._FITS, ext)
