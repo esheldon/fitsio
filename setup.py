@@ -245,6 +245,12 @@ class build_ext_subclass(build_ext):
             return
 
         args = ''
+
+        if "BZIP2" in os.environ:
+            args += ' --with-bzip2="%s"' % os.environ["BZIP2"]
+        else:
+            args += ' --with-bzip2'
+
         if CC is not None:
             args += ' CC="%s"' % ' '.join(CC[:1])
             args += ' CFLAGS="%s -fvisibility=hidden"' % ' '.join(CC[1:])
@@ -257,7 +263,7 @@ class build_ext_subclass(build_ext):
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
         p = Popen(
-            "sh ./configure --with-bzip2 --enable-standard-strings " + args,
+            "sh ./configure --enable-standard-strings " + args,
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
