@@ -246,8 +246,8 @@ class build_ext_subclass(build_ext):
 
         args = ''
 
-        if "BZIP2" in os.environ:
-            args += ' --with-bzip2="%s"' % os.environ["BZIP2"]
+        if "FITSIO_BZIP2_DIR" in os.environ:
+            args += ' --with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]
         else:
             args += ' --with-bzip2'
 
