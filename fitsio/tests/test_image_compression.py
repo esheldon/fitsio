@@ -98,12 +98,11 @@ def test_compressed_write_read(compress):
         'gzip_2_lossless',
     ]
 )
-def _test_compressed_write_read_fitsobj(compress):
+def test_compressed_write_read_fitsobj(compress):
     """
     Test writing and reading a rice compressed image
 
-    This one fails because the compressed data do not seem to be
-    finalized
+    In this version, keep the fits object open
     """
     nrows = 5
     ncols = 20
@@ -117,6 +116,7 @@ def _test_compressed_write_read_fitsobj(compress):
 
     if 'lossless' in compress:
         qlevel = None
+        # qlevel = 9999
     else:
         qlevel = 16
 
@@ -160,14 +160,6 @@ def _test_compressed_write_read_fitsobj(compress):
                         0.2,
                         "%s compressed images ('%s')" % (compress, dtype),
                     )
-                # else:
-                #     # for integers we have chosen a wide range of values, so
-                #     # there will be no quantization and we expect no
-                #     # information loss
-                #     compare_array(
-                #         data, rdata,
-                #         "%s compressed images ('%s')" % (compress, dtype)
-                #     )
 
         with FITS(fname) as fits:
             for ii in range(len(dtypes)):

@@ -11,6 +11,8 @@ Bug Fixes
 
     - Bug not writing compression qlevel when it is set to None/0.0
       This was preventing lossless gzip compression
+    - work around cfitsio bug when creating HDU for lossless gzip compression,
+      reopen file instead of just an update hdu list
 
 version 1.2.0
 --------------
