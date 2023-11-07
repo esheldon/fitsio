@@ -7,6 +7,10 @@ Changes
       errors in a FITS file.  Currently this only raises when extensions
       are not properly marked with XTENSION but we can expand this over time
 
+Bug Fixes
+
+    - Bug not writing compression qlevel when it is set to None/0.0
+      This was preventing lossless gzip compression
 
 version 1.2.0
 --------------

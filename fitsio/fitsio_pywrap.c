@@ -1485,10 +1485,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 goto create_image_hdu_cleanup;
             }
 
-            if (qlevel > 0) {
-                if (fits_set_quantize_level(self->fits, qlevel, &status)) {
-                    goto create_image_hdu_cleanup;
-                }
+            if (fits_set_quantize_level(self->fits, qlevel, &status)) {
+                goto create_image_hdu_cleanup;
             }
 
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
