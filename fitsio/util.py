@@ -134,9 +134,22 @@ def array_to_native(array, inplace=False):
     return output
 
 
+if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
+    copy_if_needed = None
+elif numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
+    copy_if_needed = False
+else:
+    # 2.0.0 dev versions, handle cases where copy may or may not exist
+    try:
+        numpy.array([1]).__array__(copy=None)
+        copy_if_needed = None
+    except TypeError:
+        copy_if_needed = False
+
+
 def array_to_native_c(array_in, inplace=False):
     # copy only made if not C order
-    arr = numpy.array(array_in, order='C', copy=False)
+    arr = numpy.array(array_in, order='C', copy=copy_if_needed)
     return array_to_native(arr, inplace=inplace)
 
 

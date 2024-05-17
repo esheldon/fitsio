@@ -27,7 +27,7 @@ import numpy
 
 from math import floor
 from .base import HDUBase, IMAGE_HDU
-from ..util import IS_PY3, array_to_native
+from ..util import IS_PY3, array_to_native, copy_if_needed
 
 # for python3 compat
 if IS_PY3:
@@ -146,7 +146,7 @@ class ImageHDU(HDUBase):
         if IS_PY3 and img_send.dtype.char == 'U':
             # for python3, we convert unicode to ascii
             # this will error if the character is not in ascii
-            img_send = img_send.astype('S', copy=False)
+            img_send = img_send.astype('S', copy=copy_if_needed)
 
         if not numpy.isscalar(start):
             # convert to scalar offset
