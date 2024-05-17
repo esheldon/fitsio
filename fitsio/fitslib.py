@@ -25,7 +25,7 @@ import os
 import numpy
 
 from . import _fitsio_wrap
-from .util import IS_PY3, mks, array_to_native, isstring
+from .util import IS_PY3, mks, array_to_native, isstring, copy_if_needed
 from .header import FITSHDR
 from .hdu import (
     ANY_HDU, IMAGE_HDU, BINARY_TBL, ASCII_TBL,
@@ -957,7 +957,7 @@ class FITS(object):
                 if IS_PY3 and img2send.dtype.char == 'U':
                     # for python3, we convert unicode to ascii
                     # this will error if the character is not in ascii
-                    img2send = img2send.astype('S', copy=False)
+                    img2send = img2send.astype('S', copy=copy_if_needed)
 
             else:
                 self._ensure_empty_image_ok()
@@ -1738,7 +1738,7 @@ def npy_obj2fits(data, name=None):
         else:
             fits_dtype = _table_npy2fits_form['S']
     else:
-        arr0 = numpy.array(first, copy=False)
+        arr0 = numpy.array(first, copy=copy_if_needed)
         dtype0 = arr0.dtype
         npy_dtype = dtype0.descr[0][1][1:]
         if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':

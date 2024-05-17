@@ -36,7 +36,8 @@ from ..util import (
     array_to_native,
     array_to_native_c,
     FITSRuntimeWarning,
-    mks
+    mks,
+    copy_if_needed,
 )
 from .base import HDUBase, ASCII_TBL, IMAGE_HDU, _hdu_type_map
 
@@ -282,7 +283,7 @@ class TableHDU(HDUBase):
                     if IS_PY3 and colref.dtype.char == 'U':
                         # for python3, we convert unicode to ascii
                         # this will error if the character is not in ascii
-                        colref = colref.astype('S', copy=False)
+                        colref = colref.astype('S', copy=copy_if_needed)
 
                     nonobj_arrays.append(colref)
 
@@ -347,7 +348,7 @@ class TableHDU(HDUBase):
         if IS_PY3 and data_send.dtype.char == 'U':
             # for python3, we convert unicode to ascii
             # this will error if the character is not in ascii
-            data_send = data_send.astype('S', copy=False)
+            data_send = data_send.astype('S', copy=copy_if_needed)
 
         self._verify_column_data(colnum, data_send)
 
@@ -1420,13 +1421,13 @@ class TableHDU(HDUBase):
         Extract an array of rows from an input scalar or sequence
         """
         if rows is not None:
-            rows = np.array(rows, ndmin=1, copy=False, dtype='i8')
+            rows = np.array(rows, ndmin=1, copy=copy_if_needed, dtype='i8')
             if sort:
                 rows = np.unique(rows)
                 return rows, None
 
             # returns unique, sorted.  Force i8 for 32-bit systems
-            sortind = np.array(rows.argsort(), dtype='i8', copy=False)
+            sortind = np.array(rows.argsort(), dtype='i8', copy=copy_if_needed)
 
             maxrow = self._info['nrows']-1
             if rows.size > 0:
@@ -1583,7 +1584,7 @@ class TableHDU(HDUBase):
                 else:
                     new_dt.append(_dt)
             if do_conversion:
-                array = array.astype(new_dt, copy=False)
+                array = array.astype(new_dt, copy=copy_if_needed)
         return array
 
     def _convert_bool_array(self, array):
@@ -1721,7 +1722,7 @@ class TableHDU(HDUBase):
                 descr = 'S%d' % max_size
                 array = np.fromiter(dlist, descr)
                 if IS_PY3:
-                    array = array.astype('U', copy=False)
+                    array = array.astype('U', copy=copy_if_needed)
             else:
                 descr = dlist[0].dtype.str
                 array = np.zeros((len(dlist), max_size), dtype=descr)
