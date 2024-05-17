@@ -44,7 +44,7 @@ _itypes += (numpy.uint8, numpy.int8,
 if numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
     _stypes += (numpy.string_, numpy.str_,)
 else:
-    _stypes += (numpy.str_,)
+    _stypes += (numpy.bytes_, numpy.str_,)
 
 # for header keywords
 _ftypes = (float, numpy.float32, numpy.float64)
