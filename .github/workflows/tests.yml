@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
-        pyver: ["3.8", "3.9", "3.10", "3.11"]
-        npver: ["1.20", "1.21", "1.23"]
+        pyver: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        npver: ["1.20", "1.21", "1.23", "2.0"]
         exclude:
           - pyver: "3.11"
             npver: "1.20"
@@ -25,6 +25,13 @@ jobs:
             npver: "1.21"
           - pyver: "3.10"
             npver: "1.20"
+          - pyver: "3.12"
+            npver: "1.20"
+          - pyver: "3.12"
+            npver: "1.21"
+          - pyver: "3.8"
+            npver: "2.0"
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -38,7 +45,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.pyver }}
-          channels: conda-forge,defaults
+          channels: conda-forge,conda-forge/label/numpy_rc,defaults
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
