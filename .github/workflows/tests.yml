@@ -47,7 +47,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.pyver }}
-          channels: conda-forge,conda-forge/label/numpy_rc,defaults
+          channels: conda-forge/label/numpy_rc,conda-forge,defaults
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
