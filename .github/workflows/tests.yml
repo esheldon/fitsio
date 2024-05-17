@@ -33,6 +33,8 @@ jobs:
             npver: "1.23"
           - pyver: "3.8"
             npver: "2.0"
+          - pyver: "3.8"
+            npver: "1.26"
 
     runs-on: ${{ matrix.os }}
 
