@@ -41,7 +41,7 @@ _itypes += (numpy.uint8, numpy.int8,
             numpy.uint64, numpy.int64)
 
 # different for py3
-_stypes += (numpy.string_, numpy.str_)
+_stypes += (numpy.str_, )
 
 # for header keywords
 _ftypes = (float, numpy.float32, numpy.float64)
