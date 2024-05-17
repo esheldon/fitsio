@@ -41,10 +41,10 @@ _itypes += (numpy.uint8, numpy.int8,
             numpy.uint64, numpy.int64)
 
 # different for py3
-if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
-    _stypes += (numpy.str_,)
-else:
+if numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
     _stypes += (numpy.string_, numpy.str_,)
+else:
+    _stypes += (numpy.str_,)
 
 # for header keywords
 _ftypes = (float, numpy.float32, numpy.float64)
