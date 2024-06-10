@@ -1384,7 +1384,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
     int comptype=0; // same as NOCOMPRESS in newer cfitsio
 
-    PyObject *array_obj, *dims_obj, *tile_dims_obj;
+    PyObject *array_obj=NULL, *dims_obj=NULL, *tile_dims_obj=NULL;
     PyArrayObject *array=NULL, *dims_array=NULL;
 
     int npy_dtype=0, nkeys=0, write_data=0;
@@ -1631,8 +1631,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
-    PyObject* array_obj;
-    PyArrayObject* array;
+    PyObject* array_obj=NULL;
+    PyArrayObject* array=NULL;
     void* data=NULL;
     int npy_dtype=0;
     int status=0;
@@ -3626,7 +3626,7 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     int status=0;
 
-    PyObject *columns_obj, *array_obj, *rows_obj, *sortind_obj;
+    PyObject *columns_obj=NULL, *array_obj=NULL, *rows_obj=NULL, *sortind_obj=NULL;
 
     npy_intp nrows, nsortind;
     npy_int64* rows=NULL, *sortind=NULL;
@@ -3950,7 +3950,7 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     int status=0;
     void* data=NULL;
 
-    PyObject *array_obj, *rows_obj, *sortind_obj;
+    PyObject *array_obj=NULL, *rows_obj=NULL, *sortind_obj=NULL;
     npy_intp nrows=0, nsortind=0;
     npy_int64* rows=NULL;
     npy_int64* sortind=NULL;
