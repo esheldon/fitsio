@@ -1,4 +1,13 @@
-version 1.2.1 (not yet released)
+version 1.2.2
+-------------
+
+Changes
+
+    - Updates for numpy version 2 (Eli Rykoff, ESS)
+    - setup.py: rename env variable BZIP2 to FITSIO_BZIP2_DIR (Maximillian Bensch)
+    - Add support for LoongArch (liuxiang)
+
+version 1.2.1
 -------------
 
 Changes
