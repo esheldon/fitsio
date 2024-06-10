@@ -548,7 +548,7 @@ static long get_groupsize(tcolumn* colptr) {
     }
     return gsize;
 }
-static npy_int64* get_int64_from_array(PyObject* arr, npy_intp* ncols) {
+static npy_int64* get_int64_from_array(PyArrayObject* arr, npy_intp* ncols) {
 
     npy_int64* colnums;
     int npy_type=0, check=0;
@@ -1331,7 +1331,7 @@ static int set_compression(fitsfile *fits,
 
     if (tile_dims_obj != Py_None) {
 
-        tile_dims_py=get_int64_from_array(tile_dims_obj, &ndims);
+        tile_dims_py=get_int64_from_array((PyArrayObject *) tile_dims_obj, &ndims);
         if (tile_dims_py==NULL) {
             *status=1;
         } else {
@@ -1356,9 +1356,7 @@ _set_compression_bail:
     return *status;
 }
 
-static int pyarray_get_ndim(PyObject* obj) {
-    PyArrayObject* arr;
-    arr = (PyArrayObject*) obj;
+static int pyarray_get_ndim(PyArrayObject* arr) {
     return arr->nd;
 }
 
@@ -1385,9 +1383,10 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int datatype=0; // type for the data we entered
 
     int comptype=0; // same as NOCOMPRESS in newer cfitsio
-    PyObject* tile_dims_obj=NULL;
 
-    PyObject* array, *dims_obj;
+    PyObject *array_obj, *dims_obj, *tile_dims_obj;
+    PyArrayObject *array=NULL, *dims_array=NULL;
+
     int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
     int status=0;
@@ -1421,7 +1420,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          NULL,
     };
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifisi", kwlist,
-                          &array, &nkeys,
+                          &array_obj, &nkeys,
                           &dims_obj,
                           &comptype,
                           &tile_dims_obj,
@@ -1438,11 +1437,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
 
-    if (array == Py_None) {
+    if (array_obj == Py_None) {
         if (create_empty_hdu(self)) {
             return NULL;
         }
     } else {
+        array = (PyArrayObject *) array_obj;
         if (!PyArray_Check(array)) {
             PyErr_SetString(PyExc_TypeError, "input must be an array.");
             goto create_image_hdu_cleanup;
@@ -1457,11 +1457,13 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             // get dims from input, which must be of type 'i8'
             // this means we are not writing the array that was input,
             // it is only used to determine the data type
+            dims_array = (PyArrayObject *) dims_obj;
+
             npy_int64 *tptr=NULL, tmp=0;
-            ndims = PyArray_SIZE(dims_obj);
+            ndims = PyArray_SIZE(dims_array);
             dims = calloc(ndims,sizeof(long));
             for (i=0; i<ndims; i++) {
-                tptr = (npy_int64 *) PyArray_GETPTR1(dims_obj, i);
+                tptr = (npy_int64 *) PyArray_GETPTR1(dims_array, i);
                 tmp = *tptr;
                 dims[ndims-i-1] = (long) tmp;
             }
@@ -1573,7 +1575,8 @@ PyFITSObject_reshape_image(struct PyFITSObject* self, PyObject* args) {
 
     int status=0;
     int hdunum=0, hdutype=0;
-    PyObject* dims_obj=NULL;
+    PyObject *dims_obj=NULL;
+    PyArrayObject *dims_array=NULL;
     LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS]={0};
     LONGLONG dims_orig[CFITSIO_MAX_ARRAY_DIMS]={0};
     int ndims=0, ndims_orig=0;
@@ -1589,6 +1592,7 @@ PyFITSObject_reshape_image(struct PyFITSObject* self, PyObject* args) {
     if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &dims_obj)) {
         return NULL;
     }
+    dims_array = (PyArrayObject *) dims_obj;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status);
@@ -1601,9 +1605,9 @@ PyFITSObject_reshape_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    ndims = PyArray_SIZE(dims_obj);
+    ndims = PyArray_SIZE(dims_array);
     for (i=0; i<ndims; i++) {
-        dim= *(npy_int64 *) PyArray_GETPTR1(dims_obj, i);
+        dim= *(npy_int64 *) PyArray_GETPTR1(dims_array, i);
         dims[i] = (LONGLONG) dim;
     }
 
@@ -1627,7 +1631,8 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
-    PyObject* array;
+    PyObject* array_obj;
+    PyArrayObject* array;
     void* data=NULL;
     int npy_dtype=0;
     int status=0;
@@ -1637,9 +1642,10 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!PyArg_ParseTuple(args, (char*)"iOL", &hdunum, &array, &firstpixel_py)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOL", &hdunum, &array_obj, &firstpixel_py)) {
         return NULL;
     }
+    array = (PyArrayObject *) array_obj;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status);
@@ -2056,7 +2062,8 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
     //void **data_ptrs=NULL;
     PyObject* colnum_list=NULL;
     PyObject* array_list=NULL;
-    PyObject *tmp_array=NULL, *tmp_obj=NULL;
+    PyObject *tmp_obj=NULL;
+    PyArrayObject *tmp_array=NULL;
 
     Py_ssize_t ncols=0;
 
@@ -2126,7 +2133,7 @@ PyFITSObject_write_columns(struct PyFITSObject* self, PyObject* args, PyObject* 
         colnums[icol] = 1+(int) PyInt_AsLong(tmp_obj);
 #endif
 
-        tmp_array = PyList_GetItem(array_list, icol);
+        tmp_array = (PyArrayObject *) PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
 
         fits_dtypes[icol] = npy_to_fits_table_type(npy_dtype, write_bitcols);
@@ -2266,7 +2273,7 @@ int write_var_string_column(
         fitsfile *fits,  /* I - FITS file pointer                       */
         int  colnum,     /* I - number of column to write (1 = 1st col) */
         LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
-        PyObject* array,
+        PyArrayObject* array,
         int  *status) {   /* IO - error status                           */
 
     LONGLONG firstelem=1; // ignored
@@ -2283,7 +2290,7 @@ int write_var_string_column(
 
     nrows = PyArray_SIZE(array);
     for (i=0; i<nrows; i++) {
-        ptr = PyArray_GetPtr((PyArrayObject*) array, &i);
+        ptr = PyArray_GetPtr(array, &i);
         el = PyArray_GETITEM(array, ptr);
 
         strdata=get_object_as_string(el);
@@ -2318,7 +2325,7 @@ int write_var_num_column(
         int  colnum,     /* I - number of column to write (1 = 1st col) */
         LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
         int fits_dtype,
-        PyObject* array,
+        PyArrayObject* array,
         int  *status) {   /* IO - error status                           */
 
     LONGLONG firstelem=1;
@@ -2326,7 +2333,7 @@ int write_var_num_column(
     npy_intp nrows=0;
     npy_intp i=0;
     PyObject* el=NULL;
-    PyObject* el_array=NULL;
+    PyArrayObject* el_array=NULL;
     void* data=NULL;
     void* ptr=NULL;
 
@@ -2350,18 +2357,20 @@ int write_var_num_column(
         el = PyArray_GETITEM(array, ptr);
 
         // a copy is only made if needed
-        el_array = PyArray_CheckFromAny(el, PyArray_DescrFromType(npy_dtype),
-                                        mindepth, maxdepth,
-                                        requirements, context);
+        el_array = (PyArrayObject *) PyArray_CheckFromAny(
+            el, PyArray_DescrFromType(npy_dtype),
+            mindepth, maxdepth,
+            requirements, context
+        );
         if (el_array == NULL) {
             // error message will already be set
             return 1;
         }
 
-        nelem=PyArray_SIZE(el);
-        data=PyArray_DATA(el_array);
-        res=fits_write_col(fits, abs(fits_dtype), colnum,
-                           firstrow+i, firstelem, (LONGLONG) nelem, data, status);
+        nelem = PyArray_SIZE(el_array);
+        data = PyArray_DATA(el_array);
+        res = fits_write_col(fits, abs(fits_dtype), colnum,
+                             firstrow+i, firstelem, (LONGLONG) nelem, data, status);
         Py_XDECREF(el_array);
 
         if(res > 0) {
@@ -2391,7 +2400,8 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
     int hdunum=0;
     int hdutype=0;
     int colnum=0;
-    PyObject* array=NULL;
+    PyObject* array_obj=NULL;
+    PyArrayObject* array=NULL;
 
     PY_LONG_LONG firstrow_py=0;
     LONGLONG firstrow=1;
@@ -2406,7 +2416,7 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL",
-                  kwlist, &hdunum, &colnum, &array, &firstrow_py)) {
+                  kwlist, &hdunum, &colnum, &array_obj, &firstrow_py)) {
         return NULL;
     }
     firstrow = (LONGLONG) firstrow_py;
@@ -2417,10 +2427,11 @@ PyFITSObject_write_var_column(struct PyFITSObject* self, PyObject* args, PyObjec
     }
 
 
-    if (!PyArray_Check(array)) {
+    if (!PyArray_Check(array_obj)) {
         PyErr_SetString(PyExc_ValueError,"only arrays can be written to columns");
         return NULL;
     }
+    array = (PyArrayObject *) array_obj;
 
     npy_dtype = PyArray_TYPE(array);
     if (npy_dtype != NPY_OBJECT) {
@@ -2484,6 +2495,8 @@ PyFITSObject_write_record(struct PyFITSObject* self, PyObject* args) {
         set_ioerr_string_from_status(status);
         return NULL;
     }
+    // card not null terminated, so we copy everything.  GCC will
+    // warn about this
     strncpy(card, cardin, FLEN_CARD);
 
     if (fits_write_record(self->fits, card, &status)) {
@@ -2975,7 +2988,8 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
     int hdunum=0;
 
     int hdutype=0;
-    PyObject *rows_array=NULL;
+    PyObject *rows_obj=NULL;
+    PyArrayObject *rows_array=NULL;
     LONGLONG *rows=NULL, nrows=0;
 
     if (self->fits == NULL) {
@@ -2984,9 +2998,10 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
     }
 
     if (!PyArg_ParseTuple(args, (char*)"iO",
-                          &hdunum, &rows_array)) {
+                          &hdunum, &rows_obj)) {
         return NULL;
     }
+    rows_array = (PyArrayObject *) rows_obj;
 
     rows = (LONGLONG *) PyArray_DATA(rows_array);
     nrows = PyArray_SIZE(rows_array);
@@ -3024,7 +3039,7 @@ PyFITSObject_delete_rows(struct PyFITSObject* self, PyObject* args, PyObject* kw
  * is true for ascii.
  */
 
-static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, int* status) {
+static int read_ascii_column_all(fitsfile* fits, int colnum, PyArrayObject* array, int* status) {
 
     int npy_dtype=0;
     int fits_dtype=0;
@@ -3097,9 +3112,11 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
 
 }
 static int read_ascii_column_byrow(
-        fitsfile* fits, int colnum, PyObject* array,
-        PyObject* rowsObj,
-        PyObject* sortindObj,
+        fitsfile* fits,
+        int colnum,
+        PyArrayObject* array,
+        PyArrayObject* rows,
+        PyArrayObject* sortind,
         int* status
 )
 {
@@ -3129,9 +3146,9 @@ static int read_ascii_column_byrow(
     nelem = PyArray_SIZE(array);
 
 
-    if (rowsObj != Py_None) {
+    if ((PyObject *) rows != Py_None) {
         dorows=1;
-        nrows = PyArray_SIZE(rowsObj);
+        nrows = PyArray_SIZE(rows);
         if (nrows != nelem) {
             PyErr_Format(PyExc_ValueError,
                     "input array[%ld] and rows[%ld] have different size", nelem,nrows);
@@ -3141,8 +3158,8 @@ static int read_ascii_column_byrow(
 
     for (i=0; i<nrows; i++) {
         if (dorows) {
-            si = *(npy_int64*) PyArray_GETPTR1(sortindObj, i);
-            rownum = (LONGLONG)( *(npy_int64*) PyArray_GETPTR1(rowsObj, si) );
+            si = *(npy_int64*) PyArray_GETPTR1(sortind, i);
+            rownum = (LONGLONG)( *(npy_int64*) PyArray_GETPTR1(rows, si) );
             rownum += 1;
         } else {
             rownum = (LONGLONG) (1+i);
@@ -3166,17 +3183,19 @@ static int read_ascii_column_byrow(
 
 
 static int read_ascii_column(
-    fitsfile* fits, int colnum, PyObject* array,
-    PyObject* rowsObj,
-    PyObject* sortindObj,
+    fitsfile* fits,
+    int colnum,
+    PyArrayObject* array,
+    PyArrayObject* rows,
+    PyArrayObject* sortind,
     int* status
 )
 {
 
     int ret=0;
-    if (rowsObj != Py_None || !PyArray_ISCONTIGUOUS(array)) {
+    if ((PyObject *) rows != Py_None || !PyArray_ISCONTIGUOUS(array)) {
         ret = read_ascii_column_byrow(
-            fits, colnum, array, rowsObj, sortindObj, status
+            fits, colnum, array, rows, sortind, status
         );
     } else {
         ret = read_ascii_column_all(fits, colnum, array, status);
@@ -3257,15 +3276,17 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
     FITSfile* hdu=NULL;
     int status=0;
 
-    PyObject* array=NULL;
-
-    PyObject* rowsObj;
-    PyObject* sortindObj;
+    PyObject* array_obj=NULL, *rows_obj=NULL, *sortind_obj=NULL;
+    PyArrayObject *array=NULL, *rows_array=NULL, *sortind_array=NULL;
 
     if (!PyArg_ParseTuple(args, (char*)"iiOOO",
-            &hdunum, &colnum, &array, &rowsObj, &sortindObj)) {
+            &hdunum, &colnum, &array_obj, &rows_obj, &sortind_obj)) {
         return NULL;
     }
+
+    array = (PyArrayObject *) array_obj;
+    rows_array = (PyArrayObject *) rows_obj;
+    sortind_array = (PyArrayObject *) sortind_obj;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -3289,7 +3310,7 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
 
 
     if (hdutype == ASCII_TBL) {
-        if (read_ascii_column(self->fits, colnum, array, rowsObj, sortindObj, &status)) {
+        if (read_ascii_column(self->fits, colnum, array, rows_array, sortind_array, &status)) {
             set_ioerr_string_from_status(status);
             return NULL;
         }
@@ -3298,11 +3319,11 @@ PyFITSObject_read_column(struct PyFITSObject* self, PyObject* args) {
         npy_intp nrows=0, nsortind=0;
         npy_int64* rows=NULL, *sortind=NULL;
         npy_intp stride=PyArray_STRIDE(array,0);
-        if (rowsObj == Py_None) {
+        if (rows_obj == Py_None) {
             nrows = hdu->numrows;
         } else {
-            rows = get_int64_from_array(rowsObj, &nrows);
-            sortind = get_int64_from_array(sortindObj, &nsortind);
+            rows = get_int64_from_array(rows_array, &nrows);
+            sortind = get_int64_from_array(sortind_array, &nsortind);
         }
 
         if (read_binary_column(self->fits, colnum, nrows, rows, sortind, data, stride, &status)) {
@@ -3370,7 +3391,7 @@ static PyObject*
 read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem,
               int fits_dtype, int npy_dtype, int* status) {
     LONGLONG firstelem=1;
-    PyObject* arrayObj=NULL;
+    PyArrayObject* array=NULL;
     void* nulval=0;
     int* anynul=NULL;
     npy_intp dims[1];
@@ -3379,19 +3400,19 @@ read_var_nums(fitsfile* fits, int colnum, LONGLONG row, LONGLONG nelem,
 
 
     dims[0] = nelem;
-    arrayObj=PyArray_ZEROS(1, dims, npy_dtype, fortran);
-    if (arrayObj==NULL) {
+    array = (PyArrayObject *) PyArray_ZEROS(1, dims, npy_dtype, fortran);
+    if (array == NULL) {
         PyErr_Format(PyExc_MemoryError,
                      "Could not allocate array type %d size %lld",npy_dtype,nelem);
         return NULL;
     }
-    data = PyArray_DATA(arrayObj);
+    data = PyArray_DATA(array);
     if (fits_read_col(fits,abs(fits_dtype),colnum,row,firstelem,nelem,nulval,data,anynul,status) > 0) {
-        Py_XDECREF(arrayObj);
+        Py_XDECREF(array);
         return NULL;
     }
 
-    return arrayObj;
+    return (PyObject *) array;
 }
 /*
  * read a variable length column as a list of arrays
@@ -3401,8 +3422,8 @@ static PyObject *
 PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int colnum=0;
-    PyObject* rowsObj=NULL;
-    PyObject* sortindObj=NULL;
+    PyObject* rows_obj=NULL, *sortind_obj=NULL;
+    PyArrayObject* rows_array=NULL, *sortind_array=NULL;
 
     int hdutype=0;
     int ncols=0;
@@ -3425,9 +3446,11 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
     PyObject* listObj=NULL;
     PyObject* tempObj=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iiOO", &hdunum, &colnum, &rowsObj, &sortindObj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iiOO", &hdunum, &colnum, &rows_obj, &sortind_obj)) {
         return NULL;
     }
+    rows_array = (PyArrayObject *) rows_obj;
+    sortind_array = (PyArrayObject *) sortind_obj;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -3463,13 +3486,13 @@ PyFITSObject_read_var_column_as_list(struct PyFITSObject* self, PyObject* args) 
         return NULL;
     }
 
-    if (rowsObj == Py_None) {
+    if (rows_obj == Py_None) {
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         get_all_rows=1;
     } else {
         npy_intp tnrows=0, nsortind=0;
-        rows = (const npy_int64*) get_int64_from_array(rowsObj, &tnrows);
-        sortind = (const npy_int64*) get_int64_from_array(sortindObj, &nsortind);
+        rows = (const npy_int64*) get_int64_from_array(rows_array, &tnrows);
+        sortind = (const npy_int64*) get_int64_from_array(sortind_array, &nsortind);
         nrows = (LONGLONG) tnrows;
         get_all_rows = 0;
     }
@@ -3529,7 +3552,7 @@ static int read_binary_rec_columns(
         npy_intp nrows,
         npy_int64* rows,
         npy_int64* sortind,
-        PyObject *array,
+        PyArrayObject *array,
         int* status
 ) {
     FITSfile* hdu=NULL;
@@ -3603,17 +3626,13 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
 
     int status=0;
 
-    PyObject* columnsobj=NULL;
-    PyObject* array=NULL;
-
-    PyObject* rowsObj=NULL;
-    PyObject* sortindObj=NULL;
+    PyObject *columns_obj, *array_obj, *rows_obj, *sortind_obj;
 
     npy_intp nrows, nsortind;
     npy_int64* rows=NULL, *sortind=NULL;
 
     if (!PyArg_ParseTuple(args, (char*)"iOOOO",
-                          &hdunum, &columnsobj, &array, &rowsObj, &sortindObj)) {
+                          &hdunum, &columns_obj, &array_obj, &rows_obj, &sortind_obj)) {
         return NULL;
     }
 
@@ -3630,28 +3649,28 @@ PyFITSObject_read_columns_as_rec(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    colnums = get_int64_from_array(columnsobj, &ncols);
+    colnums = get_int64_from_array((PyArrayObject *) columns_obj, &ncols);
     if (colnums == NULL) {
         return NULL;
     }
 
     hdu = self->fits->Fptr;
 
-    if (rowsObj == Py_None) {
+    if (rows_obj == Py_None) {
         nrows = hdu->numrows;
     } else {
-        rows = get_int64_from_array(rowsObj, &nrows);
+        rows = get_int64_from_array((PyArrayObject *) rows_obj, &nrows);
         if (rows == NULL) {
             return NULL;
         }
-        sortind = get_int64_from_array(sortindObj, &nsortind);
+        sortind = get_int64_from_array((PyArrayObject *) sortind_obj, &nsortind);
         if (sortind == NULL) {
             return NULL;
         }
     }
     if (read_binary_rec_columns(
             self->fits, ncols, colnums,
-            nrows, rows, sortind, array, &status)) {
+            nrows, rows, sortind, (PyArrayObject *) array_obj, &status)) {
         goto recread_columns_cleanup;
     }
 
@@ -3766,19 +3785,22 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
     const npy_int64* offsets=NULL;
     const npy_int64* rows=NULL, *sortind=NULL;
 
-    PyObject* columnsObj=NULL;
-    PyObject* offsetsObj=NULL;
-    PyObject* rowsObj=NULL;
-    PyObject* sortindObj=NULL;
+    PyObject* columns_obj=NULL;
+    PyObject* offsets_obj=NULL;
+    PyObject* rows_obj=NULL;
+    PyObject* sortind_obj=NULL;
 
-    PyObject* array=NULL;
+    PyObject* array_obj=NULL;
+    PyArrayObject *array=NULL;
     void* data=NULL;
     npy_intp recsize=0;
 
     if (!PyArg_ParseTuple(args, (char*)"iOOOOO",
-            &hdunum, &columnsObj, &offsetsObj, &array, &rowsObj, &sortindObj)) {
+            &hdunum, &columns_obj, &offsets_obj, &array_obj, &rows_obj, &sortind_obj)) {
         return NULL;
     }
+
+    array = (PyArrayObject *) array_obj;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -3793,11 +3815,11 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
         return NULL;
     }
 
-    colnums = (const npy_int64*) get_int64_from_array(columnsObj, &ncols);
+    colnums = (const npy_int64*) get_int64_from_array((PyArrayObject *) columns_obj, &ncols);
     if (colnums == NULL) {
         return NULL;
     }
-    offsets = (const npy_int64*) get_int64_from_array(offsetsObj, &noffsets);
+    offsets = (const npy_int64*) get_int64_from_array((PyArrayObject *) offsets_obj, &noffsets);
     if (offsets == NULL) {
         return NULL;
     }
@@ -3808,9 +3830,9 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject* self, PyObject* a
         return NULL;
     }
 
-    if (rowsObj != Py_None) {
-        rows = (const npy_int64*) get_int64_from_array(rowsObj, &nrows);
-        sortind = (const npy_int64*) get_int64_from_array(sortindObj, &nsortind);
+    if (rows_obj != Py_None) {
+        rows = (const npy_int64*) get_int64_from_array((PyArrayObject *) rows_obj, &nrows);
+        sortind = (const npy_int64*) get_int64_from_array((PyArrayObject *) sortind_obj, &nsortind);
     } else {
         nrows = PyArray_SIZE(array);
     }
@@ -3926,16 +3948,14 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     int status=0;
-    PyObject* array=NULL;
     void* data=NULL;
 
-    PyObject* rowsObj=NULL;
-    PyObject* sortindObj=NULL;
+    PyObject *array_obj, *rows_obj, *sortind_obj;
     npy_intp nrows=0, nsortind=0;
     npy_int64* rows=NULL;
     npy_int64* sortind=NULL;
 
-    if (!PyArg_ParseTuple(args, (char*)"iOOO", &hdunum, &array, &rowsObj, &sortindObj)) {
+    if (!PyArg_ParseTuple(args, (char*)"iOOO", &hdunum, &array_obj, &rows_obj, &sortind_obj)) {
         return NULL;
     }
 
@@ -3952,13 +3972,13 @@ PyFITSObject_read_rows_as_rec(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    data = PyArray_DATA(array);
+    data = PyArray_DATA((PyArrayObject *) array_obj);
 
-    rows = get_int64_from_array(rowsObj, &nrows);
+    rows = get_int64_from_array((PyArrayObject *) rows_obj, &nrows);
     if (rows == NULL) {
         return NULL;
     }
-    sortind = get_int64_from_array(sortindObj, &nsortind);
+    sortind = get_int64_from_array((PyArrayObject *) sortind_obj, &nsortind);
     if (sortind == NULL) {
         return NULL;
     }
@@ -4007,14 +4027,14 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
     int hdutype=0;
 
     int status=0;
-    PyObject* array=NULL;
+    PyObject* array_obj=NULL;
     void* data=NULL;
 
     PY_LONG_LONG firstrow=0;
     PY_LONG_LONG lastrow=0;
     PY_LONG_LONG nrows=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow, &lastrow, &array)) {
+    if (!PyArg_ParseTuple(args, (char*)"iLLO", &hdunum, &firstrow, &lastrow, &array_obj)) {
         return NULL;
     }
 
@@ -4031,7 +4051,7 @@ PyFITSObject_read_as_rec(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    data = PyArray_DATA(array);
+    data = PyArray_DATA((PyArrayObject *) array_obj);
 
     nrows=lastrow-firstrow+1;
     if (read_rec_range(self->fits, (LONGLONG)firstrow, (LONGLONG)nrows, data, &status)) {
@@ -4056,7 +4076,8 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
     int status=0;
-    PyObject* array=NULL;
+    PyObject* array_obj=NULL;
+    PyArrayObject* array=NULL;
     void* data=NULL;
     int npy_dtype=0;
     int dummy=0, fits_read_dtype=0;
@@ -4072,9 +4093,11 @@ PyFITSObject_read_image(struct PyFITSObject* self, PyObject* args) {
 
     int anynul=0;
 
-    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array)) {
+    if (!PyArg_ParseTuple(args, (char*)"iO", &hdunum, &array_obj)) {
         return NULL;
     }
+
+    array = (PyArrayObject *) array_obj;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
@@ -4187,9 +4210,9 @@ PyFITSObject_read_raw(struct PyFITSObject* self, PyObject* args) {
     return stringobj;
 }
 
-static int get_long_slices(PyObject* fpix_arr,
-                           PyObject* lpix_arr,
-                           PyObject* step_arr,
+static int get_long_slices(PyArrayObject* fpix_arr,
+                           PyArrayObject* lpix_arr,
+                           PyArrayObject* step_arr,
                            long** fpix,
                            long** lpix,
                            long** step) {
@@ -4230,9 +4253,9 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
     int hdunum=0;
     int hdutype=0;
     int status=0;
-    PyObject* fpix_arr=NULL;
-    PyObject* lpix_arr=NULL;
-    PyObject* step_arr=NULL;
+    PyObject* fpix_obj=NULL;
+    PyObject* lpix_obj=NULL;
+    PyObject* step_obj=NULL;
     int ignore_scaling=FALSE;
     PyObject* array=NULL;
     long* fpix=NULL;
@@ -4245,7 +4268,7 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
     int anynul=0;
 
     if (!PyArg_ParseTuple(args, (char*)"iOOOiO",
-                &hdunum, &fpix_arr, &lpix_arr, &step_arr, &ignore_scaling,
+                &hdunum, &fpix_obj, &lpix_obj, &step_obj, &ignore_scaling,
                 &array)) {
         return NULL;
     }
@@ -4259,13 +4282,16 @@ PyFITSObject_read_image_slice(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (get_long_slices(fpix_arr,lpix_arr,step_arr,
-                        &fpix,&lpix,&step)) {
+    if (get_long_slices(
+          (PyArrayObject *) fpix_obj,
+          (PyArrayObject *) lpix_obj,
+          (PyArrayObject *) step_obj,
+          &fpix,&lpix,&step)) {
         return NULL;
     }
-    data = PyArray_DATA(array);
+    data = PyArray_DATA((PyArrayObject *) array);
 
-    npy_dtype = PyArray_TYPE(array);
+    npy_dtype = PyArray_TYPE((PyArrayObject *) array);
     npy_to_fits_image_types(npy_dtype, &dummy, &fits_read_dtype);
 
     if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
@@ -4612,7 +4638,7 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
 
 
     // Indices of rows for which expression is true
-    PyObject* indicesObj=NULL;
+    PyObject* indices_obj=NULL;
     int ndim=1;
     npy_intp dims[1];
     npy_intp* data=NULL;
@@ -4647,14 +4673,14 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
     }
 
     dims[0] = ngood;
-    indicesObj = PyArray_EMPTY(ndim, dims, NPY_INTP, 0);
-    if (indicesObj == NULL) {
+    indices_obj = PyArray_EMPTY(ndim, dims, NPY_INTP, 0);
+    if (indices_obj == NULL) {
         PyErr_SetString(PyExc_MemoryError, "Could not allocate index array");
         goto where_function_cleanup;
     }
 
     if (ngood > 0) {
-        data = PyArray_DATA(indicesObj);
+        data = PyArray_DATA((PyArrayObject *) indices_obj);
 
         for (i=0; i<nrows; i++) {
             if (row_status[i]) {
@@ -4665,7 +4691,7 @@ PyFITSObject_where(struct PyFITSObject* self, PyObject* args) {
     }
 where_function_cleanup:
     free(row_status);
-    return indicesObj;
+    return indices_obj;
 }
 
 // generic functions, not tied to an object
