@@ -278,8 +278,11 @@ class ImageHDU(HDUBase):
                     step = -1
 
             # Sanity checks for proper syntax.
-            if (step > 0 and stop < start) or (step < 0 and start < stop):
+            if ((step > 0 and stop < start)
+                    or (step < 0 and start < stop)
+                    or (start == stop)):
                 return numpy.empty(0, dtype=npy_dtype)
+
             if start < 0:
                 start = dims[dim] + start
                 if start < 0:
@@ -293,6 +296,7 @@ class ImageHDU(HDUBase):
 
             if stop > dims[dim]:
                 stop = dims[dim]
+
             if stop < start:
                 # A little black magic here.  The stop is offset by 2 to
                 # accommodate the 1-offset of CFITSIO, and to move past the end

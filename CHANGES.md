@@ -1,3 +1,10 @@
+version 1.2.3 (not yet released)
+-------------
+
+Bug Fixes
+
+    - Reading images with empty slices was returning data
+
 version 1.2.2
 -------------
 
