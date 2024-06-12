@@ -107,6 +107,23 @@ jobs:
           pip install -vv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
+      - name: test sdist
+        shell: bash -l {0}
+        run: |
+          rm -rf build*
+          rm -rf $HOME/cfitsio-static-install
+          find . -name "*.so" -type f -delete
+          python setup.py sdist
+          pushd dist/
+          fname=$(ls fitsio*.gz)
+          tar xvfz "$fname"
+          dname=$(echo "$fname" | sed 's/\.tar\.gz//')
+          pushd $dname
+          pip install -vv -e .
+          SKIP_BZIP_TEST=true pytest -vv fitsio
+          popd
+          popd
+
       - name: flake8
         shell: bash -l {0}
         run: |
