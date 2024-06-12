@@ -67,7 +67,7 @@ else:
 
 
 class build_ext_subclass(build_ext):
-    cfitsio_version = '4.2.0'
+    cfitsio_version = '4.4.0'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):

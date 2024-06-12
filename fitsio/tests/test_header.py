@@ -85,6 +85,8 @@ def test_header_write_read():
                 'binop': '25-3',  # test string with binary operation in it
                 'unders': '1_000_000',  # test string with underscore
                 'longs': lorem_ipsum,
+                # force hierarch + continue
+                "long_keyword_name": lorem_ipsum,
             }
             fits.write_image(data, header=header)
 
@@ -508,3 +510,5 @@ def test_write_key_dict():
 
             assert h['test'] == keydict['value']
             assert h.get_comment('test') == keydict['comment']
+if __name__ == '__main__':
+    test_header_write_read()
