@@ -119,9 +119,9 @@ jobs:
 
           pip install -vv --no-deps --no-build-isolation dist/*.tar.gz
           cd ..
-          python -c "import conda_forge_tick; assert conda_forge_tick.__version__ != '0.0.0'"
+          python -c "import fitsio; assert fitsio.__version__ != '0.0.0'"
           cd -
-          pip uninstall conda-forge-tick --yes
+          pip uninstall fitsio --yes
 
       - name: test sdist
         shell: bash -l {0}
