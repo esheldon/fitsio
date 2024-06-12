@@ -1,9 +1,14 @@
 version 1.2.3 (not yet released)
 -------------
 
+Changes
+
+    - bundle cfitsio 4.4.0.
+
 Bug Fixes
 
     - Reading images with empty slices was returning data
+    - Using cfitsio 4.4.0 fixes a bug reading HIERARCH+CONTINUE keywords
 
 version 1.2.2
 -------------
