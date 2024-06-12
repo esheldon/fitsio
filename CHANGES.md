@@ -1,14 +1,16 @@
-version 1.2.3 (not yet released)
+version 1.2.3
 -------------
 
 Changes
 
     - bundle cfitsio 4.4.0.
+    - update manifest to include new cfitsio
 
 Bug Fixes
 
     - Reading images with empty slices was returning data
     - Using cfitsio 4.4.0 fixes a bug reading HIERARCH+CONTINUE keywords
+    - zlib subdir not in manifest
 
 version 1.2.2
 -------------
