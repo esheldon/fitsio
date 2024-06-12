@@ -9,6 +9,7 @@ Bug Fixes
 
     - Reading images with empty slices was returning data
     - Using cfitsio 4.4.0 fixes a bug reading HIERARCH+CONTINUE keywords
+    - zlib subdir not in manifest
 
 version 1.2.2
 -------------
