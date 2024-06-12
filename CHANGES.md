@@ -1,9 +1,10 @@
-version 1.2.3 (not yet released)
+version 1.2.3
 -------------
 
 Changes
 
     - bundle cfitsio 4.4.0.
+    - update manifest to include new cfitsio
 
 Bug Fixes
 
