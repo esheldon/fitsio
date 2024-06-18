@@ -1,5 +1,9 @@
                    Log of Changes Made to CFITSIO
                    
+Version 4.4.1 - Jun 2024
+
+  - Removed NOSA license and restored previous license file
+
 Version 4.4.0 - Feb 2024
 
   - Reorganization of helper utility code; added fitsverify

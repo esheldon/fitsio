@@ -67,7 +67,7 @@ else:
 
 
 class build_ext_subclass(build_ext):
-    cfitsio_version = '4.4.0'
+    cfitsio_version = '4.4.1-20240617'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):
@@ -318,7 +318,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.2.3",
+    version="1.2.4",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',

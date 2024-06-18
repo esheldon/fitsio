@@ -1,3 +1,10 @@
+version 1.2.4
+-------------
+
+Changes
+
+    - use cfitsio-4.4.1-20240617 which reverts to a free license
+
 version 1.2.3
 -------------
 

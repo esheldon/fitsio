@@ -1,6 +1,6 @@
 include *.txt
 include README.md
-recursive-include cfitsio-4.4.0 *
+recursive-include cfitsio-4.4.1-20240617 *
 recursive-include patches *
 recursive-include fitsio/test_images *
 recursive-include zlib *

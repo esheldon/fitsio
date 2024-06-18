@@ -16,7 +16,7 @@ AC_CANONICAL_TARGET([])
 #--------------------------------------------------------------------
 AC_SUBST(CFITSIO_MAJOR,4)
 AC_SUBST(CFITSIO_MINOR,4)
-AC_SUBST(CFITSIO_MICRO,0)
+AC_SUBST(CFITSIO_MICRO,1)
 # Increment soname each time the interface changes:
 AC_SUBST(CFITSIO_SONAME,10)
 

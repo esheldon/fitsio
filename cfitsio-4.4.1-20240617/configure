@@ -2575,7 +2575,7 @@ CFITSIO_MAJOR=4
 
 CFITSIO_MINOR=4
 
-CFITSIO_MICRO=0
+CFITSIO_MICRO=1
 
 # Increment soname each time the interface changes:
 CFITSIO_SONAME=10
