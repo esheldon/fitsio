@@ -1,0 +1,37 @@
+name: tests-windows
+
+on:
+  push:
+  pull_request: null
+
+jobs:
+  tests:
+    name: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        pyver: ["3.11"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.pyver }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.pyver }}
+
+      - name: Install code
+        run: pip install -e .
+
+      - name: lint
+        run: |
+          pip install flake8
+          flake8 fitsio
+
+      - name: test
+        run: |
+          pip install pytest
+          pytest -vv fitsio
