@@ -67,7 +67,7 @@ jobs:
         run: pip install numpy
 
       - name: Install code
-        run: pip install --no-deps -e . --global-option="build_ext" --global-option="--use-system-fitsio"
+        run: pip install --no-deps -e .
 
       - name: test
         run: |

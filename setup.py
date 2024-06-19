@@ -16,7 +16,7 @@ import glob
 import shutil
 
 
-if "--use-system-fitsio" in sys.argv:
+if os.name == 'nt' or "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
     USE_SYSTEM_FITSIO = True
 else:
