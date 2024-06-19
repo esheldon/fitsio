@@ -53,7 +53,7 @@ jobs:
             mkdir build
             cd build
 
-            cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX="%PROGRAMFILES%\zlib" -D CMAKE_PREFIX_PATH="%PROGRAMFILES%\zlib" -D CMAKE_BUILD_TYPE=Release -D TESTS=On -D UTILS=On ..
+            cmake -G "NMake Makefiles" CMAKE_BUILD_TYPE=Release -D TESTS=On -D UTILS=On ..
 
             nmake
 
