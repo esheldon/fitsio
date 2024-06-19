@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.pyver }}
 
       - name: install numpy
-          pip install numpy
+        run: pip install numpy
 
       - name: Make nmake available
         uses: ilammy/msvc-dev-cmd@v1
