@@ -23,9 +23,6 @@ jobs:
         with:
           python-version: ${{ matrix.pyver }}
 
-      - name: install numpy
-        run: pip install numpy
-
       - name: Make nmake available
         uses: ilammy/msvc-dev-cmd@v1
 
@@ -46,6 +43,9 @@ jobs:
 
       - name: install cfitsio
         run: |
+            mkdir cfitsio-build
+            cd cfitsio-build
+
             curl.exe --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.4.1.zip
             unzip cfitsio.zip
             cd cfitsio-4.4.1
@@ -61,6 +61,10 @@ jobs:
 
             cd ..
             cd ..
+            cd ..
+
+      - name: install numpy
+        run: pip install numpy
 
       - name: Install code
         run: pip install --no-deps -e . --global-option="build_ext" --global-option="--use-system-fitsio"
