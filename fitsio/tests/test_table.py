@@ -961,7 +961,7 @@ def test_gz_write_read():
         assert stat.st_size != 0, "Making sure the data was flushed to disk"
 
 
-@pytest.mark.skipif('SKIP_BZIP_TEST' in os.environ,
+@pytest.mark.skipif('SKIP_BZIP_TEST' in os.environ or os.name == 'nt',
                     reason='SKIP_BZIP_TEST set')
 def test_bz2_read():
     '''
