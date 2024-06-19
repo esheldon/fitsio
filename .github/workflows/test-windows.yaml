@@ -32,7 +32,7 @@ jobs:
           cd zlib-install
 
           curl.exe --output install_zlib.bat https://git.io/JnHTY
-          powershell install_zlib.bat
+          .\install_zlib.bat
           del install_zlib.bat
           cd ..
 
