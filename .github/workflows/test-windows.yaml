@@ -16,12 +16,15 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.pyver }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.pyver }}
+
+      - name: Add msbuild to PATH
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: install cfitsio
         run: |
