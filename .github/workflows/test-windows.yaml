@@ -16,12 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: msys2/setup-msys2@v2
-        with:
-            update: true
-            install: zlib
+      - uses: actions/checkout@v2
 
       - name: Make nmake available
         uses: ilammy/msvc-dev-cmd@v1
@@ -30,6 +25,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.pyver }}
+
+      - name: install zlib
+        run: |
+          mkdir zlib-install
+          cd zlib-install
+
+          curl.exe --output install_zlib.bat https://git.io/JnHTY
+          ./install_zlib.bat
+          del install_zlib.bat
+          cd ..
 
       - name: install cfitsio
         run: |
