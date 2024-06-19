@@ -16,8 +16,9 @@ import glob
 import shutil
 
 
-if "--use-system-fitsio" in sys.argv:
-    del sys.argv[sys.argv.index("--use-system-fitsio")]
+if os.name == 'nt' or "--use-system-fitsio" in sys.argv:
+    if "--use-system-fitsio" in sys.argv:
+        del sys.argv[sys.argv.index("--use-system-fitsio")]
     USE_SYSTEM_FITSIO = True
 else:
     USE_SYSTEM_FITSIO = False or "FITSIO_USE_SYSTEM_FITSIO" in os.environ
@@ -115,23 +116,25 @@ class build_ext_subclass(build_ext):
             # directly for the compiler
             self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
 
-            CCold = self.compiler.compiler
-            if 'ccache' in CCold:
-                CC = []
-                for val in CCold:
-                    if val == 'ccache':
-                        print("removing ccache from the compiler options")
-                        continue
+            config_kw = {}
+            if os.name != 'nt':
+                CCold = self.compiler.compiler
+                if 'ccache' in CCold:
+                    CC = []
+                    for val in CCold:
+                        if val == 'ccache':
+                            print("removing ccache from the compiler options")
+                            continue
 
-                    CC.append(val)
-            else:
-                CC = None
+                        CC.append(val)
+                else:
+                    CC = None
 
-            self.configure_cfitsio(
-                CC=CC,
-                ARCHIVE=self.compiler.archiver,
-                RANLIB=self.compiler.ranlib,
-            )
+                config_kw['CC'] = CC
+                config_kw['ARCHIVE'] = self.compiler.archiver
+                config_kw['RANLIB'] = self.compiler.ranlib
+
+            self.configure_cfitsio(**config_kw)
 
             # If configure detected bzlib.h, we have to link to libbz2
             with open(os.path.join(self.cfitsio_build_dir, 'Makefile')) as fp:
@@ -318,7 +321,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.2.4",
+    version="1.2.5",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',

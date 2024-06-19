@@ -1,3 +1,7 @@
+version 1.2.5 (not yet released)
+-------------
+
+
 version 1.2.4
 -------------
 

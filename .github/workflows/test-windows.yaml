@@ -1,0 +1,75 @@
+name: tests-windows
+
+on:
+  push:
+  pull_request: null
+
+jobs:
+  tests:
+    name: tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        pyver: ["3.11"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.pyver }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.pyver }}
+
+      - name: Make nmake available
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: install zlib
+        run: |
+          mkdir zlib-install
+          cd zlib-install
+
+          curl.exe --output zlib-1.3.1.zip https://zlib.net/zlib131.zip
+          unzip zlib-1.3.1.zip
+          cd zlib-1.3.1
+
+          cmake . -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release --target install
+
+          cd ..
+          cd ..
+
+      - name: install cfitsio
+        run: |
+            mkdir cfitsio-build
+            cd cfitsio-build
+
+            curl.exe --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.4.1.zip
+            unzip cfitsio.zip
+            cd cfitsio-4.4.1
+
+            mkdir build
+            cd build
+
+            cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" -D CMAKE_BUILD_TYPE=Release -D TESTS=On -D UTILS=On ..
+
+            nmake
+
+            nmake install
+
+            cd ..
+            cd ..
+            cd ..
+
+      - name: install numpy
+        run: pip install numpy
+
+      - name: Install code
+        run: pip install --no-deps -e .
+
+      - name: test
+        run: |
+          pip install pytest
+          pytest -vv fitsio
