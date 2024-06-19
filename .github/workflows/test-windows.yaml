@@ -63,7 +63,7 @@ jobs:
             cd ..
 
       - name: Install code
-        run: pip install -e --no-deps . --global-option="build_ext" --global-option="--use-system-fitsio"
+        run: pip install --no-deps -e . --global-option="build_ext" --global-option="--use-system-fitsio"
 
       - name: test
         run: |
