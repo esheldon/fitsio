@@ -131,7 +131,7 @@ class build_ext_subclass(build_ext):
 
                 config_kw['CC'] = CC
                 config_kw['ARCHIVE'] = self.compiler.archiver
-                config_kw['RANLIB'] = self.compiler.archiver
+                config_kw['RANLIB'] = self.compiler.ranlib
 
             self.configure_cfitsio(**config_kw)
 
