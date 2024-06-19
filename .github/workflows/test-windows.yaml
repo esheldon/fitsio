@@ -18,13 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: msys2/setup-msys2@v2
+        with:
+            update: true
+            install: zlib
+
+      - name: Make nmake available
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Set up Python ${{ matrix.pyver }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.pyver }}
-
-      - name: Add msbuild to PATH
-        uses: ilammy/msvc-dev-cmd@v1
 
       - name: install cfitsio
         run: |
