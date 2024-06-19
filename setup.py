@@ -17,7 +17,8 @@ import shutil
 
 
 if os.name == 'nt' or "--use-system-fitsio" in sys.argv:
-    del sys.argv[sys.argv.index("--use-system-fitsio")]
+    if "--use-system-fitsio" in sys.argv:
+        del sys.argv[sys.argv.index("--use-system-fitsio")]
     USE_SYSTEM_FITSIO = True
 else:
     USE_SYSTEM_FITSIO = False or "FITSIO_USE_SYSTEM_FITSIO" in os.environ
