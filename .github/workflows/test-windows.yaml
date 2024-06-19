@@ -27,7 +27,7 @@ jobs:
         run: |
             curl.exe --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.4.1.zip
             unzip cfitsio.zip
-            cd cfit-4.4.1
+            cd cfitsio-4.4.1
 
             mkdir build
             cd build
