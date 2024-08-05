@@ -1,3 +1,10 @@
+version 1.2.5 (not yet released)
+-------------
+
+Bug Fixes
+
+    - Fig bug slicing tables that have TBIT columns
+
 version 1.2.4
 -------------
 
