@@ -1257,6 +1257,13 @@ def test_table_bitcol_read_write():
             d = fits[1].read()
             compare_rec(bdata, d, "table read/write")
 
+            rows = [0, 2]
+            d = fits[1].read(rows=rows)
+            compare_rec(bdata[rows], d, "table read/write rows")
+
+            d = fits[1][:2]
+            compare_rec(bdata[:2], d, "table read/write slice")
+
         # now test read_column
         with FITS(fname) as fits:
 

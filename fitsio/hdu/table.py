@@ -896,6 +896,8 @@ class TableHDU(HDUBase):
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
         w, = np.where(isvar == True)  # noqa
+        has_tbit = self._check_tbit()
+
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -904,6 +906,14 @@ class TableHDU(HDUBase):
             colnums = self._extract_colnums()
             return self._read_rec_with_var(
                 colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
+            )
+        elif has_tbit:
+            # drop down to read_columns since we can't stuff into a
+            # contiguous array
+            colnums = self._extract_colnums()
+            array = self.read_columns(
+                colnums, rows=rows, vstorage=vstorage, upper=upper,
+                lower=lower, trim_strings=trim_strings,
             )
         else:
             array = np.zeros(rows.size, dtype=dtype)
@@ -1094,6 +1104,8 @@ class TableHDU(HDUBase):
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
         w, = np.where(isvar == True)  # noqa
+        has_tbit = self._check_tbit()
+
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -1104,6 +1116,15 @@ class TableHDU(HDUBase):
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
                 colnums, rows, sortind, dtype, offsets, isvar, _vstorage)
+        elif has_tbit:
+            # drop down to read_columns since we can't stuff into a
+            # contiguous array
+            colnums = self._extract_colnums()
+            rows = np.arange(firstrow, lastrow, step, dtype='i8')
+            array = self.read_columns(
+                colnums, rows=rows, vstorage=vstorage, upper=upper,
+                lower=lower, trim_strings=trim_strings,
+            )
         else:
             if step != 1:
                 rows = np.arange(firstrow, lastrow, step, dtype='i8')
