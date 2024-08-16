@@ -219,3 +219,63 @@ def test_compress_preserve_zeros():
 
                     for zind in zinds:
                         assert rdata[zind[0], zind[1]] == 0.0
+
+
+@pytest.mark.parametrize(
+    'compress',
+    [
+        'rice',
+        'hcompress',
+        'plio',
+    ]
+)
+@pytest.mark.parametrize(
+    'use_seed',
+    [False, True],
+)
+def test_compressed_seed(compress, use_seed):
+    """
+    Test writing and reading a rice compressed image
+    """
+    nrows = 5
+    ncols = 20
+    dtypes = ['f4', 'f8']
+
+    qlevel = 16
+
+    seed = 1919
+    rng = np.random.RandomState(seed)
+
+    if use_seed:
+        dither_seed = 9881
+    else:
+        dither_seed = None
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname1 = os.path.join(tmpdir, 'test1.fits')
+        fname2 = os.path.join(tmpdir, 'test2.fits')
+
+        for ext, dtype in enumerate(dtypes):
+            data = rng.normal(size=(nrows, ncols))
+            if compress == 'plio':
+                data = data.clip(min=0)
+            data = data.astype(dtype)
+
+            write(
+                fname1, data, compress=compress, qlevel=qlevel,
+                dither_seed=dither_seed,
+            )
+            rdata1 = read(fname1, ext=ext+1)
+
+            write(
+                fname2, data, compress=compress, qlevel=qlevel,
+                dither_seed=dither_seed,
+            )
+            rdata2 = read(fname2, ext=ext+1)
+
+            mess = "%s compressed images ('%s')" % (compress, dtype)
+
+            if use_seed:
+                assert np.all(rdata1 == rdata2), mess
+            else:
+                assert np.all(rdata1 != rdata2), mess

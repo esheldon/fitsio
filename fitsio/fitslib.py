@@ -288,6 +288,7 @@ def write(filename, data, extname=None, extver=None, header=None,
           names=None, write_bitcols=False, compress=None, tile_dims=None,
           qlevel=DEFAULT_QLEVEL,
           qmethod=DEFAULT_QMETHOD,
+          dither_seed=None,
           hcomp_scale=DEFAULT_HCOMP_SCALE,
           hcomp_smooth=False,
           **keys):
@@ -376,6 +377,9 @@ def write(filename, data, extname=None, extver=None, header=None,
                 Preserves zeros
 
         Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+    dither_seed: int
+        Seed for the subtractive dither.  Seeding makes the lossy
+        compression reproducible.
 
     hcomp_scale: float
         Scale value for HCOMPRESS, 0.0 means lossless compression. Default is
@@ -409,6 +413,7 @@ def write(filename, data, extname=None, extver=None, header=None,
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            dither_seed=dither_seed,
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcomp_smooth,
         )
@@ -624,6 +629,7 @@ class FITS(object):
               tile_dims=None,
               qlevel=DEFAULT_QLEVEL,
               qmethod=DEFAULT_QMETHOD,
+              dither_seed=None,
               hcomp_scale=DEFAULT_HCOMP_SCALE,
               hcomp_smooth=False,
               header=None, names=None,
@@ -686,6 +692,9 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+        dither_seed: int
+            Seed for the subtractive dither.  Seeding makes the lossy
+            compression reproducible.
 
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
@@ -731,6 +740,7 @@ class FITS(object):
                              tile_dims=tile_dims,
                              qlevel=qlevel,
                              qmethod=qmethod,
+                             dither_seed=dither_seed,
                              hcomp_scale=hcomp_scale,
                              hcomp_smooth=hcomp_smooth,
                              header=header)
@@ -745,6 +755,7 @@ class FITS(object):
                     compress=None, tile_dims=None,
                     qlevel=DEFAULT_QLEVEL,
                     qmethod=DEFAULT_QMETHOD,
+                    dither_seed=None,
                     hcomp_scale=DEFAULT_HCOMP_SCALE,
                     hcomp_smooth=False,
                     header=None):
@@ -792,6 +803,9 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
+        dither_seed: int
+            Seed for the subtractive dither.  Seeding makes the lossy
+            compression reproducible.
 
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
@@ -823,6 +837,7 @@ class FITS(object):
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            dither_seed=dither_seed,
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcomp_smooth,
         )
@@ -844,6 +859,7 @@ class FITS(object):
                          tile_dims=None,
                          qlevel=DEFAULT_QLEVEL,
                          qmethod=DEFAULT_QMETHOD,
+                         dither_seed=None,
                          hcomp_scale=DEFAULT_HCOMP_SCALE,
                          hcomp_smooth=False,
                          header=None):
@@ -917,7 +933,9 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
+        dither_seed: int
+            Seed for the subtractive dither.  Seeding makes the lossy
+            compression reproducible.
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
             is 0.0 following the fpack defaults.
@@ -1002,6 +1020,7 @@ class FITS(object):
 
         comptype = get_compress_type(compress)
         qmethod = get_qmethod(qmethod)
+        dither_seed = get_dither_seed(dither_seed)
 
         tile_dims = get_tile_dims(tile_dims, dims)
         if qlevel is None:
@@ -1032,6 +1051,7 @@ class FITS(object):
 
             qlevel=qlevel,
             qmethod=qmethod,
+            dither_seed=dither_seed,
 
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcomp_smooth,
@@ -1798,6 +1818,15 @@ def get_qmethod(qmethod):
             "qmethod must be one of %s" % list(_qmethod_map.keys()))
 
     return _qmethod_map[qmethod]
+
+
+def get_dither_seed(dither_seed):
+    if dither_seed is None:
+        # -1 means do not set the seed
+        return -1
+    else:
+        # must fit in an int
+        return numpy.int32(dither_seed)
 
 
 def check_comptype_img(comptype, dtype_str):

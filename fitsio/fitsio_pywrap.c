@@ -1395,6 +1395,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int extver=0;
     float qlevel=0;
     int qmethod=0;
+    int dither_seed=0;
     float hcomp_scale=0;
     int hcomp_smooth=0;
 
@@ -1411,6 +1412,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
          "qlevel",
          "qmethod",
+         "dither_seed",
 
          "hcomp_scale",
          "hcomp_smooth",
@@ -1419,7 +1421,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          "extver",
          NULL,
     };
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfifisi", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfiifisi", kwlist,
                           &array_obj, &nkeys,
                           &dims_obj,
                           &comptype,
@@ -1427,6 +1429,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
                           &qlevel,
                           &qmethod,
+                          &dither_seed,
 
                           &hcomp_scale,
                           &hcomp_smooth,
@@ -1493,6 +1496,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
                 goto create_image_hdu_cleanup;
+            }
+
+            if (dither_seed >= 0) {
+                if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
+                    goto create_image_hdu_cleanup;
+                }
             }
 
             if (comptype == HCOMPRESS_1) {
