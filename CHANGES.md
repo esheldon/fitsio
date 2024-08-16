@@ -1,6 +1,11 @@
 version 1.2.5 (not yet released)
 -------------
 
+New Features
+
+    - writing images supports the dither_seed keyword, to seed
+      the random number generator for subtractive dithering
+
 Bug Fixes
 
     - Fig bug slicing tables that have TBIT columns
