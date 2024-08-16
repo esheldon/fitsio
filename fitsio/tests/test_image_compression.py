@@ -233,7 +233,11 @@ def test_compress_preserve_zeros():
     'use_seed',
     [False, True],
 )
-def test_compressed_seed(compress, use_seed):
+@pytest.mark.parametrize(
+    'use_fits_object',
+    [False, True],
+)
+def test_compressed_seed(compress, use_seed, use_fits_object):
     """
     Test writing and reading a rice compressed image
     """
@@ -261,17 +265,32 @@ def test_compressed_seed(compress, use_seed):
                 data = data.clip(min=0)
             data = data.astype(dtype)
 
-            write(
-                fname1, data, compress=compress, qlevel=qlevel,
-                dither_seed=dither_seed,
-            )
-            rdata1 = read(fname1, ext=ext+1)
+            if use_fits_object:
+                with FITS(fname1, 'rw') as fits1:
+                    fits1.write(
+                        data, compress=compress, qlevel=qlevel,
+                        dither_seed=dither_seed,
+                    )
+                    rdata1 = fits1[-1].read()
 
-            write(
-                fname2, data, compress=compress, qlevel=qlevel,
-                dither_seed=dither_seed,
-            )
-            rdata2 = read(fname2, ext=ext+1)
+                with FITS(fname2, 'rw') as fits2:
+                    fits2.write(
+                        data, compress=compress, qlevel=qlevel,
+                        dither_seed=dither_seed,
+                    )
+                    rdata2 = fits2[-1].read()
+            else:
+                write(
+                    fname1, data, compress=compress, qlevel=qlevel,
+                    dither_seed=dither_seed,
+                )
+                rdata1 = read(fname1, ext=ext+1)
+
+                write(
+                    fname2, data, compress=compress, qlevel=qlevel,
+                    dither_seed=dither_seed,
+                )
+                rdata2 = read(fname2, ext=ext+1)
 
             mess = "%s compressed images ('%s')" % (compress, dtype)
 
