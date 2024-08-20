@@ -383,7 +383,7 @@ def write(filename, data, extname=None, extver=None, header=None,
         reproducible.  Allowed values are
             None or 0 or 'clock':
                 do not set the seed explicitly, use the system clock
-            -1 or 'checksum':
+            negative or 'checksum':
                 Set the seed based on the data checksum
             1-10_000:
                 use the input seed
@@ -704,7 +704,7 @@ class FITS(object):
             compression reproducible.  Allowed values are
                 None or 0 or 'clock':
                     do not set the seed explicitly, use the system clock
-                -1 or 'checksum':
+                negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
@@ -821,7 +821,7 @@ class FITS(object):
             compression reproducible.  Allowed values are
                 None or 0 or 'clock':
                     do not set the seed explicitly, use the system clock
-                -1 or 'checksum':
+                negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
@@ -957,7 +957,7 @@ class FITS(object):
             compression reproducible.  Allowed values are
                 None or 0 or 'clock':
                     do not set the seed explicitly, use the system clock
-                -1 or 'checksum':
+                negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
