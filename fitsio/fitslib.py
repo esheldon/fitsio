@@ -377,9 +377,16 @@ def write(filename, data, extname=None, extver=None, header=None,
                 Preserves zeros
 
         Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-    dither_seed: int
-        Seed for the subtractive dither.  Seeding makes the lossy
-        compression reproducible.
+
+    dither_seed: int or None
+        Seed for the subtractive dither.  Seeding makes the lossy compression
+        reproducible.  Allowed values are
+            None or 0 or 'clock':
+                do not set the seed explicitly, use the system clock
+            -1 or 'checksum':
+                Set the seed based on the data checksum
+            1-10_000:
+                use the input seed
 
     hcomp_scale: float
         Scale value for HCOMPRESS, 0.0 means lossless compression. Default is
@@ -692,9 +699,15 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int
+        dither_seed: int or None
             Seed for the subtractive dither.  Seeding makes the lossy
-            compression reproducible.
+            compression reproducible.  Allowed values are
+                None or 0 or 'clock':
+                    do not set the seed explicitly, use the system clock
+                -1 or 'checksum':
+                    Set the seed based on the data checksum
+                1-10_000:
+                    use the input seed
 
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
@@ -803,9 +816,15 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int
+        dither_seed: int or None
             Seed for the subtractive dither.  Seeding makes the lossy
-            compression reproducible.
+            compression reproducible.  Allowed values are
+                None or 0 or 'clock':
+                    do not set the seed explicitly, use the system clock
+                -1 or 'checksum':
+                    Set the seed based on the data checksum
+                1-10_000:
+                    use the input seed
 
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
@@ -933,9 +952,15 @@ class FITS(object):
                     Preserves zeros
 
             Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int
+        dither_seed: int or None
             Seed for the subtractive dither.  Seeding makes the lossy
-            compression reproducible.
+            compression reproducible.  Allowed values are
+                None or 0 or 'clock':
+                    do not set the seed explicitly, use the system clock
+                -1 or 'checksum':
+                    Set the seed based on the data checksum
+                1-10_000:
+                    use the input seed
         hcomp_scale: float
             Scale value for HCOMPRESS, 0.0 means lossless compression. Default
             is 0.0 following the fpack defaults.
@@ -1821,12 +1846,23 @@ def get_qmethod(qmethod):
 
 
 def get_dither_seed(dither_seed):
-    if dither_seed is None:
-        # -1 means do not set the seed
-        return -1
+    if dither_seed is None or dither_seed in ['clock', 'CLOCK']:
+        # 0 means do not set the seed, use the system clock. This is the
+        # default
+        seed_out = 0
+    elif dither_seed in ['checksum', 'CHECKSUM']:
+        seed_out = -1
     else:
         # must fit in an int
-        return numpy.int32(dither_seed)
+        seed_out = numpy.int32(dither_seed)
+
+        if seed_out < -1 or seed_out > 10_000:
+            raise ValueError(
+                f'Got dither_seed {seed_out}, expected -1, 0 or '
+                'a seed in range [1, 10000]'
+            )
+
+    return seed_out
 
 
 def check_comptype_img(comptype, dtype_str):

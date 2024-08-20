@@ -1498,7 +1498,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                 goto create_image_hdu_cleanup;
             }
 
-            if (dither_seed >= 0) {
+            // zero means to use the default (system clock).
+            if (dither_seed != 0) {
                 if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
                     goto create_image_hdu_cleanup;
                 }

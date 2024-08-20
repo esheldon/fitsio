@@ -230,8 +230,8 @@ def test_compress_preserve_zeros():
     ]
 )
 @pytest.mark.parametrize(
-    'match_seed',
-    [False, True],
+    'seed_type',
+    ['matched', 'unmatched', 'checksum', 'checksum_int'],
 )
 @pytest.mark.parametrize(
     'use_fits_object',
@@ -241,7 +241,7 @@ def test_compress_preserve_zeros():
     'dtype',
     ['f4', 'f8'],
 )
-def test_compressed_seed(compress, match_seed, use_fits_object, dtype):
+def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
     """
     Test writing and reading a rice compressed image
     """
@@ -253,14 +253,20 @@ def test_compressed_seed(compress, match_seed, use_fits_object, dtype):
     seed = 1919
     rng = np.random.RandomState(seed)
 
-    if match_seed:
+    if seed_type == 'matched':
         # dither_seed = 9881
         dither_seed1 = 9881
         dither_seed2 = 9881
-    else:
+    elif seed_type == 'unmatched':
         # dither_seed = None
         dither_seed1 = 3
         dither_seed2 = 4
+    elif seed_type == 'checksum':
+        dither_seed1 = 'checksum'
+        dither_seed2 = 'checksum'
+    elif seed_type == 'checksum_int':
+        dither_seed1 = -1
+        dither_seed2 = -1
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fname1 = os.path.join(tmpdir, 'test1.fits')
@@ -304,10 +310,41 @@ def test_compressed_seed(compress, match_seed, use_fits_object, dtype):
 
         mess = "%s compressed images ('%s')" % (compress, dtype)
 
-        if match_seed:
+        if seed_type in ['checksum', 'checksum_int', 'matched']:
             assert np.all(rdata1 == rdata2), mess
         else:
             assert np.all(rdata1 != rdata2), mess
+
+
+@pytest.mark.parametrize(
+    'dither_seed',
+    [-3, 10_001],
+)
+def test_compressed_seed_bad(dither_seed):
+    """
+    Test writing and reading a rice compressed image
+    """
+    compress = 'rice'
+    dtype = 'f4'
+    nrows = 5
+    ncols = 20
+
+    qlevel = 16
+
+    seed = 1919
+    rng = np.random.RandomState(seed)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        data = rng.normal(size=(nrows, ncols))
+        data = data.astype(dtype)
+
+        with pytest.raises(ValueError):
+            write(
+                fname, data, compress=compress, qlevel=qlevel,
+                dither_seed=dither_seed,
+            )
 
 
 if __name__ == '__main__':
