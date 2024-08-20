@@ -1862,7 +1862,10 @@ def get_dither_seed(dither_seed):
             1-10_000:
                 use the input seed
     """
-    if isinstance(dither_seed, (str, bytes)):
+    if isinstance(dither_seed, bytes):
+        dither_seed = str(dither_seed, 'utf-8')
+
+    if isinstance(dither_seed, str):
         dlow = dither_seed.lower()
         if dlow == 'clock':
             seed_out = 0

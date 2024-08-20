@@ -263,7 +263,7 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         dither_seed2 = 4
     elif seed_type == 'checksum':
         dither_seed1 = 'checksum'
-        dither_seed2 = 'checksum'
+        dither_seed2 = b'checksum'
     elif seed_type == 'checksum_int':
         dither_seed1 = -1
         # any negative means use checksum
