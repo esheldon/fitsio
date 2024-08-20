@@ -16,25 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
-        pyver: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        npver: ["1.20", "1.21", "1.23", "1.26", "2.0"]
-        exclude:
-          - pyver: "3.11"
-            npver: "1.20"
-          - pyver: "3.11"
-            npver: "1.21"
-          - pyver: "3.10"
-            npver: "1.20"
-          - pyver: "3.12"
-            npver: "1.20"
-          - pyver: "3.12"
-            npver: "1.21"
-          - pyver: "3.12"
-            npver: "1.23"
-          - pyver: "3.8"
-            npver: "2.0"
-          - pyver: "3.8"
-            npver: "1.26"
+        pyver: ["3.12", "3.11"]
+        npver: ["1.26", "2.0"]
 
     runs-on: ${{ matrix.os }}
 
