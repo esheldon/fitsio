@@ -318,7 +318,7 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
 
 @pytest.mark.parametrize(
     'dither_seed',
-    [-3, 10_001],
+    ['blah', 10_001],
 )
 def test_compressed_seed_bad(dither_seed):
     """

@@ -1846,21 +1846,40 @@ def get_qmethod(qmethod):
 
 
 def get_dither_seed(dither_seed):
-    if dither_seed is None or dither_seed in ['clock', 'CLOCK']:
-        # 0 means do not set the seed, use the system clock. This is the
-        # default
+    """
+    Convert a seed value or indicator to the approprate integer value for
+    cfitsio
+
+    Parameters
+    ----------
+    dither_seed: number or string
+        Seed for the subtractive dither.  Seeding makes the lossy compression
+        reproducible.  Allowed values are
+            None or 0 or 'clock':
+                Return 0, do not set the seed explicitly, use the system clock
+            negative or 'checksum':
+                Return -1, means Set the seed based on the data checksum
+            1-10_000:
+                use the input seed
+    """
+    if isinstance(dither_seed, (str, bytes)):
+        dlow = dither_seed.lower()
+        if dlow == 'clock':
+            seed_out = 0
+        elif dlow == 'checksum':
+            seed_out = -1
+        else:
+            raise ValueError(f'Bad dither_seed {dither_seed}')
+    elif dither_seed is None:
         seed_out = 0
-    elif dither_seed in ['checksum', 'CHECKSUM']:
-        seed_out = -1
     else:
         # must fit in an int
-        seed_out = numpy.int32(dither_seed)
+        seed_out = numpy.int32(dither_seed).clip(min=-1)
 
-        if seed_out < -1 or seed_out > 10_000:
-            raise ValueError(
-                f'Got dither_seed {seed_out}, expected -1, 0 or '
-                'a seed in range [1, 10000]'
-            )
+    if seed_out > 10_000:
+        raise ValueError(
+            f'Got dither_seed {seed_out}, expected avalue <= 10_000'
+        )
 
     return seed_out
 
