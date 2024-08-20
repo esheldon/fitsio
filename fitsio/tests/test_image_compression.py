@@ -266,7 +266,8 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         dither_seed2 = 'checksum'
     elif seed_type == 'checksum_int':
         dither_seed1 = -1
-        dither_seed2 = -1
+        # any negative means use checksum
+        dither_seed2 = -3
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fname1 = os.path.join(tmpdir, 'test1.fits')

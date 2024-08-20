@@ -1874,7 +1874,7 @@ def get_dither_seed(dither_seed):
         seed_out = 0
     else:
         # must fit in an int
-        seed_out = numpy.int32(dither_seed).clip(min=-1)
+        seed_out = numpy.int32(dither_seed)
 
     if seed_out > 10_000:
         raise ValueError(
