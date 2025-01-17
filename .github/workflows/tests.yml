@@ -9,6 +9,10 @@ on:
 env:
   PY_COLORS: "1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     name: tests
@@ -22,12 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: cancel previous runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
-
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d  # v3.1.0
         with:
