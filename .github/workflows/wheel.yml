@@ -137,6 +137,6 @@ jobs:
 
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: gitbhub.event_name == "release"
+        if: github.event_name == "release"
         with:
             verbose: true
