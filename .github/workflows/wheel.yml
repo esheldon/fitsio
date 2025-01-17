@@ -3,6 +3,7 @@ name: build wheels and sdist
 
 on:
   workflow_dispatch:
+  pull_request: null
   release:
     types:
       - published
