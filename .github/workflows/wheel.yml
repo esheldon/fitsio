@@ -24,7 +24,7 @@ jobs:
           CIBW_ARCHS: auto64
           CIBW_SKIP: cp36* cp37* pp* cp38*
           # I think yum might always work here.  But leave all options available.
-          # CIBW_BEFORE_ALL: yum install -y fftw-devel || apt-get install libfftw3-dev || apk add --upgrade fftw-dev
+          CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install bzip2-dev || apk add --upgrade bzip2-dev
 
       - uses: actions/upload-artifact@v4
         with:
@@ -46,7 +46,7 @@ jobs:
           CIBW_ARCHS: auto64
           CIBW_SKIP: cp36* cp37* pp* cp28*
           # I think musl always uses apk, but keep all options available.
-          # CIBW_BEFORE_ALL: apk add --upgrade fftw-dev || apt-get install libfftw3-dev || yum install -y fftw-devel
+          CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install bzip2-dev || apk add --upgrade bzip2-dev
 
       - uses: actions/upload-artifact@v4
         with:
