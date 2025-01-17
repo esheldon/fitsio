@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d  # v3.1.0
         with:
           python-version: ${{ matrix.pyver }}
           channels: conda-forge
