@@ -86,6 +86,7 @@ jobs:
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
+          sudo yum install bzip2-devel
           pip install -vv -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
