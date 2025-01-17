@@ -49,7 +49,7 @@ jobs:
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install bzip2-dev
+          sudo apt-get install libbz2-dev
 
       - name: build external cfitsio
         shell: bash -l {0}
