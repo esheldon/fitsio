@@ -104,13 +104,6 @@ jobs:
     needs: [linux-manylinux, linux-musl, osx-intel, osx-arm]
     # Just need to build sdist on a single machine
     runs-on: ubuntu-latest
-
-    environment:
-      name: pypi
-      url: https://pypi.org/p/GalSim
-    permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
-
     steps:
       - uses: actions/checkout@v4
 
@@ -142,7 +135,8 @@ jobs:
           echo ls -l dist
           ls -l dist
 
-      # - name: Publish to PyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #       verbose: true
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: gitbhub.event_name == "release"
+        with:
+            verbose: true
