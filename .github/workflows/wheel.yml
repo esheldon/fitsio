@@ -8,6 +8,10 @@ on:
     types:
       - published
 
+concurrency:
+  group: pypi
+  cancel-in-progress: false
+
 jobs:
   linux-manylinux:
     name: linux-manylinux
