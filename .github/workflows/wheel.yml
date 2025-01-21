@@ -11,8 +11,10 @@ on:
 concurrency:
   group: pypi
   cancel-in-progress: false
+
 env:
   PYVER: '3.11'
+
 jobs:
   linux-manylinux:
     name: linux-manylinux
