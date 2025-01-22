@@ -3,6 +3,17 @@ name: build wheels and sdist
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'The git ref to build wheels for. This will trigger a pypi upload.'
+        default: ''
+        required: false
+        type: string
+      cibw_skip:
+        description: 'Python versions to skip when building wheels.'
+        default: 'cp36* cp37* pp* cp38*'
+        required: false
+        type: string
   pull_request: null
   release:
     types:
@@ -14,6 +25,7 @@ concurrency:
 
 env:
   PYVER: '3.11'
+  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
 
 jobs:
   linux-manylinux:
@@ -21,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
 
       - uses: actions/setup-python@v5
         with:
@@ -31,7 +45,7 @@ jobs:
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
-          CIBW_SKIP: cp36* cp37* pp* cp38*
+          CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # I think yum might always work here.  But leave all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
 
@@ -55,7 +69,7 @@ jobs:
         env:
           CIBW_BUILD: "*musllinux*"
           CIBW_ARCHS: auto64
-          CIBW_SKIP: cp36* cp37* pp* cp28*
+          CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # I think musl always uses apk, but keep all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
 
@@ -79,7 +93,7 @@ jobs:
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: auto64
-          CIBW_SKIP: cp36* cp37* pp* cp38*
+          CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # CIBW_BEFORE_ALL: brew install fftw || true
           CIBW_ENVIRONMENT: >-
             MACOSX_DEPLOYMENT_TARGET=13.0
@@ -104,7 +118,7 @@ jobs:
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: arm64
-          CIBW_SKIP: cp36* cp37* pp* cp28*
+          CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # CIBW_BEFORE_ALL: brew install llvm libomp fftw eigen
           CIBW_ENVIRONMENT: >-
             MACOSX_DEPLOYMENT_TARGET=14.7
@@ -152,6 +166,6 @@ jobs:
 
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event.action == 'workflow_dispatch'
         with:
-            verbose: true
+          verbose: true
