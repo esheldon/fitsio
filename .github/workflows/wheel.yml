@@ -92,10 +92,13 @@ jobs:
           set -ex
           python --version
           pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
-          python -m pip install pip
+          mkdir test-venv
+          python3 -m venv test-venv
+          . test-venv
           pip install numpy pytest
           pip install ./wheelhouse/*cp${pystr}*musl*.whl
           pytest --pyargs fitsio
+          deactivate
 
       - uses: actions/upload-artifact@v4
         with:
