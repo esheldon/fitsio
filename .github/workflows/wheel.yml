@@ -214,3 +214,4 @@ jobs:
         with:
           verbose: true
           skip-existing: true
+          password: ${{ secrets.PYPI_API_TOKEN }}
