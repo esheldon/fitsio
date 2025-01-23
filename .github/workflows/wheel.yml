@@ -89,7 +89,6 @@ jobs:
       - name: test wheel for python
         shell: alpine.sh {0}
         run: |
-          set -ex
           python --version
           pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
           mkdir test-venv
