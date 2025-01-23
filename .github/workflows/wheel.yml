@@ -84,16 +84,15 @@ jobs:
 
       - uses: jirutka/setup-alpine@v1
         with:
-          packages: "bzip2-dev python3=~${{ env.PYVER }} py3-pip py3-numpy"
+          packages: "bzip2-dev python3 py3-pip py3-numpy"
 
-      - name: test wheel for python ${{ env.PYVER }}
+      - name: test wheel for python
         shell: alpine.sh {0}
         run: |
-          pystr='${{ env.PYVER }}'
-          pystr=${pystr//./}
+          pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
           python -m pip install pip
           pip install numpy pytest
-          pip install ./wheelhouse/*cp${pystr}*.whl
+          pip install ./wheelhouse/*cp${pystr}*musl*.whl
           pytest --pyargs fitsio
 
       - uses: actions/upload-artifact@v4
