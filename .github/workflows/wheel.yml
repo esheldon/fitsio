@@ -82,7 +82,12 @@ jobs:
           # I think musl always uses apk, but keep all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
 
+      - uses: jirutka/setup-alpine@v1
+        with:
+          packages: "bzip2-dev python3=~${{ env.PYVER }} py3-pip py3-numpy"
+
       - name: test wheel for python ${{ env.PYVER }}
+        shell: alpine.sh {0}
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
