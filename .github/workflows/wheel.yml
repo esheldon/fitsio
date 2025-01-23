@@ -94,7 +94,7 @@ jobs:
           pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
           mkdir test-venv
           python3 -m venv test-venv
-          . test-venv
+          . test-venv/bin/activate
           pip install numpy pytest
           pip install ./wheelhouse/*cp${pystr}*musl*.whl
           pytest --pyargs fitsio
