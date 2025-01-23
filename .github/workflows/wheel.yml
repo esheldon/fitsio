@@ -49,6 +49,15 @@ jobs:
           # I think yum might always work here.  But leave all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
 
+      - name: test wheel for python ${{ env.PYVER }}
+        run: |
+          pystr='${{ env.PYVER }}'
+          pystr=${pystr//./}
+          python -m pip install pip
+          pip install numpy pytest
+          pip install ./wheelhouse/*cp${pystr}*.whl
+          pytest --pyargs fitsio
+
       - uses: actions/upload-artifact@v4
         with:
           name: whl-linux
