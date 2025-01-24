@@ -1,10 +1,11 @@
-version 1.2.5 (not yet released)
+version 1.2.5
 -------------
 
 New Features
 
     - writing images supports the dither_seed keyword, to seed
       the random number generator for subtractive dithering
+    - PyPI now has wheels in addition to sdists
 
 Bug Fixes
 
