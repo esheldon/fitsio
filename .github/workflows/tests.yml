@@ -9,6 +9,10 @@ on:
 env:
   PY_COLORS: "1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     name: tests
@@ -22,21 +26,15 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: cancel previous runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
+      - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v2
-
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d  # v3.1.0
         with:
           python-version: ${{ matrix.pyver }}
-          channels: conda-forge/label/numpy_rc,conda-forge,defaults
+          channels: conda-forge
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
-          miniforge-variant: Mambaforge
 
       - name: install conda deps
         shell: bash -l {0}
@@ -46,6 +44,12 @@ jobs:
           if [ "${{ matrix.pyver }}" == "3.8" ] || [ "${{ matrix.pyver }}" == "3.9" ] || [ "${{ matrix.pyver }}" == "3.10" ]; then
             mamba install importlib_resources
           fi
+
+      - name: install bzip2 on linux
+        shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install libbz2-dev
 
       - name: build external cfitsio
         shell: bash -l {0}
