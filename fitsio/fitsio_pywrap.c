@@ -4453,7 +4453,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                             has_quote = 1;
                             break;
                         } else if (card[j] != ' ') {
-                              break;
+                            break;
                         }
                     }
                     if (has_equals && has_quote) {
