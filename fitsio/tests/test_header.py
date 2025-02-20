@@ -7,24 +7,23 @@ from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
-import fitsio
 
 
 def test_free_form_string():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with open(fname, 'w') as f:
-            s = ("SIMPLE  =                    T / Standard FITS                                  " +
-                 "BITPIX  =                   16 / number of bits per data pixel                  " +
-                 "NAXIS   =                    0 / number of data axes                            " +
-                 "EXTEND  =                    T / File contains extensions                       " +
-                 "PHOTREF =   'previous MegaCam' / Source: cum.photcat                            " +
-                 "EXTRA   =                    7 / need another line following PHOTREF            " +
-                 "END                                                                             "
+            s = ("SIMPLE  =                    T / Standard FITS                                  " + # noqa
+                 "BITPIX  =                   16 / number of bits per data pixel                  " + # noqa
+                 "NAXIS   =                    0 / number of data axes                            " + # noqa
+                 "EXTEND  =                    T / File contains extensions                       " + # noqa
+                 "PHOTREF =   'previous MegaCam' / Source: cum.photcat                            " + # noqa
+                 "EXTRA   =                    7 / need another line following PHOTREF            " + # noqa
+                 "END                                                                             " # noqa
                  )
             f.write(s + ' ' * (2880-len(s)))
         hdr = read_header(fname)
-        assert(hdr['PHOTREF'] == 'previous MegaCam')
+        assert hdr['PHOTREF'] == 'previous MegaCam'
 
 
 def test_add_delete_and_update_records():
