@@ -9,6 +9,7 @@ from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
 import fitsio
 
+
 def test_free_form_string():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
@@ -24,6 +25,7 @@ def test_free_form_string():
             f.write(s + ' ' * (2880-len(s)))
         hdr = read_header(fname)
         assert(hdr['PHOTREF'] == 'previous MegaCam')
+
 
 def test_add_delete_and_update_records():
     # Build a FITSHDR from a few records (no need to write on disk)
