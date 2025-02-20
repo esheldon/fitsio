@@ -4444,8 +4444,17 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                         is_string_value=0;
                     }
                 } else {
+                    int j;
                     has_equals = (card[8] == '=') ? 1 : 0;
-                    has_quote = (card[10] == '\'') ? 1 : 0;
+                    has_quote = 0;
+                    // Look for 0 or more space characters followed by a quote character.
+                    for (j=10; j<FLEN_CARD; j++) {
+                        if (card[j] == '\'') {
+                            has_quote = 1;
+                            break;
+                        } else if (card[j] != ' ')
+                              break;
+                    }
                     if (has_equals && has_quote) {
                         is_string_value=1;
                     } else {
@@ -4511,7 +4520,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
             } else {
 
-                // if its a stringwe just store it.
+                // if it's a string we just store it.
                 if (is_string_value) {
                     convert_to_ascii(longstr);
                     add_string_to_dict(dict,"value",longstr);
