@@ -1,3 +1,10 @@
+version 1.2.6 (not yet released)
+-------------
+
+Bug Fixes
+
+    - Fix bug parsing header cards with free-form strings
+
 version 1.2.5
 -------------
 
@@ -9,7 +16,7 @@ New Features
 
 Bug Fixes
 
-    - Fig bug slicing tables that have TBIT columns
+    - Fix bug slicing tables that have TBIT columns
 
 version 1.2.4
 -------------
