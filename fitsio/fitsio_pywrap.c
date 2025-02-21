@@ -1482,6 +1482,10 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             write_data=1;
         }
 
+        if (comptype == 0) {
+            comptype = (*(self->fits)->Fptr).request_compress_type;
+        }
+
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
         // if (comptype >= 0) {
         if (comptype > 0) {
