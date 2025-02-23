@@ -348,6 +348,42 @@ def test_compressed_seed_bad(dither_seed):
             )
 
 
+def test_memory_compressed_seed():
+    import fitsio
+
+    dtype = 'f4'
+    nrows = 300
+    ncols = 500
+
+    seed = 1919
+    rng = np.random.RandomState(seed)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname1 = os.path.join(tmpdir, 'test1.fits')
+        fname2 = os.path.join(tmpdir, 'test2.fits')
+
+        data = rng.normal(size=(nrows, ncols))
+        data = data.astype(dtype)
+
+        fitsio.write(fname1, data.copy(), dither_seed='checksum',
+                     compress='RICE', qlevel=1e-4, tile_dims=(100, 100),
+                     clobber=True)
+        hdr = fitsio.read_header(fname1, ext=1)
+        dither1 = hdr['ZDITHER0']
+        assert dither1 == 8269
+
+        fits = fitsio.FITS('mem://[compress R 100,100; qz -1e-4]', 'rw')
+        fits.write(data.copy(), dither_seed='checksum')
+        data = fits.read_raw()
+        fits.close()
+        f = open(fname2, 'wb')
+        f.write(data)
+        f.close()
+        hdr = fitsio.read_header(fname2, ext=1)
+        dither2 = hdr['ZDITHER0']
+        assert dither1 == dither2
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
