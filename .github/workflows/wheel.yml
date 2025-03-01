@@ -41,7 +41,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v2.23.0
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
@@ -74,7 +74,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v2.23.0
         env:
           CIBW_BUILD: "*musllinux*"
           CIBW_ARCHS: auto64
@@ -115,7 +115,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v2.23.0
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: auto64
@@ -149,7 +149,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v2.23.0
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: arm64
