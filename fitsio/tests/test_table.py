@@ -163,11 +163,14 @@ def test_table_read_write_uvec1(nvec):
             d = fits[1].read()
 
             if IS_NP2:
+                # We can only get the right shape back for numpy 2
                 compare_array(
                     data['string'], d['string'],
                     "table single field read 'string'"
                 )
             else:
+                # for numpy 1.X we can't get the right shape for
+                # length 1 vector, need to flatted for comparision
                 if nvec == 1:
                     assert d['string'].shape == (num,)
 
