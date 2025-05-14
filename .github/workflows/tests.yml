@@ -44,7 +44,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          conda install numpy=${{ matrix.config.npver }} nose cython wget make pytest flake8
+          conda install numpy=${{ matrix.config.npver }} nose cython wget make pytest flake8 setuptools
 
       - name: install bzip2 on linux
         shell: bash -l {0}
