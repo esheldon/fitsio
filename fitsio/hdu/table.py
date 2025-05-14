@@ -374,6 +374,12 @@ class TableHDU(HDUBase):
         if len(data.shape) > 2:
             this_shape = data.shape[1:]
         elif len(data.shape) == 2 and (data.shape[1] > 1 or is_string):
+            # strings are special case for vector size 1, because they are
+            # always represented as vectors, due to the need to include the
+            # string length in the definition.  This means a 1-d vector column
+            # can be written with TDIM with length 2, which means we can ensure
+            # the shape is compatible on read, unlike for numbers for which the
+            # TDIM would have a length of 1, which is illegal.
             this_shape = data.shape[1:]
         else:
             this_shape = ()
