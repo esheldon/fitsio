@@ -4,6 +4,8 @@ version 1.2.6 (not yet released)
 Bug Fixes
 
     - Fix bug parsing header cards with free-form strings
+    - Fix writing and reading of string columns with length
+      1 vectors in numpy 2.
 
 version 1.2.5
 -------------
