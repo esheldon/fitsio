@@ -18,6 +18,7 @@ from .. import util
 
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 
+
 def test_table_read_write():
 
     adata = make_data()
