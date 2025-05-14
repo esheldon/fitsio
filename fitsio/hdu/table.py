@@ -368,17 +368,24 @@ class TableHDU(HDUBase):
         verify the input data is of the correct type and shape
         """
         this_dt = data.dtype.descr[0]
+        npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
+        is_string = npy_type[0] in ('S', 'U')
 
         if len(data.shape) > 2:
             this_shape = data.shape[1:]
-        elif len(data.shape) == 2 and data.shape[1] > 1:
+        elif len(data.shape) == 2 and (data.shape[1] > 1 or is_string):
+            # strings are special case for vector size 1, because they are
+            # always represented as vectors, due to the need to include the
+            # string length in the definition.  This means a 1-d vector column
+            # can be written with TDIM with length 2, which means we can ensure
+            # the shape is compatible on read, unlike for numbers for which the
+            # TDIM would have a length of 1, which is illegal.
             this_shape = data.shape[1:]
         else:
             this_shape = ()
 
         this_npy_type = this_dt[1][1:]
 
-        npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
         info = self._info['colinfo'][colnum]
 
         if npy_type[0] in ['>', '<', '|']:
@@ -387,7 +394,9 @@ class TableHDU(HDUBase):
         col_name = info['name']
         col_tdim = info['tdim']
         col_shape = _tdim2shape(
-            col_tdim, col_name, is_string=(npy_type[0] == 'S'))
+            col_tdim, col_name,
+            is_string=is_string
+        )
 
         if col_shape is None:
             if this_shape == ():
@@ -1242,45 +1251,6 @@ class TableHDU(HDUBase):
 
         return array.view(descr)
 
-    def _get_simple_dtype_and_shape(self, colnum, rows=None):
-        """
-        When reading a single column, we want the basic data
-        type and the shape of the array.
-
-        for scalar columns, shape is just nrows, otherwise
-        it is (nrows, dim1, dim2)
-
-        Note if rows= is sent and only a single row is requested,
-        the shape will be (dim2,dim2)
-        """
-
-        # basic datatype
-        npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
-        info = self._info['colinfo'][colnum]
-        name = info['name']
-
-        if rows is None:
-            nrows = self._info['nrows']
-        else:
-            nrows = rows.size
-
-        shape = None
-        tdim = info['tdim']
-
-        shape = _tdim2shape(tdim, name, is_string=(npy_type[0] == 'S'))
-        if shape is not None:
-            if nrows > 1:
-                if not isinstance(shape, tuple):
-                    # vector
-                    shape = (nrows, shape)
-                else:
-                    # multi-dimensional
-                    shape = tuple([nrows] + list(shape))
-        else:
-            # scalar
-            shape = nrows
-        return npy_type, shape
-
     def get_rec_column_descr(self, colnum, vstorage):
         """
         Get a descriptor entry for the specified column.
@@ -1333,7 +1303,8 @@ class TableHDU(HDUBase):
             tdim = self._info['colinfo'][colnum]['tdim']
             shape = _tdim2shape(
                 tdim, name,
-                is_string=(npy_type[0] == 'S' or npy_type[0] == 'U'))
+                is_string=(npy_type[0] in ('S', 'U'))
+            )
             if shape is not None:
                 descr = (name, npy_type, shape)
             else:

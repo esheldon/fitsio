@@ -18,6 +18,11 @@ from .. import util
 
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 
+if np.lib.NumpyVersion(np.__version__) >= "2.0.0":
+    IS_NP2 = True
+else:
+    IS_NP2 = False
+
 
 def test_table_read_write():
 
@@ -84,6 +89,133 @@ def test_table_read_write():
                             adata['data'][col][rows], d,
                             "test column list %s row subset" % col
                         )
+
+
+@pytest.mark.parametrize('nvec', [2, 1])
+def test_table_read_write_vec1(nvec):
+    """
+    ensure the data for vec length 1 gets round-tripped, even though
+    the shape is not preserved
+    """
+    dtype = [('x', 'f4', (nvec,))]
+    num = 10
+    data = np.zeros(num, dtype=dtype)
+    data['x'] = np.arange(num * nvec).reshape(num, nvec)
+    assert data['x'].shape == (num, nvec)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(data)
+
+            d = fits[1].read()
+            if nvec == 1:
+                assert d['x'].shape == (num,)
+            compare_array(
+                data['x'].ravel(), d['x'].ravel(),
+                "table single field read 'x'"
+            )
+
+        # see if our convenience functions are working
+        write(
+            fname,
+            data,
+            extname="newext",
+        )
+        d = read(fname, ext='newext')
+        if nvec == 1:
+            assert d['x'].shape == (num,)
+        compare_array(data['x'].ravel(), d['x'].ravel(), "table data2")
+
+        # now test read_column
+        with FITS(fname) as fits:
+
+            d = fits[1].read_column('x')
+            if nvec == 1:
+                assert d.shape == (num,)
+            compare_array(
+                data['x'].ravel(), d.ravel(),
+                "table single field read 'x'"
+            )
+
+
+@pytest.mark.parametrize('nvec', [2, 1])
+def test_table_read_write_uvec1(nvec):
+    """
+    ensure the data for U string vec length 1 gets round-tripped, even though
+    the shape is not preserved.  Also test 2 for consistency
+    """
+
+    dtype = [('string', 'U10', (nvec,))]
+    num = 10
+    data = np.zeros(num, dtype=dtype)
+    sravel = data['string'].ravel()
+    sravel[:] = ['%-10s' % i for i in range(num * nvec)]
+    assert data['string'].shape == (num, nvec)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(data)
+
+            d = fits[1].read()
+
+            if IS_NP2:
+                # We can only get the right shape back for numpy 2
+                compare_array(
+                    data['string'], d['string'],
+                    "table single field read 'string'"
+                )
+            else:
+                # for numpy 1.X we can't get the right shape for
+                # length 1 vector, need to flatted for comparision
+                if nvec == 1:
+                    assert d['string'].shape == (num,)
+
+                compare_array(
+                    data['string'].ravel(), d['string'].ravel(),
+                    "table single field read 'string'"
+                )
+
+        # see if our convenience functions are working
+        write(
+            fname,
+            data,
+            extname="newext",
+        )
+        d = read(fname, ext='newext')
+
+        if IS_NP2:
+            compare_array(
+                data['string'], d['string'],
+                "table single field read 'string'"
+            )
+        else:
+            if nvec == 1:
+                assert d['string'].shape == (num,)
+            compare_array(
+                data['string'].ravel(), d['string'].ravel(), "table data2",
+            )
+
+        # now test read_column
+        with FITS(fname) as fits:
+
+            d = fits[1].read_column('string')
+
+            if IS_NP2:
+                compare_array(
+                    data['string'], d,
+                    "table single field read 'string'"
+                )
+            else:
+                if nvec == 1:
+                    assert d.shape == (num,)
+                compare_array(
+                    data['string'].ravel(), d.ravel(),
+                    "table single field read 'string'"
+                )
 
 
 def test_table_column_index_scalar():
