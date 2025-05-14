@@ -146,7 +146,7 @@ def test_table_read_write_uvec1(nvec):
     num = 10
     data = np.zeros(num, dtype=dtype)
     sravel = data['string'].ravel()
-    sravel[:] = [str(i) for i in range(num * nvec)]
+    sravel[:] = ['%-10s' % i for i in range(num * nvec)]
     assert data['string'].shape == (num, nvec)
 
     with tempfile.TemporaryDirectory() as tmpdir:
