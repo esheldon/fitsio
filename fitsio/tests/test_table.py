@@ -18,6 +18,11 @@ from .. import util
 
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 
+if np.lib.NumpyVersion(np.__version__) >= "2.0.0":
+    IS_NP2 = True
+else:
+    IS_NP2 = False
+
 
 def test_table_read_write():
 
@@ -156,12 +161,20 @@ def test_table_read_write_uvec1(nvec):
             fits.write_table(data)
 
             d = fits[1].read()
-            if nvec == 1:
-                assert d['string'].shape == (num,)
-            compare_array(
-                data['string'].ravel(), d['string'].ravel(),
-                "table single field read 'string'"
-            )
+
+            if IS_NP2:
+                compare_array(
+                    data['string'], d['string'],
+                    "table single field read 'string'"
+                )
+            else:
+                if nvec == 1:
+                    assert d['string'].shape == (num,)
+
+                compare_array(
+                    data['string'].ravel(), d['string'].ravel(),
+                    "table single field read 'string'"
+                )
 
         # see if our convenience functions are working
         write(
@@ -170,22 +183,36 @@ def test_table_read_write_uvec1(nvec):
             extname="newext",
         )
         d = read(fname, ext='newext')
-        if nvec == 1:
-            assert d['string'].shape == (num,)
-        compare_array(
-            data['string'].ravel(), d['string'].ravel(), "table data2",
-        )
+
+        if IS_NP2:
+            compare_array(
+                data['string'], d['string'],
+                "table single field read 'string'"
+            )
+        else:
+            if nvec == 1:
+                assert d['string'].shape == (num,)
+            compare_array(
+                data['string'].ravel(), d['string'].ravel(), "table data2",
+            )
 
         # now test read_column
         with FITS(fname) as fits:
 
             d = fits[1].read_column('string')
-            if nvec == 1:
-                assert d.shape == (num,)
-            compare_array(
-                data['string'].ravel(), d.ravel(),
-                "table single field read 'string'"
-            )
+
+            if IS_NP2:
+                compare_array(
+                    data['string'], d,
+                    "table single field read 'string'"
+                )
+            else:
+                if nvec == 1:
+                    assert d.shape == (num,)
+                compare_array(
+                    data['string'].ravel(), d.ravel(),
+                    "table single field read 'string'"
+                )
 
 
 def test_table_column_index_scalar():

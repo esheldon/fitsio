@@ -1245,45 +1245,6 @@ class TableHDU(HDUBase):
 
         return array.view(descr)
 
-    def _get_simple_dtype_and_shape(self, colnum, rows=None):
-        """
-        When reading a single column, we want the basic data
-        type and the shape of the array.
-
-        for scalar columns, shape is just nrows, otherwise
-        it is (nrows, dim1, dim2)
-
-        Note if rows= is sent and only a single row is requested,
-        the shape will be (dim2,dim2)
-        """
-
-        # basic datatype
-        npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
-        info = self._info['colinfo'][colnum]
-        name = info['name']
-
-        if rows is None:
-            nrows = self._info['nrows']
-        else:
-            nrows = rows.size
-
-        shape = None
-        tdim = info['tdim']
-
-        shape = _tdim2shape(tdim, name, is_string=(npy_type[0] in ('S', 'U')))
-        if shape is not None:
-            if nrows > 1:
-                if not isinstance(shape, tuple):
-                    # vector
-                    shape = (nrows, shape)
-                else:
-                    # multi-dimensional
-                    shape = tuple([nrows] + list(shape))
-        else:
-            # scalar
-            shape = nrows
-        return npy_type, shape
-
     def get_rec_column_descr(self, colnum, vstorage):
         """
         Get a descriptor entry for the specified column.
