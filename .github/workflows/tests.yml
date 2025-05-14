@@ -20,6 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
+        config:
+            - { pyver: "3.11", npver: "1.26"}
+            - { pyver: "3.12", npver: "1.26"}
+            - { pyver: "3.11", npver: "2.2.0"}
+            - { pyver: "3.12", npver: "2.2.0"}
+            - { pyver: "3.13", npver: "2.2.0"}
+
         pyver: ["3.12", "3.11"]
         npver: ["1.26", "2.2.0"]
 
@@ -40,10 +47,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          conda install numpy=${{ matrix.npver }} nose cython wget make pytest flake8
-          if [ "${{ matrix.pyver }}" == "3.8" ] || [ "${{ matrix.pyver }}" == "3.9" ] || [ "${{ matrix.pyver }}" == "3.10" ]; then
-            conda install importlib_resources
-          fi
+          conda install numpy=${{ matrix.config.npver }} nose cython wget make pytest flake8
 
       - name: install bzip2 on linux
         shell: bash -l {0}
