@@ -4,6 +4,10 @@ version 1.2.6 (not yet released)
 Bug Fixes
 
     - Fix bug parsing header cards with free-form strings
+    - Fix bug for numpy 2 that did not support writing length-1 vector
+      columns for strings.  A side effect of this is that for
+      numpy 2 we can round-trip the shape for these columns, unlike
+      for numbers.
 
 version 1.2.5
 -------------
