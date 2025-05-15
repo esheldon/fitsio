@@ -2548,11 +2548,14 @@ def _npy_string2fits(d, table_type='binary'):
             count = string_size*count
             form = '%dA' % count
 
-            # will have to do tests to see if this is the right order
-            dim = list(reversed(d[2]))
-            # dim = d[2]
-            dim = [string_size_str] + [str(e) for e in dim]
-            dim = '(' + ','.join(dim)+')'
+            if len(d[2]) == 1 and d[2][0] == 1:
+                # string vec length 1 are written as scalars
+                pass
+            else:
+                dim = list(reversed(d[2]))
+                # dim = d[2]
+                dim = [string_size_str] + [str(e) for e in dim]
+                dim = '(' + ','.join(dim)+')'
         else:
             # this is a vector (1d array) column
             count = string_size*d[2]
