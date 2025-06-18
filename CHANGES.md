@@ -6,6 +6,7 @@ Bug Fixes
     - Fix bug parsing header cards with free-form strings
     - Fix writing and reading of string columns with length
       1 vectors in numpy 2.
+    - Fix building against NumPy 2.3.0.
 
 version 1.2.5
 -------------
