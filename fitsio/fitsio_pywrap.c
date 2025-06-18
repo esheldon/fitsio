@@ -2356,10 +2356,10 @@ int write_var_num_column(
     int mindepth=1, maxdepth=0;
     PyObject* context=NULL;
     int requirements =
-        NPY_C_CONTIGUOUS
-        | NPY_ALIGNED
-        | NPY_NOTSWAPPED
-        | NPY_ELEMENTSTRIDES;
+        NPY_ARRAY_C_CONTIGUOUS
+        | NPY_ARRAY_ALIGNED
+        | NPY_ARRAY_NOTSWAPPED
+        | NPY_ARRAY_ELEMENTSTRIDES;
 
     int res=0;
 
