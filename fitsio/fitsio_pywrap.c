@@ -305,10 +305,12 @@ static struct stringlist* stringlist_delete(struct stringlist* slist) {
         size_t i=0;
         if (slist->data != NULL) {
             for (i=0; i < slist->size; i++) {
-                free(slist->data[i]);
+                if (slist->data[i] != NULL) {
+                    free(slist->data[i]);
+                }
             }
+            free(slist->data);
         }
-        free(slist->data);
         free(slist);
     }
     return NULL;
