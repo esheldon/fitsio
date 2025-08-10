@@ -7,6 +7,7 @@ Bug Fixes
     - Fix writing and reading of string columns with length
       1 vectors in numpy 2.
     - Fix building against NumPy 2.3.0.
+    - Fix potential free of null pointer in stringlist_delete
 
 version 1.2.5
 -------------
