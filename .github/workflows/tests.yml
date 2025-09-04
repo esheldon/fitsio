@@ -72,7 +72,7 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install --no-deps --no-build-isolation -v -e . \
-            --config-settings='--global-option="build_ext"' \
+            --config-settings='--global-option=build_ext' \
             --config-settings='--global-option="--use-system-fitsio"' \
             --config-settings='--global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include"' \
             --config-settings='--global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"'
