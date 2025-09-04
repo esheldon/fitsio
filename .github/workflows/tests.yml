@@ -60,6 +60,7 @@ jobs:
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
           tar -xzvf cfitsio-4.4.0.tar.gz
           cd cfitsio-4.4.0
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
           ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
           make install -j 4
           cd ..
@@ -68,6 +69,7 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
           pip install -vv -e . \
             --global-option="build_ext" \
             --global-option="--use-system-fitsio" \
@@ -78,6 +80,7 @@ jobs:
       - name: test non-bundled build w/ env vars
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
           rm -rf build*
           find . -name "*.so" -type f -delete
           export FITSIO_USE_SYSTEM_FITSIO=1
@@ -89,6 +92,7 @@ jobs:
       - name: test bundled build
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -98,6 +102,7 @@ jobs:
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -114,6 +119,8 @@ jobs:
       - name: test sdist
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
+
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
