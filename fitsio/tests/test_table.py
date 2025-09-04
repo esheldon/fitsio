@@ -1462,3 +1462,43 @@ def test_table_bitcol_insert():
             d = fits[-1].read()
             assert d.size == nrows, 'read size equals'
             compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
+
+
+def test_table_write_dict_of_arrays_unaligned():
+    data = {}
+    for dtype in DTYPES:
+        _data = np.arange(20, dtype=dtype)
+        # The code to make the unaligned view was generated
+        # by Google's AI and then modified by hand to fix a bug.
+        unaligned_data = np.ndarray(
+            shape=(19,),
+            dtype=_data.dtype,
+            buffer=_data.data,
+            offset=1,  # Offset by 1 byte
+            strides=_data.strides
+        )
+        if not dtype.endswith("1"):
+            assert not unaligned_data.flags["ALIGNED"]
+
+        data[dtype.replace("<", "l")] = unaligned_data
+
+    dtype = np.dtype(
+        {
+            "names": list(data.keys()),
+            "formats": [v.dtype for v in data.values()]
+
+        }
+    )
+    data_stra = np.zeros(data[dtype.names[0]].shape, dtype=dtype)
+    for k, v in data.items():
+        data_stra[k] = v
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.create_table_hdu(data, extname='mytable')
+            fits[-1].write(data)
+
+        d = read(fname)
+        compare_rec(data_stra, d, "list of dicts")

@@ -8,6 +8,10 @@ on:
 
 env:
   PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+  PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -58,6 +62,8 @@ jobs:
       - name: build external cfitsio
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
           mkdir cfitsio-external-build
           cd cfitsio-external-build
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
@@ -71,7 +77,9 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          pip install --no-deps --no-build-isolation -v -e . \
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip install ${PIP_OPTIONS} -e . \
             --config-settings="--global-option=--use-system-fitsio" \
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
             --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
@@ -80,26 +88,35 @@ jobs:
       - name: test non-bundled build w/ env vars
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           find . -name "*.so" -type f -delete
           export FITSIO_USE_SYSTEM_FITSIO=1
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
-          pip install --no-deps --no-build-isolation -v -e .
+          pip install ${PIP_OPTIONS} -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          pip install --no-deps --no-build-isolation -v -e .
+          pip install ${PIP_OPTIONS} -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -107,7 +124,7 @@ jobs:
 
           python setup.py sdist
 
-          pip install --no-deps --no-build-isolation -v --no-deps --no-build-isolation dist/*.tar.gz
+          pip install ${PIP_OPTIONS} dist/*.tar.gz
           cd ..
           python -c "import fitsio; assert not fitsio.__version__.startswith('0')"
           cd -
@@ -116,6 +133,9 @@ jobs:
       - name: test sdist
         shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -129,7 +149,7 @@ jobs:
           dname=$(echo "$fname" | sed 's/\.tar\.gz//')
           pushd $dname
 
-          pip install --no-deps --no-build-isolation -v -e .
+          pip install ${PIP_OPTIONS} -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
           popd

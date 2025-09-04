@@ -1,3 +1,16 @@
+unreleased
+-------------
+
+Changes
+
+    - Arrays passed to cfitsio are now forced to be
+      aligned via `numpy.require`. This change prevents
+      failures due to rare instances of unaligned memory
+      access on certain platforms. No additional copies
+      of arrays are made unless they are unaligned. As
+      unaligned arrays are rare, this change should have
+      minimal performance implications.
+
 version 1.2.7
 -------------
 
