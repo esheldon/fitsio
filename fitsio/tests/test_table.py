@@ -1482,6 +1482,17 @@ def test_table_write_dict_of_arrays_unaligned():
 
         data[dtype.replace("<", "l")] = unaligned_data
 
+    dtype = np.dtype(
+        {
+            "names": list(data.keys()),
+            "formats": [v.dtype for v in data.values()]
+
+        }
+    )
+    data_stra = np.zeros(10, dtype=dtype)
+    for k, v in data.items():
+        data_stra[k] = v
+
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
@@ -1490,4 +1501,4 @@ def test_table_write_dict_of_arrays_unaligned():
             fits[-1].write(data)
 
         d = read(fname)
-        compare_rec(data, d, "list of dicts")
+        compare_rec(data_stra, d, "list of dicts")
