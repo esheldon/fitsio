@@ -1468,6 +1468,8 @@ def test_table_write_dict_of_arrays_unaligned():
     data = {}
     for dtype in DTYPES:
         _data = np.arange(20, dtype=dtype)
+        # The code to make the unaligned view was generated
+        # by Google's AI and then modified by hand to fix a bug.
         unaligned_data = np.ndarray(
             shape=(19,),
             dtype=_data.dtype,
