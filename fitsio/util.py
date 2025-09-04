@@ -134,11 +134,7 @@ def array_to_native(array, inplace=False):
     else:
         output = array
 
-    return output
-    # output_aligned = numpy.require(output, requirements=['ALIGNED'])
-    
-
-    return output_aligned
+    return numpy.require(output, requirements=['ALIGNED'])
 
 
 if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
@@ -158,7 +154,7 @@ def array_to_native_c(array_in, inplace=False):
     # copy only made if not C order
     arr = numpy.require(
         array_in,
-        requirements=['C_CONTIGUOUS',],  # 'ALIGNED'],
+        requirements=['C_CONTIGUOUS', 'ALIGNED'],
     )
     return array_to_native(arr, inplace=inplace)
 
