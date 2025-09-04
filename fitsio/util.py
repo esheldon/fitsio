@@ -156,7 +156,7 @@ def array_to_native_c(array_in, inplace=False):
     # copy only made if not C order
     arr = numpy.require(
         array_in,
-        requirements=['C_CONTIGUOUS', 'ALIGNED'],
+        requirements=['C_CONTIGUOUS',],  # 'ALIGNED'],
     )
     return array_to_native(arr, inplace=inplace)
 
