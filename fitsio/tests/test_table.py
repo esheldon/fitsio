@@ -1467,13 +1467,13 @@ def test_table_bitcol_insert():
 def test_table_write_dict_of_arrays_unaligned():
     data = {}
     for dtype in DTYPES:
-        data = np.arange(20, dtype=dtype)
+        _data = np.arange(20, dtype=dtype)
         unaligned_data = np.ndarray(
             shape=(19,),
-            dtype=data.dtype,
-            buffer=data.data,
+            dtype=_data.dtype,
+            buffer=_data.data,
             offset=1,  # Offset by 1 byte
-            strides=data.strides
+            strides=_data.strides
         )
         if not dtype.endswith("1"):
             assert not unaligned_data.flags["ALIGNED"]
