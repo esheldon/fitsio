@@ -20,15 +20,19 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
-        pyver: ["3.12", "3.11"]
-        npver: ["1.26", "2.0"]
+        config:
+            - { pyver: "3.11", npver: "1.26"}
+            - { pyver: "3.12", npver: "1.26"}
+            - { pyver: "3.11", npver: "2.2.0"}
+            - { pyver: "3.12", npver: "2.2.0"}
+            - { pyver: "3.13", npver: "2.2.0"}
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: conda-incubator/setup-miniconda@d2e6a045a86077fb6cad6f5adf368e9076ddaa8d  # v3.1.0
+      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
         with:
           python-version: ${{ matrix.pyver }}
           channels: conda-forge
@@ -40,10 +44,13 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          mamba install numpy=${{ matrix.npver }} nose cython wget make pytest flake8
-          if [ "${{ matrix.pyver }}" == "3.8" ] || [ "${{ matrix.pyver }}" == "3.9" ] || [ "${{ matrix.pyver }}" == "3.10" ]; then
-            mamba install importlib_resources
-          fi
+          conda install numpy=${{ matrix.config.npver }} nose cython wget make pytest flake8 setuptools
+
+      - name: install bzip2 on linux
+        shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install libbz2-dev
 
       - name: install bzip2 on linux
         shell: bash -l {0}

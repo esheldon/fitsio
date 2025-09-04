@@ -1,14 +1,32 @@
-version 1.2.5 (not yet released)
+version 1.2.7
+-------------
+
+Changes
+
+    - Replace deprecated `NPY_*` constants (Michał Górny)
+
+version 1.2.6
+-------------
+
+Bug Fixes
+
+    - Fix bug parsing header cards with free-form strings
+    - Fix writing and reading of string columns with length
+      1 vectors in numpy 2.
+    - Fix building against NumPy 2.3.0.
+
+version 1.2.5
 -------------
 
 New Features
 
     - writing images supports the dither_seed keyword, to seed
       the random number generator for subtractive dithering
+    - PyPI now has wheels in addition to sdists
 
 Bug Fixes
 
-    - Fig bug slicing tables that have TBIT columns
+    - Fix bug slicing tables that have TBIT columns
 
 version 1.2.4
 -------------

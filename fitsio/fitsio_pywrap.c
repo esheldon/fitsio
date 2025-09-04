@@ -1482,6 +1482,10 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             write_data=1;
         }
 
+        if (comptype == 0) {
+            comptype = (*(self->fits)->Fptr).request_compress_type;
+        }
+
         // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
         // if (comptype >= 0) {
         if (comptype > 0) {
@@ -2352,10 +2356,10 @@ int write_var_num_column(
     int mindepth=1, maxdepth=0;
     PyObject* context=NULL;
     int requirements =
-        NPY_C_CONTIGUOUS
-        | NPY_ALIGNED
-        | NPY_NOTSWAPPED
-        | NPY_ELEMENTSTRIDES;
+        NPY_ARRAY_C_CONTIGUOUS
+        | NPY_ARRAY_ALIGNED
+        | NPY_ARRAY_NOTSWAPPED
+        | NPY_ARRAY_ELEMENTSTRIDES;
 
     int res=0;
 
@@ -4444,8 +4448,18 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
                         is_string_value=0;
                     }
                 } else {
+                    int j;
                     has_equals = (card[8] == '=') ? 1 : 0;
-                    has_quote = (card[10] == '\'') ? 1 : 0;
+                    has_quote = 0;
+                    // Look for 0 or more space characters followed by a quote character.
+                    for (j=10; j<FLEN_CARD; j++) {
+                        if (card[j] == '\'') {
+                            has_quote = 1;
+                            break;
+                        } else if (card[j] != ' ') {
+                            break;
+                        }
+                    }
                     if (has_equals && has_quote) {
                         is_string_value=1;
                     } else {
@@ -4511,7 +4525,7 @@ PyFITSObject_read_header(struct PyFITSObject* self, PyObject* args) {
 
             } else {
 
-                // if its a stringwe just store it.
+                // if it's a string we just store it.
                 if (is_string_value) {
                     convert_to_ascii(longstr);
                     add_string_to_dict(dict,"value",longstr);

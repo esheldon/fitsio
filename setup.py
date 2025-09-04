@@ -318,7 +318,7 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.2.5",
+    version="1.2.6",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
@@ -327,8 +327,8 @@ setup(
     url="https://github.com/esheldon/fitsio",
     author="Erin Scott Sheldon",
     author_email="erin.sheldon@gmail.com",
-    setup_requires=['numpy'],
-    install_requires=['numpy'],
+    setup_requires=['numpy>=1.7'],
+    install_requires=['numpy>=1.7'],
     packages=find_packages(),
     include_package_data=True,
     ext_modules=[ext],
