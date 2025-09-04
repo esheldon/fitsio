@@ -16,6 +16,8 @@ import glob
 import shutil
 
 
+print(sys.argv, flush=True)
+
 if "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
     USE_SYSTEM_FITSIO = True
