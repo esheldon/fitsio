@@ -134,7 +134,9 @@ def array_to_native(array, inplace=False):
     else:
         output = array
 
-    output_aligned = numpy.require(output, requirements=['ALIGNED'])
+    return output
+    # output_aligned = numpy.require(output, requirements=['ALIGNED'])
+    
 
     return output_aligned
 
