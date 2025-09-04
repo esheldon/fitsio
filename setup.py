@@ -318,7 +318,6 @@ classifiers = [
 
 setup(
     name="fitsio",
-    version="1.2.6",
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
@@ -327,10 +326,14 @@ setup(
     url="https://github.com/esheldon/fitsio",
     author="Erin Scott Sheldon",
     author_email="erin.sheldon@gmail.com",
-    setup_requires=['numpy>=1.7'],
+    setup_requires=['numpy>=1.7', 'setuptools-scm>=8'],
     install_requires=['numpy>=1.7'],
     packages=find_packages(),
     include_package_data=True,
     ext_modules=[ext],
-    cmdclass={"build_ext": build_ext_subclass}
+    cmdclass={"build_ext": build_ext_subclass},
+    use_scm_version={
+        "version_file": "fitsio/_version.py",
+        "version_file_template": "__version__ = '{version}'\n"
+    }
 )
