@@ -57,7 +57,8 @@ def test_image_write_read_unaligned():
                     offset=1,  # Offset by 1 byte
                     strides=data.strides
                 )
-                assert not unaligned_data.flags["ALIGNED"]
+                if not dtype.endswith("1"):
+                    assert not unaligned_data.flags["ALIGNED"]
                 header = {
                     'DTYPE': dtype,
                     'NBYTES': unaligned_data.dtype.itemsize
