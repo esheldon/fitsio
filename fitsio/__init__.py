@@ -5,7 +5,10 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__ = '1.2.7'
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = None
 
 from . import fitslib
 
