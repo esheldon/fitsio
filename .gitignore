@@ -120,3 +120,5 @@ dmypy.json
 cfitsio-*/cfitsio.pc
 cfitsio-*/config.status
 cfitsio-*/Makefile
+
+fitsio/_version.py

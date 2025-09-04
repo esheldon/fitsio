@@ -31,6 +31,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
         with:
@@ -44,7 +47,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          conda install numpy=${{ matrix.config.npver }} nose cython wget make pytest flake8 setuptools
+          conda install numpy=${{ matrix.config.npver }} "setuptools-scm>=8" nose cython wget make pytest flake8 setuptools
 
       - name: install bzip2 on linux
         shell: bash -l {0}
@@ -68,11 +71,10 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          pip install -vv -e . \
-            --global-option="build_ext" \
-            --global-option="--use-system-fitsio" \
-            --global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
-            --global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
+          pip install --no-deps --no-build-isolation -v -e . \
+            --config-settings="--global-option=--use-system-fitsio" \
+            --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
+            --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test non-bundled build w/ env vars
@@ -83,7 +85,7 @@ jobs:
           export FITSIO_USE_SYSTEM_FITSIO=1
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
-          pip install -vv -e .
+          pip install --no-deps --no-build-isolation -v -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test bundled build
@@ -92,7 +94,7 @@ jobs:
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          pip install -vv -e .
+          pip install --no-deps --no-build-isolation -v -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test install sdist .gz with no unit tests
@@ -105,9 +107,9 @@ jobs:
 
           python setup.py sdist
 
-          pip install -vv --no-deps --no-build-isolation dist/*.tar.gz
+          pip install --no-deps --no-build-isolation -v --no-deps --no-build-isolation dist/*.tar.gz
           cd ..
-          python -c "import fitsio; assert fitsio.__version__ != '0.0.0'"
+          python -c "import fitsio; assert not fitsio.__version__.startswith('0')"
           cd -
           pip uninstall fitsio --yes
 
@@ -127,7 +129,7 @@ jobs:
           dname=$(echo "$fname" | sed 's/\.tar\.gz//')
           pushd $dname
 
-          pip install -vv -e .
+          pip install --no-deps --no-build-isolation -v -e .
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
           popd
