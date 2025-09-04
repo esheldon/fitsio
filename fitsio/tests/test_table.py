@@ -1489,7 +1489,7 @@ def test_table_write_dict_of_arrays_unaligned():
 
         }
     )
-    data_stra = np.zeros(10, dtype=dtype)
+    data_stra = np.zeros(data[dtype.names[0]].shape, dtype=dtype)
     for k, v in data.items():
         data_stra[k] = v
 
