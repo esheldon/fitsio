@@ -23,9 +23,9 @@ jobs:
         config:
             - { pyver: "3.11", npver: "1.26"}
             - { pyver: "3.12", npver: "1.26"}
-            - { pyver: "3.11", npver: "2.2.0"}
-            - { pyver: "3.12", npver: "2.2.0"}
-            - { pyver: "3.13", npver: "2.2.0"}
+            - { pyver: "3.11", npver: "2.3.0"}
+            - { pyver: "3.12", npver: "2.3.0"}
+            - { pyver: "3.13", npver: "2.3.0"}
 
     runs-on: ${{ matrix.os }}
 
