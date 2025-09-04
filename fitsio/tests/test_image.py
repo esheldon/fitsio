@@ -54,11 +54,14 @@ def test_image_write_read_unaligned():
                     shape=(19,),
                     dtype=data.dtype,
                     buffer=data.data,
-                    offset=1, # Offset by 1 byte
+                    offset=1,  # Offset by 1 byte
                     strides=data.strides
                 )
-
-                header = {'DTYPE': dtype, 'NBYTES': unaligned_data.dtype.itemsize}
+                assert not unaligned_data.flags["ALIGNED"]
+                header = {
+                    'DTYPE': dtype,
+                    'NBYTES': unaligned_data.dtype.itemsize
+                }
                 fits.write_image(unaligned_data, header=header)
                 rdata = fits[-1].read()
 
