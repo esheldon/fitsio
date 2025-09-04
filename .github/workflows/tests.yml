@@ -8,6 +8,8 @@ on:
 
 env:
   PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
   PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
