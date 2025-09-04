@@ -72,10 +72,10 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install --no-deps --no-build-isolation -v -e . \
-            --global-option="build_ext" \
-            --global-option="--use-system-fitsio" \
-            --global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
-            --global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
+            --config-settings='--global-option="build_ext"' \
+            --config-settings='--global-option="--use-system-fitsio"' \
+            --config-settings='--global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include"' \
+            --config-settings='--global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"'
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
       - name: test non-bundled build w/ env vars
