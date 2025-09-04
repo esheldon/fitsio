@@ -5,7 +5,7 @@ See the docs at https://github.com/esheldon/fitsio for example
 usage.
 """
 
-__version__ = '1.2.6'
+__version__ = '1.2.7'
 
 from . import fitslib
 
