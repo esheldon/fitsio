@@ -1,4 +1,11 @@
-version 1.2.6 (not yet released)
+version 1.2.7
+-------------
+
+Changes
+
+    - Replace deprecated `NPY_*` constants (Michał Górny)
+
+version 1.2.6
 -------------
 
 Bug Fixes
