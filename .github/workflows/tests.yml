@@ -78,6 +78,7 @@ jobs:
         shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
           pip install ${PIP_OPTIONS} -e . \
             --config-settings="--global-option=--use-system-fitsio" \
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
