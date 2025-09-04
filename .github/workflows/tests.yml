@@ -52,12 +52,6 @@ jobs:
         run: |
           sudo apt-get install libbz2-dev
 
-      - name: install bzip2 on linux
-        shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install libbz2-dev
-
       - name: build external cfitsio
         shell: bash -l {0}
         run: |
