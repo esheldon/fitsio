@@ -74,7 +74,7 @@ jobs:
       - name: test non-bundled build
         shell: bash -l {0}
         run: |
-          export CFLAGS="${CFLAGS} -fno-sanitize-recover=alignment"
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
           pip install --no-deps --no-build-isolation -v -e . \
             --config-settings="--global-option=--use-system-fitsio" \
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
