@@ -230,7 +230,7 @@ jobs:
 
       - name: publish to pypi
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: github.event_name == 'release' || github.event.action == 'workflow_dispatch'
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         with:
           verbose: true
           skip-existing: true
