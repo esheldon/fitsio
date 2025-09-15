@@ -71,6 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -115,6 +116,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -152,6 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -191,15 +194,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
       - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ env.PYVER }}'
 
       - name: Install dependencies
         run: |
           python -m pip install -U pip
-          pip install -U numpy setuptools "setuptools-scm>=8"
+          pip install -U numpy setuptools "setuptools-scm>=8" build
 
       - name: download wheels
         uses: actions/download-artifact@v5
@@ -210,7 +216,7 @@ jobs:
 
       - name: build sdist
         run: |
-          python setup.py sdist
+          python -m build --sdist --no-isolation .
           ls -l dist
           tar tvfz dist/*.tar.gz
 
