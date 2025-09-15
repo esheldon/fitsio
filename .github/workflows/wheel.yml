@@ -228,10 +228,10 @@ jobs:
           echo ls -l dist
           ls -l dist
 
-      # - name: publish to pypi
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   if: github.event_name == 'release' || github.event.action == 'workflow_dispatch'
-      #   with:
-      #     verbose: true
-      #     skip-existing: true
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: publish to pypi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: github.event_name == 'release' || github.event.action == 'workflow_dispatch'
+        with:
+          verbose: true
+          skip-existing: true
+          password: ${{ secrets.PYPI_API_TOKEN }}
