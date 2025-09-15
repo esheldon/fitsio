@@ -26,7 +26,6 @@ concurrency:
 env:
   PYVER: '3.11'
   CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
-  CIBW_BUILD_FRONTEND: "pip"
 
 jobs:
   linux-manylinux:
@@ -200,6 +199,8 @@ jobs:
           fetch-tags: true
 
       - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ env.PYVER }}'
 
       - name: Install dependencies
         run: |
