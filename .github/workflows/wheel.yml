@@ -26,8 +26,6 @@ concurrency:
 env:
   PYVER: '3.11'
   CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
-  CIBW_BUILD_FRONTEND: "build; args: --no-isolation"
-  CIBW_BEFORE_BUILD: "pip install 'setuptools>=80' 'numpy>=1.7' 'setuptools-scm>=8'"
 
 jobs:
   linux-manylinux:
@@ -207,7 +205,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U pip
-          pip install -U "numpy>=1.7" "setuptools>=80" "setuptools-scm>=8" build
+          pip install -U build
 
       - name: download wheels
         uses: actions/download-artifact@v5
@@ -218,7 +216,7 @@ jobs:
 
       - name: build sdist
         run: |
-          python -m build --sdist --no-isolation .
+          python -m build --sdist .
           ls -l dist
           tar tvfz dist/*.tar.gz
 
@@ -232,7 +230,7 @@ jobs:
 
       # - name: publish to pypi
       #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+      #   if: github.event_name == 'release' || github.event.action == 'workflow_dispatch'
       #   with:
       #     verbose: true
       #     skip-existing: true

@@ -1,4 +1,4 @@
-unreleased
+version 1.2.8
 -------------
 
 Changes
@@ -10,6 +10,10 @@ Changes
       of arrays are made unless they are unaligned. As
       unaligned arrays are rare, this change should have
       minimal performance implications.
+
+Bug Fixes
+
+    - Fixed error in PyPI uploads.
 
 version 1.2.7
 -------------
