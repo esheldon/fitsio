@@ -26,6 +26,8 @@ concurrency:
 env:
   PYVER: '3.11'
   CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
+  CIBW_BUILD_FRONTEND: "build; args: --no-isolation"
+  CIBW_BEFORE_BUILD: "pip install 'setuptools>=80' 'numpy>=1.7' 'setuptools-scm>=8'"
 
 jobs:
   linux-manylinux:
@@ -50,7 +52,6 @@ jobs:
           CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # I think yum might always work here.  But leave all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
-          CIBW_BEFORE_BUILD: "pip install setuptools-scm>=8"
 
       - name: test wheel for python ${{ env.PYVER }}
         run: |
