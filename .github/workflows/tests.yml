@@ -43,7 +43,7 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
         with:
-          python-version: ${{ matrix.pyver }}
+          python-version: ${{ matrix.config.pyver }}
           channels: conda-forge
           channel-priority: strict
           show-channel-urls: true
@@ -169,7 +169,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-            - { pyver: "3.6", npver: "1"}
+            - { pyver: "3.7", npver: "1"}
             # - { pyver: "3.11", npver: "1.26"}
             # - { pyver: "3.12", npver: "1.26"}
             # - { pyver: "3.11", npver: "2.3.0"}
@@ -188,7 +188,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.6'
+          python-version: '${{ matrix.config.pyver }}'
 
       - name: install pip & setuptools
         run: |
