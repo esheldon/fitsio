@@ -11,13 +11,39 @@ env:
   # These compiler flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
-  PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
+        with:
+          channels: conda-forge
+          channel-priority: strict
+          show-channel-urls: true
+          miniforge-version: latest
+
+      - name: install conda deps
+        shell: bash -l {0}
+        run: |
+          conda list
+          conda install flake8
+
+      - name: flake8
+        shell: bash -l {0}
+        run: |
+          flake8 fitsio
+
   tests:
     name: tests
     strategy:
@@ -25,6 +51,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
+            - { pyver: "3.8", npver: "1"}
             - { pyver: "3.11", npver: "1.26"}
             - { pyver: "3.12", npver: "1.26"}
             - { pyver: "3.11", npver: "2.3.0"}
@@ -32,6 +59,8 @@ jobs:
             - { pyver: "3.13", npver: "2.3.0"}
 
     runs-on: ${{ matrix.os }}
+    env:
+      PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
     steps:
       - uses: actions/checkout@v5
@@ -41,7 +70,7 @@ jobs:
 
       - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
         with:
-          python-version: ${{ matrix.pyver }}
+          python-version: ${{ matrix.config.pyver }}
           channels: conda-forge
           channel-priority: strict
           show-channel-urls: true
@@ -109,7 +138,7 @@ jobs:
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
 
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}
@@ -150,12 +179,47 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
 
           popd
           popd
 
-      - name: flake8
-        shell: bash -l {0}
+  tests-pypi:
+    name: tests-pypi
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04]
+        pyver: ["3.8", "3.13"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '${{ matrix.pyver }}'
+
+      - name: install pip & setuptools
         run: |
-          flake8 fitsio
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools
+          python -m pip install pytest
+
+      - name: install bzip2 and other tools on linux
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install libbz2-dev wget make
+
+      - name: build fitsio
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip install -v -e .
+
+      - name: test fitsio
+        run: |
+          pytest -vv fitsio

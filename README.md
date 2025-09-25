@@ -402,15 +402,11 @@ Or at a later time to update to the latest
 
 Use tar xvfz to untar the file, enter the fitsio directory and type
 
-    python setup.py install
-
-optionally with a prefix
-
-    python setup.py install --prefix=/some/path
+    pip install .
 
 ## Requirements
 
-- python 2 or python 3
+- python >=3.8
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
