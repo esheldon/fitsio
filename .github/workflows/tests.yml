@@ -169,7 +169,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-22.04]
         config:
-            - { pyver: "3.7", npver: "1"}
+            - { pyver: "3.8", npver: "1"}
             # - { pyver: "3.11", npver: "1.26"}
             # - { pyver: "3.12", npver: "1.26"}
             # - { pyver: "3.11", npver: "2.3.0"}
@@ -198,7 +198,7 @@ jobs:
 
       - name: install bzip2 and other tools on linux
         shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest'
+        if: contains(matrix.os, 'ubuntu')
         run: |
           sudo apt-get install libbz2-dev wget make
 
