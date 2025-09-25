@@ -51,7 +51,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-            - { pyver: "3.7", npver: "1"}
+            - { pyver: "3.8", npver: "1"}
             - { pyver: "3.11", npver: "1.26"}
             - { pyver: "3.12", npver: "1.26"}
             - { pyver: "3.11", npver: "2.3.0"}
@@ -80,7 +80,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          conda install numpy=${{ matrix.config.npver }} "setuptools-scm>=7" nose cython wget make pytest flake8 setuptools
+          conda install numpy=${{ matrix.config.npver }} "setuptools-scm>=8" nose cython wget make pytest flake8 setuptools
 
       - name: install bzip2 on linux
         shell: bash -l {0}
@@ -190,7 +190,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-22.04]
-        pyver: ["3.7", "3.13"]
+        pyver: ["3.8", "3.13"]
     runs-on: ${{ matrix.os }}
 
     steps:

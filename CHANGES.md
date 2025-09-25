@@ -4,7 +4,7 @@ unreleased
 Bug Fixes
 
     - Fixed incorrect/unspecified minimum python version,
-      setting it to `>=3.7`.
+      setting it to `>=3.8`.
 
 version 1.2.8
 -------------
