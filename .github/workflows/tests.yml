@@ -188,7 +188,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '${{ matrix.pyver }}'
+          python-version: '3.6'
 
       - name: install pip & setuptools
         run: |
