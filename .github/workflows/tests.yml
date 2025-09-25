@@ -167,7 +167,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-22.04]
         config:
             - { pyver: "3.7", npver: "1"}
             # - { pyver: "3.11", npver: "1.26"}
