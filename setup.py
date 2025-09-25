@@ -326,7 +326,7 @@ setup(
     url="https://github.com/esheldon/fitsio",
     author="Erin Scott Sheldon",
     author_email="erin.sheldon@gmail.com",
-    setup_requires=['numpy>=1.7', 'setuptools-scm>=8', 'future-annotations; python < "3.7"'],
+    setup_requires=['numpy>=1.7', 'setuptools-scm>=8', "future-annotations; python_version < '3.7'"],
     install_requires=['numpy>=1.7'],
     packages=find_packages(),
     python_requires=">=3.6",
