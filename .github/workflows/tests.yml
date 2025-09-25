@@ -17,6 +17,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
+        with:
+          channels: conda-forge
+          channel-priority: strict
+          show-channel-urls: true
+          miniforge-version: latest
+
+      - name: install conda deps
+        shell: bash -l {0}
+        run: |
+          conda list
+          conda install flake8
+
+      - name: flake8
+        shell: bash -l {0}
+        run: |
+          flake8 fitsio
+
   tests:
     name: tests
     strategy:
@@ -24,7 +51,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-            - { pyver: "3.6", npver: "1"}
+            - { pyver: "3.8", npver: "1"}
             - { pyver: "3.11", npver: "1.26"}
             - { pyver: "3.12", npver: "1.26"}
             - { pyver: "3.11", npver: "2.3.0"}
@@ -111,7 +138,7 @@ jobs:
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
 
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}
@@ -152,15 +179,10 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
 
           popd
           popd
-
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 fitsio
 
   tests-pypi:
     name: tests-pypi
@@ -168,17 +190,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-22.04]
-        config:
-            - { pyver: "3.8", npver: "1"}
-            # - { pyver: "3.11", npver: "1.26"}
-            # - { pyver: "3.12", npver: "1.26"}
-            # - { pyver: "3.11", npver: "2.3.0"}
-            # - { pyver: "3.12", npver: "2.3.0"}
-            # - { pyver: "3.13", npver: "2.3.0"}
-
+        pyver: ["3.8", "3.13"]
     runs-on: ${{ matrix.os }}
-    env:
-      PIP_OPTIONS: "--no-cache-dir -v"
 
     steps:
       - uses: actions/checkout@v5
@@ -188,7 +201,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '${{ matrix.config.pyver }}'
+          python-version: '${{ matrix.pyver }}'
 
       - name: install pip & setuptools
         run: |
@@ -202,54 +215,10 @@ jobs:
         run: |
           sudo apt-get install libbz2-dev wget make
 
-      # - name: build external cfitsio
-      #   shell: bash -l {0}
-      #   run: |
-      #     export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-      #     mkdir cfitsio-external-build
-      #     cd cfitsio-external-build
-      #     wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
-      #     tar -xzvf cfitsio-4.4.0.tar.gz
-      #     cd cfitsio-4.4.0
-      #     ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
-      #     make install -j 4
-      #     cd ..
-      #     cd ..
-
-      # - name: test non-bundled build
-      #   shell: bash -l {0}
-      #   run: |
-      #     export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-      #     pip install ${PIP_OPTIONS} -e . \
-      #       --config-settings="--global-option=--use-system-fitsio" \
-      #       --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
-      #       --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
-      #     SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      # - name: test non-bundled build w/ env vars
-      #   shell: bash -l {0}
-      #   run: |
-      #     export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-      #     pip cache purge
-      #     rm -rf build*
-      #     find . -name "*.so" -type f -delete
-      #     export FITSIO_USE_SYSTEM_FITSIO=1
-      #     export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
-      #     export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
-      #     pip install ${PIP_OPTIONS} -e .
-      #     SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      - name: test bundled build
-        shell: bash -l {0}
+      - name: build fitsio
         run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+          pip install -e .
 
-          pip cache purge
-          rm -rf build*
-          rm -rf $HOME/cfitsio-static-install
-          find . -name "*.so" -type f -delete
-          pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+      - name: test fitsio
+        run: |
+          pytest -vv fitsio
