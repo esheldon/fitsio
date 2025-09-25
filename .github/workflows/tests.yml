@@ -25,6 +25,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
+            - { pyver: "3.6", npver: "1.7"}
             - { pyver: "3.11", npver: "1.26"}
             - { pyver: "3.12", npver: "1.26"}
             - { pyver: "3.11", npver: "2.3.0"}

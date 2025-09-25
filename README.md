@@ -406,7 +406,7 @@ Use tar xvfz to untar the file, enter the fitsio directory and type
 
 ## Requirements
 
-- python >=3.7
+- python >=3.6
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
