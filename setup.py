@@ -329,6 +329,7 @@ setup(
     setup_requires=['numpy>=1.7', 'setuptools-scm>=8'],
     install_requires=['numpy>=1.7'],
     packages=find_packages(),
+    python_requires=">=3.7",
     include_package_data=True,
     ext_modules=[ext],
     cmdclass={"build_ext": build_ext_subclass},
