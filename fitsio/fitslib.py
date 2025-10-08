@@ -1941,12 +1941,14 @@ _compress_map = {
     'PLIO_1': PLIO_1,
     'HCOMPRESS': HCOMPRESS_1,
     'HCOMPRESS_1': HCOMPRESS_1,
-    NOCOMPRESS: None,
-    RICE_1: 'RICE_1',
-    GZIP_1: 'GZIP_1',
-    GZIP_2: 'GZIP_2',
-    PLIO_1: 'PLIO_1',
-    HCOMPRESS_1: 'HCOMPRESS_1',
+    # In get_compress_type(), we convert the query value to str before searching -
+    # so the keys here must be strings also!
+    str(NOCOMPRESS): None,
+    str(RICE_1): 'RICE_1',
+    str(GZIP_1): 'GZIP_1',
+    str(GZIP_2): 'GZIP_2',
+    str(PLIO_1): 'PLIO_1',
+    str(HCOMPRESS_1): 'HCOMPRESS_1',
 }
 
 _qmethod_map = {
