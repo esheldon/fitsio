@@ -1941,7 +1941,7 @@ _compress_map = {
     'PLIO_1': PLIO_1,
     'HCOMPRESS': HCOMPRESS_1,
     'HCOMPRESS_1': HCOMPRESS_1,
-    # In get_compress_type(), we convert the query value to str before searching -
+    # In get_compress_type(), we convert the key to str before searching -
     # so the keys here must be strings also!
     str(NOCOMPRESS): NOCOMPRESS,
     str(RICE_1): RICE_1,
