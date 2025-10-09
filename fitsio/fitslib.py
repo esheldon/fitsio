@@ -59,7 +59,7 @@ DEFAULT_DITHER = 0
 # setting values - so defaults should prevail.
 DEFAULT_HCOMP_SCALE = None
 DEFAULT_HCOMP_SMOOTH = None
-DEFAULT_QLEVEL = None
+DEFAULT_QLEVEL = 'DEFAULT'
 DEFAULT_QMETHOD = 'DEFAULT'
 
 
@@ -1052,10 +1052,11 @@ class FITS(object):
         dither_seed = get_dither_seed(dither_seed)
 
         tile_dims = get_tile_dims(tile_dims, dims)
-        if qlevel is None:
+        if qlevel == DEFAULT_QLEVEL:
+            qlevel = None
+        elif qlevel is None:
             # 0.0 is the sentinel value for "no quantization" in cfitsio
-            #qlevel = 0.0
-            pass
+            qlevel = 0.0
         else:
             qlevel = float(qlevel)
 

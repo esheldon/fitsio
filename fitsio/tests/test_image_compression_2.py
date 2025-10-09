@@ -1,0 +1,169 @@
+import pytest
+import sys
+import os
+import tempfile
+from .checks import (
+    # check_header,
+    compare_array,
+    compare_array_abstol,
+)
+import numpy as np
+from ..fitslib import (
+    FITS,
+    read,
+    write,
+)
+
+
+import numpy as np
+import fitsio
+import os
+
+def test_compression_case0():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(img)
+        fits.close()
+        fits = fitsio.FITS(fn)
+        assert(len(fits) == 1)
+
+def test_compression_case1():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(img, compress='RICE', tile_dims=(10,5), qlevel=7.,
+                   qmethod='SUBTRACTIVE_DITHER_2',
+                   dither_seed=42)
+        fits.close()
+        fits = fitsio.FITS(fn)
+        assert(len(fits) == 2)
+        fits.close()
+        hdr = fitsio.read_header(fn, ext=1)
+        for key,val in [('ZTILE1', 5),
+                        ('ZTILE2', 10),
+                        ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_2'),
+                        ('ZDITHER0', 42),
+                        ('ZCMPTYPE', 'RICE_ONE'),]:
+            assert(hdr[key] == val)
+
+def test_compression_case2():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn + '[compress G]', 'rw', clobber=True)
+        fits.write(img)
+        fits.close()
+        hdr = fitsio.read_header(fn, ext=1)
+        for key,val in [('ZTILE1', 20),
+                        ('ZTILE2', 1),
+                        ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
+                        ('ZCMPTYPE', 'GZIP_1'),]:
+            assert(hdr[key] == val)
+
+def test_compression_case3():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn + '[compress G 5 10; qz 8.0]', 'rw', clobber=True)
+        fits.write(img, dither_seed=42)
+        fits.close()
+        hdr = fitsio.read_header(fn, ext=1)
+        for key,val in [('ZTILE1', 5),
+                        ('ZTILE2', 10),
+                        ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_2'),
+                        ('ZCMPTYPE', 'GZIP_1'),
+                        ('ZDITHER0', 42)]:
+            assert(hdr[key] == val)
+
+def test_compression_case4():
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fnpat = os.path.join(tmpdir, 'test-%i.fits')
+
+        H,W = 200,200
+        bigimg = np.random.uniform(size=(H,W))
+        results = []
+        # None: don't even use compression at all
+        # 0: lossless gzip
+        for i,qlevel in enumerate([None, 0, 16, 4, 1]):
+            fn = fnpat % i
+            ql = qlevel
+            kw = {}
+            if ql is None:
+                kw.update(compress=0)
+                ql = 0
+            print()
+            print('Case 4, qlevel', qlevel)
+            fits = fitsio.FITS(fn + '[compress G 100 100; qz %f]' % ql, 'rw', clobber=True)
+            fits.write(bigimg, dither_seed=42, **kw)
+            fits.close()
+            filesize = os.stat(fn).st_size
+            img2 = fitsio.read(fn)
+            rms = np.sqrt(np.mean((img2 - bigimg)**2))
+            results.append((qlevel, filesize, rms))
+        for qlevel, filesize, rms in results:
+            qs = '%4i' % qlevel if qlevel is not None else 'None'
+            print('qlevel %s -> file size %7i, rms %f' % (qs, filesize, rms))
+        # No compression
+        q,sz,rms = results[0]
+        assert(sz == 2880 * (1 + int(np.ceil(H * W * 8 / 2880.))))
+        assert(rms == 0.0)
+        # GZIP lossless
+        q,sz,rms = results[1]
+        assert(rms == 0.0)
+        # Decreasing file size
+        for r1,r2 in zip(results, results[1:]):
+            q1,sz1,rms1 = r1
+            q2,sz2,rms2 = r2
+            assert(sz1 > sz2)
+            assert(rms1 <= rms2)
+
+def test_compression_case5():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn + '[compress HS 10 10; s 2.0]', 'rw', clobber=True)
+        fits.write(img, dither_seed=42)
+        fits.close()
+        hdr = fitsio.read_header(fn, ext=1)
+        for key,val in [('ZTILE1', 10),
+                        ('ZTILE2', 10),
+                        ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
+                        ('ZCMPTYPE', 'HCOMPRESS_1'),
+                        ('ZDITHER0', 42),
+                        ('ZNAME1', 'SCALE'),
+                        ('ZVAL1', 2.0),
+                        ('ZNAME2', 'SMOOTH'),
+                        ('ZVAL2', 1),
+                        ]:
+            assert(hdr[key] == val)
+
+def test_compression_case6():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20,20))
+        fits = fitsio.FITS(fn + '[compress HS 10 10; s 2.0]', 'rw', clobber=True)
+        fits.write(img, dither_seed=42, hcomp_scale=1.0, hcomp_smooth=False)
+        fits.close()
+        hdr = fitsio.read_header(fn, ext=1)
+        for key,val in [('ZTILE1', 10),
+                        ('ZTILE2', 10),
+                        ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
+                        ('ZCMPTYPE', 'HCOMPRESS_1'),
+                        ('ZDITHER0', 42),
+                        ('ZNAME1', 'SCALE'),
+                        ('ZVAL1', 1.),
+                        ('ZNAME2', 'SMOOTH'),
+                        ('ZVAL2', 0),
+                        ]:
+            assert(hdr[key] == val)
+
