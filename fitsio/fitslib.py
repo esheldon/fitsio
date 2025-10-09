@@ -1095,9 +1095,7 @@ class FITS(object):
 
         if compress is not None and qlevel is None or qlevel == 0.0:
             # work around bug in cfitso
-            # self.flush_file()
             self.reopen()
-            # self.update_hdu_list(rebuild=False)
         else:
             # don't rebuild the whole list unless this is the first hdu
             # to be created
