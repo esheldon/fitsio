@@ -161,3 +161,40 @@ def test_compression_case6():
                          ('ZVAL2', 0),
                          ]:
             assert hdr[key] == val
+
+
+def test_compression_case7():
+    # Check that if not specified, qlevel defaults to 4.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        H, W = 200, 200
+        bigimg = np.random.uniform(size=(H, W))
+        # Default qlevel
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(bigimg, compress='GZIP')
+        fits.close()
+        size_def = os.stat(fn).st_size
+        hdr = fitsio.read_header(fn, ext=1)
+        for key, val in [('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
+                         ('ZCMPTYPE', 'GZIP_1'),
+                         ]:
+            assert hdr[key] == val
+        # qlevel=0
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(bigimg, compress='GZIP', qlevel=0)
+        fits.close()
+        size_0 = os.stat(fn).st_size
+        # qlevel=4
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(bigimg, compress='GZIP', qlevel=4)
+        fits.close()
+        size_4 = os.stat(fn).st_size
+        # qlevel=16
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        fits.write(bigimg, compress='GZIP', qlevel=16)
+        fits.close()
+        size_16 = os.stat(fn).st_size
+        assert size_0 > size_4
+        assert size_4 > size_16
+        assert size_def == size_4
