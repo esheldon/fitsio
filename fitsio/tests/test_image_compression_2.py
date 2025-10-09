@@ -4,16 +4,15 @@ import numpy as np
 import fitsio
 
 
-def test_compression_case0():
+def test_compression_nocompress():
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
 
         img = np.ones((20, 20))
-        fits = fitsio.FITS(fn, 'rw', clobber=True)
-        fits.write(img)
-        fits.close()
-        fits = fitsio.FITS(fn)
-        assert len(fits) == 1
+        with fitsio.FITS(fn, 'rw', clobber=True) as fits:
+            fits.write(img)
+        with fitsio.FITS(fn) as fits:
+            assert len(fits) == 1
 
 
 def test_compression_case1():
