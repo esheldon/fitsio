@@ -200,3 +200,47 @@ def test_compression_case7():
         # heh, lower values mean MORE COMPRESSION
         assert size_4 < size_16
         assert size_def == size_4
+
+
+def test_compression_case8():
+    # Check multi-HDU case with a normal file
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+
+        img = np.ones((20, 20))
+        fits = fitsio.FITS(fn, 'rw', clobber=True)
+        # A
+        fits.write(img)
+        # B
+        fits.write(img, compress='GZIP')
+        # C
+        fits.write(img, compress='GZIP', qmethod='SUBTRACTIVE_DITHER_2')
+        # D
+        fits.write(img)
+        # E
+        fits.write(img, compress='GZIP')
+        # F
+        fits.write(img, compress=None)
+        fits.close()
+        hdrA = fitsio.read_header(fn, ext=0)
+        hdrB = fitsio.read_header(fn, ext=1)
+        hdrC = fitsio.read_header(fn, ext=2)
+        hdrD = fitsio.read_header(fn, ext=3)
+        hdrE = fitsio.read_header(fn, ext=4)
+        hdrF = fitsio.read_header(fn, ext=5)
+        F = fitsio.FITS(fn)
+        assert len(F) == 6
+        # A is uncompressed
+        assert 'ZCMPTYPE' not in hdrA
+        # B is gzip
+        assert hdrB['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrB['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
+        # C is gzip with SD2
+        assert hdrC['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrC['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
+        # D is not compressed
+        assert 'ZCMPTYPE' not in hdrD
+        # E is GZIP again
+        assert hdrE['ZCMPTYPE'] == 'GZIP_1'
+        # F is not compressed
+        assert 'ZCMPTYPE' not in hdrF
