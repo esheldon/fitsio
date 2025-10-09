@@ -210,26 +210,27 @@ def test_compression_case8():
         img = np.ones((20, 20))
         fits = fitsio.FITS(fn, 'rw', clobber=True)
         # A
-        fits.write(img)
+        fits.write(img, extname='A')
         # B
-        fits.write(img, compress='GZIP')
+        fits.write(img, extname='B', compress='GZIP')
         # C
-        fits.write(img, compress='GZIP', qmethod='SUBTRACTIVE_DITHER_2')
+        fits.write(img, extname='C', compress='GZIP',
+                   qmethod='SUBTRACTIVE_DITHER_2')
         # D
-        fits.write(img)
+        fits.write(img, extname='D')
         # E
-        fits.write(img, compress='GZIP')
+        fits.write(img, extname='E', compress='GZIP')
         # F
-        fits.write(img, compress=None)
+        fits.write(img, extname='F', compress=None)
         fits.close()
-        hdrA = fitsio.read_header(fn, ext=0)
-        hdrB = fitsio.read_header(fn, ext=1)
-        hdrC = fitsio.read_header(fn, ext=2)
-        hdrD = fitsio.read_header(fn, ext=3)
-        hdrE = fitsio.read_header(fn, ext=4)
-        hdrF = fitsio.read_header(fn, ext=5)
         F = fitsio.FITS(fn)
         assert len(F) == 6
+        hdrA = F['A'].read_header()
+        hdrB = F['B'].read_header()
+        hdrC = F['C'].read_header()
+        hdrD = F['D'].read_header()
+        hdrE = F['E'].read_header()
+        hdrF = F['F'].read_header()
         # A is uncompressed
         assert 'ZCMPTYPE' not in hdrA
         # B is gzip
