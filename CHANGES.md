@@ -5,6 +5,8 @@ Bug Fixes
 
     - Fixed incorrect/unspecified minimum python version,
       setting it to `>=3.8`.
+    - Fixed bug where we attempted to open `mem://` files
+      as existing files calling `fitsio.FITS.reopen`.
 
 version 1.2.8
 -------------

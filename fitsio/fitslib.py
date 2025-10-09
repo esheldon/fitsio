@@ -625,12 +625,10 @@ class FITS(object):
     def reopen(self):
         """
         close and reopen the fits file with the same mode
-
-        This method is a no-op for mem:// files.
         """
-        # we cannot open mem:// memory files as existing files with mode 'r'
+        # we cannot open mem:// memory files as existing files
         # (i.e., last argument of _fitsio_wrap.FITS equal to 0).
-        # if we open inb mode 1, we will delete all of the existing data
+        # if we open in mode 1, we will delete all of the existing data
         # in the mem:// file. So we make reopen a no-op for mem:// files.
         if not self._filename.startswith("mem://"):
             self._FITS.close()
