@@ -195,6 +195,8 @@ def test_compression_case7():
         fits.write(bigimg, compress='GZIP', qlevel=16)
         fits.close()
         size_16 = os.stat(fn).st_size
+        # zero means NO COMPRESSION
         assert size_0 > size_4
-        assert size_4 > size_16
+        # heh, lower values mean MORE COMPRESSION
+        assert size_4 < size_16
         assert size_def == size_4
