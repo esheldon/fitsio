@@ -1382,12 +1382,15 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
-    int comptype=0; // same as NOCOMPRESS in newer cfitsio
-
-    PyObject *array_obj=NULL, *dims_obj=NULL, *tile_dims_obj=NULL;
+    PyObject *array_obj=NULL, *dims_obj=NULL;
     PyArrayObject *array=NULL, *dims_array=NULL;
+    PyObject *comptype_obj=NULL;
+    PyObject *tile_dims_obj=NULL;
     PyObject *qlevel_obj=NULL;
+    PyObject *qmethod_obj=NULL;
+    PyObject *dither_seed_obj=NULL;
     PyObject *hcomp_scale_obj=NULL;
+    PyObject *hcomp_smooth_obj=NULL;
 
     int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
@@ -1400,6 +1403,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int dither_seed=0;
     float hcomp_scale=0;
     int hcomp_smooth=0;
+    int comptype=0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -1409,13 +1413,12 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     static char *kwlist[] = {
         "array","nkeys",
          "dims",
+
          "comptype",
          "tile_dims",
-
          "qlevel",
          "qmethod",
          "dither_seed",
-
          "hcomp_scale",
          "hcomp_smooth",
 
@@ -1423,24 +1426,22 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          "extver",
          NULL,
     };
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOOiiOisi", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OOOOOOOOsi", kwlist,
                           &array_obj, &nkeys,
                           &dims_obj,
-                          &comptype,
+
+                          &comptype_obj,
                           &tile_dims_obj,
-
                           &qlevel_obj,
-                          &qmethod,
-                          &dither_seed,
-
+                          &qmethod_obj,
+                          &dither_seed_obj,
                           &hcomp_scale_obj,
-                          &hcomp_smooth,
+                          &hcomp_smooth_obj,
 
                           &extname,
                           &extver)) {
         goto create_image_hdu_cleanup;
     }
-
 
     if (array_obj == Py_None) {
         if (create_empty_hdu(self)) {
@@ -1456,13 +1457,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         npy_dtype = PyArray_TYPE(array);
         if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
             goto create_image_hdu_cleanup;
-        }
-
-        if (qlevel_obj != Py_None) {
-            qlevel = (float)PyFloat_AsDouble(qlevel_obj);
-        }
-        if (hcomp_scale_obj != Py_None) {
-            hcomp_scale = (float)PyFloat_AsDouble(hcomp_scale_obj);
         }
 
         if (PyArray_Check(dims_obj)) {
@@ -1491,14 +1485,39 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             write_data=1;
         }
 
-        if (comptype == -1) {
-            // this defaults to zero
-            comptype = self->fits->Fptr->request_compress_type;
+        if (comptype_obj != Py_None) {
+            comptype = (int) PyLong_AsLong(comptype_obj);
+        }
+
+        if (qlevel_obj != Py_None) {
+            qlevel = (float)PyFloat_AsDouble(qlevel_obj);
+        }
+
+        if (qmethod_obj != Py_None) {
+            qmethod = (int) PyLong_AsLong(qmethod_obj);
+        }
+
+        if (dither_seed_obj != Py_None) {
+            dither_seed = (int) PyLong_AsLong(dither_seed_obj);
+        }
+
+        if (hcomp_scale_obj != Py_None) {
+            hcomp_scale = (float)PyFloat_AsDouble(hcomp_scale_obj);
+        }
+
+        if (hcomp_smooth_obj != Py_None) {
+            hcomp_smooth = (int) PyLong_AsLong(hcomp_smooth_obj);
         }
 
         // exception strings are set internally
-        if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
-            goto create_image_hdu_cleanup;
+        if (comptype_obj != Py_None) {
+            if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+        } else {
+            // get what the code is going to use just in case we override the
+            // HCOMPRESS options
+            comptype = self->fits->Fptr->request_compress_type;
         }
 
         if (qlevel_obj != Py_None) {
@@ -1507,40 +1526,36 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             }
         }
 
-        if (qmethod) {
+        if (qmethod_obj != Py_None) {
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
                 goto create_image_hdu_cleanup;
             }
         }
 
-        // zero means to use the default (system clock).
-        if (dither_seed != 0) {
+        if (dither_seed_obj != Py_None) {
             if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (comptype == HCOMPRESS_1) {
-
             if (hcomp_scale_obj != Py_None) {
                 if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
                     goto create_image_hdu_cleanup;
                 }
             }
-            if (hcomp_smooth != -1) {
+
+            if (hcomp_smooth_obj != Py_None) {
                 if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
                     goto create_image_hdu_cleanup;
                 }
             }
-
         }
 
         if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
             set_ioerr_string_from_status(status);
             goto create_image_hdu_cleanup;
         }
-
-
     }
     if (extname != NULL) {
         if (strlen(extname) > 0) {

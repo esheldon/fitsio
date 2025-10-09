@@ -148,7 +148,10 @@ def test_compression_hcomp_kwargs():
                          ('ZNAME2', 'SMOOTH'),
                          ('ZVAL2', 0),
                          ]:
-            assert hdr[key] == val
+            assert hdr[key] == val, (
+                f"key `{key}` has wrong value: got "
+                f"`{hdr[key]}` but should have gotten `{val}`"
+            )
 
 
 def test_compression_qlevel_default():
@@ -163,6 +166,7 @@ def test_compression_qlevel_default():
             fits.write(bigimg, compress='GZIP')
         size_def = os.stat(fn).st_size
         hdr = fitsio.read_header(fn, ext=1)
+        print(hdr)
         for key, val in [('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
                          ('ZCMPTYPE', 'GZIP_1'),
                          ]:

@@ -42,6 +42,12 @@ if IS_PY3:
 READONLY = 0
 READWRITE = 1
 
+# this constant is used to indicate
+# that an option is not set in Pytjon
+# and instead the setting for that option
+# is delegated to the C code in cfitsio
+NOT_SET = "NOT_SET"
+
 NOCOMPRESS = 0
 RICE_1 = 11
 GZIP_1 = 21
@@ -52,15 +58,6 @@ HCOMPRESS_1 = 41
 NO_DITHER = -1
 SUBTRACTIVE_DITHER_1 = 1
 SUBTRACTIVE_DITHER_2 = 2
-DEFAULT_DITHER = 0
-
-# these values correspond to (hard-coded) values in fitsio_pywrap.c :
-#   PyFITSObject_create_image_hdu, and the indicate that we're not
-# setting values - so defaults should prevail.
-DEFAULT_HCOMP_SCALE = None
-DEFAULT_HCOMP_SMOOTH = None
-DEFAULT_QLEVEL = 'DEFAULT'
-DEFAULT_QMETHOD = 'DEFAULT'
 
 
 def read(filename, ext=None, extver=None, columns=None, rows=None,
@@ -289,12 +286,14 @@ def _make_item(ext, extver=None):
 
 def write(filename, data, extname=None, extver=None, header=None,
           clobber=False, ignore_empty=False, units=None, table_type='binary',
-          names=None, write_bitcols=False, compress=None, tile_dims=None,
-          qlevel=DEFAULT_QLEVEL,
-          qmethod=DEFAULT_QMETHOD,
-          dither_seed=None,
-          hcomp_scale=DEFAULT_HCOMP_SCALE,
-          hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
+          names=None, write_bitcols=False,
+          compress=NOT_SET,
+          tile_dims=NOT_SET,
+          qlevel=NOT_SET,
+          qmethod=NOT_SET,
+          dither_seed=NOT_SET,
+          hcomp_scale=NOT_SET,
+          hcomp_smooth=NOT_SET,
           **keys):
     """
     Convenience function to create a new HDU and write the data.
@@ -355,8 +354,9 @@ def write(filename, data, extname=None, extver=None, header=None,
     -------------------
     compress: string, optional
         A string representing the compression algorithm for images,
-        default None.
-        Can be one of
+        default of None, fitsio.NOCOMPRESS, fitsio.NOT_SET or 0
+        indicates no compression.
+        For compression, can be one of
            'RICE'
            'GZIP'
            'GZIP_2'
@@ -364,39 +364,42 @@ def write(filename, data, extname=None, extver=None, header=None,
            'HCOMPRESS'
         (case-insensitive) See the cfitsio manual for details.
     tile_dims: tuple of ints, optional
-        The size of the tiles used to compress images.
+        The size of the tiles used to compress images. Default of None or
+        fitsio.NOT_SET corresponds to the cfitsio/fpack default of row-by-row.
     qlevel: float, optional
         Quantization level for floating point data.  Lower generally result in
         more compression, we recommend one reads the FITS standard or cfitsio
         manual to fully understand the effects of quantization.  None or 0
-        means no quantization, and for gzip also implies lossless.  Default is
-        4.0 which follows the fpack defaults
+        means no quantization, and for gzip also implies lossless.  Default of
+        fitsio.NOT_SET defers to the cfitsio/fpack default of 4.0.
     qmethod: string or int
         The quantization method as string or integer.
             'NO_DITHER' or fitsio.NO_DITHER (-1)
-               No dithering is performed
+                No dithering is performed
             'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
                 Standard dithering
             'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                 Preserves zeros
-
-        Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
-    dither_seed: int or None
+        Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+        'SUBTRACTIVE_DITHER_1'.
+    dither_seed: int or None, optional
         Seed for the subtractive dither.  Seeding makes the lossy compression
         reproducible.  Allowed values are
-            None or 0 or 'clock':
+            None or 0 or 'clock' or fitsio.NOT_SET:
                 do not set the seed explicitly, use the system clock
             negative or 'checksum':
                 Set the seed based on the data checksum
             1-10_000:
                 use the input seed
-
-    hcomp_scale: float
+        Default is fitsio.NOT_SET which uses the cfitsio/fpack default of
+        using the system clock.
+    hcomp_scale: float, optional
         Scale value for HCOMPRESS, 0.0 means lossless compression. Default is
-        0.0 following the fpack defaults.
-    hcomp_smooth: bool
-        If True, apply smoothing when decompressing.  Default False
+        fitsio.NOT_SET which uses the cfitsio/fpack default of 0.0.
+    hcomp_smooth: bool, optional
+        If True, apply smoothing when decompressing, otherwise if False do not.
+        Default is fitsio.NOT_SET which uses the cfitsio/fpack default
+        of False.
     """
     if keys:
         import warnings
@@ -648,13 +651,13 @@ class FITS(object):
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None,
-              compress=None,
-              tile_dims=None,
-              qlevel=DEFAULT_QLEVEL,
-              qmethod=DEFAULT_QMETHOD,
-              dither_seed=None,
-              hcomp_scale=DEFAULT_HCOMP_SCALE,
-              hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
+              compress=NOT_SET,
+              tile_dims=NOT_SET,
+              qlevel=NOT_SET,
+              qmethod=NOT_SET,
+              dither_seed=NOT_SET,
+              hcomp_scale=NOT_SET,
+              hcomp_smooth=NOT_SET,
               header=None, names=None,
               table_type='binary', write_bitcols=False, **keys):
         """
@@ -689,47 +692,55 @@ class FITS(object):
         -------------------
         compress: string, optional
             A string representing the compression algorithm for images,
-            default None.
-            Can be one of
+            default of None, fitsio.NOCOMPRESS, fitsio.NOT_SET or 0
+            indicates no compression.
+            For compression, can be one of
                 'RICE'
                 'GZIP'
                 'GZIP_2'
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
+                (case-insensitive) See the cfitsio manual for details.
         tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
+            The size of the tiles used to compress images. Default of None or
+            fitsio.NOT_SET corresponds to the cfitsio/fpack default of
+            row-by-row.
         qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result
-            in more compression, we recommend one reads the FITS standard or
-            cfitsio manual to fully understand the effects of quantization.
-            None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults
+            Quantization level for floating point data.  Lower generally
+            result in more compression, we recommend one reads the FITS
+            standard or cfitsio manual to fully understand the effects
+            of quantization.  None or 0 means no quantization, and for
+            gzip also implies lossless.  Default of fitsio.NOT_SET defers
+            to the cfitsio/fpack default of 4.0.
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
+                    No dithering is performed
                 'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
                     Standard dithering
                 'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                     Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int or None
-            Seed for the subtractive dither.  Seeding makes the lossy
+            Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+            'SUBTRACTIVE_DITHER_1'.
+        dither_seed: int or None, optional
+            Seed for the subtractive dither. Seeding makes the lossy
             compression reproducible.  Allowed values are
-                None or 0 or 'clock':
+                None or 0 or 'clock' or fitsio.NOT_SET:
                     do not set the seed explicitly, use the system clock
                 negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
-
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack
+            default of using the system clock.
+        hcomp_scale: float, optional
+            Scale value for HCOMPRESS, 0.0 means lossless compression.
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack
+            default of 0.0.
+        hcomp_smooth: bool, optional
+            If True, apply smoothing when decompressing, otherwise if
+            False do not. Default is fitsio.NOT_SET which uses the
+            cfitsio/fpack default of False.
 
         table-only keywords
         -------------------
@@ -782,11 +793,11 @@ class FITS(object):
 
     def write_image(self, img, extname=None, extver=None,
                     compress=None, tile_dims=None,
-                    qlevel=DEFAULT_QLEVEL,
-                    qmethod=DEFAULT_QMETHOD,
-                    dither_seed=None,
-                    hcomp_scale=DEFAULT_HCOMP_SCALE,
-                    hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
+                    qlevel=NOT_SET,
+                    qmethod=NOT_SET,
+                    dither_seed=NOT_SET,
+                    hcomp_scale=NOT_SET,
+                    hcomp_smooth=NOT_SET,
                     header=None):
         """
         Create a new image extension and write the data.
@@ -806,47 +817,55 @@ class FITS(object):
             selected.  If ext is an integer, the extver is ignored.
         compress: string, optional
             A string representing the compression algorithm for images,
-            default None.
-            Can be one of
+            default of None, fitsio.NOCOMPRESS, fitsio.NOT_SET or 0
+            indicates no compression.
+            For compression, can be one of
                 'RICE'
                 'GZIP'
                 'GZIP_2'
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
+                (case-insensitive) See the cfitsio manual for details.
         tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
+            The size of the tiles used to compress images. Default of None or
+            fitsio.NOT_SET corresponds to the cfitsio/fpack default
+            of row-by-row.
         qlevel: float, optional
             Quantization level for floating point data.  Lower generally result
             in more compression, we recommend one reads the FITS standard or
             cfitsio manual to fully understand the effects of quantization.
             None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults
+            lossless. Default of fitsio.NOT_SET defers to the cfitsio/fpack
+            default of 4.0.
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
+                    No dithering is performed
                 'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
                     Standard dithering
                 'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                     Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int or None
+            Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+            'SUBTRACTIVE_DITHER_1'.
+        dither_seed: int or None, optional
             Seed for the subtractive dither.  Seeding makes the lossy
-            compression reproducible.  Allowed values are
-                None or 0 or 'clock':
+            compression reproducible. Allowed values are
+                None or 0 or 'clock' or fitsio.NOT_SET:
                     do not set the seed explicitly, use the system clock
                 negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
-
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack default
+            of using the system clock.
+        hcomp_scale: float, optional
+            Scale value for HCOMPRESS, 0.0 means lossless compression.
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack
+            default of 0.0.
+        hcomp_smooth: bool, optional
+            If True, apply smoothing when decompressing, otherwise if
+            False do not. Default is fitsio.NOT_SET which uses the
+            cfitsio/fpack default of False.
 
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
@@ -890,13 +909,13 @@ class FITS(object):
                          dtype=None,
                          extname=None,
                          extver=None,
-                         compress=None,
-                         tile_dims=None,
-                         qlevel=DEFAULT_QLEVEL,
-                         qmethod=DEFAULT_QMETHOD,
-                         dither_seed=None,
-                         hcomp_scale=DEFAULT_HCOMP_SCALE,
-                         hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
+                         compress=NOT_SET,
+                         tile_dims=NOT_SET,
+                         qlevel=NOT_SET,
+                         qmethod=NOT_SET,
+                         dither_seed=NOT_SET,
+                         hcomp_scale=NOT_SET,
+                         hcomp_smooth=NOT_SET,
                          header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
@@ -942,46 +961,55 @@ class FITS(object):
             selected.  If ext is an integer, the extver is ignored.
         compress: string, optional
             A string representing the compression algorithm for images,
-            default None.
-            Can be one of
+            default of None, fitsio.NOCOMPRESS, fitsio.NOT_SET or 0
+            indicates no compression.
+            For compression, can be one of
                 'RICE'
                 'GZIP'
                 'GZIP_2'
                 'PLIO' (no unsigned or negative integers)
                 'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
+                (case-insensitive) See the cfitsio manual for details.
         tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
+            The size of the tiles used to compress images. Default of None or
+            fitsio.NOT_SET corresponds to the cfitsio/fpack default of
+            row-by-row.
         qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result
-            in more compression, we recommend one reads the FITS standard or
-            cfitsio manual to fully understand the effects of quantization.
-            None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults.
+            Quantization level for floating point data.  Lower generally
+            result in more compression, we recommend one reads the FITS
+            standard or cfitsio manual to fully understand the effects of
+            quantization. None or 0 means no quantization, and for gzip
+            also implies lossless. Default of fitsio.NOT_SET defers to
+            the cfitsio/fpack default of 4.0.
         qmethod: string or int
             The quantization method as string or integer.
                 'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
+                    No dithering is performed
                 'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
                     Standard dithering
                 'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                     Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-        dither_seed: int or None
+            Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+            'SUBTRACTIVE_DITHER_1'.
+        dither_seed: int or None, optional
             Seed for the subtractive dither.  Seeding makes the lossy
-            compression reproducible.  Allowed values are
-                None or 0 or 'clock':
+            compression reproducible. Allowed values are
+                None or 0 or 'clock' or fitsio.NOT_SET:
                     do not set the seed explicitly, use the system clock
                 negative or 'checksum':
                     Set the seed based on the data checksum
                 1-10_000:
                     use the input seed
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack default
+            of using the system clock.
+        hcomp_scale: float, optional
+            Scale value for HCOMPRESS, 0.0 means lossless compression.
+            Default is fitsio.NOT_SET which uses the cfitsio/fpack
+            default of 0.0.
+        hcomp_smooth: bool, optional
+            If True, apply smoothing when decompressing, otherwise if
+            False do not. Default is fitsio.NOT_SET which uses the
+            cfitsio/fpack default of False.
 
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
@@ -1064,7 +1092,7 @@ class FITS(object):
         dither_seed = get_dither_seed(dither_seed)
 
         tile_dims = get_tile_dims(tile_dims, dims)
-        if qlevel == DEFAULT_QLEVEL:
+        if qlevel == NOT_SET:
             qlevel = None
         elif qlevel is None:
             # 0.0 is the sentinel value for "no quantization" in cfitsio
@@ -1080,28 +1108,27 @@ class FITS(object):
         else:
             nkeys = 0
 
-        hcs = -1
-        if hcomp_smooth is not DEFAULT_HCOMP_SMOOTH:
+        if hcomp_smooth == NOT_SET:
+            hcs = None
+        else:
             if hcomp_smooth:
                 hcs = 1
             else:
                 hcs = 0
 
-        # We differentiate between "not setting the compression flag"
-        # and "no compression"
-        if compress is None:
-            comptype = -1
+        if hcomp_scale == NOT_SET:
+            hcomp_scale = None
+
         self._FITS.create_image_hdu(
             img2send,
             nkeys,
             dims=dims2send,
+
             comptype=comptype,
             tile_dims=tile_dims,
-
             qlevel=qlevel,
             qmethod=qmethod,
             dither_seed=dither_seed,
-
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcs,
 
@@ -1832,7 +1859,7 @@ def get_tile_dims(tile_dims, imshape):
     Just make sure the tile dims has the appropriate number of dimensions
     """
 
-    if tile_dims is None:
+    if tile_dims is None or tile_dims == NOT_SET:
         td = None
     else:
         td = numpy.array(tile_dims, dtype='i8')
@@ -1845,6 +1872,9 @@ def get_tile_dims(tile_dims, imshape):
 
 
 def get_compress_type(compress):
+    if compress == NOT_SET:
+        return None
+
     if compress is not None:
         compress = str(compress).upper()
     if compress not in _compress_map:
@@ -1854,6 +1884,9 @@ def get_compress_type(compress):
 
 
 def get_qmethod(qmethod):
+    if qmethod == NOT_SET:
+        return None
+
     if qmethod not in _qmethod_map:
         if isinstance(qmethod, str):
             qmethod = qmethod.upper()
@@ -1886,6 +1919,9 @@ def get_dither_seed(dither_seed):
             1-10_000:
                 use the input seed
     """
+    if dither_seed == NOT_SET:
+        return None
+
     if isinstance(dither_seed, bytes):
         dither_seed = str(dither_seed, 'utf-8')
 
@@ -1954,6 +1990,10 @@ def _extract_table_type(type):
     return table_type
 
 
+# The _compress_map and _qmethod_map only handle
+# python-level translations of things like None to their
+# C-level meanings. At the C level, we use None to indicate
+# not set, as opposed to the values here.
 _compress_map = {
     None: NOCOMPRESS,
     'RICE': RICE_1,
@@ -1977,7 +2017,6 @@ _compress_map = {
 
 _qmethod_map = {
     None: NO_DITHER,
-    'DEFAULT': DEFAULT_DITHER,
     'NO_DITHER': NO_DITHER,
     'SUBTRACTIVE_DITHER_1': SUBTRACTIVE_DITHER_1,
     'SUBTRACTIVE_DITHER_2': SUBTRACTIVE_DITHER_2,
