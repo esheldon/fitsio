@@ -242,5 +242,6 @@ def test_compression_case8():
         assert 'ZCMPTYPE' not in hdrD
         # E is GZIP again
         assert hdrE['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrE['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
         # F is not compressed
         assert 'ZCMPTYPE' not in hdrF
