@@ -416,6 +416,15 @@ def test_image_compression_inmem_lossessgzip_int():
         assert np.array_equal(rimg, img)
 
 
+def test_image_compression_inmem_lossessgzip_int_zeros():
+    img = np.zeros((300, 300)).astype(np.int32)
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
 def test_image_compression_inmem_lossessgzip_float():
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(300, 300))
