@@ -629,12 +629,18 @@ class FITS(object):
         # we cannot open mem:// memory files as existing files
         # (i.e., last argument of _fitsio_wrap.FITS equal to 0).
         # if we open in mode 1, we will delete all of the existing data
-        # in the mem:// file. So we make reopen a no-op for mem:// files.
+        # in the mem:// file. So we skip the close+reopen cycle for
+        # mem:// files. We always update the hdu list and this appears
+        # to be important.
+        #
+        # MRB (2025/10/09): I tried various incantations of the
+        # fits_flush_file, fits_flush_buffer, and fits_reopen_file
+        # C functions and none of them fix the bugs bit of code fixes.
         if not self._filename.startswith("mem://"):
             self._FITS.close()
             del self._FITS
             self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
-        # we always update the hdu list
+        #
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None,
