@@ -52,11 +52,15 @@ HCOMPRESS_1 = 41
 NO_DITHER = -1
 SUBTRACTIVE_DITHER_1 = 1
 SUBTRACTIVE_DITHER_2 = 2
+DEFAULT_DITHER = 0
 
-# defaults follow fpack
-DEFAULT_QLEVEL = 4.0
-DEFAULT_QMETHOD = 'SUBTRACTIVE_DITHER_1'
-DEFAULT_HCOMP_SCALE = 0.0
+# these values correspond to (hard-coded) values in fitsio_pywrap.c :
+#   PyFITSObject_create_image_hdu, and the indicate that we're not
+# setting values - so defaults should prevail.
+DEFAULT_HCOMP_SCALE = None
+DEFAULT_HCOMP_SMOOTH = None
+DEFAULT_QLEVEL = 'DEFAULT'
+DEFAULT_QMETHOD = 'DEFAULT'
 
 
 def read(filename, ext=None, extver=None, columns=None, rows=None,
@@ -290,7 +294,7 @@ def write(filename, data, extname=None, extver=None, header=None,
           qmethod=DEFAULT_QMETHOD,
           dither_seed=None,
           hcomp_scale=DEFAULT_HCOMP_SCALE,
-          hcomp_smooth=False,
+          hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
           **keys):
     """
     Convenience function to create a new HDU and write the data.
@@ -650,7 +654,7 @@ class FITS(object):
               qmethod=DEFAULT_QMETHOD,
               dither_seed=None,
               hcomp_scale=DEFAULT_HCOMP_SCALE,
-              hcomp_smooth=False,
+              hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
               header=None, names=None,
               table_type='binary', write_bitcols=False, **keys):
         """
@@ -782,7 +786,7 @@ class FITS(object):
                     qmethod=DEFAULT_QMETHOD,
                     dither_seed=None,
                     hcomp_scale=DEFAULT_HCOMP_SCALE,
-                    hcomp_smooth=False,
+                    hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
                     header=None):
         """
         Create a new image extension and write the data.
@@ -892,7 +896,7 @@ class FITS(object):
                          qmethod=DEFAULT_QMETHOD,
                          dither_seed=None,
                          hcomp_scale=DEFAULT_HCOMP_SCALE,
-                         hcomp_smooth=False,
+                         hcomp_smooth=DEFAULT_HCOMP_SMOOTH,
                          header=None):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
@@ -1060,7 +1064,9 @@ class FITS(object):
         dither_seed = get_dither_seed(dither_seed)
 
         tile_dims = get_tile_dims(tile_dims, dims)
-        if qlevel is None:
+        if qlevel == DEFAULT_QLEVEL:
+            qlevel = None
+        elif qlevel is None:
             # 0.0 is the sentinel value for "no quantization" in cfitsio
             qlevel = 0.0
         else:
@@ -1074,11 +1080,17 @@ class FITS(object):
         else:
             nkeys = 0
 
-        if hcomp_smooth:
-            hcomp_smooth = 1
-        else:
-            hcomp_smooth = 0
+        hcs = -1
+        if hcomp_smooth is not DEFAULT_HCOMP_SMOOTH:
+            if hcomp_smooth:
+                hcs = 1
+            else:
+                hcs = 0
 
+        # We differentiate between "not setting the compression flag"
+        # and "no compression"
+        if compress is None:
+            comptype = -1
         self._FITS.create_image_hdu(
             img2send,
             nkeys,
@@ -1091,7 +1103,7 @@ class FITS(object):
             dither_seed=dither_seed,
 
             hcomp_scale=hcomp_scale,
-            hcomp_smooth=hcomp_smooth,
+            hcomp_smooth=hcs,
 
             extname=extname,
             extver=extver,
@@ -1953,16 +1965,19 @@ _compress_map = {
     'PLIO_1': PLIO_1,
     'HCOMPRESS': HCOMPRESS_1,
     'HCOMPRESS_1': HCOMPRESS_1,
-    NOCOMPRESS: None,
-    RICE_1: 'RICE_1',
-    GZIP_1: 'GZIP_1',
-    GZIP_2: 'GZIP_2',
-    PLIO_1: 'PLIO_1',
-    HCOMPRESS_1: 'HCOMPRESS_1',
+    # In get_compress_type(), we convert the key to str before searching -
+    # so the keys here must be strings also!
+    str(NOCOMPRESS): NOCOMPRESS,
+    str(RICE_1): RICE_1,
+    str(GZIP_1): GZIP_1,
+    str(GZIP_2): GZIP_2,
+    str(PLIO_1): PLIO_1,
+    str(HCOMPRESS_1): HCOMPRESS_1,
 }
 
 _qmethod_map = {
     None: NO_DITHER,
+    'DEFAULT': DEFAULT_DITHER,
     'NO_DITHER': NO_DITHER,
     'SUBTRACTIVE_DITHER_1': SUBTRACTIVE_DITHER_1,
     'SUBTRACTIVE_DITHER_2': SUBTRACTIVE_DITHER_2,
