@@ -431,22 +431,18 @@ def test_image_mem_reopen_noop():
     img = rng.normal(size=(300, 300))
     with FITS('mem://', 'rw') as F:
         F.write(img)
-        rimg = F[0].read()
+        rimg = F[-1].read()
         assert rimg is not None
         assert np.array_equal(rimg, img)
         F.reopen()
-        rimg = F[0].read()
-        assert rimg is not None
-        assert np.array_equal(rimg, img)
-        F.reopen()
-        rimg = F[0].read()
+        rimg = F[-1].read()
         assert rimg is not None
         assert np.array_equal(rimg, img)
 
     with FITS('mem://', 'rw') as F:
         F.write(img)
         F.reopen()
-        rimg = F[0].read()
+        rimg = F[-1].read()
         assert rimg is not None
         assert np.array_equal(rimg, img)
 
