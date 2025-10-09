@@ -235,7 +235,9 @@ def test_compression_multihdu_diskfile():
         assert 'ZCMPTYPE' not in hdrF
 
 
-def common_case9(filename, temp_filename, fitsclass, in_memory):
+def _check_multihdu_compression_with_efns(
+    filename, temp_filename, fitsclass, in_memory
+):
     img = np.ones((20, 20))
     with fitsclass(filename + '[compress G; qz 8]', 'rw',
                    clobber=True) as fits:
@@ -292,29 +294,20 @@ def common_case9(filename, temp_filename, fitsclass, in_memory):
     assert hdrF['ZCMPTYPE'] == 'GZIP_1'
 
 
-def test_compression_case9_A():
+def test_compression_multihdu_with_disk_and_efns():
     # Check multi-HDU case with a regular disk file and
     # Extended Filename Syntax
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
-        common_case9(fn, None, fitsio.FITS, False)
+        _check_multihdu_compression_with_efns(
+            fn, None, fitsio.FITS, False
+        )
 
 
-def test_compression_case9_B():
+def test_compression_multihdu_with_mem_and_efns():
     # Check multi-HDU case with an in-memory file and Extended Filename Syntax
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
-        common_case9('mem://', fn, fitsio.FITS, True)
-
-
-class FITS_mem(fitsio.FITS):
-    def reopen(self):
-        self.update_hdu_list()
-
-
-def test_compression_case9_C():
-    # Check multi-HDU case with an in-memory file, hacking around the reopen()
-    # bug, and Extended Filename Syntax
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = os.path.join(tmpdir, 'test.fits')
-        common_case9('mem://', fn, FITS_mem, True)
+        _check_multihdu_compression_with_efns(
+            'mem://', fn, fitsio.FITS, True
+        )

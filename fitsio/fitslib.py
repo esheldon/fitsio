@@ -357,11 +357,11 @@ def write(filename, data, extname=None, extver=None, header=None,
         default of None, fitsio.NOCOMPRESS, fitsio.NOT_SET or 0
         indicates no compression.
         For compression, can be one of
-           'RICE'
-           'GZIP'
-           'GZIP_2'
-           'PLIO' (no unsigned or negative integers)
-           'HCOMPRESS'
+            'RICE'
+            'GZIP'
+            'GZIP_2'
+            'PLIO' (no unsigned or negative integers)
+            'HCOMPRESS'
         (case-insensitive) See the cfitsio manual for details.
     tile_dims: tuple of ints, optional
         The size of the tiles used to compress images. Default of None or

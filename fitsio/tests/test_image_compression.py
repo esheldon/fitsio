@@ -384,7 +384,6 @@ def test_memory_compressed_seed():
         assert dither1 == dither2
 
 
-@pytest.mark.xfail(reason="See https://github.com/esheldon/fitsio/issues/450")
 def test_image_compression_inmem_subdither2():
     H, W = 100, 100
     rng = np.random.RandomState(seed=10)
@@ -405,7 +404,6 @@ def test_image_compression_inmem_subdither2():
     assert minval == 0
 
 
-@pytest.mark.xfail(reason="See https://github.com/esheldon/fitsio/issues/449")
 def test_image_compression_inmem_lossessgzip_int():
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(300, 300)).astype(np.int32)
