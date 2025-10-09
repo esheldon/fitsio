@@ -246,3 +246,87 @@ def test_compression_case8():
         assert hdrE['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
         # F is not compressed
         assert 'ZCMPTYPE' not in hdrF
+
+
+def common_case9(filename, temp_filename, fitsclass, in_memory):
+    img = np.ones((20, 20))
+    fits = fitsclass(filename + '[compress G; qz 8]', 'rw', clobber=True)
+    # A
+    fits.write(img, extname='A')
+    # B
+    fits.write(img, extname='B', compress='RICE')
+    # C
+    fits.write(img, extname='C', compress='GZIP',
+               qmethod='SUBTRACTIVE_DITHER_1')
+    # D
+    fits.write(img, extname='D')
+    # E
+    # FIXME -- we should test compress=None as well!
+    # fits.write(img, compress=None, extname='E')
+    fits.write(img, extname='E', compress=0)
+    # F
+    fits.write(img, extname='F')
+
+    if in_memory:
+        data = fits.read_raw()
+        f = open(temp_filename, 'wb')
+        f.write(data)
+        f.close()
+        filename = temp_filename
+    fits.close()
+
+    F = fitsio.FITS(filename, 'r')
+    assert len(F) == 7
+    prim = fitsio.read(filename, ext=0)
+    assert prim is None
+    hdrA = F['A'].read_header()
+    hdrB = F['B'].read_header()
+    hdrC = F['C'].read_header()
+    hdrD = F['D'].read_header()
+    hdrE = F['E'].read_header()
+    hdrF = F['F'].read_header()
+    # A is EFNS gzip
+    assert hdrA['ZCMPTYPE'] == 'GZIP_1'
+    assert hdrA['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
+    # B is rice
+    assert hdrB['ZCMPTYPE'] == 'RICE_ONE'
+    # B *also* has SD2! ... THIS is perhaps unexpected and not what we want!
+    assert hdrB['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
+    # C is gzip with SD1
+    assert hdrC['ZCMPTYPE'] == 'GZIP_1'
+    assert hdrC['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
+    # D should default to GZIP, SD2?
+    assert hdrD['ZCMPTYPE'] == 'GZIP_1'
+    # E is uncompressed
+    assert 'ZCMPTYPE' not in hdrE
+
+    # THESE FAIL in case C
+    assert hdrD['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
+    # F defaults back to GZIP
+    assert hdrF['ZCMPTYPE'] == 'GZIP_1'
+
+
+def test_compression_case9_A():
+    # Check multi-HDU case with the Extended Filename Syntax
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+        common_case9(fn, None, fitsio.FITS, False)
+
+
+def test_compression_case9_B():
+    # Check multi-HDU case with the Extended Filename Syntax
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+        common_case9('mem://', fn, fitsio.FITS, True)
+
+
+class FITS_mem(fitsio.FITS):
+    def reopen(self):
+        self.update_hdu_list()
+
+
+def test_compression_case9_C():
+    # Check multi-HDU case with the Extended Filename Syntax
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
+        common_case9('mem://', fn, FITS_mem, True)
