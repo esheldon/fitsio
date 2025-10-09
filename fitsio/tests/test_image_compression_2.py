@@ -307,14 +307,15 @@ def common_case9(filename, temp_filename, fitsclass, in_memory):
 
 
 def test_compression_case9_A():
-    # Check multi-HDU case with the Extended Filename Syntax
+    # Check multi-HDU case with a regular disk file and
+    # Extended Filename Syntax
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
         common_case9(fn, None, fitsio.FITS, False)
 
 
 def test_compression_case9_B():
-    # Check multi-HDU case with the Extended Filename Syntax
+    # Check multi-HDU case with an in-memory file and Extended Filename Syntax
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
         common_case9('mem://', fn, fitsio.FITS, True)
@@ -326,7 +327,8 @@ class FITS_mem(fitsio.FITS):
 
 
 def test_compression_case9_C():
-    # Check multi-HDU case with the Extended Filename Syntax
+    # Check multi-HDU case with an in-memory file, hacking around the reopen()
+    # bug, and Extended Filename Syntax
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
         common_case9('mem://', fn, FITS_mem, True)
