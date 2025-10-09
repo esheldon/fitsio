@@ -1,12 +1,24 @@
 unreleased
 -------------
 
+Changes
+
+    - Introduced a `fitsio.NOT_SET` singleton for some
+      parameters whose defaults are deferred at the Python
+      level and instead set of the C level by cfitsio. The
+      image compression parameters now use this singleton.
+      However, the actual underlying defaults used have not
+      changed.
+
 Bug Fixes
 
     - Fixed incorrect/unspecified minimum python version,
       setting it to `>=3.8`.
     - Fixed bug where we attempted to open `mem://` files
       as existing files when calling `fitsio.FITS.reopen`.
+    - Fixed a bug where compression parameters set in filenames
+      were not always respected. Now the Python keyword compression
+      parameters override any set in the filenames.
 
 version 1.2.8
 -------------
