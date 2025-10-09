@@ -1,4 +1,4 @@
-unreleased
+version 1.2.9 (unreleased)
 -------------
 
 Changes
@@ -293,7 +293,6 @@ Bug Fixes
     - Fix bug when reading slice with step, but no start/stop (Mike Jarvis)
     - Fix bug with clobber when compression is sent in filename
 
-
 Deprecations
 
     - Removed the use of `**kwargs` in various read/write routines. This
@@ -426,7 +425,6 @@ Bug Fixes
       to upper case
     - link against libm explicitly for compatibility on some systems
 
-
 version 0.9.11
 ---------------------------------
 
@@ -481,7 +479,6 @@ Workarounds
       the -O3 optimization flag when compiling cfitsio.  For replacing -O3 with
       -O2 fixes the issue.  This was an issue on linux in both anaconda python2
       and python3.
-
 
 version 0.9.9.1
 ----------------------------------
@@ -580,7 +577,6 @@ New Features
     - IOError is now used to indicate a number of errors that
         were previously ValueError
 
-
 version 0.9.6
 --------------
 
@@ -644,6 +640,7 @@ All changes E. Sheldon except where noted.
 
 version 0.9.3
 --------------------------
+
 New Features
 
     - Can write lists of arrays and dictionaries of arrays
@@ -757,7 +754,6 @@ On OS X, we now link properly with universal binaries on intel. Thanks to Eli
 Rykoff for help with OS X testing and bug fixes.
 
 New features
-
 
     - Write and read variable length columns.  When writing a table, any fields
       declared "object" ("O" type char) in the input array will be written to a
