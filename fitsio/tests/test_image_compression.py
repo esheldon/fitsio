@@ -384,6 +384,73 @@ def test_memory_compressed_seed():
         assert dither1 == dither2
 
 
+@pytest.mark.xfail(reason="See https://github.com/esheldon/fitsio/issues/450")
+def test_image_compression_inmem_subdither2():
+    H,W = 100, 100
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(H,W))
+    img[40:50, :] = 0.0
+    with FITS('mem://[compress G 100,100; qz 0]', 'rw') as F:
+        F.write(img)
+        rawdata = F.read_raw()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, 'out.fits')
+        with open(pth, 'wb') as f:
+            f.write(rawdata)
+        im2 = read(pth)
+        z = im2[40:50, :]
+
+    minval = z.min()
+    assert minval == 0
+
+
+@pytest.mark.xfail(reason="See https://github.com/esheldon/fitsio/issues/449")
+def test_image_compression_inmem_lossessgzip_int():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300,300)).astype(np.int32)
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
+def test_image_compression_inmem_lossessgzip_float():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300,300))
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
+def test_image_mem_reopen_noop():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300,300))
+    with FITS('mem://', 'rw') as F:
+        F.write(img)
+        rimg = F[0].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+        F.reopen()
+        rimg = F[0].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+        F.reopen()
+        rimg = F[0].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+    with FITS('mem://', 'rw') as F:
+        F.write(img)
+        F.reopen()
+        rimg = F[0].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',

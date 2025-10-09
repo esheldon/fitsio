@@ -625,10 +625,18 @@ class FITS(object):
     def reopen(self):
         """
         close and reopen the fits file with the same mode
+
+        This method is a no-op for mem:// files.
         """
-        self._FITS.close()
-        del self._FITS
-        self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
+        # we cannot open mem:// memory files as existing files with mode 'r'
+        # (i.e., last argument of _fitsio_wrap.FITS equal to 0).
+        # if we open inb mode 1, we will delete all of the existing data
+        # in the mem:// file. So we make reopen a no-op for mem:// files.
+        if not self._filename.startswith("mem://"):
+            self._FITS.close()
+            del self._FITS
+            self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
+        # we always update the hdu list
         self.update_hdu_list()
 
     def write(self, data, units=None, extname=None, extver=None,
@@ -1087,7 +1095,9 @@ class FITS(object):
 
         if compress is not None and qlevel is None or qlevel == 0.0:
             # work around bug in cfitso
+            # self.flush_file()
             self.reopen()
+            # self.update_hdu_list(rebuild=False)
         else:
             # don't rebuild the whole list unless this is the first hdu
             # to be created
