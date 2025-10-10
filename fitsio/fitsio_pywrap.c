@@ -1465,6 +1465,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         return NULL;
     }
 
+    set_cfitsio_compression_data_from_fitsfile(&cfitsio_comp_data, self->fits);
+
     static char *kwlist[] = {
         "array","nkeys",
          "dims",
@@ -1503,8 +1505,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             return NULL;
         }
     } else {
-        set_cfitsio_compression_data_from_fitsfile(&cfitsio_comp_data, self->fits);
-
         array = (PyArrayObject *) array_obj;
         if (!PyArray_Check(array)) {
             PyErr_SetString(PyExc_TypeError, "input must be an array.");
