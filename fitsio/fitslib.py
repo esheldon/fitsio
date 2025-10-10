@@ -787,7 +787,7 @@ class FITS(object):
 
     @_doc_string_formatter
     def write_image(self, img, extname=None, extver=None,
-                    compress=None, tile_dims=None,
+                    compress=NOT_SET, tile_dims=NOT_SET,
                     qlevel=NOT_SET,
                     qmethod=NOT_SET,
                     dither_seed=NOT_SET,
@@ -988,7 +988,7 @@ class FITS(object):
         if "[compress" in self._filename.lower():
             if (
                 compress != NOT_SET
-                or tile_dims != NOT_SET
+                or (not (isinstance(tile_dims, str) and tile_dims == NOT_SET))
                 or qlevel != NOT_SET
                 or qmethod != NOT_SET
                 or hcomp_scale != NOT_SET
