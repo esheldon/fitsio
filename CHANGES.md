@@ -9,6 +9,9 @@ Changes
       image compression parameters now use this singleton.
       However, the actual underlying defaults used have not
       changed.
+    - Added a a new function `fitsio.cfitsio_is_bundled()`
+      that detects if the cfitsio library is bundled with
+      the Python code.
 
 Bug Fixes
 
