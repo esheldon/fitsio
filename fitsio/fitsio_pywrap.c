@@ -63,6 +63,60 @@ int is_python_string(const PyObject* obj)
 }
 
 
+// struct to hold fitsio compression params
+// code with comments copied from cfitsio
+struct CFITSIOCompressionData {
+    int request_compress_type;  /* requested image compression algorithm */
+    long request_tilesize[MAX_COMPRESS_DIM]; /* requested tiling size */
+    float request_quantize_level;  /* requested quantize level */
+    int request_quantize_method ;  /* requested  quantizing method */
+    int request_dither_seed;     /* starting offset into the array of random dithering */
+    int request_lossy_int_compress; /* lossy compress integer image as if float image? */
+    int request_huge_hdu;          /* use '1Q' rather then '1P' variable length arrays */
+    float request_hcomp_scale;     /* requested HCOMPRESS scale factor */
+    int request_hcomp_smooth;      /* requested HCOMPRESS smooth parameter */
+};
+
+static void set_cfitsio_compression_data_from_fitsfile(
+    struct CFITSIOCompressionData* ccd,
+    fitsfile *fptr
+) {
+    int ii;
+
+    ccd->request_compress_type = (fptr->Fptr)->request_compress_type;
+    ccd->request_quantize_level = (fptr->Fptr)->request_quantize_level;
+    ccd->request_quantize_method = (fptr->Fptr)->request_quantize_method;
+    ccd->request_dither_seed = (fptr->Fptr)->request_dither_seed;
+    ccd->request_hcomp_scale = (fptr->Fptr)->request_hcomp_scale;
+    ccd->request_lossy_int_compress = (fptr->Fptr)->request_lossy_int_compress;
+    ccd->request_huge_hdu = (fptr->Fptr)->request_huge_hdu;
+
+    for (ii = 0; ii < MAX_COMPRESS_DIM; ii++)
+    {
+        ccd->request_tilesize[ii] = (fptr->Fptr)->request_tilesize[ii];
+    }
+}
+
+static void set_fitsfile_from_cfitsio_compression_data(
+    fitsfile *fptr,
+    struct CFITSIOCompressionData* ccd
+) {
+    int ii;
+
+    (fptr->Fptr)->request_compress_type = ccd->request_compress_type;
+    (fptr->Fptr)->request_quantize_level = ccd->request_quantize_level;
+    (fptr->Fptr)->request_quantize_method = ccd->request_quantize_method;
+    (fptr->Fptr)->request_dither_seed = ccd->request_dither_seed;
+    (fptr->Fptr)->request_hcomp_scale = ccd->request_hcomp_scale;
+    (fptr->Fptr)->request_lossy_int_compress = ccd->request_lossy_int_compress;
+    (fptr->Fptr)->request_huge_hdu = ccd->request_huge_hdu;
+
+    for (ii = 0; ii < MAX_COMPRESS_DIM; ii++)
+    {
+        (fptr->Fptr)->request_tilesize[ii] = ccd->request_tilesize[ii];
+    }
+}
+
 /*
    Ensure all elements of the null terminated string are ascii, replacing
    non-ascii characters with a ?
@@ -1404,6 +1458,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     float hcomp_scale=0;
     int hcomp_smooth=0;
     int comptype=0;
+    struct CFITSIOCompressionData cfitsio_comp_data;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -1448,6 +1503,8 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             return NULL;
         }
     } else {
+        set_cfitsio_compression_data_from_fitsfile(&cfitsio_comp_data, self->fits);
+
         array = (PyArrayObject *) array_obj;
         if (!PyArray_Check(array)) {
             PyErr_SetString(PyExc_TypeError, "input must be an array.");
@@ -1599,14 +1656,14 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         goto create_image_hdu_cleanup;
     }
 
-
 create_image_hdu_cleanup:
+    free(dims); dims=NULL;
+    set_fitsfile_from_cfitsio_compression_data(self->fits, &cfitsio_comp_data);
 
     if (status != 0) {
         return NULL;
     }
 
-    free(dims); dims=NULL;
     Py_RETURN_NONE;
 }
 
