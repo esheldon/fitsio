@@ -1,5 +1,5 @@
---- cfitsio-4.2.0/imcompress.c
-+++ cfitsio-4.2.0/imcompress.c
+--- a/imcompress.c
++++ b/imcompress.c
 @@ -6454,15 +6454,21 @@ int imcomp_decompress_tile (fitsfile *infptr,
          pixlen = sizeof(short);
  
@@ -24,7 +24,7 @@
 +		       *(short *) nulval, bnullarray, anynul,
 +		      (short *) buffer, status);
 +		  } else {
-+              fffi8i2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
++              fffi8i2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
                  *(short *) nulval, bnullarray, anynul,
                  (short *) buffer, status);
            }
@@ -80,7 +80,7 @@
 +		       *(long *) nulval, bnullarray, anynul,
 +		      (long *) buffer, status);
 +		  } else {
-+              fffi8i4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
++              fffi8i4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
                  *(long *) nulval, bnullarray, anynul,
                  (long *) buffer, status);
            }
@@ -108,7 +108,7 @@
 +		       *(unsigned short *) nulval, bnullarray, anynul,
 +		      (unsigned short *) buffer, status);
 +		  } else {
-+              fffi8u2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
++              fffi8u2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
                  *(unsigned short *) nulval, bnullarray, anynul,
                  (unsigned short *) buffer, status);
            }
@@ -141,7 +141,7 @@
 +		       *(unsigned int *) nulval, bnullarray, anynul,
 +		      (unsigned int *) buffer, status);
 +		  } else {
-+              fffi8uint(idata, tilelen, bscale, bzero, nullcheck, tnull,  
++              fffi8uint((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
                  *(unsigned int *) nulval, bnullarray, anynul,
                  (unsigned int *) buffer, status);
            }
@@ -169,7 +169,7 @@
 +		       *(unsigned long *) nulval, bnullarray, anynul,
 +		      (unsigned long *) buffer, status);
 +		  } else {
-+              fffi8u4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
++              fffi8u4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
                  *(unsigned long *) nulval, bnullarray, anynul,
                  (unsigned long *) buffer, status);
            }
