@@ -19,6 +19,8 @@ Bug Fixes
     - Fixed a bug where compression parameters set in filenames
       were not always respected. Now the Python keyword compression
       parameters override any set in the filenames.
+    - Fixed bugs in lossless GZIP compression of integer types. See the
+      new patch `patches/imcompress.c.patch`.
 
 version 1.2.8
 -------------
