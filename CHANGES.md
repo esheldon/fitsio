@@ -5,7 +5,7 @@ Changes
 
     - Introduced a `fitsio.NOT_SET` singleton for some
       parameters whose defaults are deferred at the Python
-      level and instead set of the C level by cfitsio. The
+      level and instead set at the C level by cfitsio. The
       image compression parameters now use this singleton.
       However, the actual underlying defaults used have not
       changed.

@@ -43,7 +43,7 @@ READONLY = 0
 READWRITE = 1
 
 # this constant is used to indicate
-# that an option is not set in Pytjon
+# that an option is not set in Python
 # and instead the setting for that option
 # is delegated to the C code in cfitsio
 NOT_SET = "NOT_SET"
@@ -380,7 +380,7 @@ def write(filename, data, extname=None, extver=None, header=None,
                 Standard dithering
             'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                 Preserves zeros
-        Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+        Defaults to fitsio.NOT_SET which uses the cfitsio/fpack default of
         'SUBTRACTIVE_DITHER_1'.
     dither_seed: int or None, optional
         Seed for the subtractive dither.  Seeding makes the lossy compression
