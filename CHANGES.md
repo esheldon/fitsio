@@ -25,6 +25,7 @@ Bug Fixes
     - Fixed bugs in lossless GZIP compression of integer types. See the
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
       for the upstream PR for the patch.
+    - Fixed a bug where compressionb parameters were cached across different HDUs.
 
 version 1.2.8
 -------------
