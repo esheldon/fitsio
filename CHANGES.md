@@ -20,8 +20,10 @@ Bug Fixes
     - Fixed bug where we attempted to open `mem://` files
       as existing files when calling `fitsio.FITS.reopen`.
     - Fixed a bug where compression parameters set in filenames
-      were not always respected. Now the Python keyword compression
-      parameters override any set in the filenames.
+      were inconsistently applied, especially when compression
+      parameters were specified in Python too. Now the code will
+      raise an exception if a user sets Python keyword compression
+      parameters while also using filename compression parameters.
     - Fixed bugs in lossless GZIP compression of integer types. See the
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
       for the upstream PR for the patch.
