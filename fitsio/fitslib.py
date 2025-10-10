@@ -1082,37 +1082,75 @@ class FITS(object):
             # will be ignored
             extver = 0
 
-        comptype = get_compress_type(compress)
-        qmethod = get_qmethod(qmethod)
-        dither_seed = get_dither_seed(dither_seed)
+        # if the file is using the extended filename syntax for
+        # compression, then we ignore any input compression params
+        # and raise if they are not fitsio.NOT_SET
+        # we do allow the dither_seed since there is no way to set
+        # this via the extended filename syntax
+        if "[compress" in self._filename.lower():
+            if (
+                compress != NOT_SET
+                or tile_dims != NOT_SET
+                or qlevel != NOT_SET
+                or qmethod != NOT_SET
+                or hcomp_scale != NOT_SET
+                or hcomp_smooth != NOT_SET
+            ):
+                raise ValueError(
+                    "You cannot override the compression parameters "
+                    "from Python for "
+                    "FITS files that use the extend filename syntax "
+                    "(e.g., `myfile.fits[compress]`) for compression."
+                )
 
-        tile_dims = get_tile_dims(tile_dims, dims)
-        if qlevel == NOT_SET:
+            # For FITS file using the extend filename syntax for
+            # compression, we do not allow overrides from Python.
+            # The value None is equivalent to "not set" at the
+            # C level and will ensure no overrides are done.
+            comptype = None
+            qmethod = None
+            tile_dims = None
             qlevel = None
-        elif qlevel is None:
-            # 0.0 is the sentinel value for "no quantization" in cfitsio
-            qlevel = 0.0
+            hcs = None
+            hcomp_scale = None
         else:
-            qlevel = float(qlevel)
+            comptype = get_compress_type(compress)
+            if img2send is not None:
+                check_comptype_img(comptype, dtstr)
 
-        if img2send is not None:
-            check_comptype_img(comptype, dtstr)
+            qmethod = get_qmethod(qmethod)
+            tile_dims = get_tile_dims(tile_dims, dims)
+
+            if qlevel == NOT_SET:
+                # in this case, we pass None since in the C layer,
+                # the value None means not set.
+                qlevel = None
+            elif qlevel is None:
+                # in the Python layer qlevel being None means no quantization.
+                # thus we pass 0.0 since
+                # it is the sentinel value for "no quantization" in cfitsio
+                qlevel = 0.0
+            else:
+                qlevel = float(qlevel)
+
+            if hcomp_smooth == NOT_SET:
+                hcs = None
+            else:
+                if hcomp_smooth:
+                    hcs = 1
+                else:
+                    hcs = 0
+
+            if hcomp_scale == NOT_SET:
+                hcomp_scale = None
+
+        # we always allow dither seed to be set
+        dither_seed = get_dither_seed(dither_seed)
 
         if header is not None:
             nkeys = len(header)
         else:
             nkeys = 0
-
-        if hcomp_smooth == NOT_SET:
-            hcs = None
-        else:
-            if hcomp_smooth:
-                hcs = 1
-            else:
-                hcs = 0
-
-        if hcomp_scale == NOT_SET:
-            hcomp_scale = None
 
         self._FITS.create_image_hdu(
             img2send,
@@ -1847,8 +1885,10 @@ def get_tile_dims(tile_dims, imshape):
     """
     Just make sure the tile dims has the appropriate number of dimensions
     """
-
-    if tile_dims is None or tile_dims == NOT_SET:
+    if (
+        tile_dims is None
+        or (isinstance(tile_dims, str) and tile_dims == NOT_SET)
+    ):
         td = None
     else:
         td = numpy.array(tile_dims, dtype='i8')

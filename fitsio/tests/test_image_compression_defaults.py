@@ -68,7 +68,11 @@ def test_compression_efns_kwargs():
 
 
 def test_compression_qlevels_none_zero():
-
+    default_kws = {
+        "compress": fitsio.GZIP_2,
+        "tile_dims": np.array([100, 100]),
+        "qmethod": fitsio.SUBTRACTIVE_DITHER_2,
+    }
     with tempfile.TemporaryDirectory() as tmpdir:
         fnpat = os.path.join(tmpdir, 'test-%i.fits')
 
@@ -81,11 +85,12 @@ def test_compression_qlevels_none_zero():
             fn = fnpat % i
             ql = qlevel
             kw = {}
+            kw.update(default_kws)
             if ql is None:
                 kw.update(compress=0)
                 ql = 0
-            with fitsio.FITS(fn + '[compress G 100 100; qz %f]' % ql,
-                             'rw', clobber=True) as fits:
+            kw["qlevel"] = ql
+            with fitsio.FITS(fn, 'rw', clobber=True) as fits:
                 fits.write(bigimg, dither_seed=42, **kw)
             filesize = os.stat(fn).st_size
             img2 = fitsio.read(fn)
@@ -126,32 +131,6 @@ def test_compression_hcomp_args():
                          ('ZVAL2', 1),
                          ]:
             assert hdr[key] == val
-
-
-def test_compression_hcomp_kwargs():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = os.path.join(tmpdir, 'test.fits')
-
-        img = np.ones((20, 20))
-        with fitsio.FITS(fn + '[compress HS 10 10; s 2.0]', 'rw',
-                         clobber=True) as fits:
-            fits.write(img, dither_seed=42, hcomp_scale=1.0,
-                       hcomp_smooth=False)
-        hdr = fitsio.read_header(fn, ext=1)
-        for key, val in [('ZTILE1', 10),
-                         ('ZTILE2', 10),
-                         ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_1'),
-                         ('ZCMPTYPE', 'HCOMPRESS_1'),
-                         ('ZDITHER0', 42),
-                         ('ZNAME1', 'SCALE'),
-                         ('ZVAL1', 1.),
-                         ('ZNAME2', 'SMOOTH'),
-                         ('ZVAL2', 0),
-                         ]:
-            assert hdr[key] == val, (
-                f"key `{key}` has wrong value: got "
-                f"`{hdr[key]}` but should have gotten `{val}`"
-            )
 
 
 def test_compression_qlevel_default():
@@ -235,79 +214,51 @@ def test_compression_multihdu_diskfile():
         assert 'ZCMPTYPE' not in hdrF
 
 
-def _check_multihdu_compression_with_efns(
-    filename, temp_filename, fitsclass, in_memory
-):
-    img = np.ones((20, 20))
-    with fitsclass(filename + '[compress G; qz 8]', 'rw',
-                   clobber=True) as fits:
-        # A
-        fits.write(img, extname='A')
-        # B
-        fits.write(img, extname='B', compress='RICE')
-        # C
-        fits.write(img, extname='C', compress='GZIP',
-                   qmethod='SUBTRACTIVE_DITHER_1')
-        # D
-        fits.write(img, extname='D')
-        # E
-        # FIXME -- we should test compress=None as well!
-        # fits.write(img, compress=None, extname='E')
-        fits.write(img, extname='E', compress=0)
-        # F
-        fits.write(img, extname='F')
+def test_compression_multihdu_memfile():
+    # Check multi-HDU case with a normal file
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, 'test.fits')
 
-        if in_memory:
+        img = np.ones((20, 20))
+        with fitsio.FITS("mem://", 'rw', clobber=True) as fits:
+            # A
+            fits.write(img, extname='A')
+            # B
+            fits.write(img, extname='B', compress='GZIP')
+            # C
+            fits.write(img, extname='C', compress='GZIP',
+                       qmethod='SUBTRACTIVE_DITHER_2')
+            # D
+            fits.write(img, extname='D')
+            # E
+            fits.write(img, extname='E', compress='GZIP')
+            # F
+            fits.write(img, extname='F', compress=None)
+
             data = fits.read_raw()
-            with open(temp_filename, 'wb') as f:
+            with open(fn, 'wb') as f:
                 f.write(data)
-            filename = temp_filename
 
-    with fitsio.FITS(filename, 'r') as fits:
-        assert len(fits) == 7
-        prim = fitsio.read(filename, ext=0)
-        assert prim is None
-        hdrA = fits['A'].read_header()
-        hdrB = fits['B'].read_header()
-        hdrC = fits['C'].read_header()
-        hdrD = fits['D'].read_header()
-        hdrE = fits['E'].read_header()
-        hdrF = fits['F'].read_header()
-    # A is EFNS gzip
-    assert hdrA['ZCMPTYPE'] == 'GZIP_1'
-    assert hdrA['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
-    # B is rice
-    assert hdrB['ZCMPTYPE'] == 'RICE_ONE'
-    # B *also* has SD2! ... THIS is perhaps unexpected and not what we want!
-    assert hdrB['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
-    # C is gzip with SD1
-    assert hdrC['ZCMPTYPE'] == 'GZIP_1'
-    assert hdrC['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
-    # D should default to GZIP, SD2?
-    assert hdrD['ZCMPTYPE'] == 'GZIP_1'
-    # E is uncompressed
-    assert 'ZCMPTYPE' not in hdrE
-
-    # THESE FAIL in case C
-    assert hdrD['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
-    # F defaults back to GZIP
-    assert hdrF['ZCMPTYPE'] == 'GZIP_1'
-
-
-def test_compression_multihdu_with_disk_and_efns():
-    # Check multi-HDU case with a regular disk file and
-    # Extended Filename Syntax
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = os.path.join(tmpdir, 'test.fits')
-        _check_multihdu_compression_with_efns(
-            fn, None, fitsio.FITS, False
-        )
-
-
-def test_compression_multihdu_with_mem_and_efns():
-    # Check multi-HDU case with an in-memory file and Extended Filename Syntax
-    with tempfile.TemporaryDirectory() as tmpdir:
-        fn = os.path.join(tmpdir, 'test.fits')
-        _check_multihdu_compression_with_efns(
-            'mem://', fn, fitsio.FITS, True
-        )
+        with fitsio.FITS(fn) as fits:
+            assert len(fits) == 6
+            hdrA = fits['A'].read_header()
+            hdrB = fits['B'].read_header()
+            hdrC = fits['C'].read_header()
+            hdrD = fits['D'].read_header()
+            hdrE = fits['E'].read_header()
+            hdrF = fits['F'].read_header()
+        # A is uncompressed
+        assert 'ZCMPTYPE' not in hdrA
+        # B is gzip
+        assert hdrB['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrB['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
+        # C is gzip with SD2
+        assert hdrC['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrC['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_2'
+        # D is not compressed
+        assert 'ZCMPTYPE' not in hdrD
+        # E is GZIP again
+        assert hdrE['ZCMPTYPE'] == 'GZIP_1'
+        assert hdrE['ZQUANTIZ'] == 'SUBTRACTIVE_DITHER_1'
+        # F is not compressed
+        assert 'ZCMPTYPE' not in hdrF

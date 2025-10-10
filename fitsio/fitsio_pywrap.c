@@ -62,61 +62,6 @@ int is_python_string(const PyObject* obj)
 #endif
 }
 
-
-// struct to hold fitsio compression params
-// code with comments copied from cfitsio
-struct CFITSIOCompressionData {
-    int request_compress_type;  /* requested image compression algorithm */
-    long request_tilesize[MAX_COMPRESS_DIM]; /* requested tiling size */
-    float request_quantize_level;  /* requested quantize level */
-    int request_quantize_method ;  /* requested  quantizing method */
-    int request_dither_seed;     /* starting offset into the array of random dithering */
-    int request_lossy_int_compress; /* lossy compress integer image as if float image? */
-    int request_huge_hdu;          /* use '1Q' rather then '1P' variable length arrays */
-    float request_hcomp_scale;     /* requested HCOMPRESS scale factor */
-    int request_hcomp_smooth;      /* requested HCOMPRESS smooth parameter */
-};
-
-static void set_cfitsio_compression_data_from_fitsfile(
-    struct CFITSIOCompressionData* ccd,
-    fitsfile *fptr
-) {
-    int ii;
-
-    ccd->request_compress_type = (fptr->Fptr)->request_compress_type;
-    ccd->request_quantize_level = (fptr->Fptr)->request_quantize_level;
-    ccd->request_quantize_method = (fptr->Fptr)->request_quantize_method;
-    ccd->request_dither_seed = (fptr->Fptr)->request_dither_seed;
-    ccd->request_hcomp_scale = (fptr->Fptr)->request_hcomp_scale;
-    ccd->request_lossy_int_compress = (fptr->Fptr)->request_lossy_int_compress;
-    ccd->request_huge_hdu = (fptr->Fptr)->request_huge_hdu;
-
-    for (ii = 0; ii < MAX_COMPRESS_DIM; ii++)
-    {
-        ccd->request_tilesize[ii] = (fptr->Fptr)->request_tilesize[ii];
-    }
-}
-
-static void set_fitsfile_from_cfitsio_compression_data(
-    fitsfile *fptr,
-    struct CFITSIOCompressionData* ccd
-) {
-    int ii;
-
-    (fptr->Fptr)->request_compress_type = ccd->request_compress_type;
-    (fptr->Fptr)->request_quantize_level = ccd->request_quantize_level;
-    (fptr->Fptr)->request_quantize_method = ccd->request_quantize_method;
-    (fptr->Fptr)->request_dither_seed = ccd->request_dither_seed;
-    (fptr->Fptr)->request_hcomp_scale = ccd->request_hcomp_scale;
-    (fptr->Fptr)->request_lossy_int_compress = ccd->request_lossy_int_compress;
-    (fptr->Fptr)->request_huge_hdu = ccd->request_huge_hdu;
-
-    for (ii = 0; ii < MAX_COMPRESS_DIM; ii++)
-    {
-        (fptr->Fptr)->request_tilesize[ii] = ccd->request_tilesize[ii];
-    }
-}
-
 /*
    Ensure all elements of the null terminated string are ascii, replacing
    non-ascii characters with a ?
@@ -1458,14 +1403,23 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     float hcomp_scale=0;
     int hcomp_smooth=0;
     int comptype=0;
-    struct CFITSIOCompressionData cfitsio_comp_data;
+    int orig_dither_seed;
+    int got_dither_seed = 0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
-    set_cfitsio_compression_data_from_fitsfile(&cfitsio_comp_data, self->fits);
+    // We do allow overriding the dither seed and then putting it back
+    // Luckily cfitsio has public APIs for that so this should be robust
+    if (fits_get_dither_seed(self->fits, &orig_dither_seed, &status)) {
+        set_ioerr_string_from_status(status);
+        goto create_image_hdu_cleanup;
+    } else {
+        // tell the code to put back the dither seed later
+        got_dither_seed = 1;
+    }
 
     static char *kwlist[] = {
         "array","nkeys",
@@ -1566,31 +1520,36 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             hcomp_smooth = (int) PyLong_AsLong(hcomp_smooth_obj);
         }
 
-        // exception strings are set internally
-        if (comptype_obj != Py_None) {
-            if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
-                goto create_image_hdu_cleanup;
-            }
-        } else {
+        if (comptype_obj == Py_None) {
             // get what the code is going to use just in case we override the
             // HCOMPRESS options
             comptype = self->fits->Fptr->request_compress_type;
         }
 
+        if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None)) {
+            // exception strings are set internally
+            if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+        }
+
         if (qlevel_obj != Py_None) {
             if (fits_set_quantize_level(self->fits, qlevel, &status)) {
+                set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (qmethod_obj != Py_None) {
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
+                set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (dither_seed_obj != Py_None) {
             if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
+                set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
         }
@@ -1598,12 +1557,14 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         if (comptype == HCOMPRESS_1) {
             if (hcomp_scale_obj != Py_None) {
                 if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
+                    set_ioerr_string_from_status(status);
                     goto create_image_hdu_cleanup;
                 }
             }
 
             if (hcomp_smooth_obj != Py_None) {
                 if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
+                    set_ioerr_string_from_status(status);
                     goto create_image_hdu_cleanup;
                 }
             }
@@ -1658,7 +1619,25 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
 create_image_hdu_cleanup:
     free(dims); dims=NULL;
-    set_fitsfile_from_cfitsio_compression_data(self->fits, &cfitsio_comp_data);
+    if (
+        (comptype_obj != Py_None)
+        || (tile_dims_obj != Py_None)
+        || (qlevel_obj != Py_None)
+        || (qmethod_obj != Py_None)
+        || (hcomp_scale_obj != Py_None)
+        || (hcomp_smooth_obj != Py_None)
+    ) {
+        if (fits_unset_compression_request(self->fits, &status)) {
+            set_ioerr_string_from_status(status);
+        }
+    }
+
+    // put back the dither seed after we reset any compression params
+    if (got_dither_seed == 1) {
+        if (fits_set_dither_seed(self->fits, orig_dither_seed, &status)) {
+            set_ioerr_string_from_status(status);
+        }
+    }
 
     if (status != 0) {
         return NULL;
