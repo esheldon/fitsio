@@ -24,6 +24,8 @@ Bug Fixes
       parameters were specified in Python too. Now the code will
       raise an exception if a user sets Python keyword compression
       parameters while also using filename compression parameters.
+      However, the `dither_seed` can be set from Python even if other
+      compression parameters are specified in the filename.
     - Fixed bugs in lossless GZIP compression of integer types. See the
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
       for the upstream PR for the patch.
