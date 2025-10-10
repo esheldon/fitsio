@@ -20,7 +20,8 @@ Bug Fixes
       were not always respected. Now the Python keyword compression
       parameters override any set in the filenames.
     - Fixed bugs in lossless GZIP compression of integer types. See the
-      new patch `patches/imcompress.c.patch`.
+      new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
+      for the upstream PR for the patch.
 
 version 1.2.8
 -------------
