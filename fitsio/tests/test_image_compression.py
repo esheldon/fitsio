@@ -442,7 +442,7 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
     if set_val_to_none:
         kws = {kw: None}
     else:
-        kws = {kw: None}
+        kws = {kw: val}
 
     with FITS('mem://[compress G 100,100; qz 0]', 'rw') as F:
         with pytest.raises(ValueError):
