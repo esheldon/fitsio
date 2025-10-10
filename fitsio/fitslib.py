@@ -1136,13 +1136,7 @@ class FITS(object):
             extver=extver,
         )
 
-        if compress is not None and qlevel is None or qlevel == 0.0:
-            # work around bug in cfitso
-            self.reopen()
-        else:
-            # don't rebuild the whole list unless this is the first hdu
-            # to be created
-            self.update_hdu_list(rebuild=False)
+        self.update_hdu_list(rebuild=False)
 
     def _ensure_empty_image_ok(self):
         """

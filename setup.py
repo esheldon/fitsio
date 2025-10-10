@@ -8,6 +8,7 @@ from __future__ import print_function
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
+import warnings
 import sys
 import os
 import subprocess
@@ -15,6 +16,10 @@ from subprocess import Popen, PIPE
 import glob
 import shutil
 
+# used for CI testing to ensure all patches apply
+FITSIO_FAIL_ON_BAD_PATCHES = (
+    False or "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ
+)
 
 if "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
@@ -191,8 +196,12 @@ class build_ext_subclass(build_ext):
                     'patch -N --dry-run %s/%s %s' % (
                         self.cfitsio_build_dir, fname, patch),
                     shell=True)
-            except subprocess.CalledProcessError:
-                pass
+            except subprocess.CalledProcessError as e:
+                warnings.warn(
+                    "Failed to apply patch: " + os.path.basename(patch)
+                )
+                if FITSIO_FAIL_ON_BAD_PATCHES:
+                    raise e
             else:
                 subprocess.check_call(
                     'patch %s/%s %s' % (

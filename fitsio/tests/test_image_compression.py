@@ -27,16 +27,21 @@ from ..fitslib import (
         'gzip_2_lossless',
     ]
 )
-def test_compressed_write_read(compress):
+@pytest.mark.parametrize(
+    'dtype',
+    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+)
+def test_compressed_write_read(compress, dtype):
     """
     Test writing and reading a rice compressed image
     """
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
-        dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+        pass
     elif compress == 'plio':
-        dtypes = ['i1', 'i2', 'i4', 'f4', 'f8']
+        if dtype not in ['i1', 'i2', 'i4', 'f4', 'f8']:
+            return
     else:
         raise ValueError('unexpected compress %s' % compress)
 
@@ -51,39 +56,36 @@ def test_compressed_write_read(compress):
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
-        for ext, dtype in enumerate(dtypes):
-            if dtype[0] == 'f':
-                data = rng.normal(size=(nrows, ncols))
-                if compress == 'plio':
-                    data = data.clip(min=0)
-                data = data.astype(dtype)
-            else:
-                data = np.arange(
-                    nrows * ncols, dtype=dtype,
-                ).reshape(nrows, ncols)
+        if dtype[0] == 'f':
+            data = rng.normal(size=(nrows, ncols))
+            if compress == 'plio':
+                data = data.clip(min=0)
+            data = data.astype(dtype)
+        else:
+            data = np.arange(
+                nrows * ncols, dtype=dtype,
+            ).reshape(nrows, ncols)
 
-            csend = compress.replace('_lossless', '')
-            write(fname, data, compress=csend, qlevel=qlevel)
-            rdata = read(fname, ext=ext+1)
+        csend = compress.replace('_lossless', '')
+        write(fname, data, compress=csend, qlevel=qlevel)
+        rdata = read(fname, ext=1)
 
-            if 'lossless' in compress or dtype[0] in ['i', 'u']:
-                compare_array(
-                    data, rdata,
-                    "%s compressed images ('%s')" % (compress, dtype)
-                )
-            else:
-                # lossy floating point
-                compare_array_abstol(
-                    data,
-                    rdata,
-                    0.2,
-                    "%s compressed images ('%s')" % (compress, dtype),
-                )
+        if 'lossless' in compress or dtype[0] in ['i', 'u']:
+            compare_array(
+                data, rdata,
+                "%s compressed images ('%s')" % (compress, dtype)
+            )
+        else:
+            # lossy floating point
+            compare_array_abstol(
+                data,
+                rdata,
+                0.2,
+                "%s compressed images ('%s')" % (compress, dtype),
+            )
 
         with FITS(fname) as fits:
-            for ii in range(len(dtypes)):
-                i = ii + 1
-                assert fits[i].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), "is compressed"
 
 
 @pytest.mark.parametrize(
@@ -98,7 +100,11 @@ def test_compressed_write_read(compress):
         'gzip_2_lossless',
     ]
 )
-def test_compressed_write_read_fitsobj(compress):
+@pytest.mark.parametrize(
+    'dtype',
+    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+)
+def test_compressed_write_read_fitsobj(compress, dtype):
     """
     Test writing and reading a rice compressed image
 
@@ -107,10 +113,10 @@ def test_compressed_write_read_fitsobj(compress):
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
-        dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
-        # dtypes = ['u2']
+        pass
     elif compress == 'plio':
-        dtypes = ['i1', 'i2', 'i4', 'f4', 'f8']
+        if dtype not in ['i1', 'i2', 'i4', 'f4', 'f8']:
+            return
     else:
         raise ValueError('unexpected compress %s' % compress)
 
@@ -129,42 +135,39 @@ def test_compressed_write_read_fitsobj(compress):
         with FITS(fname, 'rw') as fits:
             # note i8 not supported for compressed!
 
-            for dtype in dtypes:
-                if dtype[0] == 'f':
-                    data = rng.normal(size=(nrows, ncols))
-                    if compress == 'plio':
-                        data = data.clip(min=0)
-                    data = data.astype(dtype)
-                else:
-                    data = np.arange(
-                        nrows * ncols, dtype=dtype,
-                    ).reshape(nrows, ncols)
+            if dtype[0] == 'f':
+                data = rng.normal(size=(nrows, ncols))
+                if compress == 'plio':
+                    data = data.clip(min=0)
+                data = data.astype(dtype)
+            else:
+                data = np.arange(
+                    nrows * ncols, dtype=dtype,
+                ).reshape(nrows, ncols)
 
-                csend = compress.replace('_lossless', '')
-                fits.write_image(data, compress=csend, qlevel=qlevel)
-                rdata = fits[-1].read()
+            csend = compress.replace('_lossless', '')
+            fits.write_image(data, compress=csend, qlevel=qlevel)
+            rdata = fits[-1].read()
 
-                if 'lossless' in compress or dtype[0] in ['i', 'u']:
-                    # for integers we have chosen a wide range of values, so
-                    # there will be no quantization and we expect no
-                    # information loss
-                    compare_array(
-                        data, rdata,
-                        "%s compressed images ('%s')" % (compress, dtype)
-                    )
-                else:
-                    # lossy floating point
-                    compare_array_abstol(
-                        data,
-                        rdata,
-                        0.2,
-                        "%s compressed images ('%s')" % (compress, dtype),
-                    )
+            if 'lossless' in compress or dtype[0] in ['i', 'u']:
+                # for integers we have chosen a wide range of values, so
+                # there will be no quantization and we expect no
+                # information loss
+                compare_array(
+                    data, rdata,
+                    "%s compressed images ('%s')" % (compress, dtype)
+                )
+            else:
+                # lossy floating point
+                compare_array_abstol(
+                    data,
+                    rdata,
+                    0.2,
+                    "%s compressed images ('%s')" % (compress, dtype),
+                )
 
         with FITS(fname) as fits:
-            for ii in range(len(dtypes)):
-                i = ii + 1
-                assert fits[i].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), "is compressed"
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9),

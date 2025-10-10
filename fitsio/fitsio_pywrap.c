@@ -1593,7 +1593,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         }
     }
 
-    // this does a full close and reopen
+    // this flushes all buffers
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
         goto create_image_hdu_cleanup;
