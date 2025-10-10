@@ -1498,6 +1498,10 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
         if (comptype_obj != Py_None) {
             comptype = (int) PyLong_AsLong(comptype_obj);
+        } else {
+            // get what the code is going to use just in case we override the
+            // HCOMPRESS options
+            comptype = self->fits->Fptr->request_compress_type;
         }
 
         if (qlevel_obj != Py_None) {
@@ -1518,12 +1522,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
 
         if (hcomp_smooth_obj != Py_None) {
             hcomp_smooth = (int) PyLong_AsLong(hcomp_smooth_obj);
-        }
-
-        if (comptype_obj == Py_None) {
-            // get what the code is going to use just in case we override the
-            // HCOMPRESS options
-            comptype = self->fits->Fptr->request_compress_type;
         }
 
         if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None)) {
