@@ -427,7 +427,9 @@ def test_image_compression_inmem_subdither2():
     "kw,val",
     [
         ("compress", RICE_1),
-        ("tile_dims", None),
+        ("tile_dims", (10, 2)),
+        ("tile_dims", np.array([10, 2])),
+        ("tile_dims", [10, 2]),
         ("qlevel", 10.0),
         ("qmethod", SUBTRACTIVE_DITHER_1),
         ("hcomp_scale", 10.0),
