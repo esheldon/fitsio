@@ -818,7 +818,7 @@ class FITS(object):
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
-        $(compression_docs)s
+        %(compression_docs)s
 
         restrictions
         ------------
@@ -906,7 +906,7 @@ class FITS(object):
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
-        $(compression_docs)s
+        %(compression_docs)s
 
         restrictions
         ------------
