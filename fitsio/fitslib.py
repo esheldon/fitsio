@@ -932,7 +932,7 @@ class FITS(object):
                     Standard dithering
                 'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
                     Preserves zeros
-            Defaults to fitsio.NOT_SET which uses the cfitsio/fpac default of
+            Defaults to fitsio.NOT_SET which uses the cfitsio/fpack default of
             'SUBTRACTIVE_DITHER_1'.
         dither_seed: int or None, optional
             Seed for the subtractive dither.  Seeding makes the lossy
