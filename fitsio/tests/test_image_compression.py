@@ -12,6 +12,8 @@ from ..fitslib import (
     FITS,
     read,
     write,
+    RICE_1,
+    SUBTRACTIVE_DITHER_1,
 )
 from ..util import cfitsio_is_bundled
 
@@ -419,6 +421,35 @@ def test_image_compression_inmem_subdither2():
 
     minval = z.min()
     assert minval == 0
+
+
+@pytest.mark.parametrize(
+    "kw,val",
+    [
+        ("compress", RICE_1),
+        ("tile_dims", None),
+        ("qlevel", 10.0),
+        ("qmethod", SUBTRACTIVE_DITHER_1),
+        ("hcomp_scale", 10.0),
+        ("hcomp_smooth", True),
+    ]
+)
+@pytest.mark.parametrize("set_val_to_none", [False, True])
+def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
+    H, W = 100, 100
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(H, W))
+    if set_val_to_none:
+        kws = {kw: None}
+    else:
+        kws = {kw: None}
+
+    with FITS('mem://[compress G 100,100; qz 0]', 'rw') as F:
+        with pytest.raises(ValueError):
+            F.write(img, **kws)
+
+    with FITS('mem://[compress G 100,100; qz 4.0]', 'rw') as F:
+        F.write(img, dither_seed=10)
 
 
 @pytest.mark.xfail(
