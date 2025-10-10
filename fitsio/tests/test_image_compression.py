@@ -12,7 +12,10 @@ from ..fitslib import (
     FITS,
     read,
     write,
+    RICE_1,
+    SUBTRACTIVE_DITHER_1,
 )
+from ..util import cfitsio_is_bundled
 
 
 @pytest.mark.parametrize(
@@ -27,16 +30,21 @@ from ..fitslib import (
         'gzip_2_lossless',
     ]
 )
-def test_compressed_write_read(compress):
+@pytest.mark.parametrize(
+    'dtype',
+    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+)
+def test_compressed_write_read(compress, dtype):
     """
     Test writing and reading a rice compressed image
     """
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
-        dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+        pass
     elif compress == 'plio':
-        dtypes = ['i1', 'i2', 'i4', 'f4', 'f8']
+        if dtype not in ['i1', 'i2', 'i4', 'f4', 'f8']:
+            return
     else:
         raise ValueError('unexpected compress %s' % compress)
 
@@ -51,39 +59,36 @@ def test_compressed_write_read(compress):
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
-        for ext, dtype in enumerate(dtypes):
-            if dtype[0] == 'f':
-                data = rng.normal(size=(nrows, ncols))
-                if compress == 'plio':
-                    data = data.clip(min=0)
-                data = data.astype(dtype)
-            else:
-                data = np.arange(
-                    nrows * ncols, dtype=dtype,
-                ).reshape(nrows, ncols)
+        if dtype[0] == 'f':
+            data = rng.normal(size=(nrows, ncols))
+            if compress == 'plio':
+                data = data.clip(min=0)
+            data = data.astype(dtype)
+        else:
+            data = np.arange(
+                nrows * ncols, dtype=dtype,
+            ).reshape(nrows, ncols)
 
-            csend = compress.replace('_lossless', '')
-            write(fname, data, compress=csend, qlevel=qlevel)
-            rdata = read(fname, ext=ext+1)
+        csend = compress.replace('_lossless', '')
+        write(fname, data, compress=csend, qlevel=qlevel)
+        rdata = read(fname, ext=1)
 
-            if 'lossless' in compress or dtype[0] in ['i', 'u']:
-                compare_array(
-                    data, rdata,
-                    "%s compressed images ('%s')" % (compress, dtype)
-                )
-            else:
-                # lossy floating point
-                compare_array_abstol(
-                    data,
-                    rdata,
-                    0.2,
-                    "%s compressed images ('%s')" % (compress, dtype),
-                )
+        if 'lossless' in compress or dtype[0] in ['i', 'u']:
+            compare_array(
+                data, rdata,
+                "%s compressed images ('%s')" % (compress, dtype)
+            )
+        else:
+            # lossy floating point
+            compare_array_abstol(
+                data,
+                rdata,
+                0.2,
+                "%s compressed images ('%s')" % (compress, dtype),
+            )
 
         with FITS(fname) as fits:
-            for ii in range(len(dtypes)):
-                i = ii + 1
-                assert fits[i].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), "is compressed"
 
 
 @pytest.mark.parametrize(
@@ -98,19 +103,36 @@ def test_compressed_write_read(compress):
         'gzip_2_lossless',
     ]
 )
-def test_compressed_write_read_fitsobj(compress):
+@pytest.mark.parametrize(
+    'dtype',
+    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
+)
+def test_compressed_write_read_fitsobj(compress, dtype):
     """
     Test writing and reading a rice compressed image
 
     In this version, keep the fits object open
     """
+
+    if (
+        "gzip" in compress
+        and dtype in ["u2", "i2", "u4", "i4"]
+        and not cfitsio_is_bundled()
+    ):
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug. "
+                "See https://github.com/HEASARC/cfitsio/pull/97."
+            )
+        )
+
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
-        dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
-        # dtypes = ['u2']
+        pass
     elif compress == 'plio':
-        dtypes = ['i1', 'i2', 'i4', 'f4', 'f8']
+        if dtype not in ['i1', 'i2', 'i4', 'f4', 'f8']:
+            return
     else:
         raise ValueError('unexpected compress %s' % compress)
 
@@ -129,42 +151,39 @@ def test_compressed_write_read_fitsobj(compress):
         with FITS(fname, 'rw') as fits:
             # note i8 not supported for compressed!
 
-            for dtype in dtypes:
-                if dtype[0] == 'f':
-                    data = rng.normal(size=(nrows, ncols))
-                    if compress == 'plio':
-                        data = data.clip(min=0)
-                    data = data.astype(dtype)
-                else:
-                    data = np.arange(
-                        nrows * ncols, dtype=dtype,
-                    ).reshape(nrows, ncols)
+            if dtype[0] == 'f':
+                data = rng.normal(size=(nrows, ncols))
+                if compress == 'plio':
+                    data = data.clip(min=0)
+                data = data.astype(dtype)
+            else:
+                data = np.arange(
+                    nrows * ncols, dtype=dtype,
+                ).reshape(nrows, ncols)
 
-                csend = compress.replace('_lossless', '')
-                fits.write_image(data, compress=csend, qlevel=qlevel)
-                rdata = fits[-1].read()
+            csend = compress.replace('_lossless', '')
+            fits.write_image(data, compress=csend, qlevel=qlevel)
+            rdata = fits[-1].read()
 
-                if 'lossless' in compress or dtype[0] in ['i', 'u']:
-                    # for integers we have chosen a wide range of values, so
-                    # there will be no quantization and we expect no
-                    # information loss
-                    compare_array(
-                        data, rdata,
-                        "%s compressed images ('%s')" % (compress, dtype)
-                    )
-                else:
-                    # lossy floating point
-                    compare_array_abstol(
-                        data,
-                        rdata,
-                        0.2,
-                        "%s compressed images ('%s')" % (compress, dtype),
-                    )
+            if 'lossless' in compress or dtype[0] in ['i', 'u']:
+                # for integers we have chosen a wide range of values, so
+                # there will be no quantization and we expect no
+                # information loss
+                compare_array(
+                    data, rdata,
+                    "%s compressed images ('%s')" % (compress, dtype)
+                )
+            else:
+                # lossy floating point
+                compare_array_abstol(
+                    data,
+                    rdata,
+                    0.2,
+                    "%s compressed images ('%s')" % (compress, dtype),
+                )
 
         with FITS(fname) as fits:
-            for ii in range(len(dtypes)):
-                i = ii + 1
-                assert fits[i].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), "is compressed"
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9),
@@ -382,6 +401,114 @@ def test_memory_compressed_seed():
         hdr = fitsio.read_header(fname2, ext=1)
         dither2 = hdr['ZDITHER0']
         assert dither1 == dither2
+
+
+def test_image_compression_inmem_subdither2():
+    H, W = 100, 100
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(H, W))
+    img[40:50, :] = 0.0
+    with FITS('mem://[compress G 100,100; qz 0]', 'rw') as F:
+        F.write(img)
+        rawdata = F.read_raw()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, 'out.fits')
+        with open(pth, 'wb') as f:
+            f.write(rawdata)
+        im2 = read(pth)
+        z = im2[40:50, :]
+
+    minval = z.min()
+    assert minval == 0
+
+
+@pytest.mark.parametrize(
+    "kw,val",
+    [
+        ("compress", RICE_1),
+        ("tile_dims", (10, 2)),
+        ("tile_dims", np.array([10, 2])),
+        ("tile_dims", [10, 2]),
+        ("qlevel", 10.0),
+        ("qmethod", SUBTRACTIVE_DITHER_1),
+        ("hcomp_scale", 10.0),
+        ("hcomp_smooth", True),
+    ]
+)
+@pytest.mark.parametrize("set_val_to_none", [False, True])
+def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
+    H, W = 100, 100
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(H, W))
+    if set_val_to_none:
+        kws = {kw: None}
+    else:
+        kws = {kw: val}
+
+    with FITS('mem://[compress G 100,100; qz 0]', 'rw') as F:
+        with pytest.raises(ValueError):
+            F.write(img, **kws)
+
+    with FITS('mem://[compress G 100,100; qz 4.0]', 'rw') as F:
+        F.write(img, dither_seed=10)
+
+
+@pytest.mark.xfail(
+    not cfitsio_is_bundled(),
+    reason=(
+        "Non-bundled cfitsio libraries have a bug. "
+        "See https://github.com/HEASARC/cfitsio/pull/97."
+    )
+)
+def test_image_compression_inmem_lossessgzip_int():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300, 300)).astype(np.int32)
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
+def test_image_compression_inmem_lossessgzip_int_zeros():
+    img = np.zeros((300, 300)).astype(np.int32)
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
+def test_image_compression_inmem_lossessgzip_float():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300, 300))
+    with FITS('mem://', 'rw') as F:
+        F.write(img, compress='GZIP', qlevel=0)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+
+def test_image_mem_reopen_noop():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(300, 300))
+    with FITS('mem://', 'rw') as F:
+        F.write(img)
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+        F.reopen()
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
+
+    with FITS('mem://', 'rw') as F:
+        F.write(img)
+        F.reopen()
+        rimg = F[-1].read()
+        assert rimg is not None
+        assert np.array_equal(rimg, img)
 
 
 if __name__ == '__main__':

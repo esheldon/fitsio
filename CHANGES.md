@@ -1,10 +1,35 @@
-unreleased
+version 1.3.0
 -------------
+
+Changes
+
+    - Introduced a `fitsio.NOT_SET` singleton for some
+      parameters whose defaults are deferred at the Python
+      level and instead set at the C level by cfitsio. The
+      image compression parameters now use this singleton.
+      However, the actual underlying defaults used have not
+      changed.
+    - Added a a new function `fitsio.cfitsio_is_bundled()`
+      that detects if the cfitsio library is bundled with
+      the Python code.
 
 Bug Fixes
 
     - Fixed incorrect/unspecified minimum python version,
       setting it to `>=3.8`.
+    - Fixed bug where we attempted to open `mem://` files
+      as existing files when calling `fitsio.FITS.reopen`.
+    - Fixed a bug where compression parameters set in filenames
+      were inconsistently applied, especially when compression
+      parameters were specified in Python too. Now the code will
+      raise an exception if a user sets Python keyword compression
+      parameters while also using filename compression parameters.
+      However, the `dither_seed` can be set from Python even if other
+      compression parameters are specified in the filename.
+    - Fixed bugs in lossless GZIP compression of integer types. See the
+      new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
+      for the upstream PR for the patch.
+    - Fixed a bug where compression parameters were cached across different HDUs.
 
 version 1.2.8
 -------------
@@ -279,7 +304,6 @@ Bug Fixes
     - Fix bug when reading slice with step, but no start/stop (Mike Jarvis)
     - Fix bug with clobber when compression is sent in filename
 
-
 Deprecations
 
     - Removed the use of `**kwargs` in various read/write routines. This
@@ -412,7 +436,6 @@ Bug Fixes
       to upper case
     - link against libm explicitly for compatibility on some systems
 
-
 version 0.9.11
 ---------------------------------
 
@@ -467,7 +490,6 @@ Workarounds
       the -O3 optimization flag when compiling cfitsio.  For replacing -O3 with
       -O2 fixes the issue.  This was an issue on linux in both anaconda python2
       and python3.
-
 
 version 0.9.9.1
 ----------------------------------
@@ -566,7 +588,6 @@ New Features
     - IOError is now used to indicate a number of errors that
         were previously ValueError
 
-
 version 0.9.6
 --------------
 
@@ -630,6 +651,7 @@ All changes E. Sheldon except where noted.
 
 version 0.9.3
 --------------------------
+
 New Features
 
     - Can write lists of arrays and dictionaries of arrays
@@ -743,7 +765,6 @@ On OS X, we now link properly with universal binaries on intel. Thanks to Eli
 Rykoff for help with OS X testing and bug fixes.
 
 New features
-
 
     - Write and read variable length columns.  When writing a table, any fields
       declared "object" ("O" type char) in the input array will be written to a

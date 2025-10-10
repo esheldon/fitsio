@@ -62,7 +62,6 @@ int is_python_string(const PyObject* obj)
 #endif
 }
 
-
 /*
    Ensure all elements of the null terminated string are ascii, replacing
    non-ascii characters with a ?
@@ -1382,10 +1381,15 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
-    int comptype=0; // same as NOCOMPRESS in newer cfitsio
-
-    PyObject *array_obj=NULL, *dims_obj=NULL, *tile_dims_obj=NULL;
+    PyObject *array_obj=NULL, *dims_obj=NULL;
     PyArrayObject *array=NULL, *dims_array=NULL;
+    PyObject *comptype_obj=NULL;
+    PyObject *tile_dims_obj=NULL;
+    PyObject *qlevel_obj=NULL;
+    PyObject *qmethod_obj=NULL;
+    PyObject *dither_seed_obj=NULL;
+    PyObject *hcomp_scale_obj=NULL;
+    PyObject *hcomp_smooth_obj=NULL;
 
     int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
@@ -1398,22 +1402,34 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int dither_seed=0;
     float hcomp_scale=0;
     int hcomp_smooth=0;
+    int comptype=0;
+    int orig_dither_seed;
+    int got_dither_seed = 0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
     }
 
+    // We do allow overriding the dither seed and then putting it back
+    // Luckily cfitsio has public APIs for that so this should be robust
+    if (fits_get_dither_seed(self->fits, &orig_dither_seed, &status)) {
+        set_ioerr_string_from_status(status);
+        goto create_image_hdu_cleanup;
+    } else {
+        // tell the code to put back the dither seed later
+        got_dither_seed = 1;
+    }
+
     static char *kwlist[] = {
         "array","nkeys",
          "dims",
+
          "comptype",
          "tile_dims",
-
          "qlevel",
          "qmethod",
          "dither_seed",
-
          "hcomp_scale",
          "hcomp_smooth",
 
@@ -1421,24 +1437,22 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
          "extver",
          NULL,
     };
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OiOfiifisi", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Oi|OOOOOOOOsi", kwlist,
                           &array_obj, &nkeys,
                           &dims_obj,
-                          &comptype,
+
+                          &comptype_obj,
                           &tile_dims_obj,
-
-                          &qlevel,
-                          &qmethod,
-                          &dither_seed,
-
-                          &hcomp_scale,
-                          &hcomp_smooth,
+                          &qlevel_obj,
+                          &qmethod_obj,
+                          &dither_seed_obj,
+                          &hcomp_scale_obj,
+                          &hcomp_smooth_obj,
 
                           &extname,
                           &extver)) {
         goto create_image_hdu_cleanup;
     }
-
 
     if (array_obj == Py_None) {
         if (create_empty_hdu(self)) {
@@ -1482,42 +1496,75 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             write_data=1;
         }
 
-        if (comptype == 0) {
-            comptype = (*(self->fits)->Fptr).request_compress_type;
+        if (comptype_obj != Py_None) {
+            comptype = (int) PyLong_AsLong(comptype_obj);
+        } else {
+            // get what the code is going to use just in case we override the
+            // HCOMPRESS options
+            comptype = self->fits->Fptr->request_compress_type;
         }
 
-        // 0 means NOCOMPRESS but that wasn't defined in the bundled version of cfitsio
-        // if (comptype >= 0) {
-        if (comptype > 0) {
+        if (qlevel_obj != Py_None) {
+            qlevel = (float)PyFloat_AsDouble(qlevel_obj);
+        }
+
+        if (qmethod_obj != Py_None) {
+            qmethod = (int) PyLong_AsLong(qmethod_obj);
+        }
+
+        if (dither_seed_obj != Py_None) {
+            dither_seed = (int) PyLong_AsLong(dither_seed_obj);
+        }
+
+        if (hcomp_scale_obj != Py_None) {
+            hcomp_scale = (float)PyFloat_AsDouble(hcomp_scale_obj);
+        }
+
+        if (hcomp_smooth_obj != Py_None) {
+            hcomp_smooth = (int) PyLong_AsLong(hcomp_smooth_obj);
+        }
+
+        if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None)) {
             // exception strings are set internally
             if (set_compression(self->fits, comptype, tile_dims_obj, &status)) {
                 goto create_image_hdu_cleanup;
             }
+        }
 
+        if (qlevel_obj != Py_None) {
             if (fits_set_quantize_level(self->fits, qlevel, &status)) {
+                set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
+        }
 
+        if (qmethod_obj != Py_None) {
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
+                set_ioerr_string_from_status(status);
                 goto create_image_hdu_cleanup;
             }
+        }
 
-            // zero means to use the default (system clock).
-            if (dither_seed != 0) {
-                if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
+        if (dither_seed_obj != Py_None) {
+            if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
+                set_ioerr_string_from_status(status);
+                goto create_image_hdu_cleanup;
+            }
+        }
+
+        if (comptype == HCOMPRESS_1) {
+            if (hcomp_scale_obj != Py_None) {
+                if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
+                    set_ioerr_string_from_status(status);
                     goto create_image_hdu_cleanup;
                 }
             }
 
-            if (comptype == HCOMPRESS_1) {
-
-                if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
-                    goto create_image_hdu_cleanup;
-                }
+            if (hcomp_smooth_obj != Py_None) {
                 if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
+                    set_ioerr_string_from_status(status);
                     goto create_image_hdu_cleanup;
                 }
-
             }
         }
 
@@ -1525,8 +1572,6 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
             set_ioerr_string_from_status(status);
             goto create_image_hdu_cleanup;
         }
-
-
     }
     if (extname != NULL) {
         if (strlen(extname) > 0) {
@@ -1564,20 +1609,38 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
         }
     }
 
-    // this does a full close and reopen
+    // this flushes all buffers
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status);
         goto create_image_hdu_cleanup;
     }
 
-
 create_image_hdu_cleanup:
+    free(dims); dims=NULL;
+    if (
+        (comptype_obj != Py_None)
+        || (tile_dims_obj != Py_None)
+        || (qlevel_obj != Py_None)
+        || (qmethod_obj != Py_None)
+        || (hcomp_scale_obj != Py_None)
+        || (hcomp_smooth_obj != Py_None)
+    ) {
+        if (fits_unset_compression_request(self->fits, &status)) {
+            set_ioerr_string_from_status(status);
+        }
+    }
+
+    // put back the dither seed after we reset any compression params
+    if (got_dither_seed == 1) {
+        if (fits_set_dither_seed(self->fits, orig_dither_seed, &status)) {
+            set_ioerr_string_from_status(status);
+        }
+    }
 
     if (status != 0) {
         return NULL;
     }
 
-    free(dims); dims=NULL;
     Py_RETURN_NONE;
 }
 
@@ -4736,6 +4799,14 @@ PyFITS_cfitsio_use_standard_strings(void) {
     }
 }
 
+static PyObject *
+PyFITS_cfitsio_is_bundled(void) {
+#ifdef FITSIO_USING_SYSTEM_FITSIO
+    Py_RETURN_FALSE;
+#else
+    Py_RETURN_TRUE;
+#endif
+}
 
 /*
 
@@ -4965,6 +5036,7 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"cfitsio_is_bundled",      (PyCFunction)PyFITS_cfitsio_is_bundled,      METH_NOARGS,  "cfitsio_is_bundled\n\nReturn True if library was built with a bundled copy of cfitsio."},
     {"cfitsio_use_standard_strings",      (PyCFunction)PyFITS_cfitsio_use_standard_strings,      METH_NOARGS,  "cfitsio_use_standard_strings\n\nReturn True if using string code that matches the FITS standard."},
     {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
