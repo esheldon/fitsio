@@ -178,6 +178,10 @@ class build_ext_subclass(build_ext):
                 self.compiler.define_macro(
                     'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
+            self.compiler.define_macro(
+                'FITSIO_USING_SYSTEM_FITSIO'
+            )
+
             self.compiler.add_library('z')
 
         # fitsio requires libm as well.

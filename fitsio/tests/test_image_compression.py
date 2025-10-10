@@ -13,6 +13,7 @@ from ..fitslib import (
     read,
     write,
 )
+from ..util import cfitsio_is_bundled
 
 
 @pytest.mark.parametrize(
@@ -110,6 +111,19 @@ def test_compressed_write_read_fitsobj(compress, dtype):
 
     In this version, keep the fits object open
     """
+
+    if (
+        "gzip" in compress
+        and dtype in ["u2", "i2", "u4", "i4"]
+        and not cfitsio_is_bundled()
+    ):
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug. "
+                "See https://github.com/HEASARC/cfitsio/pull/97."
+            )
+        )
+
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
@@ -407,6 +421,13 @@ def test_image_compression_inmem_subdither2():
     assert minval == 0
 
 
+@pytest.mark.xfail(
+    not cfitsio_is_bundled(),
+    reason=(
+        "Non-bundled cfitsio libraries have a bug. "
+        "See https://github.com/HEASARC/cfitsio/pull/97."
+    )
+)
 def test_image_compression_inmem_lossessgzip_int():
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(300, 300)).astype(np.int32)

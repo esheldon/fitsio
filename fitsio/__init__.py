@@ -31,12 +31,14 @@ from .fitslib import (
     NO_DITHER,
     SUBTRACTIVE_DITHER_1,
     SUBTRACTIVE_DITHER_2,
+
+    NOT_SET,
 )
 
 from .header import FITSHDR, FITSRecord, FITSCard
 from .hdu import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
 from . import util
-from .util import cfitsio_version, FITSRuntimeWarning
+from .util import cfitsio_version, FITSRuntimeWarning, cfitsio_is_bundled
 
 from .fits_exceptions import FITSFormatError

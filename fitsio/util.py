@@ -28,6 +28,13 @@ def cfitsio_version(asfloat=False):
         return ver
 
 
+def cfitsio_is_bundled():
+    """Return True if library was built with a
+    bundled copy of cfitsio.
+    """
+    return _fitsio_wrap.cfitsio_is_bundled()
+
+
 if sys.version_info > (3, 0, 0):
     _itypes = (int,)
     _stypes = (str, bytes)

@@ -4765,6 +4765,14 @@ PyFITS_cfitsio_use_standard_strings(void) {
     }
 }
 
+static PyObject *
+PyFITS_cfitsio_is_bundled(void) {
+#ifdef FITSIO_USING_SYSTEM_FITSIO
+    Py_RETURN_FALSE;
+#else
+    Py_RETURN_TRUE;
+#endif
+}
 
 /*
 
@@ -4994,6 +5002,7 @@ static PyTypeObject PyFITSType = {
 
 static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
+    {"cfitsio_is_bundled",      (PyCFunction)PyFITS_cfitsio_is_bundled,      METH_NOARGS,  "cfitsio_is_bundled\n\nReturn True if library was built with a bundled copy of cfitsio."},
     {"cfitsio_use_standard_strings",      (PyCFunction)PyFITS_cfitsio_use_standard_strings,      METH_NOARGS,  "cfitsio_use_standard_strings\n\nReturn True if using string code that matches the FITS standard."},
     {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
