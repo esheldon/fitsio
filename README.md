@@ -36,7 +36,7 @@ your own, nor will this conflict with a version you have installed.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
 - Iterate over rows in a table. Data are buffered for efficiency.
-- Python 3 support, including Python 3 strings
+- Python 3 support, including Python 3 strings.
 
 ## Examples
 
