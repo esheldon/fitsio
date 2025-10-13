@@ -122,3 +122,5 @@ cfitsio-*/config.status
 cfitsio-*/Makefile
 
 fitsio/_version.py
+
+.ruff_cache
