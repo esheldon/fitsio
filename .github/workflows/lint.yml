@@ -8,10 +8,6 @@ on:
 
 env:
   PY_COLORS: "1"
-  # These compiler flags force the tests to fail if arrays are
-  # accessed at the C level from an unaligned location.
-  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
-  FITSIO_FAIL_ON_BAD_PATCHES: 'true'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
