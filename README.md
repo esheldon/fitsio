@@ -372,37 +372,47 @@ f[1].case_sensitive  # if True, names are matched case sensitive
 
 The easiest way is using pip or conda. To get the latest release
 
-    pip install fitsio
+```bash
+pip install fitsio
 
-    # update fitsio (and everything else)
-    pip install fitsio --upgrade
+# update fitsio (and everything else)
+pip install fitsio --upgrade
 
-    # if pip refuses to update to a newer version
-    pip install fitsio --upgrade --ignore-installed
+# if pip refuses to update to a newer version
+pip install fitsio --upgrade --ignore-installed
 
-    # if you only want to upgrade fitsio
-    pip install fitsio --no-deps --upgrade --ignore-installed
+# if you only want to upgrade fitsio
+pip install fitsio --no-deps --upgrade --ignore-installed
 
-    # for conda, use conda-forge
-    conda install -c conda-forge fitsio
+# for conda, use conda-forge
+conda install -c conda-forge fitsio
+```
 
 You can also get the latest source tarball release from
 
-    https://pypi.python.org/pypi/fitsio
+```url
+https://pypi.python.org/pypi/fitsio
+```
 
 or the bleeding edge source from github or use git. To check out
 the code for the first time
 
-    git clone https://github.com/esheldon/fitsio.git
+```bash
+git clone https://github.com/esheldon/fitsio.git
+```
 
 Or at a later time to update to the latest
 
-    cd fitsio
-    git update
+```bash
+cd fitsio
+git update
+```
 
 Use tar xvfz to untar the file, enter the fitsio directory and type
 
-    pip install .
+```bash
+pip install .
+```
 
 ## Requirements
 
@@ -410,14 +420,12 @@ Use tar xvfz to untar the file, enter the fitsio directory and type
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
-
 ### Do not use numpy 1.10.0 or 1.10.1
 
 There is a serious performance regression in numpy 1.10 that results
 in fitsio running tens to hundreds of times slower.  A fix may be
 forthcoming in a later release.  Please comment here if this
 has already impacted your work https://github.com/numpy/numpy/issues/6467
-
 
 ## Tests
 
@@ -431,15 +439,24 @@ Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
 be read, without affecting other functionality.
 
+## Linting and Code Formatting
+
+We use the `pre-commit` framework for linting and code formatting. To
+run the linting and code formatting, use the following command
+
+```bash
+pre-commit run -a
+```
+
 ## Notes on Usage and Features
 
-### cfitsio bundling
+### `cfitsio` bundling
 
 We bundle cfitsio partly because many deployed versions of cfitsio in the
 wild do not have support for interesting features like tiled image compression.
 Bundling a version that meets our needs is a safe alternative.
 
-### array ordering
+### Array Ordering
 
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
@@ -455,7 +472,7 @@ older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing 
 to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
 for example.
 
-### python 3 strings
+### Python 3 Strings
 
 As of version `1.0.0`, fitsio now supports Python 3 strings natively. This support
 means that for Python 3, native strings are read from and written correctly to
