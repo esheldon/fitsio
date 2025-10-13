@@ -20,6 +20,7 @@ See the main docs at https://github.com/esheldon/fitsio
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
+
 from __future__ import with_statement, print_function
 from functools import reduce
 
@@ -42,13 +43,13 @@ class ImageHDU(HDUBase):
         """
         super(ImageHDU, self)._update_info()
 
-        if self._info['hdutype'] != IMAGE_HDU:
+        if self._info["hdutype"] != IMAGE_HDU:
             mess = "Extension %s is not a Image HDU" % self.ext
             raise ValueError(mess)
 
         # convert to c order
-        if 'dims' in self._info:
-            self._info['dims'] = list(reversed(self._info['dims']))
+        if "dims" in self._info:
+            self._info["dims"] = list(reversed(self._info["dims"]))
 
     def has_data(self):
         """
@@ -58,7 +59,7 @@ class ImageHDU(HDUBase):
 
         For tables, check that the row count is not zero
         """
-        ndims = self._info.get('ndims', 0)
+        ndims = self._info.get("ndims", 0)
         if ndims == 0:
             return False
         else:
@@ -68,7 +69,7 @@ class ImageHDU(HDUBase):
         """
         returns true of this extension is compressed
         """
-        return self._info['is_compressed_image'] == 1
+        return self._info["is_compressed_image"] == 1
 
     def get_comptype(self):
         """
@@ -76,14 +77,14 @@ class ImageHDU(HDUBase):
 
         None if the image is not compressed.
         """
-        return self._info['comptype']
+        return self._info["comptype"]
 
     def get_dims(self):
         """
         get the shape of the image.  Returns () for empty
         """
-        if self._info['ndims'] != 0:
-            dims = self._info['dims']
+        if self._info["ndims"] != 0:
+            dims = self._info["dims"]
         else:
             dims = ()
 
@@ -99,8 +100,8 @@ class ImageHDU(HDUBase):
             Any sequence convertible to i8
         """
 
-        adims = numpy.array(dims, ndmin=1, dtype='i8')
-        self._FITS.reshape_image(self._ext+1, adims)
+        adims = numpy.array(dims, ndmin=1, dtype="i8")
+        self._FITS.reshape_image(self._ext + 1, adims)
 
     def write(self, img, start=0, **keys):
         """
@@ -123,10 +124,13 @@ class ImageHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         dims = self.get_dims()
 
@@ -136,17 +140,17 @@ class ImageHDU(HDUBase):
             raise ValueError("data must have at least 1 row")
 
         # data must be c-contiguous and native byte order
-        if not img.flags['C_CONTIGUOUS']:
+        if not img.flags["C_CONTIGUOUS"]:
             # this always makes a copy
             img_send = numpy.ascontiguousarray(img)
             array_to_native(img_send, inplace=True)
         else:
             img_send = array_to_native(img, inplace=False)
 
-        if IS_PY3 and img_send.dtype.char == 'U':
+        if IS_PY3 and img_send.dtype.char == "U":
             # for python3, we convert unicode to ascii
             # this will error if the character is not in ascii
-            img_send = img_send.astype('S', copy=copy_if_needed)
+            img_send = img_send.astype("S", copy=copy_if_needed)
 
         if not numpy.isscalar(start):
             # convert to scalar offset
@@ -160,7 +164,7 @@ class ImageHDU(HDUBase):
         if self.has_data():
             self._expand_if_needed(dims, img.shape, start, offset)
 
-        self._FITS.write_image(self._ext+1, img_send, offset+1)
+        self._FITS.write_image(self._ext + 1, img_send, offset + 1)
         self._update_info()
 
     def read(self, **keys):
@@ -173,17 +177,20 @@ class ImageHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if not self.has_data():
             return None
 
         dtype, shape = self._get_dtype_and_shape()
         array = numpy.zeros(shape, dtype=dtype)
-        self._FITS.read_image(self._ext+1, array)
+        self._FITS.read_image(self._ext + 1, array)
         return array
 
     def _get_dtype_and_shape(self):
@@ -192,8 +199,8 @@ class ImageHDU(HDUBase):
         """
         npy_dtype = self._get_image_numpy_dtype()
 
-        if self._info['ndims'] != 0:
-            shape = self._info['dims']
+        if self._info["ndims"] != 0:
+            shape = self._info["dims"]
         else:
             raise IOError("no image present in HDU")
 
@@ -204,7 +211,7 @@ class ImageHDU(HDUBase):
         Get the numpy dtype for the image
         """
         try:
-            ftype = self._info['img_equiv_type']
+            ftype = self._info["img_equiv_type"]
             npy_type = _image_bitpix2npy[ftype]
         except KeyError:
             raise KeyError("unsupported fits data type: %d" % ftype)
@@ -223,7 +230,7 @@ class ImageHDU(HDUBase):
         """
         workhorse to read a slice
         """
-        if 'ndims' not in self._info:
+        if "ndims" not in self._info:
             raise ValueError("Attempt to slice empty extension")
 
         if isinstance(arg, slice):
@@ -231,15 +238,18 @@ class ImageHDU(HDUBase):
             return self._read_image_slice((arg,))
 
         if not isinstance(arg, tuple):
-            raise ValueError("arguments must be slices, one for each "
-                             "dimension, e.g. [2:5] or [2:5,8:25] etc.")
+            raise ValueError(
+                "arguments must be slices, one for each "
+                "dimension, e.g. [2:5] or [2:5,8:25] etc."
+            )
 
         # should be a tuple of slices, one for each dimension
         # e.g. [2:3, 8:100]
         nd = len(arg)
-        if nd != self._info['ndims']:
-            raise ValueError("Got slice dimensions %d, "
-                             "expected %d" % (nd, self._info['ndims']))
+        if nd != self._info["ndims"]:
+            raise ValueError(
+                "Got slice dimensions %d, expected %d" % (nd, self._info["ndims"])
+            )
 
         targ = arg
         arg = []
@@ -247,11 +257,11 @@ class ImageHDU(HDUBase):
             if isinstance(a, slice):
                 arg.append(a)
             elif isinstance(a, int):
-                arg.append(slice(a, a+1, 1))
+                arg.append(slice(a, a + 1, 1))
             else:
                 raise ValueError("arguments must be slices, e.g. 2:12")
 
-        dims = self._info['dims']
+        dims = self._info["dims"]
         arrdims = []
         first = []
         last = []
@@ -278,9 +288,11 @@ class ImageHDU(HDUBase):
                     step = -1
 
             # Sanity checks for proper syntax.
-            if ((step > 0 and stop < start)
-                    or (step < 0 and start < stop)
-                    or (start == stop)):
+            if (
+                (step > 0 and stop < start)
+                or (step < 0 and start < stop)
+                or (start == stop)
+            ):
                 return numpy.empty(0, dtype=npy_dtype)
 
             if start < 0:
@@ -320,13 +332,14 @@ class ImageHDU(HDUBase):
         first.reverse()
         last.reverse()
         steps.reverse()
-        first = numpy.array(first, dtype='i8')
-        last = numpy.array(last, dtype='i8')
-        steps = numpy.array(steps, dtype='i8')
+        first = numpy.array(first, dtype="i8")
+        last = numpy.array(last, dtype="i8")
+        steps = numpy.array(steps, dtype="i8")
 
         array = numpy.zeros(arrdims, dtype=npy_dtype)
-        self._FITS.read_image_slice(self._ext+1, first, last, steps,
-                                    self._ignore_scaling, array)
+        self._FITS.read_image_slice(
+            self._ext + 1, first, last, steps, self._ignore_scaling, array
+        )
         return array
 
     def _expand_if_needed(self, dims, write_dims, start, offset):
@@ -351,13 +364,14 @@ class ImageHDU(HDUBase):
 
             if start_is_scalar:
                 if start == 0:
-                    start = [0]*ndim
+                    start = [0] * ndim
                 else:
                     raise ValueError(
                         "When expanding "
                         "an existing image while writing, the start keyword "
                         "must have the same number of dimensions "
-                        "as the image or be exactly 0, got %s " % start)
+                        "as the image or be exactly 0, got %s " % start
+                    )
 
             if idim != ndim:
                 raise ValueError(
@@ -365,7 +379,8 @@ class ImageHDU(HDUBase):
                     "an existing image while writing, the input image "
                     "must have the same number of dimensions "
                     "as the original.  "
-                    "Got %d instead of %d" % (idim, ndim))
+                    "Got %d instead of %d" % (idim, ndim)
+                )
             new_dims = []
             for i in xrange(ndim):
                 required_dim = start[i] + write_dims[i]
@@ -386,25 +401,24 @@ class ImageHDU(HDUBase):
         """
         text, spacing = self._get_repr_list()
         text.append("%simage info:" % spacing)
-        cspacing = ' '*4
+        cspacing = " " * 4
 
         # need this check for when we haven't written data yet
-        if 'ndims' in self._info:
-            if self._info['comptype'] is not None:
-                text.append(
-                    "%scompression: %s" % (cspacing, self._info['comptype']))
+        if "ndims" in self._info:
+            if self._info["comptype"] is not None:
+                text.append("%scompression: %s" % (cspacing, self._info["comptype"]))
 
-            if self._info['ndims'] != 0:
-                dimstr = [str(d) for d in self._info['dims']]
+            if self._info["ndims"] != 0:
+                dimstr = [str(d) for d in self._info["dims"]]
                 dimstr = ",".join(dimstr)
             else:
-                dimstr = ''
+                dimstr = ""
 
-            dt = _image_bitpix2npy[self._info['img_equiv_type']]
+            dt = _image_bitpix2npy[self._info["img_equiv_type"]]
             text.append("%sdata type: %s" % (cspacing, dt))
             text.append("%sdims: [%s]" % (cspacing, dimstr))
 
-        text = '\n'.join(text)
+        text = "\n".join(text)
         return text
 
 
@@ -421,23 +435,24 @@ def _convert_full_start_to_offset(dims, start):
     # this is really strides / itemsize
     strides = [1]
     for i in xrange(1, ndim):
-        strides.append(strides[i-1] * dims[ndim-i])
+        strides.append(strides[i - 1] * dims[ndim - i])
 
     strides.reverse()
     s = start
-    start_index = sum([s[i]*strides[i] for i in xrange(ndim)])
+    start_index = sum([s[i] * strides[i] for i in xrange(ndim)])
 
     return start_index
 
 
 # remember, you should be using the equivalent image type for this
 _image_bitpix2npy = {
-    8: 'u1',
-    10: 'i1',
-    16: 'i2',
-    20: 'u2',
-    32: 'i4',
-    40: 'u4',
-    64: 'i8',
-    -32: 'f4',
-    -64: 'f8'}
+    8: "u1",
+    10: "i1",
+    16: "i2",
+    20: "u2",
+    32: "i4",
+    40: "u4",
+    64: "i8",
+    -32: "f4",
+    -64: "f8",
+}
