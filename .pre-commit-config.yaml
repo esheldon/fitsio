@@ -9,6 +9,8 @@ ci:
     skip: []
     submodules: false
 
+exclude: '(^cfitsio-.*\/)|(^patches\/.*)'
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -22,7 +24,5 @@ repos:
       # Run the linter.
       - id: ruff
         args: [ --fix ]
-        exclude: '^cfitsio-.*\/'
       # Run the formatter.
       - id: ruff-format
-        exclude: '^cfitsio-.*\/'
