@@ -9,7 +9,7 @@ ci:
     skip: []
     submodules: false
 
-exclude: '(^cfitsio-.*\/)|(^patches\/.*)'
+exclude: '(^cfitsio-.*\/)|(^patches\/.*)|(^fitsio\/test_images\/.*)|(^zlib\/.*)'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
