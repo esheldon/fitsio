@@ -5,6 +5,7 @@ from ..fitslib import write, FITS
 
 
 def test_empty_image_slice():
+
     shape = (10, 10)
     data = np.arange(shape[0] * shape[1]).reshape(shape)
 

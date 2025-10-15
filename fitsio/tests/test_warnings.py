@@ -29,11 +29,9 @@ def test_non_standard_key_value():
 
             assert len(filtered_warnings) == 1, (
                 'Wrong length of output (Expected {} but got {}.)'.format(
-                    1,
-                    len(filtered_warnings),
+                    1, len(filtered_warnings),
                 )
             )
             assert issubclass(
-                filtered_warnings[-1].category,
-                FITSRuntimeWarning,
+                filtered_warnings[-1].category, FITSRuntimeWarning,
             )

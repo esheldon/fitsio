@@ -20,15 +20,18 @@ from .fitslib import (
     write,
     READONLY,
     READWRITE,
+
     NOCOMPRESS,
     RICE_1,
     GZIP_1,
     GZIP_2,
     PLIO_1,
     HCOMPRESS_1,
+
     NO_DITHER,
     SUBTRACTIVE_DITHER_1,
     SUBTRACTIVE_DITHER_2,
+
     NOT_SET,
 )
 
