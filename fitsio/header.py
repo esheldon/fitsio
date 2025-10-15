@@ -20,7 +20,6 @@ See the main docs at https://github.com/esheldon/fitsio
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
-
 from __future__ import with_statement, print_function
 import warnings
 
@@ -105,8 +104,8 @@ class FITSHDR(object):
         hdr=FITSHDR(recs)
 
     """
-
     def __init__(self, record_list=None):
+
         self._record_list = []
         self._record_map = {}
         self._index_map = {}
@@ -116,7 +115,7 @@ class FITSHDR(object):
                 self.add_record(r)
         elif isinstance(record_list, dict):
             for k in record_list:
-                r = {"name": k, "value": record_list[k]}
+                r = {'name': k, 'value': record_list[k]}
                 self.add_record(r)
         elif isinstance(record_list, list):
             for r in record_list:
@@ -137,7 +136,8 @@ class FITSHDR(object):
             The record, either a dict or a header card string
             or a FITSRecord or FITSCard
         """
-        if isinstance(record_in, dict) and "name" in record_in and "value" in record_in:
+        if (isinstance(record_in, dict) and
+                'name' in record_in and 'value' in record_in):
             record = {}
             record.update(record_in)
         else:
@@ -145,16 +145,16 @@ class FITSHDR(object):
 
         # only append when this name already exists if it is
         # a comment or history field, otherwise simply over-write
-        key = record["name"]
+        key = record['name']
         if key is not None:
             key = key.upper()
 
         key_exists = key in self._record_map
 
-        if not key_exists or key in ("COMMENT", "HISTORY", "CONTINUE", None):
+        if not key_exists or key in ('COMMENT', 'HISTORY', 'CONTINUE', None):
             # append new record
             self._record_list.append(record)
-            index = len(self._record_list) - 1
+            index = len(self._record_list)-1
             self._index_map[key] = index
         else:
             # over-write existing
@@ -164,7 +164,7 @@ class FITSHDR(object):
         self._record_map[key] = record
 
     def _add_to_map(self, record):
-        key = record["name"].upper()
+        key = record['name'].upper()
         self._record_map[key] = record
 
     def get_comment(self, item):
@@ -175,10 +175,10 @@ class FITSHDR(object):
         if key not in self._record_map:
             raise KeyError("unknown record: %s" % key)
 
-        if "comment" not in self._record_map[key]:
+        if 'comment' not in self._record_map[key]:
             return None
         else:
-            return self._record_map[key]["comment"]
+            return self._record_map[key]['comment']
 
     def records(self):
         """
@@ -190,7 +190,7 @@ class FITSHDR(object):
         """
         Return a copy of the current key list.
         """
-        return [e["name"] for e in self._record_list]
+        return [e['name'] for e in self._record_list]
 
     def delete(self, name):
         """
@@ -206,7 +206,8 @@ class FITSHDR(object):
                 cur_index = self._index_map[name]
                 # Delete in index map
                 del self._index_map[name]
-                self._record_list = [r for r in self._record_list if r["name"] != name]
+                self._record_list = [
+                    r for r in self._record_list if r['name'] != name]
 
                 # Change index map for superior indexes, only
                 for k, v in self._index_map.items():
@@ -227,89 +228,62 @@ class FITSHDR(object):
         """
 
         rmnames = [
-            "SIMPLE",
-            "EXTEND",
-            "XTENSION",
-            "BITPIX",
-            "PCOUNT",
-            "GCOUNT",
-            "THEAP",
-            "EXTNAME",
+            'SIMPLE', 'EXTEND', 'XTENSION', 'BITPIX', 'PCOUNT', 'GCOUNT',
+            'THEAP',
+            'EXTNAME',
             # 'BLANK',
-            "ZQUANTIZ",
-            "ZDITHER0",
-            "ZIMAGE",
-            "ZCMPTYPE",
-            "ZSIMPLE",
-            "ZTENSION",
-            "ZPCOUNT",
-            "ZGCOUNT",
-            "ZBITPIX",
-            "ZEXTEND",
+            'ZQUANTIZ', 'ZDITHER0', 'ZIMAGE', 'ZCMPTYPE',
+            'ZSIMPLE', 'ZTENSION', 'ZPCOUNT', 'ZGCOUNT',
+            'ZBITPIX', 'ZEXTEND',
             # 'FZTILELN','FZALGOR',
-            "CHECKSUM",
-            "DATASUM",
-        ]
+            'CHECKSUM', 'DATASUM']
 
         if is_table:
             # these are not allowed in tables
             rmnames += [
-                "BUNIT",
-                "BSCALE",
-                "BZERO",
+                'BUNIT', 'BSCALE', 'BZERO',
             ]
 
         self.delete(rmnames)
 
-        r = self._record_map.get("NAXIS", None)
+        r = self._record_map.get('NAXIS', None)
         if r is not None:
-            naxis = int(r["value"])
-            self.delete("NAXIS")
+            naxis = int(r['value'])
+            self.delete('NAXIS')
 
-            rmnames = ["NAXIS%d" % i for i in xrange(1, naxis + 1)]
+            rmnames = ['NAXIS%d' % i for i in xrange(1, naxis+1)]
             self.delete(rmnames)
 
-        r = self._record_map.get("ZNAXIS", None)
-        self.delete("ZNAXIS")
+        r = self._record_map.get('ZNAXIS', None)
+        self.delete('ZNAXIS')
         if r is not None:
-            znaxis = int(r["value"])
 
-            rmnames = ["ZNAXIS%d" % i for i in xrange(1, znaxis + 1)]
+            znaxis = int(r['value'])
+
+            rmnames = ['ZNAXIS%d' % i for i in xrange(1, znaxis+1)]
             self.delete(rmnames)
-            rmnames = ["ZTILE%d" % i for i in xrange(1, znaxis + 1)]
+            rmnames = ['ZTILE%d' % i for i in xrange(1, znaxis+1)]
             self.delete(rmnames)
-            rmnames = ["ZNAME%d" % i for i in xrange(1, znaxis + 1)]
+            rmnames = ['ZNAME%d' % i for i in xrange(1, znaxis+1)]
             self.delete(rmnames)
-            rmnames = ["ZVAL%d" % i for i in xrange(1, znaxis + 1)]
+            rmnames = ['ZVAL%d' % i for i in xrange(1, znaxis+1)]
             self.delete(rmnames)
 
-        r = self._record_map.get("TFIELDS", None)
+        r = self._record_map.get('TFIELDS', None)
         if r is not None:
-            tfields = int(r["value"])
-            self.delete("TFIELDS")
+            tfields = int(r['value'])
+            self.delete('TFIELDS')
 
             if tfields > 0:
+
                 nbase = [
-                    "TFORM",
-                    "TTYPE",
-                    "TDIM",
-                    "TUNIT",
-                    "TSCAL",
-                    "TZERO",
-                    "TNULL",
-                    "TDISP",
-                    "TDMIN",
-                    "TDMAX",
-                    "TDESC",
-                    "TROTA",
-                    "TRPIX",
-                    "TRVAL",
-                    "TDELT",
-                    "TCUNI",
+                    'TFORM', 'TTYPE', 'TDIM', 'TUNIT', 'TSCAL', 'TZERO',
+                    'TNULL', 'TDISP', 'TDMIN', 'TDMAX', 'TDESC', 'TROTA',
+                    'TRPIX', 'TRVAL', 'TDELT', 'TCUNI',
                     # 'FZALG'
                 ]
-                for i in xrange(1, tfields + 1):
-                    names = ["%s%d" % (n, i) for n in nbase]
+                for i in xrange(1, tfields+1):
+                    names = ['%s%d' % (n, i) for n in nbase]
                     self.delete(names)
 
     def get(self, item, default_value=None):
@@ -319,7 +293,7 @@ class FITSHDR(object):
 
         found, name = self._contains_and_name(item)
         if found:
-            return self._record_map[name]["value"]
+            return self._record_map[name]['value']
         else:
             return default_value
 
@@ -331,10 +305,11 @@ class FITSHDR(object):
         return found
 
     def _contains_and_name(self, item):
+
         if isinstance(item, FITSRecord):
-            name = item["name"]
+            name = item['name']
         elif isinstance(item, dict):
-            name = item.get("name", None)
+            name = item.get('name', None)
             if name is None:
                 raise ValueError("dict record must have 'name' field")
         else:
@@ -348,7 +323,7 @@ class FITSHDR(object):
             name = name.upper()
             if name in self._record_map:
                 found = True
-            elif name[0:8] == "HIERARCH":
+            elif name[0:8] == 'HIERARCH':
                 if len(name) > 9:
                     name = name[9:]
                     if name in self._record_map:
@@ -358,18 +333,17 @@ class FITSHDR(object):
 
     def __setitem__(self, item, value):
         if isinstance(value, (dict, FITSRecord)):
-            if item.upper() != value["name"].upper():
-                raise ValueError(
-                    "when setting using a FITSRecord, the name field must match"
-                )
+            if item.upper() != value['name'].upper():
+                raise ValueError("when setting using a FITSRecord, the "
+                                 "name field must match")
             rec = value
         else:
-            rec = {"name": item, "value": value}
+            rec = {'name': item, 'value': value}
 
         try:
             # the entry may already exist; if so, preserve the comment
             comment = self.get_comment(item)
-            rec["comment"] = comment
+            rec['comment'] = comment
         except KeyError:
             pass
 
@@ -391,12 +365,11 @@ class FITSHDR(object):
         """
         if self._current < len(self._record_list):
             rec = self._record_list[self._current]
-            key = rec["name"]
+            key = rec['name']
             self._current += 1
             return key
         else:
             raise StopIteration
-
     __next__ = next
 
     def _record2card(self, record):
@@ -421,25 +394,25 @@ class FITSHDR(object):
               then the comment out to 80 chars
 
         """
-        name = record["name"]
-        value = record["value"]
-        comment = record.get("comment", "")
+        name = record['name']
+        value = record['value']
+        comment = record.get('comment', '')
 
         v_isstring = isstring(value)
 
         if name is None:
-            card = "         %s" % comment
-        elif name == "COMMENT":
-            card = "COMMENT %s" % comment
-        elif name == "CONTINUE":
-            card = "CONTINUE   %s" % value
-        elif name == "HISTORY":
-            card = "HISTORY %s" % value
+            card = '         %s' % comment
+        elif name == 'COMMENT':
+            card = 'COMMENT %s' % comment
+        elif name == 'CONTINUE':
+            card = 'CONTINUE   %s' % value
+        elif name == 'HISTORY':
+            card = 'HISTORY %s' % value
         else:
             if len(name) > 8:
-                card = "HIERARCH %s= " % name
+                card = 'HIERARCH %s= ' % name
             else:
-                card = "%-8s= " % name[0:8]
+                card = '%-8s= ' % name[0:8]
 
             # these may be string representations of data, or actual strings
             if v_isstring:
@@ -449,24 +422,24 @@ class FITSHDR(object):
                         # this is a string representing a string header field
                         # make it look like it will look in the header
                         value = "'" + value + "'"
-                        vstr = "%-20s" % value
+                        vstr = '%-20s' % value
                     else:
                         vstr = "%20s" % value
                 else:
                     vstr = "''"
             else:
                 if value is True:
-                    value = "T"
+                    value = 'T'
                 elif value is False:
-                    value = "F"
+                    value = 'F'
 
                 # upper for things like 1.0E20 rather than 1.0e20
-                vstr = ("%20s" % value).upper()
+                vstr = ('%20s' % value).upper()
 
             card += vstr
 
-            if "comment" in record:
-                card += " / %s" % record["comment"]
+            if 'comment' in record:
+                card += ' / %s' % record['comment']
 
         if v_isstring and len(card) > 80:
             card = card[0:79] + "'"
@@ -476,7 +449,7 @@ class FITSHDR(object):
         return card
 
     def __repr__(self):
-        rep = [""]
+        rep = ['']
         for r in self._record_list:
             card = self._record2card(r)
             # if 'card_string' not in r:
@@ -485,7 +458,7 @@ class FITSHDR(object):
             #     card = r['card_string']
 
             rep.append(card)
-        return "\n".join(rep)
+        return '\n'.join(rep)
 
 
 class FITSRecord(dict):
@@ -510,7 +483,6 @@ class FITSRecord(dict):
     card=FITSRecord('test    =                   77 / My comment')
 
     """
-
     def __init__(self, record):
         self.set_record(record)
 
@@ -527,13 +499,10 @@ class FITSRecord(dict):
 
         if keys:
             import warnings
-
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning,
-                stacklevel=2,
-            )
+                DeprecationWarning, stacklevel=2)
 
         if isstring(record):
             card = FITSCard(record)
@@ -542,35 +511,34 @@ class FITSRecord(dict):
             self.verify()
 
         else:
+
             if isinstance(record, FITSRecord):
                 self.update(record)
             elif isinstance(record, dict):
-                if "name" in record and "value" in record:
+                if 'name' in record and 'value' in record:
                     self.update(record)
 
-                elif "card_string" in record:
-                    self.set_record(record["card_string"])
+                elif 'card_string' in record:
+                    self.set_record(record['card_string'])
 
                 else:
-                    raise ValueError(
-                        "record must have name,value fields or a card_string field"
-                    )
+                    raise ValueError('record must have name,value fields '
+                                     'or a card_string field')
             else:
-                raise ValueError(
-                    "record must be a string card or dictionary or FITSRecord"
-                )
+                raise ValueError("record must be a string card or "
+                                 "dictionary or FITSRecord")
 
     def verify(self):
         """
         make sure name,value exist
         """
-        if "name" not in self:
+        if 'name' not in self:
             raise ValueError("each record must have a 'name' field")
-        if "value" not in self:
+        if 'value' not in self:
             raise ValueError("each record must have a 'value' field")
 
 
-_BLANK = "       "
+_BLANK = '       '
 
 
 class FITSCard(FITSRecord):
@@ -585,12 +553,11 @@ class FITSCard(FITSRecord):
     # from a card
     card=FITSRecord('test    =                   77 / My comment')
     """
-
     def __init__(self, card_string):
         self.set_card(card_string)
 
     def set_card(self, card_string):
-        self["card_string"] = card_string
+        self['card_string'] = card_string
 
         self._check_hierarch()
 
@@ -603,15 +570,12 @@ class FITSCard(FITSRecord):
             self._check_len()
 
             front = card_string[0:7]
-            if not self.has_equals() or front in [
-                "COMMENT",
-                "HISTORY",
-                "CONTINU",
-                _BLANK,
-            ]:
-                if front == "HISTORY":
+            if (not self.has_equals() or
+                    front in ['COMMENT', 'HISTORY', 'CONTINU', _BLANK]):
+
+                if front == 'HISTORY':
                     self._set_as_history()
-                elif front == "CONTINU":
+                elif front == 'CONTINU':
                     self._set_as_continue()
                 elif front == _BLANK:
                     self._set_as_blank()
@@ -626,8 +590,7 @@ class FITSCard(FITSRecord):
                         "warning: It is not FITS-compliant for a %s header "
                         "card to include an = sign. There may be slight "
                         "inconsistencies if you write this back out to a "
-                        "file."
-                    )
+                        "file.")
                     mess = mess % (card_string[:8])
                     warnings.warn(mess, FITSRuntimeWarning)
             else:
@@ -640,8 +603,8 @@ class FITSCard(FITSRecord):
         return self._has_equals
 
     def _check_hierarch(self):
-        card_string = self["card_string"]
-        if card_string[0:8].upper() == "HIERARCH":
+        card_string = self['card_string']
+        if card_string[0:8].upper() == 'HIERARCH':
             self._is_hierarch = True
         else:
             self._is_hierarch = False
@@ -650,16 +613,16 @@ class FITSCard(FITSRecord):
         """
         check for = in position 8, set attribute _has_equals
         """
-        card_string = self["card_string"]
+        card_string = self['card_string']
         if len(card_string) < 9:
             self._has_equals = False
-        elif card_string[8] == "=":
+        elif card_string[8] == '=':
             self._has_equals = True
         else:
             self._has_equals = False
 
     def _set_as_key(self):
-        card_string = self["card_string"]
+        card_string = self['card_string']
         res = _fitsio_wrap.parse_card(card_string)
         if len(res) == 5:
             keyclass, name, value, dtype, comment = res
@@ -668,41 +631,42 @@ class FITSCard(FITSRecord):
             value = None
 
         if keyclass == TYP_CONT_KEY:
-            raise ValueError("bad card '%s'.  CONTINUE not supported" % card_string)
+            raise ValueError("bad card '%s'.  CONTINUE not "
+                             "supported" % card_string)
 
-        self["class"] = keyclass
-        self["name"] = name
-        self["value_orig"] = value
-        self["value"] = self._convert_value(value)
-        self["dtype"] = dtype
-        self["comment"] = comment
+        self['class'] = keyclass
+        self['name'] = name
+        self['value_orig'] = value
+        self['value'] = self._convert_value(value)
+        self['dtype'] = dtype
+        self['comment'] = comment
 
     def _set_as_blank(self):
-        self["class"] = TYP_USER_KEY
-        self["name"] = None
-        self["value"] = None
-        self["comment"] = self["card_string"][8:]
+        self['class'] = TYP_USER_KEY
+        self['name'] = None
+        self['value'] = None
+        self['comment'] = self['card_string'][8:]
 
     def _set_as_comment(self):
         comment = self._extract_comm_or_hist_value()
 
-        self["class"] = TYP_COMM_KEY
-        self["name"] = "COMMENT"
-        self["value"] = comment
+        self['class'] = TYP_COMM_KEY
+        self['name'] = 'COMMENT'
+        self['value'] = comment
 
     def _set_as_history(self):
         history = self._extract_comm_or_hist_value()
 
-        self["class"] = TYP_COMM_KEY
-        self["name"] = "HISTORY"
-        self["value"] = history
+        self['class'] = TYP_COMM_KEY
+        self['name'] = 'HISTORY'
+        self['value'] = history
 
     def _set_as_continue(self):
         value = self._extract_comm_or_hist_value()
 
-        self["class"] = TYP_CONT_KEY
-        self["name"] = "CONTINUE"
-        self["value"] = value
+        self['class'] = TYP_CONT_KEY
+        self['name'] = 'CONTINUE'
+        self['value'] = value
 
     def _convert_value(self, value_orig):
         """
@@ -711,13 +675,13 @@ class FITSCard(FITSRecord):
         Things like 'hello' are stripped of quotes
         """
         import ast
-
         if value_orig is None:
             return value_orig
 
         if value_orig.startswith("'") and value_orig.endswith("'"):
             value = value_orig[1:-1]
         else:
+
             try:
                 avalue = ast.parse(value_orig).body[0].value
                 if isinstance(avalue, ast.BinOp):
@@ -729,41 +693,42 @@ class FITSCard(FITSRecord):
             except Exception:
                 value = self._convert_string(value_orig)
 
-            if isinstance(value, int) and "_" in value_orig:
+            if isinstance(value, int) and '_' in value_orig:
                 value = value_orig
 
         return value
 
     def _convert_string(self, s):
-        if s == "T":
+        if s == 'T':
             return True
-        elif s == "F":
+        elif s == 'F':
             return False
         else:
             return s
 
     def _extract_comm_or_hist_value(self):
-        card_string = self["card_string"]
+        card_string = self['card_string']
         if self._has_equals:
             if len(card_string) >= 9:
                 value = card_string[9:]
             else:
-                value = ""
+                value = ''
         else:
             if len(card_string) >= 8:
                 # value=card_string[7:]
                 value = card_string[8:]
             else:
-                value = ""
+                value = ''
         return value
 
     def _check_type(self):
-        card_string = self["card_string"]
+        card_string = self['card_string']
         if not isstring(card_string):
-            raise TypeError("card must be a string, got type %s" % type(card_string))
+            raise TypeError(
+                "card must be a string, got type %s" % type(card_string))
 
     def _check_len(self):
-        ln = len(self["card_string"])
+        ln = len(self['card_string'])
         if ln > 80:
             mess = "len(card) is %d.  cards must have length < 80"
             raise ValueError(mess)

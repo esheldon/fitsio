@@ -1,7 +1,6 @@
 """
 utilities for the fits library
 """
-
 import sys
 import numpy
 
@@ -22,7 +21,7 @@ def cfitsio_version(asfloat=False):
     Return the cfitsio version as a string.
     """
     # use string version to avoid roundoffs
-    ver = "%0.3f" % _fitsio_wrap.cfitsio_version()
+    ver = '%0.3f' % _fitsio_wrap.cfitsio_version()
     if asfloat:
         return float(ver)
     else:
@@ -41,33 +40,18 @@ if sys.version_info > (3, 0, 0):
     _stypes = (str, bytes)
 else:
     _itypes = (int, long)  # noqa - only for py2
-    _stypes = (
-        basestring,  # noqa: F821
-        unicode,  # noqa: F821
-    )  # noqa - only for py2
+    _stypes = (basestring, unicode,)  # noqa - only for py2
 
-_itypes += (
-    numpy.uint8,
-    numpy.int8,
-    numpy.uint16,
-    numpy.int16,
-    numpy.uint32,
-    numpy.int32,
-    numpy.uint64,
-    numpy.int64,
-)
+_itypes += (numpy.uint8, numpy.int8,
+            numpy.uint16, numpy.int16,
+            numpy.uint32, numpy.int32,
+            numpy.uint64, numpy.int64)
 
 # different for py3
 if numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
-    _stypes += (
-        numpy.string_,
-        numpy.str_,
-    )
+    _stypes += (numpy.string_, numpy.str_,)
 else:
-    _stypes += (
-        numpy.bytes_,
-        numpy.str_,
-    )
+    _stypes += (numpy.bytes_, numpy.str_,)
 
 # for header keywords
 _ftypes = (float, numpy.float32, numpy.float64)
@@ -82,7 +66,7 @@ def isinteger(arg):
 
 
 def is_object(arr):
-    if arr.dtype.descr[0][1][1] == "O":
+    if arr.dtype.descr[0][1][1] == 'O':
         return True
     else:
         return False
@@ -121,7 +105,7 @@ def is_little_endian(array):
         machine_little = False
 
     byteorder = array.dtype.base.byteorder
-    return (byteorder == "<") or (machine_little and byteorder == "=")
+    return (byteorder == '<') or (machine_little and byteorder == '=')
 
 
 def array_to_native(array, inplace=False):
@@ -137,7 +121,8 @@ def array_to_native(array, inplace=False):
 
     data_little = False
     if array.dtype.names is None:
-        if array.dtype.base.byteorder == "|":
+
+        if array.dtype.base.byteorder == '|':
             # strings and 1 byte integers
             return array
 
@@ -150,12 +135,13 @@ def array_to_native(array, inplace=False):
                 data_little = True
                 break
 
-    if (machine_little and not data_little) or (not machine_little and data_little):
+    if ((machine_little and not data_little)
+            or (not machine_little and data_little)):
         output = array.byteswap(inplace)
     else:
         output = array
 
-    return numpy.require(output, requirements=["ALIGNED"])
+    return numpy.require(output, requirements=['ALIGNED'])
 
 
 if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
@@ -175,7 +161,7 @@ def array_to_native_c(array_in, inplace=False):
     # copy only made if not C order
     arr = numpy.require(
         array_in,
-        requirements=["C_CONTIGUOUS", "ALIGNED"],
+        requirements=['C_CONTIGUOUS', 'ALIGNED'],
     )
     return array_to_native(arr, inplace=inplace)
 
@@ -186,7 +172,7 @@ def mks(val):
     """
     if sys.version_info > (3, 0, 0):
         if isinstance(val, bytes):
-            sval = str(val, "utf-8")
+            sval = str(val, 'utf-8')
         else:
             sval = str(val)
     else:
