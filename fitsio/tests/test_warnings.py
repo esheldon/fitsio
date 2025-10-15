@@ -24,14 +24,19 @@ def test_non_standard_key_value():
             # FITSRuntimeWarning instances.
             # @at88mph  2019.10.09
             filtered_warnings = list(
-                filter(lambda x: 'FITSRuntimeWarning' in '{}'.format(x.category), w)  # noqa
+                filter(
+                    lambda x: 'FITSRuntimeWarning' in '{}'.format(x.category),
+                    w,
+                )  # noqa
             )
 
             assert len(filtered_warnings) == 1, (
                 'Wrong length of output (Expected {} but got {}.)'.format(
-                    1, len(filtered_warnings),
+                    1,
+                    len(filtered_warnings),
                 )
             )
             assert issubclass(
-                filtered_warnings[-1].category, FITSRuntimeWarning,
+                filtered_warnings[-1].category,
+                FITSRuntimeWarning,
             )

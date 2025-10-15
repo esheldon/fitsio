@@ -19,7 +19,6 @@ def test_move_by_name():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             data1 = np.zeros(nrows, dtype=[('ra', 'f8'), ('dec', 'f8')])
             data1['ra'] = rng.uniform(nrows)
             data1['dec'] = rng.uniform(nrows)
@@ -54,10 +53,9 @@ def test_ext_ver():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
-            img1 = np.arange(2*3, dtype='i4').reshape(2, 3) + 5
-            img2 = np.arange(2*3, dtype='i4').reshape(2, 3) + 6
-            img3 = np.arange(2*3, dtype='i4').reshape(2, 3) + 7
+            img1 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 5
+            img2 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 6
+            img3 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 7
 
             nrows = 3
             data1 = np.zeros(nrows, dtype=dtype)
