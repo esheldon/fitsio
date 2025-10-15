@@ -13,15 +13,16 @@ def test_free_form_string():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with open(fname, 'w') as f:
-            s = ("SIMPLE  =                    T / Standard FITS                                  " + # noqa
-                 "BITPIX  =                   16 / number of bits per data pixel                  " + # noqa
-                 "NAXIS   =                    0 / number of data axes                            " + # noqa
-                 "EXTEND  =                    T / File contains extensions                       " + # noqa
-                 "PHOTREF =   'previous MegaCam' / Source: cum.photcat                            " + # noqa
-                 "EXTRA   =                    7 / need another line following PHOTREF            " + # noqa
-                 "END                                                                             " # noqa
-                 )
-            f.write(s + ' ' * (2880-len(s)))
+            s = (
+                'SIMPLE  =                    T / Standard FITS                                  '  # noqa
+                + 'BITPIX  =                   16 / number of bits per data pixel                  '  # noqa
+                + 'NAXIS   =                    0 / number of data axes                            '  # noqa
+                + 'EXTEND  =                    T / File contains extensions                       '  # noqa
+                + "PHOTREF =   'previous MegaCam' / Source: cum.photcat                            "  # noqa
+                + 'EXTRA   =                    7 / need another line following PHOTREF            '  # noqa
+                + 'END                                                                             '  # noqa
+            )
+            f.write(s + ' ' * (2880 - len(s)))
         hdr = read_header(fname)
         assert hdr['PHOTREF'] == 'previous MegaCam'
 
@@ -30,12 +31,10 @@ def test_add_delete_and_update_records():
     # Build a FITSHDR from a few records (no need to write on disk)
     # Record names have to be in upper case to match with FITSHDR.add_record
     recs = [
-        {'name': "First_record".upper(), 'value': 1,
-         'comment': "number 1"},
-        {'name': "Second_record".upper(), 'value': "2"},
-        {'name': "Third_record".upper(), 'value': "3"},
-        {'name': "Last_record".upper(), 'value': 4,
-         'comment': "number 4"}
+        {'name': 'First_record'.upper(), 'value': 1, 'comment': 'number 1'},
+        {'name': 'Second_record'.upper(), 'value': '2'},
+        {'name': 'Third_record'.upper(), 'value': '3'},
+        {'name': 'Last_record'.upper(), 'value': 4, 'comment': 'number 4'},
     ]
     hdr = FITSHDR(recs)
 
@@ -71,9 +70,7 @@ def testHeaderCommentPreserved():
     hdr.add_record(l2)
 
     hdr['key1'] = 99
-    assert hdr.get_comment('key1') == 'My comment1', (
-        'comment not preserved'
-    )
+    assert hdr.get_comment('key1') == 'My comment1', 'comment not preserved'
 
 
 def test_header_write_read():
@@ -92,10 +89,10 @@ def test_header_write_read():
             header = {
                 'x': 35,
                 'y': 88.215,
-                'eval': 1.384123233e+43,
+                'eval': 1.384123233e43,
                 'empty': '',
                 'funky': '35-8',  # test old bug when strings look
-                                  # like expressions
+                # like expressions
                 'name': 'J. Smith',
                 'what': '89113e6',  # test bug where converted to float
                 'und': None,
@@ -103,7 +100,7 @@ def test_header_write_read():
                 'unders': '1_000_000',  # test string with underscore
                 'longs': lorem_ipsum,
                 # force hierarch + continue
-                "long_keyword_name": lorem_ipsum,
+                'long_keyword_name': lorem_ipsum,
             }
             fits.write_image(data, header=header)
 
@@ -121,22 +118,16 @@ def test_header_update():
 
         with FITS(fname, 'rw') as fits:
             data = np.zeros(10)
-            header1 = {
-                'SCARD': 'one',
-                'ICARD': 1,
-                'FCARD': 1.0,
-                'LCARD': True
-            }
+            header1 = {'SCARD': 'one', 'ICARD': 1, 'FCARD': 1.0, 'LCARD': True}
             header2 = {
                 'SCARD': 'two',
                 'ICARD': 2,
                 'FCARD': 2.0,
                 'LCARD': False,
-
                 'SNEW': 'two',
                 'INEW': 2,
                 'FNEW': 2.0,
-                'LNEW': False
+                'LNEW': False,
             }
             fits.write_image(data, header=header1)
             rh = fits[0].read_header()
@@ -210,18 +201,14 @@ def test_blank_key_comments():
                 rec = records[i]
                 rrec = rrecords[ri]
 
-                assert rec['name'] is None, (
-                    'checking name is None'
-                )
+                assert rec['name'] is None, 'checking name is None'
 
                 comment = rec['comment']
                 rcomment = rrec['comment']
                 if '' == comment.strip():
                     comment = ''
 
-                assert comment == rcomment, (
-                    "check empty key comment"
-                )
+                assert comment == rcomment, 'check empty key comment'
 
 
 def test_blank_key_comments_from_cards():
@@ -237,7 +224,7 @@ def test_blank_key_comments_from_cards():
                 '                                                                                ',  # noqa
                 '         --- testing comment ---                                                ',  # noqa
                 '        --- testing comment ---                                                 ',  # noqa
-                "COMMENT testing                                                                 ",  # noqa
+                'COMMENT testing                                                                 ',  # noqa
             ]
             header = FITSHDR(records)
 
@@ -247,30 +234,18 @@ def test_blank_key_comments_from_cards():
 
             rrecords = rh.records()
 
-            assert rrecords[6]['name'] is None, (
-                'checking name is None'
-            )
-            assert rrecords[6]['comment'] == '', (
+            assert rrecords[6]['name'] is None, 'checking name is None'
+            assert rrecords[6]['comment'] == '', 'check empty key comment'
+            assert rrecords[7]['name'] is None, 'checking name is None'
+            assert rrecords[7]['comment'] == ' --- testing comment ---', (
                 'check empty key comment'
             )
-            assert rrecords[7]['name'] is None, (
-                'checking name is None'
-            )
-            assert rrecords[7]['comment'] == ' --- testing comment ---', (
-                "check empty key comment"
-            )
-            assert rrecords[8]['name'] is None, (
-                'checking name is None'
-            )
+            assert rrecords[8]['name'] is None, 'checking name is None'
             assert rrecords[8]['comment'] == '--- testing comment ---', (
-                "check empty key comment"
+                'check empty key comment'
             )
-            assert rrecords[9]['name'] == 'COMMENT', (
-                'checking name is COMMENT'
-            )
-            assert rrecords[9]['comment'] == 'testing', (
-                "check comment"
-            )
+            assert rrecords[9]['name'] == 'COMMENT', 'checking name is COMMENT'
+            assert rrecords[9]['comment'] == 'testing', 'check comment'
 
 
 def test_header_from_cards():
@@ -278,14 +253,16 @@ def test_header_from_cards():
     test generating a header from cards, writing it out and getting
     back what we put in
     """
-    hdr_from_cards = FITSHDR([
-        "IVAL    =                   35 / integer value                                  ",  # noqa
-        "SHORTS  = 'hello world'                                                         ",  # noqa
-        "UND     =                                                                       ",  # noqa
-        "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",  # noqa
-        "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",  # noqa
-        "DBL     =                 1.25                                                  ",  # noqa
-    ])
+    hdr_from_cards = FITSHDR(
+        [
+            'IVAL    =                   35 / integer value                                  ',  # noqa
+            "SHORTS  = 'hello world'                                                         ",  # noqa
+            'UND     =                                                                       ',  # noqa
+            "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",  # noqa
+            "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",  # noqa
+            'DBL     =                 1.25                                                  ',  # noqa
+        ]
+    )
     header = [
         {'name': 'ival', 'value': 35, 'comment': 'integer value'},
         {'name': 'shorts', 'value': 'hello world'},
@@ -438,14 +415,15 @@ def test_corrupt_continue():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with warnings.catch_warnings(record=True) as _:
-
-            hdr_from_cards = FITSHDR([
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ])
+            hdr_from_cards = FITSHDR(
+                [
+                    'IVAL    =                   35 / integer value                                  ',  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
+                    'UND     =                                                                       ',  # noqa
+                    'DBL     =                 1.25                                                  ',  # noqa
+                ]
+            )
 
             with FITS(fname, 'rw') as fits:
                 fits.write(None, header=hdr_from_cards)
@@ -455,16 +433,17 @@ def test_corrupt_continue():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with warnings.catch_warnings(record=True) as _:
-
-            hdr_from_cards = FITSHDR([
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
-                "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
-                "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ])
+            hdr_from_cards = FITSHDR(
+                [
+                    'IVAL    =                   35 / integer value                                  ',  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
+                    "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
+                    "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
+                    'UND     =                                                                       ',  # noqa
+                    'DBL     =                 1.25                                                  ',  # noqa
+                ]
+            )
 
             with FITS(fname, 'rw') as fits:
                 fits.write(None, header=hdr_from_cards)
@@ -512,7 +491,6 @@ def test_write_key_dict():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
-
             im = np.zeros((10, 10), dtype='i2')
             fits.write(im)
 

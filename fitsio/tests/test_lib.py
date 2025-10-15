@@ -19,7 +19,6 @@ def test_move_by_name():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             data1 = np.zeros(nrows, dtype=[('ra', 'f8'), ('dec', 'f8')])
             data1['ra'] = rng.uniform(nrows)
             data1['dec'] = rng.uniform(nrows)
@@ -54,10 +53,9 @@ def test_ext_ver():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
-            img1 = np.arange(2*3, dtype='i4').reshape(2, 3) + 5
-            img2 = np.arange(2*3, dtype='i4').reshape(2, 3) + 6
-            img3 = np.arange(2*3, dtype='i4').reshape(2, 3) + 7
+            img1 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 5
+            img2 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 6
+            img3 = np.arange(2 * 3, dtype='i4').reshape(2, 3) + 7
 
             nrows = 3
             data1 = np.zeros(nrows, dtype=dtype)
@@ -93,20 +91,20 @@ def test_ext_ver():
             d3 = fits['mytable', 2].read()
 
             for f in data1.dtype.names:
-                compare_rec(data1, d1, "data1")
-                compare_rec(data2, d2, "data2")
-                compare_rec(data2, d2b, "data2b")
-                compare_rec(data3, d3, "data3")
+                compare_rec(data1, d1, 'data1')
+                compare_rec(data2, d2, 'data2')
+                compare_rec(data2, d2b, 'data2b')
+                compare_rec(data3, d3, 'data3')
 
             dimg1 = fits[0].read()
             dimg1b = fits['myimage', 1].read()
             dimg2 = fits['myimage', 2].read()
             dimg3 = fits[5].read()
 
-            compare_array(img1, dimg1, "img1")
-            compare_array(img1, dimg1b, "img1b")
-            compare_array(img2, dimg2, "img2")
-            compare_array(img3, dimg3, "img3")
+            compare_array(img1, dimg1, 'img1')
+            compare_array(img1, dimg1b, 'img1b')
+            compare_array(img2, dimg2, 'img2')
+            compare_array(img3, dimg3, 'img3')
 
         rhdr1 = read_header(fname, ext='myimage', extver=1)
         rhdr2 = read_header(fname, ext='myimage', extver=2)

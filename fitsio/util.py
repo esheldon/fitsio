@@ -1,6 +1,7 @@
 """
 utilities for the fits library
 """
+
 import sys
 import numpy
 
@@ -40,18 +41,33 @@ if sys.version_info > (3, 0, 0):
     _stypes = (str, bytes)
 else:
     _itypes = (int, long)  # noqa - only for py2
-    _stypes = (basestring, unicode,)  # noqa - only for py2
+    _stypes = (
+        basestring,  # noqa - only for py2
+        unicode,  # noqa - only for py2
+    )  # noqa - only for py2
 
-_itypes += (numpy.uint8, numpy.int8,
-            numpy.uint16, numpy.int16,
-            numpy.uint32, numpy.int32,
-            numpy.uint64, numpy.int64)
+_itypes += (
+    numpy.uint8,
+    numpy.int8,
+    numpy.uint16,
+    numpy.int16,
+    numpy.uint32,
+    numpy.int32,
+    numpy.uint64,
+    numpy.int64,
+)
 
 # different for py3
-if numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
-    _stypes += (numpy.string_, numpy.str_,)
+if numpy.lib.NumpyVersion(numpy.__version__) < '1.28.0':
+    _stypes += (
+        numpy.string_,
+        numpy.str_,
+    )
 else:
-    _stypes += (numpy.bytes_, numpy.str_,)
+    _stypes += (
+        numpy.bytes_,
+        numpy.str_,
+    )
 
 # for header keywords
 _ftypes = (float, numpy.float32, numpy.float64)
@@ -121,7 +137,6 @@ def array_to_native(array, inplace=False):
 
     data_little = False
     if array.dtype.names is None:
-
         if array.dtype.base.byteorder == '|':
             # strings and 1 byte integers
             return array
@@ -135,8 +150,7 @@ def array_to_native(array, inplace=False):
                 data_little = True
                 break
 
-    if ((machine_little and not data_little)
-            or (not machine_little and data_little)):
+    if (machine_little and not data_little) or (not machine_little and data_little):
         output = array.byteswap(inplace)
     else:
         output = array
@@ -144,9 +158,9 @@ def array_to_native(array, inplace=False):
     return numpy.require(output, requirements=['ALIGNED'])
 
 
-if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
+if numpy.lib.NumpyVersion(numpy.__version__) >= '2.0.0':
     copy_if_needed = None
-elif numpy.lib.NumpyVersion(numpy.__version__) < "1.28.0":
+elif numpy.lib.NumpyVersion(numpy.__version__) < '1.28.0':
     copy_if_needed = False
 else:
     # 2.0.0 dev versions, handle cases where copy may or may not exist

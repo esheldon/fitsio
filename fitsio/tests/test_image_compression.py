@@ -28,12 +28,9 @@ from ..util import cfitsio_is_bundled
         'gzip_2',
         'gzip_lossless',
         'gzip_2_lossless',
-    ]
+    ],
 )
-@pytest.mark.parametrize(
-    'dtype',
-    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
-)
+@pytest.mark.parametrize('dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8'])
 def test_compressed_write_read(compress, dtype):
     """
     Test writing and reading a rice compressed image
@@ -66,7 +63,8 @@ def test_compressed_write_read(compress, dtype):
             data = data.astype(dtype)
         else:
             data = np.arange(
-                nrows * ncols, dtype=dtype,
+                nrows * ncols,
+                dtype=dtype,
             ).reshape(nrows, ncols)
 
         csend = compress.replace('_lossless', '')
@@ -75,8 +73,7 @@ def test_compressed_write_read(compress, dtype):
 
         if 'lossless' in compress or dtype[0] in ['i', 'u']:
             compare_array(
-                data, rdata,
-                "%s compressed images ('%s')" % (compress, dtype)
+                data, rdata, "%s compressed images ('%s')" % (compress, dtype)
             )
         else:
             # lossy floating point
@@ -88,7 +85,7 @@ def test_compressed_write_read(compress, dtype):
             )
 
         with FITS(fname) as fits:
-            assert fits[1].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), 'is compressed'
 
 
 @pytest.mark.parametrize(
@@ -101,12 +98,9 @@ def test_compressed_write_read(compress, dtype):
         'gzip_2',
         'gzip_lossless',
         'gzip_2_lossless',
-    ]
+    ],
 )
-@pytest.mark.parametrize(
-    'dtype',
-    ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
-)
+@pytest.mark.parametrize('dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8'])
 def test_compressed_write_read_fitsobj(compress, dtype):
     """
     Test writing and reading a rice compressed image
@@ -115,14 +109,14 @@ def test_compressed_write_read_fitsobj(compress, dtype):
     """
 
     if (
-        "gzip" in compress
-        and dtype in ["u2", "i2", "u4", "i4"]
+        'gzip' in compress
+        and dtype in ['u2', 'i2', 'u4', 'i4']
         and not cfitsio_is_bundled()
     ):
         pytest.xfail(
             reason=(
-                "Non-bundled cfitsio libraries have a bug. "
-                "See https://github.com/HEASARC/cfitsio/pull/97."
+                'Non-bundled cfitsio libraries have a bug. '
+                'See https://github.com/HEASARC/cfitsio/pull/97.'
             )
         )
 
@@ -158,7 +152,8 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                 data = data.astype(dtype)
             else:
                 data = np.arange(
-                    nrows * ncols, dtype=dtype,
+                    nrows * ncols,
+                    dtype=dtype,
                 ).reshape(nrows, ncols)
 
             csend = compress.replace('_lossless', '')
@@ -170,8 +165,7 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                 # there will be no quantization and we expect no
                 # information loss
                 compare_array(
-                    data, rdata,
-                    "%s compressed images ('%s')" % (compress, dtype)
+                    data, rdata, "%s compressed images ('%s')" % (compress, dtype)
                 )
             else:
                 # lossy floating point
@@ -183,21 +177,25 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                 )
 
         with FITS(fname) as fits:
-            assert fits[1].is_compressed(), "is compressed"
+            assert fits[1].is_compressed(), 'is compressed'
 
 
-@pytest.mark.skipif(sys.version_info < (3, 9),
-                    reason='importlib bug in 3.8')
+@pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
     """
     import importlib.resources
-    ref = importlib.resources.files("fitsio") / 'test_images' / 'test_gzip_compressed_image.fits.fz'  # noqa
+
+    ref = (
+        importlib.resources.files('fitsio')
+        / 'test_images'
+        / 'test_gzip_compressed_image.fits.fz'
+    )  # noqa
     with importlib.resources.as_file(ref) as gzip_file:
         data = read(gzip_file)
 
-    compare_array(data, data*0.0, "astropy lossless compressed image")
+    compare_array(data, data * 0.0, 'astropy lossless compressed image')
 
 
 def test_compress_preserve_zeros():
@@ -221,10 +219,8 @@ def test_compress_preserve_zeros():
             fname = os.path.join(tmpdir, 'test.fits')
 
             with FITS(fname, 'rw') as fits:
-
                 for dtype in dtypes:
-
-                    data = rng.normal(size=5*20).reshape(5, 20).astype(dtype)
+                    data = rng.normal(size=5 * 20).reshape(5, 20).astype(dtype)
                     for zind in zinds:
                         data[zind[0], zind[1]] = 0.0
 
@@ -246,7 +242,7 @@ def test_compress_preserve_zeros():
         'rice',
         'hcompress',
         'plio',
-    ]
+    ],
 )
 @pytest.mark.parametrize(
     'seed_type',
@@ -300,7 +296,9 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         if use_fits_object:
             with FITS(fname1, 'rw') as fits1:
                 fits1.write(
-                    data, compress=compress, qlevel=qlevel,
+                    data,
+                    compress=compress,
+                    qlevel=qlevel,
                     # dither_seed=dither_seed,
                     dither_seed=dither_seed1,
                 )
@@ -308,21 +306,29 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
 
             with FITS(fname2, 'rw') as fits2:
                 fits2.write(
-                    data, compress=compress, qlevel=qlevel,
+                    data,
+                    compress=compress,
+                    qlevel=qlevel,
                     # dither_seed=dither_seed,
                     dither_seed=dither_seed2,
                 )
                 rdata2 = fits2[-1].read()
         else:
             write(
-                fname1, data, compress=compress, qlevel=qlevel,
+                fname1,
+                data,
+                compress=compress,
+                qlevel=qlevel,
                 # dither_seed=dither_seed,
                 dither_seed=dither_seed1,
             )
             rdata1 = read(fname1)
 
             write(
-                fname2, data, compress=compress, qlevel=qlevel,
+                fname2,
+                data,
+                compress=compress,
+                qlevel=qlevel,
                 # dither_seed=dither_seed,
                 dither_seed=dither_seed2,
             )
@@ -362,7 +368,10 @@ def test_compressed_seed_bad(dither_seed):
 
         with pytest.raises(ValueError):
             write(
-                fname, data, compress=compress, qlevel=qlevel,
+                fname,
+                data,
+                compress=compress,
+                qlevel=qlevel,
                 dither_seed=dither_seed,
             )
 
@@ -384,9 +393,15 @@ def test_memory_compressed_seed():
         data = rng.normal(size=(nrows, ncols))
         data = data.astype(dtype)
 
-        fitsio.write(fname1, data.copy(), dither_seed='checksum',
-                     compress='RICE', qlevel=1e-4, tile_dims=(100, 100),
-                     clobber=True)
+        fitsio.write(
+            fname1,
+            data.copy(),
+            dither_seed='checksum',
+            compress='RICE',
+            qlevel=1e-4,
+            tile_dims=(100, 100),
+            clobber=True,
+        )
         hdr = fitsio.read_header(fname1, ext=1)
         dither1 = hdr['ZDITHER0']
         assert dither1 == 8269
@@ -424,19 +439,19 @@ def test_image_compression_inmem_subdither2():
 
 
 @pytest.mark.parametrize(
-    "kw,val",
+    'kw,val',
     [
-        ("compress", RICE_1),
-        ("tile_dims", (10, 2)),
-        ("tile_dims", np.array([10, 2])),
-        ("tile_dims", [10, 2]),
-        ("qlevel", 10.0),
-        ("qmethod", SUBTRACTIVE_DITHER_1),
-        ("hcomp_scale", 10.0),
-        ("hcomp_smooth", True),
-    ]
+        ('compress', RICE_1),
+        ('tile_dims', (10, 2)),
+        ('tile_dims', np.array([10, 2])),
+        ('tile_dims', [10, 2]),
+        ('qlevel', 10.0),
+        ('qmethod', SUBTRACTIVE_DITHER_1),
+        ('hcomp_scale', 10.0),
+        ('hcomp_smooth', True),
+    ],
 )
-@pytest.mark.parametrize("set_val_to_none", [False, True])
+@pytest.mark.parametrize('set_val_to_none', [False, True])
 def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
     H, W = 100, 100
     rng = np.random.RandomState(seed=10)
@@ -457,9 +472,9 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
 @pytest.mark.xfail(
     not cfitsio_is_bundled(),
     reason=(
-        "Non-bundled cfitsio libraries have a bug. "
-        "See https://github.com/HEASARC/cfitsio/pull/97."
-    )
+        'Non-bundled cfitsio libraries have a bug. '
+        'See https://github.com/HEASARC/cfitsio/pull/97.'
+    ),
 )
 def test_image_compression_inmem_lossessgzip_int():
     rng = np.random.RandomState(seed=10)

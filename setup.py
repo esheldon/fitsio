@@ -17,56 +17,52 @@ import glob
 import shutil
 
 # used for CI testing to ensure all patches apply
-FITSIO_FAIL_ON_BAD_PATCHES = (
-    False or "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ
-)
+FITSIO_FAIL_ON_BAD_PATCHES = False or 'FITSIO_FAIL_ON_BAD_PATCHES' in os.environ
 
-if "--use-system-fitsio" in sys.argv:
-    del sys.argv[sys.argv.index("--use-system-fitsio")]
+if '--use-system-fitsio' in sys.argv:
+    del sys.argv[sys.argv.index('--use-system-fitsio')]
     USE_SYSTEM_FITSIO = True
 else:
-    USE_SYSTEM_FITSIO = False or "FITSIO_USE_SYSTEM_FITSIO" in os.environ
+    USE_SYSTEM_FITSIO = False or 'FITSIO_USE_SYSTEM_FITSIO' in os.environ
 
-if (
-    "--system-fitsio-includedir" in sys.argv
-    or any(a.startswith("--system-fitsio-includedir=") for a in sys.argv)
+if '--system-fitsio-includedir' in sys.argv or any(
+    a.startswith('--system-fitsio-includedir=') for a in sys.argv
 ):
-    if "--system-fitsio-includedir" in sys.argv:
-        ind = sys.argv.index("--system-fitsio-includedir")
-        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind+1]
-        del sys.argv[ind+1]
+    if '--system-fitsio-includedir' in sys.argv:
+        ind = sys.argv.index('--system-fitsio-includedir')
+        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind + 1]
+        del sys.argv[ind + 1]
         del sys.argv[ind]
     else:
         for ind in range(len(sys.argv)):
-            if sys.argv[ind].startswith("--system-fitsio-includedir="):
+            if sys.argv[ind].startswith('--system-fitsio-includedir='):
                 break
-        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind].split("=", 1)[1]
+        SYSTEM_FITSIO_INCLUDEDIR = sys.argv[ind].split('=', 1)[1]
         del sys.argv[ind]
 else:
     SYSTEM_FITSIO_INCLUDEDIR = os.environ.get(
-        "FITSIO_SYSTEM_FITSIO_INCLUDEDIR",
+        'FITSIO_SYSTEM_FITSIO_INCLUDEDIR',
         None,
     )
 
 
-if (
-    "--system-fitsio-libdir" in sys.argv
-    or any(a.startswith("--system-fitsio-libdir=") for a in sys.argv)
+if '--system-fitsio-libdir' in sys.argv or any(
+    a.startswith('--system-fitsio-libdir=') for a in sys.argv
 ):
-    if "--system-fitsio-libdir" in sys.argv:
-        ind = sys.argv.index("--system-fitsio-libdir")
-        SYSTEM_FITSIO_LIBDIR = sys.argv[ind+1]
-        del sys.argv[ind+1]
+    if '--system-fitsio-libdir' in sys.argv:
+        ind = sys.argv.index('--system-fitsio-libdir')
+        SYSTEM_FITSIO_LIBDIR = sys.argv[ind + 1]
+        del sys.argv[ind + 1]
         del sys.argv[ind]
     else:
         for ind in range(len(sys.argv)):
-            if sys.argv[ind].startswith("--system-fitsio-libdir="):
+            if sys.argv[ind].startswith('--system-fitsio-libdir='):
                 break
-        SYSTEM_FITSIO_LIBDIR = sys.argv[ind].split("=", 1)[1]
+        SYSTEM_FITSIO_LIBDIR = sys.argv[ind].split('=', 1)[1]
         del sys.argv[ind]
 else:
     SYSTEM_FITSIO_LIBDIR = os.environ.get(
-        "FITSIO_SYSTEM_FITSIO_LIBDIR",
+        'FITSIO_SYSTEM_FITSIO_LIBDIR',
         None,
     )
 
@@ -76,15 +72,11 @@ class build_ext_subclass(build_ext):
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):
-
         build_ext.finalize_options(self)
 
-        self.cfitsio_build_dir = os.path.join(
-            self.build_temp, self.cfitsio_dir)
-        self.cfitsio_zlib_dir = os.path.join(
-            self.cfitsio_build_dir, 'zlib')
-        self.cfitsio_patch_dir = os.path.join(
-            self.build_temp, 'patches')
+        self.cfitsio_build_dir = os.path.join(self.build_temp, self.cfitsio_dir)
+        self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir, 'zlib')
+        self.cfitsio_patch_dir = os.path.join(self.build_temp, 'patches')
 
         if USE_SYSTEM_FITSIO:
             if SYSTEM_FITSIO_INCLUDEDIR is not None:
@@ -100,6 +92,7 @@ class build_ext_subclass(build_ext):
         # For extensions that require 'numpy' in their include dirs,
         # replace 'numpy' with the actual paths
         import numpy
+
         np_include = numpy.get_include()
 
         for extension in self.extensions:
@@ -112,7 +105,6 @@ class build_ext_subclass(build_ext):
 
     def build_extensions(self):
         if not USE_SYSTEM_FITSIO:
-
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
 
@@ -125,7 +117,7 @@ class build_ext_subclass(build_ext):
                 CC = []
                 for val in CCold:
                     if val == 'ccache':
-                        print("removing ccache from the compiler options")
+                        print('removing ccache from the compiler options')
                         continue
 
                     CC.append(val)
@@ -152,8 +144,7 @@ class build_ext_subclass(build_ext):
             # It should have been a 'static' library of relocatable objects
             # (-fPIC), since we use the python compiler flags
 
-            link_objects = glob.glob(
-                os.path.join(self.cfitsio_build_dir, '*.o'))
+            link_objects = glob.glob(os.path.join(self.cfitsio_build_dir, '*.o'))
 
             self.compiler.set_link_objects(link_objects)
 
@@ -173,14 +164,10 @@ class build_ext_subclass(build_ext):
             # Make sure the external lib has the fits_use_standard_strings
             # function. If not, then define a macro to tell the wrapper
             # to always return False.
-            if not self.check_system_cfitsio_objects(
-                    '_fits_use_standard_strings'):
-                self.compiler.define_macro(
-                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
+            if not self.check_system_cfitsio_objects('_fits_use_standard_strings'):
+                self.compiler.define_macro('FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS')
 
-            self.compiler.define_macro(
-                'FITSIO_USING_SYSTEM_FITSIO'
-            )
+            self.compiler.define_macro('FITSIO_USING_SYSTEM_FITSIO')
 
             self.compiler.add_library('z')
 
@@ -197,23 +184,21 @@ class build_ext_subclass(build_ext):
             fname = os.path.basename(patch.replace('.patch', ''))
             try:
                 subprocess.check_call(
-                    'patch -N --dry-run %s/%s %s' % (
-                        self.cfitsio_build_dir, fname, patch),
-                    shell=True)
-            except subprocess.CalledProcessError as e:
-                warnings.warn(
-                    "Failed to apply patch: " + os.path.basename(patch)
+                    'patch -N --dry-run %s/%s %s'
+                    % (self.cfitsio_build_dir, fname, patch),
+                    shell=True,
                 )
+            except subprocess.CalledProcessError as e:
+                warnings.warn('Failed to apply patch: ' + os.path.basename(patch))
                 if FITSIO_FAIL_ON_BAD_PATCHES:
                     raise e
             else:
                 subprocess.check_call(
-                    'patch %s/%s %s' % (
-                        self.cfitsio_build_dir, fname, patch),
-                    shell=True)
+                    'patch %s/%s %s' % (self.cfitsio_build_dir, fname, patch),
+                    shell=True,
+                )
 
     def configure_cfitsio(self, CC=None, ARCHIVE=None, RANLIB=None):
-
         # prepare source code and run configure
         def copy_update(dir1, dir2):
             f1 = os.listdir(dir1)
@@ -231,7 +216,7 @@ class build_ext_subclass(build_ext):
                     else:
                         stat1 = os.stat(path1)
                         stat2 = os.stat(path2)
-                        if (stat1.st_mtime > stat2.st_mtime):
+                        if stat1.st_mtime > stat2.st_mtime:
                             shutil.copy(path1, path2)
 
         if not os.path.exists('build'):
@@ -254,13 +239,13 @@ class build_ext_subclass(build_ext):
 
         if os.path.exists(makefile):
             # Makefile already there
-            print("found Makefile so not running configure!", flush=True)
+            print('found Makefile so not running configure!', flush=True)
             return
 
         args = ''
 
-        if "FITSIO_BZIP2_DIR" in os.environ:
-            args += ' --with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]
+        if 'FITSIO_BZIP2_DIR' in os.environ:
+            args += ' --with-bzip2="%s"' % os.environ['FITSIO_BZIP2_DIR']
         else:
             args += ' --with-bzip2'
 
@@ -276,31 +261,29 @@ class build_ext_subclass(build_ext):
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
         p = Popen(
-            "sh ./configure --enable-standard-strings " + args,
+            'sh ./configure --enable-standard-strings ' + args,
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
         p.wait()
         if p.returncode != 0:
-            raise ValueError(
-                "could not configure cfitsio %s" % self.cfitsio_version)
+            raise ValueError('could not configure cfitsio %s' % self.cfitsio_version)
 
     def compile_cfitsio(self):
         p = Popen(
-            "make",
+            'make',
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
         p.wait()
         if p.returncode != 0:
-            raise ValueError(
-                "could not compile cfitsio %s" % self.cfitsio_version)
+            raise ValueError('could not compile cfitsio %s' % self.cfitsio_version)
 
     def check_system_cfitsio_objects(self, obj_name):
         for lib_dir in self.library_dirs:
             if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
                 p = Popen(
-                    "nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
+                    'nm -g %s/libcfitsio.a | grep %s' % (lib_dir, obj_name),
                     shell=True,
                     stdout=PIPE,
                     stderr=PIPE,
@@ -312,42 +295,41 @@ class build_ext_subclass(build_ext):
         return False
 
 
-sources = ["fitsio/fitsio_pywrap.c"]
+sources = ['fitsio/fitsio_pywrap.c']
 
-ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
+ext = Extension('fitsio._fitsio_wrap', sources, include_dirs=['numpy'])
 
-description = ("A full featured python library to read from and "
-               "write to FITS files.")
+description = 'A full featured python library to read from and write to FITS files.'
 
-with open(os.path.join(os.path.dirname(__file__), "README.md")) as fp:
+with open(os.path.join(os.path.dirname(__file__), 'README.md')) as fp:
     long_description = fp.read()
 
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: GNU General Public License (GPL)",
-    "Topic :: Scientific/Engineering :: Astronomy",
-    "Intended Audience :: Science/Research",
+    'Development Status :: 5 - Production/Stable',
+    'License :: OSI Approved :: GNU General Public License (GPL)',
+    'Topic :: Scientific/Engineering :: Astronomy',
+    'Intended Audience :: Science/Research',
 ]
 
 setup(
-    name="fitsio",
+    name='fitsio',
     description=description,
     long_description=long_description,
     long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
-    license="GPL",
+    license='GPL',
     classifiers=classifiers,
-    url="https://github.com/esheldon/fitsio",
-    author="Erin Scott Sheldon",
-    author_email="erin.sheldon@gmail.com",
+    url='https://github.com/esheldon/fitsio',
+    author='Erin Scott Sheldon',
+    author_email='erin.sheldon@gmail.com',
     setup_requires=['numpy>=1.7', 'setuptools-scm>=8'],
     install_requires=['numpy>=1.7'],
     packages=find_packages(),
-    python_requires=">=3.8",
+    python_requires='>=3.8',
     include_package_data=True,
     ext_modules=[ext],
-    cmdclass={"build_ext": build_ext_subclass},
+    cmdclass={'build_ext': build_ext_subclass},
     use_scm_version={
-        "version_file": "fitsio/_version.py",
-        "version_file_template": "__version__ = '{version}'\n"
-    }
+        'version_file': 'fitsio/_version.py',
+        'version_file_template': "__version__ = '{version}'\n",
+    },
 )
