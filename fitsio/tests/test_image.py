@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 # import warnings
 from .checks import check_header, compare_array
 import numpy as np
@@ -17,10 +18,9 @@ def test_image_write_read():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
-
             # note mixing up byte orders a bit
             for dtype in DTYPES:
-                data = np.arange(5*20, dtype=dtype).reshape(5, 20)
+                data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
                 rdata = fits[-1].read()
@@ -46,7 +46,6 @@ def test_image_write_read_unaligned():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
-
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(20, dtype=dtype)
@@ -55,13 +54,13 @@ def test_image_write_read_unaligned():
                     dtype=data.dtype,
                     buffer=data.data,
                     offset=1,  # Offset by 1 byte
-                    strides=data.strides
+                    strides=data.strides,
                 )
                 if not dtype.endswith("1"):
                     assert not unaligned_data.flags["ALIGNED"]
                 header = {
                     'DTYPE': dtype,
-                    'NBYTES': unaligned_data.dtype.itemsize
+                    'NBYTES': unaligned_data.dtype.itemsize,
                 }
                 fits.write_image(unaligned_data, header=header)
                 rdata = fits[-1].read()
@@ -113,7 +112,7 @@ def test_image_write_read_from_dims():
         with FITS(fname, 'rw') as fits:
             # note mixing up byte orders a bit
             for dtype in DTYPES:
-                data = np.arange(5*20, dtype=dtype).reshape(5, 20)
+                data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
@@ -138,7 +137,7 @@ def test_image_write_read_from_dims_chunks():
         with FITS(fname, 'rw') as fits:
             # note mixing up byte orders a bit
             for dtype in DTYPES:
-                data = np.arange(5*3, dtype=dtype).reshape(5, 3)
+                data = np.arange(5 * 3, dtype=dtype).reshape(5, 3)
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
@@ -162,8 +161,7 @@ def test_image_write_read_from_dims_chunks():
                 # now using sequence, easier to calculate
                 #
 
-                fits.create_image_hdu(dims=data.shape,
-                                      dtype=data.dtype)
+                fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
                 # first using pixel offset
                 fits[-1].write(chunk1)
@@ -190,7 +188,7 @@ def test_image_slice():
         with FITS(fname, 'rw') as fits:
             # note mixing up byte orders a bit
             for dtype in DTYPES:
-                data = np.arange(16*20, dtype=dtype).reshape(16, 20)
+                data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
 
                 fits.write_image(data, header=header)
@@ -203,9 +201,9 @@ def test_image_slice():
 
 
 def _check_shape(expected_data, rdata):
-    mess = (
-        'Data are not the same (Expected shape: %s, '
-        'actual shape: %s.' % (expected_data.shape, rdata.shape)
+    mess = 'Data are not the same (Expected shape: %s, actual shape: %s.' % (
+        expected_data.shape,
+        rdata.shape,
     )
     np.testing.assert_array_equal(expected_data, rdata, mess)
 
@@ -260,7 +258,7 @@ def test_image_slice_striding():
         with FITS(fname, 'rw') as fits:
             # note mixing up byte orders a bit
             for dtype in DTYPES:
-                data = np.arange(16*20, dtype=dtype).reshape(16, 20)
+                data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
 
@@ -289,7 +287,7 @@ def test_read_ignore_scaling():
                 'BITPIX': 16,
                 'NBYTES': data.dtype.itemsize,
                 'BZERO': 9.33,
-                'BSCALE': 3.281
+                'BSCALE': 3.281,
             }
 
             fits.write_image(data, header=header)
@@ -310,10 +308,9 @@ def test_read_ignore_scaling():
 
             hdu.ignore_scaling = False
             rdata = hdu[:, :]
-            assert rdata.dtype == np.float32, (
-                'Wrong dtype when not ignoring.'
-            )
+            assert rdata.dtype == np.float32, 'Wrong dtype when not ignoring.'
             np.testing.assert_array_equal(
-                data.astype(np.float32), rdata,
-                err_msg='Wrong scaled data returned.'
+                data.astype(np.float32),
+                rdata,
+                err_msg='Wrong scaled data returned.',
             )

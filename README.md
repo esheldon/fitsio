@@ -1,41 +1,42 @@
-A python library to read from and write to FITS files.
+# fitsio
 
-[![Build Status (master)](https://travis-ci.com/esheldon/fitsio.svg?branch=master)](https://travis-ci.com/esheldon/fitsio)
-[![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
+[![build wheels/sdist](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml/badge.svg)](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml) [![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
+
+A Python library to read from and write to `FITS` files.
 
 ## Description
 
-This is a python extension written in c and python.  Data are read into
-numerical python arrays.
+This is a Python extension written in C and Python.  Data are read into
+numerical Python arrays.
 
-A version of cfitsio is bundled with this package, there is no need to install
+A version of `cfitsio` is bundled with this package, there is no need to install
 your own, nor will this conflict with a version you have installed.
-
 
 ## Some Features
 
-- Read from and write to image, binary, and ascii table extensions.
+- Read from and write to image, binary, and ASCII table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
   to memory.
-- Read image subsets without reading the whole image.  Write subsets to existing images.
+- Read image subsets without reading the whole image.
+- Write subsets to existing images.
 - Write and read variable length table columns.
-- Read images and tables using slice notation similar to numpy arrays.  This is like a more
-  powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
-    or insert rows.
+- Read images and tables using slice notation similar to `numpy` arrays. (This is like a more
+  powerful `memmap`, since it is column-aware for tables.)
+- Append rows to an existing table.
+- Delete row sets and row ranges, resize tables, or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
-- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).
-- Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
-- TDIM information is used to return array columns in the correct shape.
+- Read and write images in tile-compressed format (`RICE`, `GZIP`, `PLIO` ,`HCOMPRESS`).
+- Read/write `GZIP` files directly.
+- Read unix compress (`.Z`, `.zip`) and bzip2 (`.bz2`) files.
+- `TDIM` information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write complex, bool (logical), unsigned integer, signed bytes types.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
-- Iterate over rows in a table.  Data are buffered for efficiency.
-- python 3 support, including python 3 strings
-
+- Iterate over rows in a table. Data are buffered for efficiency.
+- Python 3 support, including Python 3 strings.
 
 ## Examples
 
@@ -367,42 +368,51 @@ f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
 ```
 
-
 ## Installation
 
-The easiest way is using pip or conda. To get the latest release
+The easiest way is using `pip` or `conda`. To get the latest release
 
-    pip install fitsio
+```bash
+pip install fitsio
 
-    # update fitsio (and everything else)
-    pip install fitsio --upgrade
+# update fitsio (and everything else)
+pip install fitsio --upgrade
 
-    # if pip refuses to update to a newer version
-    pip install fitsio --upgrade --ignore-installed
+# if pip refuses to update to a newer version
+pip install fitsio --upgrade --ignore-installed
 
-    # if you only want to upgrade fitsio
-    pip install fitsio --no-deps --upgrade --ignore-installed
+# if you only want to upgrade fitsio
+pip install fitsio --no-deps --upgrade --ignore-installed
 
-    # for conda, use conda-forge
-    conda install -c conda-forge fitsio
+# for conda, use conda-forge
+conda install -c conda-forge fitsio
+```
 
 You can also get the latest source tarball release from
 
-    https://pypi.python.org/pypi/fitsio
+```url
+https://pypi.python.org/pypi/fitsio
+```
 
-or the bleeding edge source from github or use git. To check out
+or the bleeding edge source from GitHub or use git. To check out
 the code for the first time
 
-    git clone https://github.com/esheldon/fitsio.git
+```bash
+git clone https://github.com/esheldon/fitsio.git
+```
 
 Or at a later time to update to the latest
 
-    cd fitsio
-    git update
+```bash
+cd fitsio
+git update
+```
 
-Use tar xvfz to untar the file, enter the fitsio directory and type
+Use `tar xvfz` to unpack the file, enter the `fitsio` directory and type
 
-    pip install .
+```bash
+pip install .
+```
 
 ## Requirements
 
@@ -410,14 +420,13 @@ Use tar xvfz to untar the file, enter the fitsio directory and type
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
+### Do not use `numpy` 1.10.0 or 1.10.1
 
-### Do not use numpy 1.10.0 or 1.10.1
-
-There is a serious performance regression in numpy 1.10 that results
-in fitsio running tens to hundreds of times slower.  A fix may be
-forthcoming in a later release.  Please comment here if this
-has already impacted your work https://github.com/numpy/numpy/issues/6467
-
+There is a serious performance regression in `numpy` 1.10 that results
+in `fitsio` running tens to hundreds of times slower.  A fix may be
+forthcoming in a later release. Please comment on GitHub issue
+[numpy/issues/6467](https://github.com/numpy/numpy/issues/6467)
+here if this has already impacted your work
 
 ## Tests
 
@@ -431,15 +440,24 @@ Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
 be read, without affecting other functionality.
 
+## Linting and Code Formatting
+
+We use the `pre-commit` framework for linting and code formatting. To
+run the linting and code formatting, use the following command
+
+```bash
+pre-commit run -a
+```
+
 ## Notes on Usage and Features
 
-### cfitsio bundling
+### `cfitsio` bundling
 
 We bundle cfitsio partly because many deployed versions of cfitsio in the
 wild do not have support for interesting features like tiled image compression.
 Bundling a version that meets our needs is a safe alternative.
 
-### array ordering
+### Array Ordering
 
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
@@ -455,7 +473,7 @@ older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing 
 to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
 for example.
 
-### python 3 strings
+### Python 3 Strings
 
 As of version `1.0.0`, fitsio now supports Python 3 strings natively. This support
 means that for Python 3, native strings are read from and written correctly to

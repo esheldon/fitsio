@@ -18,33 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
-        with:
-          channels: conda-forge
-          channel-priority: strict
-          show-channel-urls: true
-          miniforge-version: latest
-
-      - name: install conda deps
-        shell: bash -l {0}
-        run: |
-          conda list
-          conda install flake8
-
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 fitsio
-
   tests:
     name: tests
     strategy:
