@@ -314,3 +314,64 @@ def test_read_ignore_scaling():
                 rdata,
                 err_msg='Wrong scaled data returned.',
             )
+
+
+def test_image_write_subset_3d():
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(100).reshape(2, 5, 10)
+    img2 = (rng.normal(size=10).reshape(1, 2, 5) * 1000).astype(np.int_)
+    sz = 1
+    sy = 3
+    sx = 2
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        fits[0].write(img2, start=[sz, sy, sx])
+        img_final = fits[0].read()
+
+    print("\n", img_final)
+
+    assert np.array_equal(
+        img_final[
+            sz : sz + img2.shape[0],
+            sy : sy + img2.shape[1],
+            sx : sx + img2.shape[2],
+        ],
+        img2,
+    )
+
+
+def test_image_write_subset_2d():
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(100).reshape(10, 10)
+    img2 = (rng.normal(size=6).reshape(3, 2) * 1000).astype(np.int_)
+    sy = 1
+    sx = 2
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        fits[0].write(img2, start=[sy, sx])
+        img_final = fits[0].read()
+
+    assert np.array_equal(
+        img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+        img2,
+    )
+
+
+def test_image_write_subset_1d():
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(100)
+    img2 = (rng.normal(size=6) * 1000).astype(np.int_)
+    sx = 3
+
+    for _sx in [sx, [sx]]:
+        with FITS("mem://", "rw") as fits:
+            fits.write(img)
+            fits[0].write(img2, start=_sx)
+            img_final = fits[0].read()
+
+        assert np.array_equal(
+            img_final[sx : sx + img2.shape[0]],
+            img2,
+        )
