@@ -318,8 +318,8 @@ def test_read_ignore_scaling():
 
 def test_image_write_subset_3d():
     rng = np.random.RandomState(seed=10)
-    img = np.arange(100).reshape(2, 5, 10)
-    img2 = (rng.normal(size=10).reshape(1, 2, 5) * 1000).astype(np.int_)
+    img = np.arange(300).reshape(6, 5, 10)
+    img2 = (rng.normal(size=30).reshape(3, 2, 5) * 1000).astype(np.int_)
     sz = 1
     sy = 3
     sx = 2
@@ -328,8 +328,6 @@ def test_image_write_subset_3d():
         fits.write(img)
         fits[0].write(img2, start=[sz, sy, sx])
         img_final = fits[0].read()
-
-    print("\n", img_final)
 
     assert np.array_equal(
         img_final[
