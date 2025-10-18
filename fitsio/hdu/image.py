@@ -104,7 +104,7 @@ class ImageHDU(HDUBase):
 
         If the new shape is smaller than the current image, the current
         image is flattened, trunctaed to the new total length, and then
-        reshaped to the new shaped.
+        reshaped to the new shape.
 
         parameters
         ----------
