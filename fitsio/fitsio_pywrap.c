@@ -1768,8 +1768,8 @@ PyFITSObject_write_subset(struct PyFITSObject* self, PyObject* args) {
     int image_datatype=0; // fits type for image, AKA bitpix
     int datatype=0; // type for the data we entered
 
-    LONGLONG fpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
-    LONGLONG lpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
+    long fpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
+    long lpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
     npy_int64 pixval=0;
     npy_intp i=0;
 
