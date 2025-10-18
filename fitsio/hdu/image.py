@@ -176,14 +176,15 @@ class ImageHDU(HDUBase):
             if all(od == nd for od, nd in zip(dims, img.shape)) and all(
                 st == 0 for st in start
             ):
-                # we are replacing the whole image, so write in a single pass
-                single_pass = True
+                # we are replacing the whole image, so no need to
+                # write a subset
+                write_subset = False
             else:
-                single_pass = False
+                write_subset = True
         else:
-            single_pass = True
+            write_subset = False
 
-        if single_pass:
+        if not write_subset:
             # write in image at start in a single pass
             offset = 0
             self._FITS.write_image(self._ext + 1, img_send, offset + 1)
