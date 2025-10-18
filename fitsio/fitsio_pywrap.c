@@ -1827,10 +1827,10 @@ PyFITSObject_write_subset(struct PyFITSObject* self, PyObject* args) {
     ndims = PyArray_SIZE(firstpixel);
     for (i=0; i<ndims; i++) {
         pixval = *(npy_int64 *) PyArray_GETPTR1(firstpixel, i);
-        fpixel[i] = (LONGLONG) pixval;
+        fpixel[i] = (long) pixval;
 
         pixval = *(npy_int64 *) PyArray_GETPTR1(lastpixel, i);
-        lpixel[i] = (LONGLONG) pixval;
+        lpixel[i] = (long) pixval;
     }
 
     data = PyArray_DATA(array);
