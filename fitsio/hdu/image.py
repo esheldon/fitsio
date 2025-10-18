@@ -147,8 +147,6 @@ class ImageHDU(HDUBase):
                 stacklevel=2,
             )
 
-        dims = self.get_dims()
-
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
         if img.size == 0:
@@ -167,13 +165,13 @@ class ImageHDU(HDUBase):
             # this will error if the character is not in ascii
             img_send = img_send.astype('S', copy=copy_if_needed)
 
-        if numpy.isscalar(start):
-            start = numpy.unravel_index(start, dims)
-
         # see if we need to resize the image
         if self.has_data():
-            self._expand_if_needed(dims, img.shape, start)
+            self._expand_if_needed(self.get_dims(), img.shape, start)
             dims = self.get_dims()
+
+            if numpy.isscalar(start):
+                start = numpy.unravel_index(start, dims)
 
             if all(od == nd for od, nd in zip(dims, img.shape)) and all(
                 st == 0 for st in start
@@ -190,18 +188,37 @@ class ImageHDU(HDUBase):
             offset = 0
             self._FITS.write_image(self._ext + 1, img_send, offset + 1)
         else:
-            # go "row by row" but in more than two dimensions
-            ndims = len(dims)
-            for index in numpy.ndindex(*(img_send.shape[:-1])):
-                new_start = [start[i] + index[i] for i in range(ndims - 1)]
-                new_start += [start[-1]]
-                offset = _convert_full_start_to_offset(dims, new_start)
-                img_slice = tuple([slice(ns, ns + 1) for ns in index]) + (
-                    slice(None),
-                )
-                self._FITS.write_image(
-                    self._ext + 1, img_send[img_slice], offset + 1
-                )
+            firstpixel = numpy.array(start, ndmin=1, dtype='i8')
+            # lastpixel is the index of the lastpixel so subtract 1
+            lastpixel = (
+                firstpixel
+                + numpy.array(img_send.shape, ndmin=1, dtype='i8')
+                - 1
+            )
+
+            # we have to reverse the dimensions here since cfitsio
+            # uses fortran order and offset by 1 for fortan indexing
+            firstpixel = firstpixel[::-1] + 1
+            lastpixel = lastpixel[::-1] + 1
+
+            self._FITS.write_subset(
+                self._ext + 1, img_send, firstpixel, lastpixel
+            )
+
+            # this is an old python version that gors row by row
+            # not used
+            # # go "row by row" but in more than two dimensions
+            # ndims = len(dims)
+            # for index in numpy.ndindex(*(img_send.shape[:-1])):
+            #     new_start = [start[i] + index[i] for i in range(ndims - 1)]
+            #     new_start += [start[-1]]
+            #     offset = _convert_full_start_to_offset(dims, new_start)
+            #     img_slice = tuple([slice(ns, ns + 1) for ns in index]) + (
+            #         slice(None),
+            #     )
+            #     self._FITS.write_image(
+            #         self._ext + 1, img_send[img_slice], offset + 1
+            #     )
 
         self._update_info()
 

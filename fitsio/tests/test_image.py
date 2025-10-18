@@ -375,3 +375,36 @@ def test_image_write_subset_1d(sx):
             img_final[sx : sx + img2.shape[0]],
             img2,
         )
+
+
+@pytest.mark.parametrize(
+    "shape,reshape",
+    [
+        ((6, 5, 10), (10, 12, 23)),
+        ((1,), (10,)),
+        ((6, 5), (10, 12)),
+        ((6, 5, 10), (3, 2, 7)),
+        ((10,), (3,)),
+        ((10, 5), (12, 2)),
+    ],
+)
+def test_image_reshape(shape, reshape):
+    img = np.arange(int(np.prod(shape))).reshape(shape)
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        fits[0].reshape(reshape)
+        img_final = fits[0].read()
+
+    nel = img.ravel().shape[0]
+    nel_final = img_final.ravel().shape[0]
+    min_nel = min(nel, nel_final)
+    assert np.array_equal(
+        img_final.ravel()[:min_nel],
+        img.ravel()[:min_nel],
+    )
+    if nel_final > nel:
+        assert np.array_equal(
+            img_final.ravel()[nel:],
+            np.zeros(nel_final - nel),
+        )
