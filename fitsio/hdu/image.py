@@ -93,6 +93,15 @@ class ImageHDU(HDUBase):
         """
         reshape an existing image to the requested dimensions
 
+        If the new shape is bigger than the current shape,
+        the existing values in the image are "wrapped" around in C
+        order, via the process of
+
+            1. flattening the image in C order
+            2. appending zeros to the image so that it matches the new
+               total size
+            3. reshaping the image to the new dimensions
+
         parameters
         ----------
         dims: sequence
@@ -100,7 +109,9 @@ class ImageHDU(HDUBase):
         """
 
         adims = numpy.array(dims, ndmin=1, dtype='i8')
-        self._FITS.reshape_image(self._ext + 1, adims)
+        # we have to reverse the dimensions here since cfitsio
+        # uses fortran order
+        self._FITS.reshape_image(self._ext + 1, adims[::-1])
         self._update_info()
 
     def write(self, img, start=0, **keys):
