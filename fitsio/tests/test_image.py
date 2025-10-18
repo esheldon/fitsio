@@ -456,3 +456,10 @@ def test_image_write_subset_raises(dims):
             )
         else:
             fits[0].write(img2[..., 0], start=9999)
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        if ndims > 1:
+            fits[0].write(img2[..., :-1, 0], start=1)
+        else:
+            fits[0].write(img2[..., 0], start=1)
