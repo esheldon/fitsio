@@ -417,11 +417,28 @@ class ImageHDU(HDUBase):
             )
 
         if numpy.isscalar(start):
-            start = numpy.unravel_index(start, dims)
+            if len(dims) > 1:
+                try:
+                    _start = numpy.unravel_index(start, dims)
+                except Exception:
+                    # the unravel_index call fails when start is beyond
+                    # end of the existing array.
+                    # this means we are expanding the image and so we should
+                    # error
+                    raise ValueError(
+                        "When expanding "
+                        "an existing image while writing, the start keyword "
+                        "must have the same number of dimensions "
+                        "as the image or be exactly 0, got %s " % start
+                    )
+            else:
+                _start = [start]
+        else:
+            _start = start
 
         new_dims = []
         for i in xrange(ndim):
-            required_dim = start[i] + write_dims[i]
+            required_dim = _start[i] + write_dims[i]
 
             if required_dim < dims[i]:
                 # careful not to shrink the image!
@@ -432,6 +449,14 @@ class ImageHDU(HDUBase):
             new_dims.append(dimsize)
 
         if any(nd != od for nd, od in zip(new_dims, dims)):
+            if numpy.isscalar(start) and len(dims) > 1:
+                if start != 0:
+                    raise ValueError(
+                        "When expanding "
+                        "an existing image while writing, the start keyword "
+                        "must have the same number of dimensions "
+                        "as the image or be exactly 0, got %s " % start
+                    )
             self.reshape(new_dims)
 
     def __repr__(self):

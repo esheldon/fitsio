@@ -408,3 +408,51 @@ def test_image_reshape(shape, reshape):
             img_final.ravel()[nel:],
             np.zeros(nel_final - nel),
         )
+
+
+@pytest.mark.parametrize(
+    "dims",
+    [
+        ((1,)),
+        (
+            (
+                2,
+                3,
+            )
+        ),
+        (
+            4,
+            5,
+            6,
+        ),
+    ],
+)
+def test_image_write_subset_raises(dims):
+    ndims = len(dims)
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(int(np.prod(dims))).reshape(dims)
+    exdims = dims + (5,)
+    img2 = (
+        rng.normal(size=int(np.prod(exdims))).reshape(exdims) * 1000
+    ).astype(np.int_)
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        with pytest.raises(ValueError) as err:
+            fits[0].write(img2, start=0)
+        assert (
+            "the input image must have the same number of dimensions"
+            in str(err.value)
+        )
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(img)
+        if ndims > 1:
+            with pytest.raises(ValueError) as err:
+                fits[0].write(img2[..., 0], start=9999)
+            assert (
+                "the start keyword must have the same number of dimensions"
+                in str(err.value)
+            )
+        else:
+            fits[0].write(img2[..., 0], start=9999)
