@@ -102,6 +102,10 @@ class ImageHDU(HDUBase):
                total size
             3. reshaping the image to the new dimensions
 
+        If the new shape is smaller than the current image, the current
+        image is flattened, trunctaed to the new total length, and then
+        reshaped to the new shaped.
+
         parameters
         ----------
         dims: sequence
