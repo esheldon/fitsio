@@ -532,6 +532,48 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.parametrize(
+    "coef",
+    [
+        1,
+        2,
+    ],
+)
+def test_image_compression_big_gzip(coef):
+    n1 = 50
+    n2 = 50
+    nHDU = 10
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits.gz")
+        with FITS(pth, "rw", clobber=True) as out:
+            for i in range(nHDU):
+                out_list = []
+                out_names = []
+
+                out_names += ['A']
+                out_list += [np.zeros(n1 * n2 * coef * coef)]
+
+                out_names += ['B']
+                out_list += [np.zeros(n1 * n2 * coef * coef)]
+
+                out_names += ['C']
+                out_list += [np.zeros(n1 * n2 * coef * coef)]
+
+                out_names += ['D']
+                out_list += [np.zeros(n1 * n2 * coef * coef)]
+
+                out_names += ['E']
+                out_list += [
+                    np.zeros((n1 * n2 * coef * coef, n1 * n2 * coef * coef))
+                ]
+
+                out.write(out_list, names=out_names)
+
+        with FITS(pth, "r") as h:
+            assert len(h) == nHDU + 1
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
