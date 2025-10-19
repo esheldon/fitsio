@@ -1095,7 +1095,7 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
 
         case NPY_INT32:
             //*fits_img_type = LONG_IMG;
-            if (sizeof(unsigned short) == sizeof(npy_int32)) {
+            if (sizeof(short) == sizeof(npy_int32)) {
                 *fits_img_type = SHORT_IMG;
                 *fits_datatype = TINT;
             } else if (sizeof(int) == sizeof(npy_int32)) {
