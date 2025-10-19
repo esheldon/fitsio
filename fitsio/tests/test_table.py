@@ -1552,11 +1552,13 @@ def test_table_write_dict_of_arrays_unaligned():
         compare_rec(data_stra, d, "list of dicts")
 
 
-@pytest.mark.xfail(
-    reason="Bug in either CFITSIO or FITSIO; see https://github.com/esheldon/fitsio/issues/327"
-)
 def test_table_big_col():
     d = np.ones(1, dtype=[("blah", "S35000")])
     with tempfile.TemporaryDirectory() as tmpdir:
         pth = os.path.join(tmpdir, "test.fits")
-        write(pth, d)
+        with pytest.raises(ValueError) as e:
+            write(pth, d)
+        assert (
+            "column item size exceeds internal CFITSIO buffer size and so "
+            "cannot be read or written: item size = 35000, buffer size ="
+        ) in str(e)

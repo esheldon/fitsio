@@ -446,6 +446,16 @@ class TableHDU(HDUBase):
                 "expected '%s', got '%s'" % (col_name, col_shape, this_shape)
             )
 
+        if data.itemsize > 28800:
+            raise ValueError(
+                "column item size exceeds internal CFITSIO buffer size and so "
+                "cannot be read or written: item size = %d, buffer size = %d"
+                % (
+                    data.itemsize,
+                    28800,
+                )
+            )
+
     def write_var_column(self, column, data, firstrow=0, **keys):
         """
         Write data to a variable-length column in this HDU
