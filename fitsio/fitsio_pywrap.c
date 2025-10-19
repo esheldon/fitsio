@@ -4808,6 +4808,13 @@ PyFITS_cfitsio_is_bundled(void) {
 #endif
 }
 
+// this internal buffer size sets the maximum number of bytes
+// allowed for a table column type
+static PyObject *
+PyFITS_data_buffer_size_in_bytes(void) {
+    return PyLong_FromLong((long) DBUFFSIZE);
+}
+
 /*
 
 'C',              'L',     'I',     'F'             'X'
@@ -5038,6 +5045,7 @@ static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
     {"cfitsio_is_bundled",      (PyCFunction)PyFITS_cfitsio_is_bundled,      METH_NOARGS,  "cfitsio_is_bundled\n\nReturn True if library was built with a bundled copy of cfitsio."},
     {"cfitsio_use_standard_strings",      (PyCFunction)PyFITS_cfitsio_use_standard_strings,      METH_NOARGS,  "cfitsio_use_standard_strings\n\nReturn True if using string code that matches the FITS standard."},
+    {"data_buffer_size_in_bytes", (PyCFunction)PyFITS_data_buffer_size_in_bytes, METH_NOARGS,  "data_buffer_size_in_bytes\n\nReturn the size of the cfitsio internal data buffer in bytes. Table column types cannot exceed this number of bytes."},
     {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
     {"get_key_meta",      (PyCFunction)PyFITS_get_key_meta,      METH_VARARGS,  "get_key_meta\n\nparse the card to get key metadata (keyclass,dtype)."},
