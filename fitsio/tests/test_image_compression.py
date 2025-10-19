@@ -543,8 +543,10 @@ def test_image_compression_big_gzip(coef):
     n1 = 50
     n2 = 50
     nHDU = 10
+    rng = np.random.RandomState(seed=10)
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        tot = 0
         pth = os.path.join(tmpdir, "test.fits.gz")
         with FITS(pth, "rw", clobber=True) as out:
             for i in range(nHDU):
@@ -552,26 +554,34 @@ def test_image_compression_big_gzip(coef):
                 out_names = []
 
                 out_names += ['A']
-                out_list += [np.zeros(n1 * n2 * coef * coef)]
+                out_list += [rng.normal(size=n1 * n2 * coef * coef)]
 
                 out_names += ['B']
-                out_list += [np.zeros(n1 * n2 * coef * coef)]
+                out_list += [np.ones(n1 * n2 * coef * coef)]
 
                 out_names += ['C']
-                out_list += [np.zeros(n1 * n2 * coef * coef)]
+                out_list += [np.ones(n1 * n2 * coef * coef)]
 
                 out_names += ['D']
-                out_list += [np.zeros(n1 * n2 * coef * coef)]
+                out_list += [np.ones(n1 * n2 * coef * coef)]
 
                 out_names += ['E']
                 out_list += [
-                    np.zeros((n1 * n2 * coef * coef, n1 * n2 * coef * coef))
+                    np.ones((n1 * n2 * coef * coef, n1 * n2 * coef * coef))
                 ]
+
+                tot += sum(
+                    out_val.itemsize * out_val.size for out_val in out_list
+                )
 
                 out.write(out_list, names=out_names)
 
+        print("wrote %0.2f MB" % (tot / 1e6))
+
         with FITS(pth, "r") as h:
             assert len(h) == nHDU + 1
+            for k, name in zip([0, 1, -1], ["A", "B", "E"]):
+                assert np.array_equal(h[-1][name][:], out_list[k])
 
 
 if __name__ == '__main__':
