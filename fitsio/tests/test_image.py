@@ -1,6 +1,8 @@
 import os
 import tempfile
 
+import pytest
+
 # import warnings
 from .checks import check_header, compare_array
 import numpy as np
@@ -33,6 +35,18 @@ def test_image_write_read():
         with FITS(fname) as fits:
             for i in range(len(DTYPES)):
                 assert not fits[i].is_compressed(), 'not compressed'
+
+
+def test_image_write_read_bool():
+    rng = np.random.RandomState(seed=10)
+    with FITS("mem://", "rw") as fits:
+        a = rng.rand(10)
+        fits.write(a)
+        a = rng.rand(10) > 0.5
+        with pytest.raises(TypeError) as e:
+            fits.write(a)
+
+    assert "Unsupported numpy image datatype 0" in str(e)
 
 
 def test_image_write_read_unaligned():
