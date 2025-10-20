@@ -429,13 +429,7 @@ class TableHDU(HDUBase):
 
         if isinstance(self, AsciiTableHDU):
             # we don't enforce types exact for ascii
-            if npy_type == 'i8' and this_npy_type in [
-                'i2',
-                'i4',
-                'u2',
-                'u4',
-                'u8',
-            ]:
+            if npy_type == 'i8' and this_npy_type in ['i2', 'i4']:
                 this_npy_type = 'i8'
             elif npy_type == 'f8' and this_npy_type == 'f4':
                 this_npy_type = 'f8'
