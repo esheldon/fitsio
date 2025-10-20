@@ -74,7 +74,7 @@ jobs:
           # cd cfitsio-4.4.0
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio3440.tar.gz
           tar -xzvf cfitsio3440.tar.gz
-          cd cfitsio3440
+          cd cfitsio
           ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
           make install -j 4
           cd ..

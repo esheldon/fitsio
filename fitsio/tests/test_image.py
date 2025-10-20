@@ -8,7 +8,6 @@ from .checks import check_header, compare_array
 import numpy as np
 from ..fitslib import FITS
 
-import pytest
 
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', 'u8', '>f4', 'f8']
 
