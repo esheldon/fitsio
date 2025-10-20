@@ -1556,9 +1556,9 @@ def test_table_big_col():
     d = np.ones(1, dtype=[("blah", "S35000")])
     with tempfile.TemporaryDirectory() as tmpdir:
         pth = os.path.join(tmpdir, "test.fits")
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(OSError) as e:
             write(pth, d)
         assert (
-            "column item size exceeds internal CFITSIO buffer size and so "
-            "cannot be read or written: item size = 35000, buffer size ="
+            "ASCII string column is too wide: 35000; max "
+            "supported width is 28799"
         ) in str(e)

@@ -230,24 +230,27 @@ static char* get_object_as_string(PyObject* obj)
 
 static void set_ioerr_string_from_status(int status) {
     char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
-    char message[1024];
-
-    int nleft=1024;
+    char str_with_newline[1024];
+    // we use a static variable here so that we record all error
+    // messages as they happen. sometimes cfitsio will clear
+    // the error stack and this removes important debugging info
+    static char message[1024];
+    // nleft is one less since strncat always adds a null termination char
+    // and strlen counts the length of the string without the
+    // null termination char
+    int nleft=1023;
 
     if (status) {
         fits_get_errstatus(status, status_str);  /* get the error description */
 
-        sprintf(message, "FITSIO status = %d: %s\n", status, status_str);
-
-        nleft -= strlen(status_str)+1;
+        sprintf(str_with_newline, "FITSIO status = %d: %s\n", status, status_str);
+        strncat(message, str_with_newline, nleft);
+        nleft -= strlen(str_with_newline);
 
         while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
-            strncat(message, errmsg, nleft-1);
-            nleft -= strlen(errmsg)+1;
-            if (nleft >= 2) {
-                strncat(message, "\n", nleft-1);
-            }
-            nleft-=2;
+            sprintf(str_with_newline, "%s\n", errmsg);
+            strncat(message, str_with_newline, nleft);
+            nleft -= strlen(str_with_newline);
         }
         PyErr_SetString(PyExc_IOError, message);
     }
@@ -4808,13 +4811,6 @@ PyFITS_cfitsio_is_bundled(void) {
 #endif
 }
 
-// this internal buffer size sets the maximum number of bytes
-// allowed for a table column type
-static PyObject *
-PyFITS_data_buffer_size_in_bytes(void) {
-    return PyLong_FromLong((long) DBUFFSIZE);
-}
-
 /*
 
 'C',              'L',     'I',     'F'             'X'
@@ -5045,7 +5041,6 @@ static PyMethodDef fitstype_methods[] = {
     {"cfitsio_version",      (PyCFunction)PyFITS_cfitsio_version,      METH_NOARGS,  "cfitsio_version\n\nReturn the cfitsio version."},
     {"cfitsio_is_bundled",      (PyCFunction)PyFITS_cfitsio_is_bundled,      METH_NOARGS,  "cfitsio_is_bundled\n\nReturn True if library was built with a bundled copy of cfitsio."},
     {"cfitsio_use_standard_strings",      (PyCFunction)PyFITS_cfitsio_use_standard_strings,      METH_NOARGS,  "cfitsio_use_standard_strings\n\nReturn True if using string code that matches the FITS standard."},
-    {"data_buffer_size_in_bytes", (PyCFunction)PyFITS_data_buffer_size_in_bytes, METH_NOARGS,  "data_buffer_size_in_bytes\n\nReturn the size of the cfitsio internal data buffer in bytes. Table column types cannot exceed this number of bytes."},
     {"parse_card",      (PyCFunction)PyFITS_parse_card,      METH_VARARGS,  "parse_card\n\nparse the card to get the key name, value (as a string), data type and comment."},
     {"get_keytype",      (PyCFunction)PyFITS_get_keytype,      METH_VARARGS,  "get_keytype\n\nparse the card to get the key type."},
     {"get_key_meta",      (PyCFunction)PyFITS_get_key_meta,      METH_VARARGS,  "get_key_meta\n\nparse the card to get key metadata (keyclass,dtype)."},

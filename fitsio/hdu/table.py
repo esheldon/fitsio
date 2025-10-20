@@ -40,7 +40,6 @@ from ..util import (
     mks,
     copy_if_needed,
 )
-from .. import _fitsio_wrap
 from .base import HDUBase, ASCII_TBL, IMAGE_HDU, _hdu_type_map
 
 # for python3 compat
@@ -445,16 +444,6 @@ class TableHDU(HDUBase):
             raise ValueError(
                 "bad input shape for column '%s': "
                 "expected '%s', got '%s'" % (col_name, col_shape, this_shape)
-            )
-
-        if data.itemsize > _fitsio_wrap.data_buffer_size_in_bytes():
-            raise ValueError(
-                "column item size exceeds internal CFITSIO buffer size and so "
-                "cannot be read or written: item size = %d, buffer size = %d"
-                % (
-                    data.itemsize,
-                    _fitsio_wrap.data_buffer_size_in_bytes(),
-                )
             )
 
     def write_var_column(self, column, data, firstrow=0, **keys):
