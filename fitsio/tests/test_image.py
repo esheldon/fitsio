@@ -5,11 +5,14 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
+from ..util import cfitsio_version
 import numpy as np
 from ..fitslib import FITS
 
-
-DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', 'u8', '>f4', 'f8']
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
+DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 3.44:
+    DTYPES += ["u8"]
 
 
 def test_image_write_read():

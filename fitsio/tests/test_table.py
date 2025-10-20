@@ -16,7 +16,10 @@ from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
 
-DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', 'u8', '>f4', 'f8']
+CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
+DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 3.44:
+    DTYPES += ["u8"]
 
 
 def test_table_read_write():
@@ -1563,13 +1566,17 @@ def test_table_big_col():
         with pytest.raises(OSError) as e:
             write(pth, d)
         assert (
-            "ASCII string column is too wide: 35000; max "
+            "string column is too wide: 35000; max "
             "supported width is 28799"
         ) in str(e)
         assert "FITSIO status = 107: tried to move past end of file" in str(e)
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
 
 
+@pytest.mark.xfail(
+    condition=CFITSIO_VERSION <= 3.44,
+    reason="cfitsio versions <=3.44 do not support unsigned 64bit integers"
+)
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])
     adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
