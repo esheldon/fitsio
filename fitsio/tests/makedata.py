@@ -28,6 +28,7 @@ def make_data():
         ('u4scalar', 'u4'),
         ('i4scalar', '<i4'),  # mix the byte orders a bit, test swapping
         ('i8scalar', 'i8'),
+        ('u8scalar', 'u8'),
         ('f4scalar', 'f4'),
         ('f8scalar', '>f8'),
         ('c8scalar', 'c8'),  # complex, two 32-bit
@@ -40,6 +41,7 @@ def make_data():
         ('u4vec', 'u4', nvec),
         ('i4vec', 'i4', nvec),
         ('i8vec', 'i8', nvec),
+        ('u8vec', 'u8', nvec),
         ('f4vec', 'f4', nvec),
         ('f8vec', 'f8', nvec),
         ('c8vec', 'c8', nvec),
@@ -52,6 +54,7 @@ def make_data():
         ('u4arr', 'u4', ashape),
         ('i4arr', 'i4', ashape),
         ('i8arr', 'i8', ashape),
+        ('u8arr', 'u8', ashape),
         ('f4arr', 'f4', ashape),
         ('f8arr', 'f8', ashape),
         ('c8arr', 'c8', ashape),
@@ -101,6 +104,7 @@ def make_data():
         'u4',
         'i4',
         'i8',
+        'u8',
         'f4',
         'f8',
         'c8',
@@ -288,6 +292,8 @@ def make_data():
         ('u4obj', 'O'),
         ('i4scalar', '<i4'),  # mix the byte orders a bit, test swapping
         ('i4obj', 'O'),
+        ('u8scalar', 'i8'),
+        ('u8obj', 'O'),
         ('i8scalar', 'i8'),
         ('i8obj', 'O'),
         ('f4scalar', 'f4'),
@@ -300,6 +306,7 @@ def make_data():
         ('i2vec', 'i2', nvec),
         ('u4vec', 'u4', nvec),
         ('i4vec', 'i4', nvec),
+        ('u8vec', 'u8', nvec),
         ('i8vec', 'i8', nvec),
         ('f4vec', 'f4', nvec),
         ('f8vec', 'f8', nvec),
@@ -309,6 +316,7 @@ def make_data():
         ('i2arr', 'i2', ashape),
         ('u4arr', 'u4', ashape),
         ('i4arr', 'i4', ashape),
+        ('u8arr', 'u8', ashape),
         ('i8arr', 'i8', ashape),
         ('f4arr', 'f4', ashape),
         ('f8arr', 'f8', ashape),
@@ -330,7 +338,7 @@ def make_data():
     nrows = 4
     vardata = np.zeros(nrows, dtype=dtype)
 
-    for t in ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']:
+    for t in ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'u8', 'i8', 'f4', 'f8']:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
         vardata[t + 'vec'] = 1 + np.arange(nrows * nvec, dtype=t).reshape(
             nrows,

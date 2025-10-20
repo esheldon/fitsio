@@ -2632,6 +2632,7 @@ _table_fits2npy = {
     40: 'u4',  # 40=TULONG
     41: 'i4',  # 41=TLONG
     42: 'f4',
+    80: 'u8',  # 80=TULONGLON
     81: 'i8',
     82: 'f8',
     83: 'c8',  # TCOMPLEX
@@ -2663,6 +2664,7 @@ _table_npy2fits_form = {
     'u4': 'V',  # gets converted to signed
     'i4': 'J',
     'i8': 'K',
+    'u8': 'W',
     'f4': 'E',
     'f8': 'D',
     'c8': 'C',

@@ -16,7 +16,7 @@ from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
 
-DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', 'u8', '>f4', 'f8']
 
 
 def test_table_read_write():
@@ -883,6 +883,9 @@ def test_table_resize():
         add_data['u4scalar'] = 2147483648
         add_data['u4vec'] = 2147483648
         add_data['u4arr'] = 2147483648
+        add_data['u8scalar'] = 9223372036854775808
+        add_data['u8vec'] = 9223372036854775808
+        add_data['u8arr'] = 9223372036854775808
 
         #
         # expand at the back
