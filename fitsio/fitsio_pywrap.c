@@ -1803,6 +1803,97 @@ PyFITSObject_write_image(struct PyFITSObject* self, PyObject* args) {
 }
 
 
+// write a rectangular subset to the image in an existing HDU
+// created using create_image_hdu
+// dims are not checked
+static PyObject *
+PyFITSObject_write_subset(struct PyFITSObject* self, PyObject* args) {
+    int hdunum=0;
+    int hdutype=0;
+    int image_datatype=0; // fits type for image, AKA bitpix
+    int datatype=0; // type for the data we entered
+
+    long fpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
+    long lpixel[CFITSIO_MAX_ARRAY_DIMS]={0};
+    npy_int64 pixval=0;
+    npy_intp i=0;
+
+    PyObject* array_obj=NULL;
+    PyObject* firstpixel_obj=NULL;
+    PyObject* lastpixel_obj=NULL;
+    PyArrayObject* array=NULL;
+    PyArrayObject* firstpixel=NULL;
+    PyArrayObject* lastpixel=NULL;
+    void* data=NULL;
+    int npy_dtype=0, ndims;
+    int status=0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char*)"iOOO", &hdunum, &array_obj, &firstpixel_obj, &lastpixel_obj)) {
+        return NULL;
+    }
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    array = (PyArrayObject *) array_obj;
+    if (!PyArray_Check(array)) {
+        PyErr_SetString(PyExc_TypeError, "input data must be an array.");
+        return NULL;
+    }
+    npy_dtype = PyArray_TYPE(array);
+    if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
+        return NULL;
+    }
+
+    firstpixel = (PyArrayObject *) firstpixel_obj;
+    if (!PyArray_Check(firstpixel)) {
+        PyErr_SetString(PyExc_TypeError, "input firstpixel must be an array.");
+        return NULL;
+    }
+
+    lastpixel = (PyArrayObject *) lastpixel_obj;
+    if (!PyArray_Check(lastpixel)) {
+        PyErr_SetString(PyExc_TypeError, "input lastpixel must be an array.");
+        return NULL;
+    }
+
+    if (PyArray_SIZE(firstpixel) != PyArray_SIZE(lastpixel)) {
+        PyErr_SetString(PyExc_TypeError, "input firstpixel and lastpixel must have the same size.");
+        return NULL;
+    }
+
+    ndims = PyArray_SIZE(firstpixel);
+    for (i=0; i<ndims; i++) {
+        pixval = *(npy_int64 *) PyArray_GETPTR1(firstpixel, i);
+        fpixel[i] = (long) pixval;
+
+        pixval = *(npy_int64 *) PyArray_GETPTR1(lastpixel, i);
+        lpixel[i] = (long) pixval;
+    }
+
+    data = PyArray_DATA(array);
+    if (fits_write_subset(self->fits, datatype, fpixel, lpixel, data, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    // this is a full file close and reopen
+    if (fits_flush_file(self->fits, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+
 /*
  * Write tdims from the list.  The list must be the expected length.
  * Entries must be strings or None; if None the tdim is not written.
@@ -5007,6 +5098,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"reshape_image",          (PyCFunction)PyFITSObject_reshape_image,          METH_VARARGS,  "reshape_image\n\nReshape the image."},
     {"write_image",          (PyCFunction)PyFITSObject_write_image,          METH_VARARGS,  "write_image\n\nWrite the input image to a new extension."},
+    {"write_subset",         (PyCFunction)PyFITSObject_write_subset,         METH_VARARGS,  "write_subset\n\nWrite a rectangular subset to the image."},
     //{"write_column",         (PyCFunction)PyFITSObject_write_column,         METH_VARARGS | METH_KEYWORDS, "write_column\n\nWrite a column into the specified hdu."},
     {"write_columns",        (PyCFunction)PyFITSObject_write_columns,        METH_VARARGS | METH_KEYWORDS, "write_columns\n\nWrite columns into the specified hdu."},
     {"write_var_column",     (PyCFunction)PyFITSObject_write_var_column,     METH_VARARGS | METH_KEYWORDS, "write_var_column\n\nWrite a variable length column into the specified hdu from an object array."},
