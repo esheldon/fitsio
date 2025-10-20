@@ -239,6 +239,10 @@ static void set_ioerr_string_from_status(int status, struct PyFITSObject* self) 
     char status_str[FLEN_STATUS], errmsg[FLEN_ERRMSG];
     char str_with_newline[1024];
     int nleft;
+    // sometimes this function is called without an instantiated PyFITSPObject.
+    // in that case, we use a local buffer and grab all of the information we can
+    // to set the error string. this edge case means we will sometimes miss error
+    // messages that cfitsio puts on the stack but then removes later.
     char message_if_null[PYFITS_ERRMSG_LEN];
 
     // the number of characters left is the number of characters not
