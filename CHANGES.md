@@ -12,6 +12,9 @@ Changes
     - Added a a new function `fitsio.cfitsio_is_bundled()`
       that detects if the cfitsio library is bundled with
       the Python code.
+    - Enabled the code to track all cfitsio error messages,
+      including those put onto the internal stack and then
+      later removed. This feature should help with debugging.
 
 Bug Fixes
 
@@ -32,6 +35,7 @@ Bug Fixes
     - Fixed a bug where compression parameters were cached across different HDUs.
     - Fixed a bug where writing unsupported image types either did not raise an error
       or did not raise the correct error.
+    - Fixed a bug where rectangular subsets of images were not written properly.
 
 version 1.2.8
 -------------
