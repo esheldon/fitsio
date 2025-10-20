@@ -241,6 +241,18 @@ static void set_ioerr_string_from_status(int status, struct PyFITSObject* self) 
     int nleft;
     char message_if_null[PYFITS_ERRMSG_LEN];
 
+    // the number of characters left is the number of characters not
+    // used in the message variable minus one. We remove one for the
+    // C null termination character. So if the variable is PYFITS_ERRMSG_LEN
+    // characters long, then nleft is PYFITS_ERRMSG_LEN - 1.
+    // This works because:
+    //   - strncat always adds the null termination character
+    //   - strlen returns the number of characters up to the first null (and
+    //     does not include the null itself in the total count).
+    // Thus we never have to account for the null ourselves except in the initial
+    // number of characters we have to use for holding error messages (which we
+    // set to one less than the total storage we have so strncat always has
+    // room for the null.)
     if (self != NULL) {
         nleft = PYFITS_ERRMSG_LEN - strlen(self->pyfits_errmsg) - 1;
     } else {
