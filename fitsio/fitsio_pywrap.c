@@ -245,6 +245,19 @@ static void set_ioerr_string_from_status(int status, struct PyFITSObject* self) 
     // messages that cfitsio puts on the stack but then removes later.
     char message_if_null[PYFITS_ERRMSG_LEN];
 
+    // pointer to the error message buffer we are using
+    char* message;
+
+    // always init error message to zero length string
+    // init of self->pyfits_errmsg is done when object is created
+    message_if_null[0] = '\0';
+
+    if (self != NULL) {
+        message = &(self->pyfits_errmsg[0]);
+    } else {
+        message = &(message_if_null[0]);
+    }
+
     // the number of characters left is the number of characters not
     // used in the message variable minus one. We remove one for the
     // C null termination character. So if the variable is PYFITS_ERRMSG_LEN
@@ -257,44 +270,27 @@ static void set_ioerr_string_from_status(int status, struct PyFITSObject* self) 
     // number of characters we have to use for holding error messages (which we
     // set to one less than the total storage we have so strncat always has
     // room for the null.)
-    if (self != NULL) {
-        nleft = PYFITS_ERRMSG_LEN - strlen(self->pyfits_errmsg) - 1;
-    } else {
-        message_if_null[0] = '\0';
-        nleft = PYFITS_ERRMSG_LEN - 1;
-    }
+    nleft = PYFITS_ERRMSG_LEN - strlen(message) - 1;
 
     if (status) {
         fits_get_errstatus(status, status_str);  /* get the error description */
 
         sprintf(str_with_newline, "FITSIO status = %d: %s\n", status, status_str);
         if (nleft >= strlen(str_with_newline)) {
-            if (self != NULL) {
-                strncat(self->pyfits_errmsg, str_with_newline, nleft);
-            } else {
-                strncat(message_if_null, str_with_newline, nleft);
-            }
+            strncat(message, str_with_newline, nleft);
             nleft -= strlen(str_with_newline);
         }
 
         while ( nleft > 0 && fits_read_errmsg(errmsg) )  { /* get error stack messages */
             sprintf(str_with_newline, "%s\n", errmsg);
             if (nleft >= strlen(str_with_newline)) {
-                if (self != NULL) {
-                    strncat(self->pyfits_errmsg, str_with_newline, nleft);
-                } else {
-                    strncat(message_if_null, str_with_newline, nleft);
-                }
+                strncat(message, str_with_newline, nleft);
                 nleft -= strlen(str_with_newline);
             } else {
                 break;
             }
         }
-        if (self != NULL) {
-            PyErr_SetString(PyExc_IOError, self->pyfits_errmsg);
-        } else {
-            PyErr_SetString(PyExc_IOError, message_if_null);
-        }
+        PyErr_SetString(PyExc_IOError, message);
     }
     return;
 }
