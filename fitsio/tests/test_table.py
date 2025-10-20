@@ -1568,3 +1568,20 @@ def test_table_big_col():
         ) in str(e)
         assert "FITSIO status = 107: tried to move past end of file" in str(e)
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
+
+
+def test_table_read_write_ulonglong():
+    adata = np.zeros(5, dtype=[("u8scalar", "u8")])
+    adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(
+                adata,
+                extname='mytable',
+            )
+
+            d = fits[1].read()
+            compare_rec(adata, d, "table read/write")

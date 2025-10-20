@@ -429,7 +429,13 @@ class TableHDU(HDUBase):
 
         if isinstance(self, AsciiTableHDU):
             # we don't enforce types exact for ascii
-            if npy_type == 'i8' and this_npy_type in ['i2', 'i4']:
+            if npy_type == 'i8' and this_npy_type in [
+                'i2',
+                'i4',
+                'u2',
+                'u4',
+                'u8',
+            ]:
                 this_npy_type = 'i8'
             elif npy_type == 'f8' and this_npy_type == 'f4':
                 this_npy_type = 'f8'
@@ -2727,8 +2733,16 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
     if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
         raise ValueError("got S or U type: use _npy_string2fits")
 
-    if npy_dtype not in _table_npy2fits_form:
-        raise ValueError("unsupported type '%s'" % npy_dtype)
+    if table_type == 'binary':
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError(
+                "unsupported type '%s' for binary tables" % npy_dtype
+            )
+    else:
+        if npy_dtype not in _table_npy2fits_form_ascii:
+            raise ValueError(
+                "unsupported type '%s' for ascii tables" % npy_dtype
+            )
 
     if table_type == 'binary':
         form = _table_npy2fits_form[npy_dtype]
