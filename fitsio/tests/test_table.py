@@ -887,9 +887,10 @@ def test_table_resize():
         add_data['u4scalar'] = 2**31
         add_data['u4vec'] = 2**31
         add_data['u4arr'] = 2**31
-        add_data['u8scalar'] = 2**63
-        add_data['u8vec'] = 2**63
-        add_data['u8arr'] = 2**63
+        if CFITSIO_VERSION > 3.44:
+            add_data['u8scalar'] = 2**63
+            add_data['u8vec'] = 2**63
+            add_data['u8arr'] = 2**63
 
         #
         # expand at the back
