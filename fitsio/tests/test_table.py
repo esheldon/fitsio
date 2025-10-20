@@ -1566,8 +1566,7 @@ def test_table_big_col():
         with pytest.raises(OSError) as e:
             write(pth, d)
         assert (
-            "string column is too wide: 35000; max "
-            "supported width is 28799"
+            "string column is too wide: 35000; max supported width is 28799"
         ) in str(e)
         assert "FITSIO status = 107: tried to move past end of file" in str(e)
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
@@ -1575,7 +1574,7 @@ def test_table_big_col():
 
 @pytest.mark.xfail(
     condition=CFITSIO_VERSION <= 3.44,
-    reason="cfitsio versions <=3.44 do not support unsigned 64bit integers"
+    reason="cfitsio versions <=3.44 do not support unsigned 64bit integers",
 )
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])

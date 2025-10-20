@@ -3,6 +3,9 @@ import numpy as np
 from functools import lru_cache
 
 from .._fitsio_wrap import cfitsio_use_standard_strings
+from ..util import cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 lorem_ipsum = (
     'Lorem ipsum dolor sit amet, consectetur adipiscing '
@@ -28,7 +31,6 @@ def make_data():
         ('u4scalar', 'u4'),
         ('i4scalar', '<i4'),  # mix the byte orders a bit, test swapping
         ('i8scalar', 'i8'),
-        ('u8scalar', 'u8'),
         ('f4scalar', 'f4'),
         ('f8scalar', '>f8'),
         ('c8scalar', 'c8'),  # complex, two 32-bit
@@ -41,7 +43,6 @@ def make_data():
         ('u4vec', 'u4', nvec),
         ('i4vec', 'i4', nvec),
         ('i8vec', 'i8', nvec),
-        ('u8vec', 'u8', nvec),
         ('f4vec', 'f4', nvec),
         ('f8vec', 'f8', nvec),
         ('c8vec', 'c8', nvec),
@@ -54,7 +55,6 @@ def make_data():
         ('u4arr', 'u4', ashape),
         ('i4arr', 'i4', ashape),
         ('i8arr', 'i8', ashape),
-        ('u8arr', 'u8', ashape),
         ('f4arr', 'f4', ashape),
         ('f8arr', 'f8', ashape),
         ('c8arr', 'c8', ashape),
@@ -65,6 +65,13 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
+
+    if CFITSIO_VERSION > 3.44:
+        dtype += [
+            ('u8scalar', 'u8'),
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+        ]
 
     if cfitsio_use_standard_strings():
         dtype += [
@@ -104,12 +111,14 @@ def make_data():
         'u4',
         'i4',
         'i8',
-        'u8',
         'f4',
         'f8',
         'c8',
         'c16',
     ]
+    if CFITSIO_VERSION > 3.44:
+        dtypes += ["u8"]
+
     for t in dtypes:
         if t in ['c8', 'c16']:
             data[t + 'scalar'] = [
@@ -292,8 +301,6 @@ def make_data():
         ('u4obj', 'O'),
         ('i4scalar', '<i4'),  # mix the byte orders a bit, test swapping
         ('i4obj', 'O'),
-        ('u8scalar', 'i8'),
-        ('u8obj', 'O'),
         ('i8scalar', 'i8'),
         ('i8obj', 'O'),
         ('f4scalar', 'f4'),
@@ -306,7 +313,6 @@ def make_data():
         ('i2vec', 'i2', nvec),
         ('u4vec', 'u4', nvec),
         ('i4vec', 'i4', nvec),
-        ('u8vec', 'u8', nvec),
         ('i8vec', 'i8', nvec),
         ('f4vec', 'f4', nvec),
         ('f8vec', 'f8', nvec),
@@ -316,7 +322,6 @@ def make_data():
         ('i2arr', 'i2', ashape),
         ('u4arr', 'u4', ashape),
         ('i4arr', 'i4', ashape),
-        ('u8arr', 'u8', ashape),
         ('i8arr', 'i8', ashape),
         ('f4arr', 'f4', ashape),
         ('f8arr', 'f8', ashape),
@@ -327,6 +332,13 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
+    if CFITSIO_VERSION > 3.44:
+        dtype += [
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+            ('u8scalar', 'i8'),
+            ('u8obj', 'O'),
+        ]
 
     if sys.version_info > (3, 0, 0):
         dtype += [
@@ -338,7 +350,10 @@ def make_data():
     nrows = 4
     vardata = np.zeros(nrows, dtype=dtype)
 
-    for t in ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'u8', 'i8', 'f4', 'f8']:
+    _dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']
+    if CFITSIO_VERSION > 3.44:
+        _dtypes += ["u8"]
+    for t in _dtypes:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
         vardata[t + 'vec'] = 1 + np.arange(nrows * nvec, dtype=t).reshape(
             nrows,
