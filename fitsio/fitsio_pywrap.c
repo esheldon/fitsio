@@ -1838,7 +1838,7 @@ PyFITSObject_write_subset(struct PyFITSObject* self, PyObject* args) {
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status);
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
@@ -1880,13 +1880,13 @@ PyFITSObject_write_subset(struct PyFITSObject* self, PyObject* args) {
 
     data = PyArray_DATA(array);
     if (fits_write_subset(self->fits, datatype, fpixel, lpixel, data, &status)) {
-        set_ioerr_string_from_status(status);
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
     // this is a full file close and reopen
     if (fits_flush_file(self->fits, &status)) {
-        set_ioerr_string_from_status(status);
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 

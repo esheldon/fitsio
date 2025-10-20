@@ -318,65 +318,87 @@ def test_read_ignore_scaling():
             )
 
 
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize("sx", [0, 6, 9])
 @pytest.mark.parametrize("sy", [0, 3, 4])
 @pytest.mark.parametrize("sz", [0, 2, 5])
-def test_image_write_subset_3d(sx, sy, sz):
+def test_image_write_subset_3d(sx, sy, sz, fname):
     rng = np.random.RandomState(seed=10)
     img = np.arange(300).reshape(6, 5, 10)
     img2 = (rng.normal(size=30).reshape(3, 2, 5) * 1000).astype(np.int_)
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        fits[0].write(img2, start=[sz, sy, sx])
-        img_final = fits[0].read()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
 
-    assert np.array_equal(
-        img_final[
-            sz : sz + img2.shape[0],
-            sy : sy + img2.shape[1],
-            sx : sx + img2.shape[2],
-        ],
-        img2,
-    )
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            fits[0].write(img2, start=[sz, sy, sx])
+            img_final = fits[0].read()
+
+        assert np.array_equal(
+            img_final[
+                sz : sz + img2.shape[0],
+                sy : sy + img2.shape[1],
+                sx : sx + img2.shape[2],
+            ],
+            img2,
+        )
 
 
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize("sx", [0, 1, 9])
 @pytest.mark.parametrize("sy", [0, 1, 9])
-def test_image_write_subset_2d(sx, sy):
+def test_image_write_subset_2d(sx, sy, fname):
     rng = np.random.RandomState(seed=10)
     img = np.arange(100).reshape(10, 10)
     img2 = (rng.normal(size=6).reshape(3, 2) * 1000).astype(np.int_)
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        fits[0].write(img2, start=[sy, sx])
-        img_final = fits[0].read()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
 
-    assert np.array_equal(
-        img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
-        img2,
-    )
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            fits[0].write(img2, start=[sy, sx])
+            img_final = fits[0].read()
+
+        assert np.array_equal(
+            img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+            img2,
+        )
 
 
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize("sx", [0, 13, 99])
-def test_image_write_subset_1d(sx):
+def test_image_write_subset_1d(sx, fname):
     rng = np.random.RandomState(seed=10)
     img = np.arange(100)
     img2 = (rng.normal(size=6) * 1000).astype(np.int_)
 
     for _sx in [sx, [sx]]:
-        with FITS("mem://", "rw") as fits:
-            fits.write(img)
-            fits[0].write(img2, start=_sx)
-            img_final = fits[0].read()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if "mem://" not in fname:
+                fpth = os.path.join(tmpdir, fname)
+            else:
+                fpth = fname
 
-        assert np.array_equal(
-            img_final[sx : sx + img2.shape[0]],
-            img2,
-        )
+            with FITS(fpth, "rw") as fits:
+                fits.write(img)
+                fits[0].write(img2, start=_sx)
+                img_final = fits[0].read()
+
+            assert np.array_equal(
+                img_final[sx : sx + img2.shape[0]],
+                img2,
+            )
 
 
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize(
     "shape,reshape",
     [
@@ -388,28 +410,35 @@ def test_image_write_subset_1d(sx):
         ((10, 5), (12, 2)),
     ],
 )
-def test_image_reshape(shape, reshape):
+def test_image_reshape(shape, reshape, fname):
     img = np.arange(int(np.prod(shape))).reshape(shape)
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        fits[0].reshape(reshape)
-        img_final = fits[0].read()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
 
-    nel = img.ravel().shape[0]
-    nel_final = img_final.ravel().shape[0]
-    min_nel = min(nel, nel_final)
-    assert np.array_equal(
-        img_final.ravel()[:min_nel],
-        img.ravel()[:min_nel],
-    )
-    if nel_final > nel:
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            fits[0].reshape(reshape)
+            img_final = fits[0].read()
+
+        nel = img.ravel().shape[0]
+        nel_final = img_final.ravel().shape[0]
+        min_nel = min(nel, nel_final)
         assert np.array_equal(
-            img_final.ravel()[nel:],
-            np.zeros(nel_final - nel),
+            img_final.ravel()[:min_nel],
+            img.ravel()[:min_nel],
         )
+        if nel_final > nel:
+            assert np.array_equal(
+                img_final.ravel()[nel:],
+                np.zeros(nel_final - nel),
+            )
 
 
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize(
     "dims",
     [
@@ -427,7 +456,7 @@ def test_image_reshape(shape, reshape):
         ),
     ],
 )
-def test_image_write_subset_raises(dims):
+def test_image_write_subset_raises(dims, fname):
     ndims = len(dims)
     rng = np.random.RandomState(seed=10)
     img = np.arange(int(np.prod(dims))).reshape(dims)
@@ -436,30 +465,48 @@ def test_image_write_subset_raises(dims):
         rng.normal(size=int(np.prod(exdims))).reshape(exdims) * 1000
     ).astype(np.int_)
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        with pytest.raises(ValueError) as err:
-            fits[0].write(img2, start=0)
-        assert (
-            "the input image must have the same number of dimensions"
-            in str(err.value)
-        )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        if ndims > 1:
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
             with pytest.raises(ValueError) as err:
-                fits[0].write(img2[..., 0], start=9999)
+                fits[0].write(img2, start=0)
             assert (
-                "the start keyword must have the same number of dimensions"
+                "the input image must have the same number of dimensions"
                 in str(err.value)
             )
-        else:
-            fits[0].write(img2[..., 0], start=9999)
 
-    with FITS("mem://", "rw") as fits:
-        fits.write(img)
-        if ndims > 1:
-            fits[0].write(img2[..., :-1, 0], start=1)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
         else:
-            fits[0].write(img2[..., 0], start=1)
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            if ndims > 1:
+                with pytest.raises(ValueError) as err:
+                    fits[0].write(img2[..., 0], start=9999)
+                assert (
+                    "the start keyword must have the same number of dimensions"
+                    in str(err.value)
+                )
+            else:
+                fits[0].write(img2[..., 0], start=9999)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "fpth" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS("mem://", "rw") as fits:
+            fits.write(img)
+            if ndims > 1:
+                fits[0].write(img2[..., :-1, 0], start=1)
+            else:
+                fits[0].write(img2[..., 0], start=1)
