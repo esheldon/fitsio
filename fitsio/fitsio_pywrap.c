@@ -1066,6 +1066,7 @@ npy_to_fits_table_type(int npy_dtype, int write_bitcols) {
                 PyErr_SetString(PyExc_TypeError, "could not determine 8 byte integer type");
                 return -9999;
             }
+#ifdef TULONGLONG
         case NPY_UINT64:
             if (sizeof(unsigned long long) == sizeof(npy_uint64)) {
                 return TULONGLONG;
@@ -1077,6 +1078,11 @@ npy_to_fits_table_type(int npy_dtype, int write_bitcols) {
                 PyErr_SetString(PyExc_TypeError, "could not determine 8 byte unsigned integer type");
                 return -9999;
             }
+#else
+        case NPY_UINT64:
+            PyErr_SetString(PyExc_TypeError, "Unsigned 8 byte integer images are not supported by the FITS standard");
+            return -9999;
+#endif
 
         case NPY_FLOAT32:
             return TFLOAT;
@@ -1184,6 +1190,7 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
             }
             break;
 
+#ifdef TULONGLONG
         case NPY_UINT64:
             if (sizeof(ULONGLONG) == sizeof(npy_uint64)) {
                 *fits_img_type = ULONGLONG_IMG;
@@ -1205,6 +1212,11 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
                 return 1;
             }
             break;
+#else
+        case NPY_UINT64:
+            PyErr_SetString(PyExc_TypeError, "Unsigned 8 byte integer images are not supported by the FITS standard");
+            return -9999;
+#endif
 
         case NPY_FLOAT32:
             *fits_img_type = FLOAT_IMG;
@@ -1314,6 +1326,7 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
                 return -9999;
             }
 
+#ifdef TULONGLONG
         case TULONGLONG:
             if (sizeof(ULONGLONG) == sizeof(npy_uint64)) {
                 return NPY_UINT64;
@@ -1325,6 +1338,7 @@ static int fits_to_npy_table_type(int fits_dtype, int* isvariable) {
                 PyErr_SetString(PyExc_TypeError, "could not determine numpy type for fits TULONGLONG");
                 return -9999;
             }
+#endif
 
         case TLONGLONG:
             if (sizeof(LONGLONG) == sizeof(npy_int64)) {

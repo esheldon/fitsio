@@ -871,21 +871,22 @@ def test_table_resize():
         compare_rec(compare_data, d, "shrink from front")
 
         # These don't get zerod
-
+        # the defaults below come out of cfitsio
+        # IDK where they are defined
         nrows = 10
         add_data = np.zeros(nrows - data.size, dtype=data.dtype)
-        add_data['i1scalar'] = -128
-        add_data['i1vec'] = -128
-        add_data['i1arr'] = -128
-        add_data['u2scalar'] = 32768
-        add_data['u2vec'] = 32768
-        add_data['u2arr'] = 32768
-        add_data['u4scalar'] = 2147483648
-        add_data['u4vec'] = 2147483648
-        add_data['u4arr'] = 2147483648
-        add_data['u8scalar'] = 9223372036854775808
-        add_data['u8vec'] = 9223372036854775808
-        add_data['u8arr'] = 9223372036854775808
+        add_data['i1scalar'] = -(2**7)
+        add_data['i1vec'] = -(2**7)
+        add_data['i1arr'] = -(2**7)
+        add_data['u2scalar'] = 2**15
+        add_data['u2vec'] = 2**15
+        add_data['u2arr'] = 2**15
+        add_data['u4scalar'] = 2**31
+        add_data['u4vec'] = 2**31
+        add_data['u4arr'] = 2**31
+        add_data['u8scalar'] = 2**63
+        add_data['u8vec'] = 2**63
+        add_data['u8arr'] = 2**63
 
         #
         # expand at the back
