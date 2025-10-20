@@ -1562,3 +1562,5 @@ def test_table_big_col():
             "ASCII string column is too wide: 35000; max "
             "supported width is 28799"
         ) in str(e)
+        assert "FITSIO status = 107: tried to move past end of file" in str(e)
+        assert "FITSIO status = 236: column exceeds width of table" in str(e)
