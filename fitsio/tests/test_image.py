@@ -8,8 +8,6 @@ from .checks import check_header, compare_array
 import numpy as np
 from ..fitslib import FITS
 
-import pytest
-
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 
 
@@ -39,16 +37,23 @@ def test_image_write_read():
                 assert not fits[i].is_compressed(), 'not compressed'
 
 
-def test_image_write_read_bool():
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+def test_image_write_read_bool(fname):
     rng = np.random.RandomState(seed=10)
-    with FITS("mem://", "rw") as fits:
-        a = rng.rand(10)
-        fits.write(a)
-        a = rng.rand(10) > 0.5
-        with pytest.raises(TypeError) as e:
-            fits.write(a)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
 
-    assert "Unsupported numpy image datatype 0" in str(e)
+        with FITS(fpth, "rw") as fits:
+            a = rng.rand(10)
+            fits.write(a)
+            a = rng.rand(10) > 0.5
+            with pytest.raises(TypeError) as e:
+                fits.write(a)
+
+        assert "Unsupported numpy image datatype 0" in str(e)
 
 
 def test_image_write_read_unaligned():
