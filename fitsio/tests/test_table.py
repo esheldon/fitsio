@@ -1587,9 +1587,16 @@ def test_table_read_write_ulonglong():
             compare_rec(adata, d, "table read/write")
 
 
-def test_table_read_write_ulonglong_ascii_raises():
-    adata = np.zeros(5, dtype=[("u8scalar", "u8")])
-    adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
+@pytest.mark.parametrize("typ", ["u8", "u4", "i8"])
+def test_table_read_write_ulonglong_ascii_raises(typ):
+    adata = np.zeros(5, dtype=[("scalar", typ)])
+    if typ == "u8":
+        val = 2**64 - 1
+    elif typ == "u4":
+        val = 2**32 - 1
+    elif typ == "i8":
+        val = 2**31 - 1
+    adata["scalar"] = (val) - np.arange(5, dtype=typ)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
@@ -1601,4 +1608,4 @@ def test_table_read_write_ulonglong_ascii_raises():
                     extname='mytable',
                     table_type='ascii',
                 )
-            assert "unsupported type 'u8' for ascii tables" in str(e.value)
+            assert f"unsupported type '{typ}' for ascii tables" in str(e.value)
