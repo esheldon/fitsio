@@ -33,6 +33,8 @@ Bug Fixes
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
       for the upstream PR for the patch.
     - Fixed a bug where compression parameters were cached across different HDUs.
+    - Fixed a bug where writing unsupported image types either did not raise an error
+      or did not raise the correct error.
     - Fixed a bug where rectangular subsets of images were not written properly.
 
 version 1.2.8

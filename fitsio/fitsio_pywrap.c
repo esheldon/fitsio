@@ -1151,7 +1151,7 @@ npy_to_fits_image_types(int npy_dtype, int *fits_img_type, int *fits_datatype) {
 
         case NPY_INT32:
             //*fits_img_type = LONG_IMG;
-            if (sizeof(unsigned short) == sizeof(npy_uint32)) {
+            if (sizeof(short) == sizeof(npy_int32)) {
                 *fits_img_type = SHORT_IMG;
                 *fits_datatype = TINT;
             } else if (sizeof(int) == sizeof(npy_int32)) {
@@ -1485,6 +1485,7 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
     int npy_dtype=0, nkeys=0, write_data=0;
     int i=0;
     int status=0;
+    int py_status=0;
 
     char* extname=NULL;
     int extver=0;
@@ -1541,23 +1542,28 @@ PyFITSObject_create_image_hdu(struct PyFITSObject* self, PyObject* args, PyObjec
                           &hcomp_smooth_obj,
 
                           &extname,
-                          &extver)) {
+                          &extver)
+    ) {
+        py_status = 1;
         goto create_image_hdu_cleanup;
     }
 
     if (array_obj == Py_None) {
         if (create_empty_hdu(self)) {
+            // error string is set in create_empty_hdu
             return NULL;
         }
     } else {
         array = (PyArrayObject *) array_obj;
         if (!PyArray_Check(array)) {
             PyErr_SetString(PyExc_TypeError, "input must be an array.");
+            py_status = 1;
             goto create_image_hdu_cleanup;
         }
 
         npy_dtype = PyArray_TYPE(array);
         if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
+            py_status = 1;
             goto create_image_hdu_cleanup;
         }
 
@@ -1728,7 +1734,7 @@ create_image_hdu_cleanup:
         }
     }
 
-    if (status != 0) {
+    if (status != 0 || py_status != 0) {
         return NULL;
     }
 
