@@ -1550,3 +1550,17 @@ def test_table_write_dict_of_arrays_unaligned():
 
         d = read(fname)
         compare_rec(data_stra, d, "list of dicts")
+
+
+def test_table_big_col():
+    d = np.ones(1, dtype=[("blah", "S35000")])
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        with pytest.raises(OSError) as e:
+            write(pth, d)
+        assert (
+            "ASCII string column is too wide: 35000; max "
+            "supported width is 28799"
+        ) in str(e)
+        assert "FITSIO status = 107: tried to move past end of file" in str(e)
+        assert "FITSIO status = 236: column exceeds width of table" in str(e)

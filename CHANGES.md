@@ -12,6 +12,9 @@ Changes
     - Added a a new function `fitsio.cfitsio_is_bundled()`
       that detects if the cfitsio library is bundled with
       the Python code.
+    - Enabled the code to track all cfitsio error messages,
+      including those put onto the internal stack and then
+      later removed. This feature should help with debugging.
 
 Bug Fixes
 
