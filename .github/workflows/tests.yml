@@ -78,6 +78,13 @@ jobs:
           fi
           cfitsio_name=cfitsio${cftsver}
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
+          echo "first"
+          tar -tzf ${cfitsio_name}.tar.gz
+          echo "second"
+          tar -tzf ${cfitsio_name}.tar.gz | head -1
+          echo "third"
+          tar -tzf ${cfitsio_name}.tar.gz | head -1 | cut -f1 -d"/"
+          echo "the thing"
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | head -1 | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
