@@ -5,10 +5,14 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
+from ..util import cfitsio_version
 import numpy as np
 from ..fitslib import FITS
 
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 3.44:
+    DTYPES += ["u8"]
 
 
 def test_image_write_read():
@@ -529,3 +533,30 @@ def test_image_write_subset_raises(dims, fname):
                 fits[0].write(img2[..., :-1, 0], start=1)
             else:
                 fits[0].write(img2[..., 0], start=1)
+
+
+def test_image_read_write_ulonglong():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with FITS(fname, 'rw') as fits:
+            data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
+            header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(TypeError) as e:
+                    fits.write_image(data, header=header)
+                assert (
+                    "Unsigned 8 byte integer images are not supported "
+                    "by the FITS standard" in str(e.value)
+                )
+            else:
+                fits.write_image(data, header=header)
+                rdata = fits[-1].read()
+
+                compare_array(data, rdata, "images")
+
+                rh = fits[-1].read_header()
+                check_header(header, rh)
+
+        if CFITSIO_VERSION >= 3.45:
+            with FITS(fname) as fits:
+                assert not fits[0].is_compressed(), 'not compressed'

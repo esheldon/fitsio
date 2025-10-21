@@ -9,12 +9,15 @@ Changes
       image compression parameters now use this singleton.
       However, the actual underlying defaults used have not
       changed.
-    - Added a a new function `fitsio.cfitsio_is_bundled()`
+    - Added a new function `fitsio.cfitsio_is_bundled()`
       that detects if the cfitsio library is bundled with
       the Python code.
     - Enabled the code to track all cfitsio error messages,
       including those put onto the internal stack and then
       later removed. This feature should help with debugging.
+    - Added support for uint64 / ULONLONG data for binary tables
+      and images. You need cfitsio version at least 4.1.0 (or
+      to use the bundled cfitsio) for this feature to work.
     - Installation of fitsio will fail if the `patch` command
       line utility is missing. To prevent this, set the environment
       variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.

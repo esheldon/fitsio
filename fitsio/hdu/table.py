@@ -2632,6 +2632,7 @@ _table_fits2npy = {
     40: 'u4',  # 40=TULONG
     41: 'i4',  # 41=TLONG
     42: 'f4',
+    80: 'u8',  # 80=TULONGLON
     81: 'i8',
     82: 'f8',
     83: 'c8',  # TCOMPLEX
@@ -2663,6 +2664,7 @@ _table_npy2fits_form = {
     'u4': 'V',  # gets converted to signed
     'i4': 'J',
     'i8': 'K',
+    'u8': 'W',
     'f4': 'E',
     'f8': 'D',
     'c8': 'C',
@@ -2725,8 +2727,16 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
     if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
         raise ValueError("got S or U type: use _npy_string2fits")
 
-    if npy_dtype not in _table_npy2fits_form:
-        raise ValueError("unsupported type '%s'" % npy_dtype)
+    if table_type == 'binary':
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError(
+                "unsupported type '%s' for binary tables" % npy_dtype
+            )
+    else:
+        if npy_dtype not in _table_npy2fits_form_ascii:
+            raise ValueError(
+                "unsupported type '%s' for ascii tables" % npy_dtype
+            )
 
     if table_type == 'binary':
         form = _table_npy2fits_form[npy_dtype]

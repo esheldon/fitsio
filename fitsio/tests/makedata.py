@@ -3,6 +3,9 @@ import numpy as np
 from functools import lru_cache
 
 from .._fitsio_wrap import cfitsio_use_standard_strings
+from ..util import cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 lorem_ipsum = (
     'Lorem ipsum dolor sit amet, consectetur adipiscing '
@@ -63,6 +66,13 @@ def make_data():
         ('Sarr', Sdtype, ashape),
     ]
 
+    if CFITSIO_VERSION > 4:
+        dtype += [
+            ('u8scalar', 'u8'),
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+        ]
+
     if cfitsio_use_standard_strings():
         dtype += [
             ('Sscalar_nopad', Sdtype),
@@ -106,6 +116,9 @@ def make_data():
         'c8',
         'c16',
     ]
+    if CFITSIO_VERSION > 4:
+        dtypes += ["u8"]
+
     for t in dtypes:
         if t in ['c8', 'c16']:
             data[t + 'scalar'] = [
@@ -319,6 +332,13 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
+    if CFITSIO_VERSION > 4:
+        dtype += [
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+            ('u8scalar', 'i8'),
+            ('u8obj', 'O'),
+        ]
 
     if sys.version_info > (3, 0, 0):
         dtype += [
@@ -330,7 +350,10 @@ def make_data():
     nrows = 4
     vardata = np.zeros(nrows, dtype=dtype)
 
-    for t in ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']:
+    _dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']
+    if CFITSIO_VERSION > 4:
+        _dtypes += ["u8"]
+    for t in _dtypes:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
         vardata[t + 'vec'] = 1 + np.arange(nrows * nvec, dtype=t).reshape(
             nrows,
