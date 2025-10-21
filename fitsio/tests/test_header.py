@@ -7,6 +7,9 @@ from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
+from ..util import cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 
 def test_free_form_string():
@@ -99,9 +102,11 @@ def test_header_write_read():
                 'binop': '25-3',  # test string with binary operation in it
                 'unders': '1_000_000',  # test string with underscore
                 'longs': lorem_ipsum,
-                # force hierarch + continue
-                "long_keyword_name": lorem_ipsum,
             }
+            if CFITSIO_VERSION > 4.02:
+                # force hierarch + continue
+                header["long_keyword_name"] = lorem_ipsum
+
             fits.write_image(data, header=header)
 
             rh = fits[0].read_header()
