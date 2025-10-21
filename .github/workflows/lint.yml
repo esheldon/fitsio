@@ -34,7 +34,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda list
-          conda install pre-commit
+          conda install pre-commit "identify>2.6"
 
       - name: pre-commit
         shell: bash -l {0}
