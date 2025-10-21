@@ -189,14 +189,34 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def patch_cfitsio(self):
+        try:
+            subprocess.check_call(["patch", "-v"])
+        except subprocess.CalledProcessError as e:
+            warnings.warn(
+                "`patch` command not found! "
+                "Python 3 strings will not work properly!"
+            )
+            if FITSIO_FAIL_ON_BAD_PATCHES:
+                raise e
+            else:
+                # skip patching and define a macro to use unpatched sources
+                self.compiler.define_macro(
+                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS'
+                )
+                return
+
         patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
         for patch in patches:
             fname = os.path.basename(patch.replace('.patch', ''))
             try:
                 subprocess.check_call(
-                    'patch -N --dry-run %s/%s %s'
-                    % (self.cfitsio_build_dir, fname, patch),
-                    shell=True,
+                    [
+                        "patch",
+                        "-N",
+                        "--dry-run",
+                        "%s/%s" % (self.cfitsio_build_dir, fname),
+                        patch,
+                    ]
                 )
             except subprocess.CalledProcessError as e:
                 warnings.warn(
@@ -206,8 +226,11 @@ class build_ext_subclass(build_ext):
                     raise e
             else:
                 subprocess.check_call(
-                    'patch %s/%s %s' % (self.cfitsio_build_dir, fname, patch),
-                    shell=True,
+                    [
+                        "patch",
+                        "%s/%s" % (self.cfitsio_build_dir, fname),
+                        patch,
+                    ],
                 )
 
     def configure_cfitsio(self, CC=None, ARCHIVE=None, RANLIB=None):
