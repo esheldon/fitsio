@@ -81,11 +81,11 @@ jobs:
           echo "first"
           tar -tzf ${cfitsio_name}.tar.gz
           echo "second"
-          tar -tzf ${cfitsio_name}.tar.gz | head -1
+          tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p"
           echo "third"
-          tar -tzf ${cfitsio_name}.tar.gz | head -1 | cut -f1 -d"/"
+          tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"
           echo "the thing"
-          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | head -1 | cut -f1 -d"/"`
+          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
           ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
