@@ -1573,13 +1573,6 @@ def test_table_big_col():
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
 
 
-@pytest.mark.xfail(
-    condition=CFITSIO_VERSION <= 4,
-    reason=(
-        "cfitsio versions <= 4 do not fully support "
-        "unsigned 64bit integers for tables"
-    ),
-)
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])
     adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
@@ -1588,13 +1581,20 @@ def test_table_read_write_ulonglong():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            fits.write_table(
-                adata,
-                extname='mytable',
-            )
-
-            d = fits[1].read()
-            compare_rec(adata, d, "table read/write")
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(IOError) as e:
+                    fits.write_table(
+                        adata,
+                        extname='mytable',
+                    )
+                assert "'W'" in str(e.value)
+            else:
+                fits.write_table(
+                    adata,
+                    extname='mytable',
+                )
+                d = fits[1].read()
+                compare_rec(adata, d, "table read/write")
 
 
 @pytest.mark.parametrize("typ", ["u8", "u4", "i8"])

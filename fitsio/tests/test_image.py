@@ -533,3 +533,29 @@ def test_image_write_subset_raises(dims, fname):
                 fits[0].write(img2[..., :-1, 0], start=1)
             else:
                 fits[0].write(img2[..., 0], start=1)
+
+
+def test_image_read_write_ulonglong():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with FITS(fname, 'rw') as fits:
+            data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
+            header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(IOError) as e:
+                    fits.write_image(data, header=header)
+                assert (
+                    "Unsigned 8 byte integer images are not supported "
+                    "by the FITS standard" in str(e.value)
+                )
+            else:
+                fits.write_image(data, header=header)
+                rdata = fits[-1].read()
+
+                compare_array(data, rdata, "images")
+
+                rh = fits[-1].read_header()
+                check_header(header, rh)
+
+            with FITS(fname) as fits:
+                assert not fits[0].is_compressed(), 'not compressed'
