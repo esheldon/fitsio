@@ -12,6 +12,7 @@ env:
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
   FITSIO_FAIL_ON_BAD_PATCHES: 'true'
+  LATEST_CFITSIO_VER: "-4.4.0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,12 +26,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-            - { pyver: "3.8", npver: "1"}
-            - { pyver: "3.11", npver: "1.26"}
-            - { pyver: "3.12", npver: "1.26"}
-            - { pyver: "3.11", npver: "2.3.0"}
-            - { pyver: "3.12", npver: "2.3.0"}
-            - { pyver: "3.13", npver: "2.3.0"}
+            - { pyver: "3.8", npver: "1", cftsver: "3440"}
+            - { pyver: "3.8", npver: "1", cftsver: "latest"}
+            - { pyver: "3.11", npver: "1.26", cftsver: "latest"}
+            - { pyver: "3.12", npver: "1.26", cftsver: "latest"}
+            - { pyver: "3.11", npver: "2.3.0", cftsver: "latest"}
+            - { pyver: "3.12", npver: "2.3.0", cftsver: "latest"}
+            - { pyver: "3.13", npver: "2.3.0", cftsver: "latest"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -69,12 +71,16 @@ jobs:
 
           mkdir cfitsio-external-build
           cd cfitsio-external-build
-          # wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
-          # tar -xzvf cfitsio-4.4.0.tar.gz
-          # cd cfitsio-4.4.0
-          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio3440.tar.gz
-          tar -xzvf cfitsio3440.tar.gz
-          cd cfitsio
+          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
+            cftsver=${LATEST_CFITSIO_VER}
+          else
+            cftsver="${{ matrix.config.cftsver }}"
+          fi
+          cfitsio_name=cfitsio${cftsver}
+          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
+          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | head -1 | cut -f1 -d"/"`
+          tar -xzvf ${cfitsio_name}.tar.gz
+          cd ${cfitsio_dir}
           ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
           make install -j 4
           cd ..
