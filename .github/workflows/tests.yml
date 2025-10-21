@@ -26,7 +26,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-            - { pyver: "3.8", npver: "1", cftsver: "3440"}
+            - { pyver: "3.8", npver: "1", cftsver: "-3.45"}
             - { pyver: "3.8", npver: "1", cftsver: "latest"}
             - { pyver: "3.11", npver: "1.26", cftsver: "latest"}
             - { pyver: "3.12", npver: "1.26", cftsver: "latest"}
@@ -78,13 +78,6 @@ jobs:
           fi
           cfitsio_name=cfitsio${cftsver}
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
-          echo "first"
-          tar -tzf ${cfitsio_name}.tar.gz
-          echo "second"
-          tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p"
-          echo "third"
-          tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"
-          echo "the thing"
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
