@@ -542,7 +542,7 @@ def test_image_read_write_ulonglong():
             data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
             header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
             if CFITSIO_VERSION < 3.45:
-                with pytest.raises(IOError) as e:
+                with pytest.raises(TypeError) as e:
                     fits.write_image(data, header=header)
                 assert (
                     "Unsigned 8 byte integer images are not supported "
