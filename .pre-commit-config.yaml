@@ -27,4 +27,5 @@ repos:
     rev: v21.1.2
     hooks:
       - id: clang-format
+        types_or: [c]
         args: [ --style=LLVM ]
