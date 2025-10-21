@@ -15,6 +15,9 @@ Changes
     - Enabled the code to track all cfitsio error messages,
       including those put onto the internal stack and then
       later removed. This feature should help with debugging.
+    - Installation of fitsio will fail if the `patch` command
+      line utility is missing. To prevent this, set the environment
+      variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
 
 Bug Fixes
 
