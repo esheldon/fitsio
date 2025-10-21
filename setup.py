@@ -16,10 +16,13 @@ from subprocess import Popen, PIPE
 import glob
 import shutil
 
-# used for CI testing to ensure all patches apply
-FITSIO_FAIL_ON_BAD_PATCHES = (
-    False or "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ
-)
+if "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ:
+    if os.environ["FITSIO_FAIL_ON_BAD_PATCHES"].lower() in ["false", "0"]:
+        FITSIO_FAIL_ON_BAD_PATCHES = False
+    else:
+        FITSIO_FAIL_ON_BAD_PATCHES = True
+else:
+    FITSIO_FAIL_ON_BAD_PATCHES = True
 
 if "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
