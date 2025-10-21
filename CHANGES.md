@@ -18,6 +18,9 @@ Changes
     - Added support for uint64 / ULONLONG data for binary tables
       and images. You need cfitsio version at least 4.1.0 (or
       to use the bundled cfitsio) for this feature to work.
+    - Installation of fitsio will fail if the `patch` command
+      line utility is missing. To prevent this, set the environment
+      variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
 
 Bug Fixes
 
