@@ -557,5 +557,6 @@ def test_image_read_write_ulonglong():
                 rh = fits[-1].read_header()
                 check_header(header, rh)
 
-            with FITS(fname) as fits:
-                assert not fits[0].is_compressed(), 'not compressed'
+    if CFITSIO_VERSION >= 3.45:
+        with FITS(fname) as fits:
+            assert not fits[0].is_compressed(), 'not compressed'
