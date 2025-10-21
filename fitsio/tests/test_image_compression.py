@@ -15,7 +15,9 @@ from ..fitslib import (
     RICE_1,
     SUBTRACTIVE_DITHER_1,
 )
-from ..util import cfitsio_is_bundled
+from ..util import cfitsio_is_bundled, cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 
 @pytest.mark.parametrize(
@@ -187,6 +189,7 @@ def test_compressed_write_read_fitsobj(compress, dtype):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
+@pytest.mark.skipif(CFITSIO_VERSION < 3.49, reason='bug in cfitsio < 3.49')
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
