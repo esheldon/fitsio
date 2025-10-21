@@ -18,7 +18,7 @@ from .. import util
 
 CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
-if CFITSIO_VERSION > 3.44:
+if CFITSIO_VERSION > 4:
     DTYPES += ["u8"]
 
 
@@ -887,7 +887,7 @@ def test_table_resize():
         add_data['u4scalar'] = 2**31
         add_data['u4vec'] = 2**31
         add_data['u4arr'] = 2**31
-        if CFITSIO_VERSION > 3.44:
+        if CFITSIO_VERSION > 4:
             add_data['u8scalar'] = 2**63
             add_data['u8vec'] = 2**63
             add_data['u8arr'] = 2**63
@@ -1574,8 +1574,11 @@ def test_table_big_col():
 
 
 @pytest.mark.xfail(
-    condition=CFITSIO_VERSION <= 3.44,
-    reason="cfitsio versions <=3.44 do not support unsigned 64bit integers",
+    condition=CFITSIO_VERSION <= 4,
+    reason=(
+        "cfitsio versions <= 4 do not fully support "
+        "unsigned 64bit integers for tables"
+    ),
 )
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])

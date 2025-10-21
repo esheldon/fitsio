@@ -66,7 +66,7 @@ def make_data():
         ('Sarr', Sdtype, ashape),
     ]
 
-    if CFITSIO_VERSION > 3.44:
+    if CFITSIO_VERSION > 4:
         dtype += [
             ('u8scalar', 'u8'),
             ('u8vec', 'u8', nvec),
@@ -116,7 +116,7 @@ def make_data():
         'c8',
         'c16',
     ]
-    if CFITSIO_VERSION > 3.44:
+    if CFITSIO_VERSION > 4:
         dtypes += ["u8"]
 
     for t in dtypes:
@@ -332,7 +332,7 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
-    if CFITSIO_VERSION > 3.44:
+    if CFITSIO_VERSION > 4:
         dtype += [
             ('u8vec', 'u8', nvec),
             ('u8arr', 'u8', ashape),
@@ -351,7 +351,7 @@ def make_data():
     vardata = np.zeros(nrows, dtype=dtype)
 
     _dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']
-    if CFITSIO_VERSION > 3.44:
+    if CFITSIO_VERSION > 4:
         _dtypes += ["u8"]
     for t in _dtypes:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
