@@ -39,7 +39,6 @@ Bug Fixes
     - Fixed a bug where writing unsupported image types either did not raise an error
       or did not raise the correct error.
     - Fixed a bug where rectangular subsets of images were not written properly.
-    - Fixed bug where install would fail if the `patch` command was missing.
 
 version 1.2.8
 -------------
