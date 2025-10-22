@@ -503,19 +503,19 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
         np.int32,
     ],
 )
-@pytest.mark.xfail(
-    not cfitsio_is_bundled(),
-    reason=(
-        "Non-bundled cfitsio libraries have a bug. "
-        "See https://github.com/HEASARC/cfitsio/pull/97 "
-        "and https://github.com/HEASARC/cfitsio/pull/99."
-    ),
-)
 def test_image_compression_inmem_lossess_int(compress, dtype):
+    if not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug. "
+                "See https://github.com/HEASARC/cfitsio/pull/97 "
+                "and https://github.com/HEASARC/cfitsio/pull/99."
+            ),
+        )
     if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
         pytest.xfail(
             reason="PLIO lossless compression of int16, uint32, and "
-            "int32 types is not supported by cfitsio"
+            "int32 types is not supported by cfitsio",
         )
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(300, 300))
