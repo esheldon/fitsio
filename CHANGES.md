@@ -21,6 +21,7 @@ Changes
     - Installation of fitsio will fail if the `patch` command
       line utility is missing. To prevent this, set the environment
       variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
+    - The C code is now styled uniformly with clang-format.
 
 Bug Fixes
 
