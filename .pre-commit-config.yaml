@@ -28,4 +28,4 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c]
-        args: [ --style="{BasedOnStyle: llvm, IndentWidth: 8}" ]
+        args: [ "--style='{BasedOnStyle: llvm, IndentWidth: 8}'" ]
