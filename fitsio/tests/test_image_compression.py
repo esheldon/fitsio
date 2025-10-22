@@ -503,7 +503,8 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
         np.int32,
     ],
 )
-def test_image_compression_inmem_lossess_int(compress, dtype):
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+def test_image_compression_inmem_lossess_int(compress, dtype, fname):
     if not cfitsio_is_bundled():
         pytest.xfail(
             reason=(
@@ -526,11 +527,17 @@ def test_image_compression_inmem_lossess_int(compress, dtype):
     ]:
         img = np.abs(img)
     img = img.astype(dtype)
-    with FITS('mem://', 'rw') as F:
-        F.write(img, compress=compress, qlevel=0)
-        rimg = F[-1].read()
-        assert rimg is not None
-        assert np.array_equal(rimg, img)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, 'rw') as F:
+            F.write(img, compress=compress, qlevel=0)
+            rimg = F[-1].read()
+            assert rimg is not None
+            assert np.array_equal(rimg, img)
 
 
 def test_image_compression_inmem_lossessgzip_int_zeros():
