@@ -1619,3 +1619,34 @@ def test_table_read_write_ulonglong_ascii_raises(typ):
                     table_type='ascii',
                 )
             assert f"unsupported type '{typ}' for ascii tables" in str(e.value)
+
+
+@pytest.mark.xfail(reason="cfitsio does not allow filtering w/ 64bit ints")
+def test_table_filter_large_ints():
+    # create a mask where all bits up to bit n are set
+    mask = np.array([2**n - 1 for n in range(1, 64)])
+    x = np.arange(len(mask))
+
+    data = np.rec.fromarrays([mask, x], names=('mask', 'x'))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filename = os.path.join(tmpdir, "blat.fits")
+        write(filename, data, clobber=True)
+
+        with FITS(filename) as fx:
+            # Trying to use 'mask' directly results in
+            #   OSError: FITSIO status = 431: syntax error in expression
+            #   Bitwise operations with incompatible types; only (bit OP bit) and (int OP int). # noqa
+            # w = fx[1].where('(mask & 1) == 1')
+
+            # Cast to (int) avoids error, but misses largest entries
+            w1 = fx[1].where('((int)mask & 1) == 1')
+
+        w2 = np.where((mask & 1) == 1)[
+            0
+        ]  # w1 should be the same as this but isn't
+
+        print(f'{w1=}')
+        print(f'{w2=}')
+
+        assert np.array_equal(w1, w2)
