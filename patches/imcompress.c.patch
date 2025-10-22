@@ -178,14 +178,6 @@
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
---- a/.gitignore
-+++ b/.gitignore
-@@ -89,3 +89,5 @@ iter_b
- iter_c
- iter_image
- iter_var
-+testf77
-+testprog.fit
 --- a/imcompress.c
 +++ b/imcompress.c
 @@ -6453,26 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
