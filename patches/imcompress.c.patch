@@ -1,205 +1,19 @@
 --- a/imcompress.c
 +++ b/imcompress.c
-@@ -6454,15 +6454,21 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(short);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+  	     /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4i2((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4i2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(short *) nulval, bnullarray, anynul,
-                 (short *) buffer, status);
--          } else {
--              fffr8i2((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+	  	  } else if (tiledatatype == TSHORT) {
-+		    fffi2i2((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+		       *(short *) nulval, bnullarray, anynul,
-+		      (short *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+		    fffi1i2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+		       *(short *) nulval, bnullarray, anynul,
-+		      (short *) buffer, status);
-+		  } else {
-+              fffi8i2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(short *) nulval, bnullarray, anynul,
-                 (short *) buffer, status);
-           }
-@@ -6507,15 +6513,21 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(int);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+	      /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4int((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4int(idata, (long) tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(int *) nulval, bnullarray, anynul,
-                 (int *) buffer, status);
--          } else {
--              fffr8int((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+          } else if (tiledatatype == TSHORT) {
-+              fffi2int((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+                *(int *) nulval, bnullarray, anynul,
-+                (int *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+              fffi1int((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+                *(int *) nulval, bnullarray, anynul,
-+                (int *) buffer, status);
-+		  } else {
-+              fffi8int((LONGLONG *) idata, (long) tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(int *) nulval, bnullarray, anynul,
-                 (int *) buffer, status);
-           }
-@@ -6545,15 +6557,21 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(long);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+  	     /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4i4((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4i4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(long *) nulval, bnullarray, anynul,
-                 (long *) buffer, status);
--          } else {
--              fffr8i4((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+	  	  } else if (tiledatatype == TSHORT) {
-+		    fffi2i4((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+		       *(long *) nulval, bnullarray, anynul,
-+		      (long *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+		    fffi1i4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+		       *(long *) nulval, bnullarray, anynul,
-+		      (long *) buffer, status);
-+		  } else {
-+              fffi8i4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(long *) nulval, bnullarray, anynul,
-                 (long *) buffer, status);
-           }
-@@ -6746,19 +6764,25 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(short);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+  	     /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4u2((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4u2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned short *) nulval, bnullarray, anynul,
-                 (unsigned short *) buffer, status);
--          } else {
--              fffr8u2((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+	  	  } else if (tiledatatype == TSHORT) {
-+		    fffi2u2((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+		       *(unsigned short *) nulval, bnullarray, anynul,
-+		      (unsigned short *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+		    fffi1u2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+		       *(unsigned short *) nulval, bnullarray, anynul,
-+		      (unsigned short *) buffer, status);
-+		  } else {
-+              fffi8u2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned short *) nulval, bnullarray, anynul,
-                 (unsigned short *) buffer, status);
-           }
--        } else if (tiledatatype == TINT)
-+	} else if (tiledatatype == TINT)
-           if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
- 	    /* special case where unsigned 16-bit integers have been */
- 	    /* offset by +32768 when using PLIO */
-@@ -6784,15 +6808,21 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(int);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+  	     /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4uint((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4uint(idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned int *) nulval, bnullarray, anynul,
-                 (unsigned int *) buffer, status);
--          } else {
--              fffr8uint((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+	  	  } else if (tiledatatype == TSHORT) {
-+		    fffi2uint((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+		       *(unsigned int *) nulval, bnullarray, anynul,
-+		      (unsigned int *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+		    fffi1uint((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+		       *(unsigned int *) nulval, bnullarray, anynul,
-+		      (unsigned int *) buffer, status);
-+		  } else {
-+              fffi8uint((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned int *) nulval, bnullarray, anynul,
-                 (unsigned int *) buffer, status);
-           }
-@@ -6823,19 +6853,25 @@ int imcomp_decompress_tile (fitsfile *infptr,
-         pixlen = sizeof(long);
- 
- 	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	 /* the floating point pixels were losselessly compressed with GZIP */
--	 /* Just have to copy the values to the output array */
--	 
-+  	     /* Just have to copy the values to the output array */	 
-           if (tiledatatype == TINT) {
--              fffr4u4((float *) idata, tilelen, bscale, bzero, nullcheck,   
-+              fffi4u4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned long *) nulval, bnullarray, anynul,
-                 (unsigned long *) buffer, status);
--          } else {
--              fffr8u4((double *) idata, tilelen, bscale, bzero, nullcheck,   
-+	  	  } else if (tiledatatype == TSHORT) {
-+		    fffi2u4((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
-+		       *(unsigned long *) nulval, bnullarray, anynul,
-+		      (unsigned long *) buffer, status);
-+		  } else if (tiledatatype == TBYTE) {
-+		    fffi1u4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
-+		       *(unsigned long *) nulval, bnullarray, anynul,
-+		      (unsigned long *) buffer, status);
-+		  } else {
-+              fffi8u4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
-                 *(unsigned long *) nulval, bnullarray, anynul,
-                 (unsigned long *) buffer, status);
-           }
--        } else if (tiledatatype == TINT)
-+	} else if (tiledatatype == TINT)
-           if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
- 	    /* special case where unsigned 16-bit integers have been */
- 	    /* offset by +32768 when using PLIO */
---- a/imcompress.c
-+++ b/imcompress.c
-@@ -6453,26 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6453,20 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
      {
          pixlen = sizeof(short);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--  	     /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4i2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4i2((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(short *) nulval, bnullarray, anynul,
 -                (short *) buffer, status);
--	  	  } else if (tiledatatype == TSHORT) {
--		    fffi2i2((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--		       *(short *) nulval, bnullarray, anynul,
--		      (short *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--		    fffi1i2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--		       *(short *) nulval, bnullarray, anynul,
--		      (short *) buffer, status);
--		  } else {
--              fffi8i2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8i2((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(short *) nulval, bnullarray, anynul,
 -                (short *) buffer, status);
 -          }
@@ -208,7 +22,7 @@
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6506,32 +6487,17 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6500,26 +6487,17 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1i2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(short *) nulval, bnullarray, anynul,
            (short *) buffer, status);
@@ -223,21 +37,15 @@
          pixlen = sizeof(int);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--	      /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4int(idata, (long) tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4int((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(int *) nulval, bnullarray, anynul,
 -                (int *) buffer, status);
--          } else if (tiledatatype == TSHORT) {
--              fffi2int((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--                *(int *) nulval, bnullarray, anynul,
--                (int *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--              fffi1int((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--                *(int *) nulval, bnullarray, anynul,
--                (int *) buffer, status);
--		  } else {
--              fffi8int((LONGLONG *) idata, (long) tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8int((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(int *) nulval, bnullarray, anynul,
 -                (int *) buffer, status);
 -          }
@@ -246,7 +54,7 @@
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6551,31 +6517,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6539,25 +6517,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1int((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(int *) nulval, bnullarray, anynul,
             (int *) buffer, status);
@@ -260,21 +68,15 @@
          pixlen = sizeof(long);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--  	     /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4i4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4i4((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(long *) nulval, bnullarray, anynul,
 -                (long *) buffer, status);
--	  	  } else if (tiledatatype == TSHORT) {
--		    fffi2i4((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--		       *(long *) nulval, bnullarray, anynul,
--		      (long *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--		    fffi1i4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--		       *(long *) nulval, bnullarray, anynul,
--		      (long *) buffer, status);
--		  } else {
--              fffi8i4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8i4((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(long *) nulval, bnullarray, anynul,
 -                (long *) buffer, status);
 -          }
@@ -283,7 +85,7 @@
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6595,6 +6546,11 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6577,6 +6546,11 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1i4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(long *) nulval, bnullarray, anynul,
              (long *) buffer, status);
@@ -295,35 +97,29 @@
      }
      else if (datatype == TFLOAT)
      {
-@@ -6763,26 +6719,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6745,20 +6719,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
      {
          pixlen = sizeof(short);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--  	     /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4u2(idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4u2((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned short *) nulval, bnullarray, anynul,
 -                (unsigned short *) buffer, status);
--	  	  } else if (tiledatatype == TSHORT) {
--		    fffi2u2((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--		       *(unsigned short *) nulval, bnullarray, anynul,
--		      (unsigned short *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--		    fffi1u2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--		       *(unsigned short *) nulval, bnullarray, anynul,
--		      (unsigned short *) buffer, status);
--		  } else {
--              fffi8u2((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8u2((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned short *) nulval, bnullarray, anynul,
 -                (unsigned short *) buffer, status);
 -          }
--	} else if (tiledatatype == TINT)
+-        } else if (tiledatatype == TINT)
 +	    if (tiledatatype == TINT)
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6802,32 +6739,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6778,26 +6739,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1u2((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(unsigned short *) nulval, bnullarray, anynul,
              (unsigned short *) buffer, status);
@@ -337,21 +133,15 @@
          pixlen = sizeof(int);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--  	     /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4uint(idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4uint((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned int *) nulval, bnullarray, anynul,
 -                (unsigned int *) buffer, status);
--	  	  } else if (tiledatatype == TSHORT) {
--		    fffi2uint((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--		       *(unsigned int *) nulval, bnullarray, anynul,
--		      (unsigned int *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--		    fffi1uint((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--		       *(unsigned int *) nulval, bnullarray, anynul,
--		      (unsigned int *) buffer, status);
--		  } else {
--              fffi8uint((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8uint((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned int *) nulval, bnullarray, anynul,
 -                (unsigned int *) buffer, status);
 -          }
@@ -361,7 +151,7 @@
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6847,31 +6768,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6817,25 +6768,16 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1uint((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(unsigned int *) nulval, bnullarray, anynul,
              (unsigned int *) buffer, status);
@@ -375,30 +165,24 @@
          pixlen = sizeof(long);
  
 -	if ((infptr->Fptr)->quantize_level == NO_QUANTIZE) {
--  	     /* Just have to copy the values to the output array */	 
+-	 /* the floating point pixels were losselessly compressed with GZIP */
+-	 /* Just have to copy the values to the output array */
+-	 
 -          if (tiledatatype == TINT) {
--              fffi4u4(idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-              fffr4u4((float *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned long *) nulval, bnullarray, anynul,
 -                (unsigned long *) buffer, status);
--	  	  } else if (tiledatatype == TSHORT) {
--		    fffi2u4((short *)idata, tilelen, bscale, bzero, nullcheck, (short) tnull,
--		       *(unsigned long *) nulval, bnullarray, anynul,
--		      (unsigned long *) buffer, status);
--		  } else if (tiledatatype == TBYTE) {
--		    fffi1u4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
--		       *(unsigned long *) nulval, bnullarray, anynul,
--		      (unsigned long *) buffer, status);
--		  } else {
--              fffi8u4((LONGLONG *) idata, tilelen, bscale, bzero, nullcheck, tnull,  
+-          } else {
+-              fffr8u4((double *) idata, tilelen, bscale, bzero, nullcheck,   
 -                *(unsigned long *) nulval, bnullarray, anynul,
 -                (unsigned long *) buffer, status);
 -          }
--	} else if (tiledatatype == TINT)
+-        } else if (tiledatatype == TINT)
 +	    if (tiledatatype == TINT)
            if ((infptr->Fptr)->compress_type == PLIO_1 && actual_bzero == 32768.) {
  	    /* special case where unsigned 16-bit integers have been */
  	    /* offset by +32768 when using PLIO */
-@@ -6891,6 +6797,10 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -6855,6 +6797,10 @@ int imcomp_decompress_tile (fitsfile *infptr,
            fffi1u4((unsigned char *)idata, tilelen, bscale, bzero, nullcheck, (unsigned char) tnull,
             *(unsigned long *) nulval, bnullarray, anynul, 
              (unsigned long *) buffer, status);
