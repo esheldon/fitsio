@@ -14,6 +14,10 @@ from ..fitslib import (
     write,
     RICE_1,
     SUBTRACTIVE_DITHER_1,
+    GZIP_1,
+    GZIP_2,
+    PLIO_1,
+    HCOMPRESS_1,
 )
 from ..util import cfitsio_is_bundled, cfitsio_version
 
@@ -478,35 +482,52 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
         F.write(img, dither_seed=10)
 
 
+@pytest.mark.parametrize(
+    "compress",
+    [
+        RICE_1,
+        GZIP_1,
+        GZIP_2,
+        PLIO_1,
+        HCOMPRESS_1,
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.uint8,
+        np.int8,
+        np.uint16,
+        np.int16,
+        np.uint32,
+        np.int32,
+    ],
+)
 @pytest.mark.xfail(
     not cfitsio_is_bundled(),
     reason=(
         "Non-bundled cfitsio libraries have a bug. "
-        "See https://github.com/HEASARC/cfitsio/pull/97."
+        "See https://github.com/HEASARC/cfitsio/pull/97 "
+        "and https://github.com/HEASARC/cfitsio/pull/99."
     ),
 )
-def test_image_compression_inmem_lossessgzip_int():
+def test_image_compression_inmem_lossess_int(compress, dtype):
+    if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
+        pytest.xfail(
+            reason="PLIO lossless compression of int16, uint32, and "
+            "int32 types is not supported by cfitsio"
+        )
     rng = np.random.RandomState(seed=10)
-    img = rng.normal(size=(300, 300)).astype(np.int32)
+    img = rng.normal(size=(300, 300))
+    if dtype in [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+    ]:
+        img = np.abs(img)
+    img = img.astype(dtype)
     with FITS('mem://', 'rw') as F:
-        F.write(img, compress='GZIP', qlevel=0)
-        rimg = F[-1].read()
-        assert rimg is not None
-        assert np.array_equal(rimg, img)
-
-
-@pytest.mark.xfail(
-    not cfitsio_is_bundled(),
-    reason=(
-        "Non-bundled cfitsio libraries have a bug. "
-        "See https://github.com/HEASARC/cfitsio/pull/97."
-    ),
-)
-def test_image_compression_inmem_lossessplio_int():
-    rng = np.random.RandomState(seed=10)
-    img = rng.normal(size=(300, 300)).astype(np.int16)
-    with FITS('mem://', 'rw') as F:
-        F.write(img, compress='PLIO', qlevel=0)
+        F.write(img, compress=compress, qlevel=0)
         rimg = F[-1].read()
         assert rimg is not None
         assert np.array_equal(rimg, img)
