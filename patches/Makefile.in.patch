@@ -1,13 +1,267 @@
---- /home/esheldon/Downloads/cfitsio-4.2.0/Makefile.in	2022-10-31 14:40:23.000000000 -0400
-+++ /home/esheldon/Downloads/cfitsio-4.2.0-mod/Makefile.in	2023-07-14 11:50:25.811296978 -0400
-@@ -69,7 +69,9 @@
- 		pliocomp.c fits_hcompress.c fits_hdecompress.c \
- 		simplerng.c @GSIFTP_SRC@
+--- a/cfitsio-4.6.3/Makefile.in
++++ b/cfitsio-4.6.3/Makefile.in
+@@ -166,8 +166,9 @@ am__libcfitsio_la_SOURCES_DIST = buffers.c cfileio.c checksum.c \
+ 	putcoluj.c putkey.c region.c scalnull.c swapproc.c wcssub.c \
+ 	wcsutil.c imcompress.c quantize.c ricecomp.c pliocomp.c \
+ 	fits_hcompress.c fits_hdecompress.c simplerng.c zcompress.c \
+-	zuncompress.c f77_wrap1.c f77_wrap2.c f77_wrap3.c f77_wrap4.c \
+-	drvrgsiftp.c
++	zuncompress.c adler32.c crc32.c deflate.c infback.c inffast.c \
++	inflate.c inftrees.c trees.c uncompr.c zutil.c f77_wrap1.c \
++	f77_wrap2.c f77_wrap3.c f77_wrap4.c drvrgsiftp.c
+ am__objects_1 = libcfitsio_la-f77_wrap1.lo libcfitsio_la-f77_wrap2.lo \
+ 	libcfitsio_la-f77_wrap3.lo libcfitsio_la-f77_wrap4.lo
+ @NOFORTRAN_FALSE@am__objects_2 = $(am__objects_1)
+@@ -204,6 +205,11 @@ am_libcfitsio_la_OBJECTS = libcfitsio_la-buffers.lo \
+ 	libcfitsio_la-pliocomp.lo libcfitsio_la-fits_hcompress.lo \
+ 	libcfitsio_la-fits_hdecompress.lo libcfitsio_la-simplerng.lo \
+ 	libcfitsio_la-zcompress.lo libcfitsio_la-zuncompress.lo \
++	libcfitsio_la-adler32.lo libcfitsio_la-crc32.lo \
++	libcfitsio_la-deflate.lo libcfitsio_la-infback.lo \
++	libcfitsio_la-inffast.lo libcfitsio_la-inflate.lo \
++	libcfitsio_la-inftrees.lo libcfitsio_la-trees.lo \
++	libcfitsio_la-uncompr.lo libcfitsio_la-zutil.lo \
+ 	$(am__objects_2) $(am__objects_4)
+ libcfitsio_la_OBJECTS = $(am_libcfitsio_la_OBJECTS)
+ AM_V_lt = $(am__v_lt_@AM_V@)
+@@ -279,9 +285,12 @@ am__v_at_1 =
+ DEFAULT_INCLUDES = -I.@am__isrc@
+ depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+ am__maybe_remake_depfiles = depfiles
+-am__depfiles_remade = ./$(DEPDIR)/libcfitsio_la-buffers.Plo \
++am__depfiles_remade = ./$(DEPDIR)/libcfitsio_la-adler32.Plo \
++	./$(DEPDIR)/libcfitsio_la-buffers.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-cfileio.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-checksum.Plo \
++	./$(DEPDIR)/libcfitsio_la-crc32.Plo \
++	./$(DEPDIR)/libcfitsio_la-deflate.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-drvrfile.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-drvrgsiftp.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-drvrmem.Plo \
+@@ -317,6 +326,10 @@ am__depfiles_remade = ./$(DEPDIR)/libcfitsio_la-buffers.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-grparser.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-histo.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-imcompress.Plo \
++	./$(DEPDIR)/libcfitsio_la-infback.Plo \
++	./$(DEPDIR)/libcfitsio_la-inffast.Plo \
++	./$(DEPDIR)/libcfitsio_la-inflate.Plo \
++	./$(DEPDIR)/libcfitsio_la-inftrees.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-iraffits.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-modkey.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-pliocomp.Plo \
+@@ -341,10 +354,13 @@ am__depfiles_remade = ./$(DEPDIR)/libcfitsio_la-buffers.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-scalnull.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-simplerng.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-swapproc.Plo \
++	./$(DEPDIR)/libcfitsio_la-trees.Plo \
++	./$(DEPDIR)/libcfitsio_la-uncompr.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-wcssub.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-wcsutil.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-zcompress.Plo \
+ 	./$(DEPDIR)/libcfitsio_la-zuncompress.Plo \
++	./$(DEPDIR)/libcfitsio_la-zutil.Plo \
+ 	utilities/$(DEPDIR)/cookbook.Po \
+ 	utilities/$(DEPDIR)/fitscopy.Po \
+ 	utilities/$(DEPDIR)/fitsverify-ftverify.Po \
+@@ -616,7 +632,9 @@ libcfitsio_la_SOURCES = buffers.c cfileio.c checksum.c drvrfile.c \
+ 	putkey.c region.c scalnull.c swapproc.c wcssub.c wcsutil.c \
+ 	imcompress.c quantize.c ricecomp.c pliocomp.c fits_hcompress.c \
+ 	fits_hdecompress.c simplerng.c zcompress.c zuncompress.c \
+-	$(am__append_1) $(am__append_2)
++	adler32.c crc32.c deflate.c infback.c inffast.c inflate.c \
++	inftrees.c trees.c uncompr.c zutil.c $(am__append_1) \
++	$(am__append_2)
+ libcfitsio_la_CFLAGS = $(AM_CFLAGS) @DEFS@
+ libcfitsio_swapproc_la_CFLAGS = $(libcfitsio_la_CFLAGS) @SSE_FLAGS@
+ libcfitsio_la_LIBADD = -lm ${LIBS_CURL} ${LIBS}
+@@ -878,9 +896,12 @@ mostlyclean-compile:
+ distclean-compile:
+ 	-rm -f *.tab.c
  
--ZLIB_SOURCES =	zcompress.c zuncompress.c
-+ZLIB_SOURCES =	adler32.c crc32.c deflate.c infback.c \
-+		inffast.c inflate.c inftrees.c trees.c \
-+		uncompr.c zutil.c zcompress.c zuncompress.c
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-adler32.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-buffers.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-cfileio.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-checksum.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-crc32.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-deflate.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-drvrfile.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-drvrgsiftp.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-drvrmem.Plo@am__quote@ # am--include-marker
+@@ -916,6 +937,10 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-grparser.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-histo.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-imcompress.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-infback.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-inffast.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-inflate.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-inftrees.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-iraffits.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-modkey.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-pliocomp.Plo@am__quote@ # am--include-marker
+@@ -940,10 +965,13 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-scalnull.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-simplerng.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-swapproc.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-trees.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-uncompr.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-wcssub.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-wcsutil.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-zcompress.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-zuncompress.Plo@am__quote@ # am--include-marker
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcfitsio_la-zutil.Plo@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@utilities/$(DEPDIR)/cookbook.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@utilities/$(DEPDIR)/fitscopy.Po@am__quote@ # am--include-marker
+ @AMDEP_TRUE@@am__include@ @am__quote@utilities/$(DEPDIR)/fitsverify-ftverify.Po@am__quote@ # am--include-marker
+@@ -1417,6 +1445,76 @@ libcfitsio_la-zuncompress.lo: zuncompress.c
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-zuncompress.lo `test -f 'zuncompress.c' || echo '$(srcdir)/'`zuncompress.c
  
- SOURCES = ${CORE_SOURCES} ${ZLIB_SOURCES} @F77_WRAPPERS@
++libcfitsio_la-adler32.lo: adler32.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-adler32.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-adler32.Tpo -c -o libcfitsio_la-adler32.lo `test -f 'adler32.c' || echo '$(srcdir)/'`adler32.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-adler32.Tpo $(DEPDIR)/libcfitsio_la-adler32.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='adler32.c' object='libcfitsio_la-adler32.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-adler32.lo `test -f 'adler32.c' || echo '$(srcdir)/'`adler32.c
++
++libcfitsio_la-crc32.lo: crc32.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-crc32.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-crc32.Tpo -c -o libcfitsio_la-crc32.lo `test -f 'crc32.c' || echo '$(srcdir)/'`crc32.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-crc32.Tpo $(DEPDIR)/libcfitsio_la-crc32.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='crc32.c' object='libcfitsio_la-crc32.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-crc32.lo `test -f 'crc32.c' || echo '$(srcdir)/'`crc32.c
++
++libcfitsio_la-deflate.lo: deflate.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-deflate.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-deflate.Tpo -c -o libcfitsio_la-deflate.lo `test -f 'deflate.c' || echo '$(srcdir)/'`deflate.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-deflate.Tpo $(DEPDIR)/libcfitsio_la-deflate.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='deflate.c' object='libcfitsio_la-deflate.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-deflate.lo `test -f 'deflate.c' || echo '$(srcdir)/'`deflate.c
++
++libcfitsio_la-infback.lo: infback.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-infback.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-infback.Tpo -c -o libcfitsio_la-infback.lo `test -f 'infback.c' || echo '$(srcdir)/'`infback.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-infback.Tpo $(DEPDIR)/libcfitsio_la-infback.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='infback.c' object='libcfitsio_la-infback.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-infback.lo `test -f 'infback.c' || echo '$(srcdir)/'`infback.c
++
++libcfitsio_la-inffast.lo: inffast.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-inffast.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-inffast.Tpo -c -o libcfitsio_la-inffast.lo `test -f 'inffast.c' || echo '$(srcdir)/'`inffast.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-inffast.Tpo $(DEPDIR)/libcfitsio_la-inffast.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='inffast.c' object='libcfitsio_la-inffast.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-inffast.lo `test -f 'inffast.c' || echo '$(srcdir)/'`inffast.c
++
++libcfitsio_la-inflate.lo: inflate.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-inflate.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-inflate.Tpo -c -o libcfitsio_la-inflate.lo `test -f 'inflate.c' || echo '$(srcdir)/'`inflate.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-inflate.Tpo $(DEPDIR)/libcfitsio_la-inflate.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='inflate.c' object='libcfitsio_la-inflate.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-inflate.lo `test -f 'inflate.c' || echo '$(srcdir)/'`inflate.c
++
++libcfitsio_la-inftrees.lo: inftrees.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-inftrees.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-inftrees.Tpo -c -o libcfitsio_la-inftrees.lo `test -f 'inftrees.c' || echo '$(srcdir)/'`inftrees.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-inftrees.Tpo $(DEPDIR)/libcfitsio_la-inftrees.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='inftrees.c' object='libcfitsio_la-inftrees.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-inftrees.lo `test -f 'inftrees.c' || echo '$(srcdir)/'`inftrees.c
++
++libcfitsio_la-trees.lo: trees.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-trees.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-trees.Tpo -c -o libcfitsio_la-trees.lo `test -f 'trees.c' || echo '$(srcdir)/'`trees.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-trees.Tpo $(DEPDIR)/libcfitsio_la-trees.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='trees.c' object='libcfitsio_la-trees.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-trees.lo `test -f 'trees.c' || echo '$(srcdir)/'`trees.c
++
++libcfitsio_la-uncompr.lo: uncompr.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-uncompr.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-uncompr.Tpo -c -o libcfitsio_la-uncompr.lo `test -f 'uncompr.c' || echo '$(srcdir)/'`uncompr.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-uncompr.Tpo $(DEPDIR)/libcfitsio_la-uncompr.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='uncompr.c' object='libcfitsio_la-uncompr.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-uncompr.lo `test -f 'uncompr.c' || echo '$(srcdir)/'`uncompr.c
++
++libcfitsio_la-zutil.lo: zutil.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-zutil.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-zutil.Tpo -c -o libcfitsio_la-zutil.lo `test -f 'zutil.c' || echo '$(srcdir)/'`zutil.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-zutil.Tpo $(DEPDIR)/libcfitsio_la-zutil.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='zutil.c' object='libcfitsio_la-zutil.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -c -o libcfitsio_la-zutil.lo `test -f 'zutil.c' || echo '$(srcdir)/'`zutil.c
++
+ libcfitsio_la-f77_wrap1.lo: f77_wrap1.c
+ @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-f77_wrap1.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-f77_wrap1.Tpo -c -o libcfitsio_la-f77_wrap1.lo `test -f 'f77_wrap1.c' || echo '$(srcdir)/'`f77_wrap1.c
+ @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-f77_wrap1.Tpo $(DEPDIR)/libcfitsio_la-f77_wrap1.Plo
+@@ -1875,9 +1973,12 @@ clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
  
+ distclean: distclean-am
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
++	-rm -f ./$(DEPDIR)/libcfitsio_la-adler32.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-buffers.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-cfileio.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-checksum.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-crc32.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-deflate.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrfile.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrgsiftp.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrmem.Plo
+@@ -1913,6 +2014,10 @@ distclean: distclean-am
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-grparser.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-histo.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-imcompress.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-infback.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inffast.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inflate.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inftrees.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-iraffits.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-modkey.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-pliocomp.Plo
+@@ -1937,10 +2042,13 @@ distclean: distclean-am
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-scalnull.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-simplerng.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-swapproc.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-trees.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-uncompr.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-wcssub.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-wcsutil.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-zcompress.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-zuncompress.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-zutil.Plo
+ 	-rm -f utilities/$(DEPDIR)/cookbook.Po
+ 	-rm -f utilities/$(DEPDIR)/fitscopy.Po
+ 	-rm -f utilities/$(DEPDIR)/fitsverify-ftverify.Po
+@@ -2004,9 +2112,12 @@ installcheck-am:
+ maintainer-clean: maintainer-clean-am
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+ 	-rm -rf $(top_srcdir)/autom4te.cache
++	-rm -f ./$(DEPDIR)/libcfitsio_la-adler32.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-buffers.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-cfileio.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-checksum.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-crc32.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-deflate.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrfile.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrgsiftp.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-drvrmem.Plo
+@@ -2042,6 +2153,10 @@ maintainer-clean: maintainer-clean-am
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-grparser.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-histo.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-imcompress.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-infback.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inffast.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inflate.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-inftrees.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-iraffits.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-modkey.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-pliocomp.Plo
+@@ -2066,10 +2181,13 @@ maintainer-clean: maintainer-clean-am
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-scalnull.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-simplerng.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-swapproc.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-trees.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-uncompr.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-wcssub.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-wcsutil.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-zcompress.Plo
+ 	-rm -f ./$(DEPDIR)/libcfitsio_la-zuncompress.Plo
++	-rm -f ./$(DEPDIR)/libcfitsio_la-zutil.Plo
+ 	-rm -f utilities/$(DEPDIR)/cookbook.Po
+ 	-rm -f utilities/$(DEPDIR)/fitscopy.Po
+ 	-rm -f utilities/$(DEPDIR)/fitsverify-ftverify.Po
