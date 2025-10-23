@@ -89,7 +89,7 @@ jobs:
             cftsver="${{ matrix.config.cftsver }}"
           fi
 
-          if [[ "${{ matrix.config.cftsver }}" == *3.* ]]; then
+          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
             config_flags=""
           else
             config_flags="--without-fortran --disable-shared"
