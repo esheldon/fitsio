@@ -60,14 +60,10 @@ jobs:
           conda install \
             numpy=${{ matrix.config.npver }} \
             "setuptools-scm>=8" \
-            nose \
-            cython \
             wget \
             make \
             pytest \
-            flake8 \
-            setuptools \
-            compilers
+            setuptools
           conda list
 
       - name: install bzip2 on linux
