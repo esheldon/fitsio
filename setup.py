@@ -280,7 +280,7 @@ class build_ext_subclass(build_ext):
             print("found Makefile so not running configure!", flush=True)
             return
 
-        args = ''
+        args = '--enable-standard-strings --without-fortran --disable-shared'
 
         if "FITSIO_BZIP2_DIR" in os.environ:
             args += ' --with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]
@@ -298,8 +298,10 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
+        print("running configure w/ args:", args, flush=True)
+
         p = Popen(
-            "sh ./configure --enable-standard-strings " + args,
+            "sh ./configure " + args,
             shell=True,
             cwd=self.cfitsio_build_dir,
         )
