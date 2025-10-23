@@ -298,8 +298,6 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             args += ' RANLIB="%s"' % ' '.join(RANLIB)
 
-        print("running configure w/ args:", args, flush=True)
-
         p = Popen(
             "sh ./configure " + args,
             shell=True,
