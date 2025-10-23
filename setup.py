@@ -289,9 +289,9 @@ class build_ext_subclass(build_ext):
 
         if CC is not None:
             args += ' CC="%s"' % ' '.join(CC[:1])
-            args += ' CFLAGS="%s -fvisibility=hidden"' % ' '.join(CC[1:])
+            args += ' CFLAGS="%s -fPIC -fvisibility=hidden"' % ' '.join(CC[1:])
         else:
-            args += ' CFLAGS="${CFLAGS} -fvisibility=hidden"'
+            args += ' CFLAGS="${CFLAGS} -fPIC -fvisibility=hidden"'
 
         if ARCHIVE:
             args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
