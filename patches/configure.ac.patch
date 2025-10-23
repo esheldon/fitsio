@@ -1,5 +1,5 @@
---- cfitsio-4.2.0/configure.in	2022-10-31 14:40:23.000000000 -0400
-+++ cfitsio-4.2.0/configure.in	2023-07-14 11:45:00.797390794 -0400
+--- cfitsio-4.2.0/configure.ac	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.2.0/configure.ac	2023-07-14 11:45:00.797390794 -0400
 @@ -53,6 +53,12 @@
    [ if test $enableval = yes; then SSE_FLAGS="$SSE_FLAGS -mssse3"; fi ]
  )
