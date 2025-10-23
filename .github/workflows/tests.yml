@@ -84,11 +84,11 @@ jobs:
           mkdir cfitsio-external-build
           cd cfitsio-external-build
           if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            cftsver=${LATEST_CFITSIO_VER}  
+            cftsver=${LATEST_CFITSIO_VER}
           else
             cftsver="${{ matrix.config.cftsver }}"
           fi
-          
+
           if [[ "${{ matrix.config.cftsver }}" == *3.* ]]; then
             config_flags=""
           else
