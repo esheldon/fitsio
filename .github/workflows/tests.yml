@@ -84,12 +84,17 @@ jobs:
           mkdir cfitsio-external-build
           cd cfitsio-external-build
           if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            cftsver=${LATEST_CFITSIO_VER}
-            config_flags="--without-fortran --disable-shared"
+            cftsver=${LATEST_CFITSIO_VER}  
           else
             cftsver="${{ matrix.config.cftsver }}"
-            config_flags=""
           fi
+          
+          if [[ "${{ matrix.config.cftsver }}" == *3.* ]]; then
+            config_flags=""
+          else
+            config_flags="--without-fortran --disable-shared"
+          fi
+
           cfitsio_name=cfitsio${cftsver}
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
