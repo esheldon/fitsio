@@ -22,6 +22,7 @@ Changes
       line utility is missing. To prevent this, set the environment
       variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
     - The C code is now styled uniformly with clang-format.
+    - Updated bundled cfitsio to 4.6.3.
 
 Bug Fixes
 

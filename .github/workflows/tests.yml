@@ -11,7 +11,7 @@ env:
   # These compiler flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
-  LATEST_CFITSIO_VER: "-4.4.0"
+  LATEST_CFITSIO_VER: "-4.6.3"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

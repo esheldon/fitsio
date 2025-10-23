@@ -1,0 +1,79 @@
+Header listing for HDU #1:
+SIMPLE  =                    T / file does conform to FITS standard
+BITPIX  =                   16 / number of bits per data pixel
+NAXIS   =                    2 / number of data axes
+NAXIS1  =                  300 / length of data axis 1
+NAXIS2  =                  200 / length of data axis 2
+EXTEND  =                    T / FITS dataset may contain extensions
+COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+BZERO   =                32768 / offset data range to that of unsigned short
+BSCALE  =                    1 / default scaling factor
+EXPOSURE=                 1500 / Total Exposure Time
+END
+
+Header listing for HDU #2:
+XTENSION= 'TABLE   '           / ASCII table extension
+BITPIX  =                    8 / 8-bit ASCII characters
+NAXIS   =                    2 / 2-dimensional ASCII table
+NAXIS1  =                   20 / width of table in characters
+NAXIS2  =                    6 / number of rows in table
+PCOUNT  =                    0 / no group parameters (required keyword)
+GCOUNT  =                    1 / one data group (required keyword)
+TFIELDS =                    3 / number of fields in each row
+TTYPE1  = 'Planet  '           / label for field   1
+TBCOL1  =                    1 / beginning column of field   1
+TFORM1  = 'A8      '           / Fortran-77 format of field
+TTYPE2  = 'Diameter'           / label for field   2
+TBCOL2  =                   10 / beginning column of field   2
+TFORM2  = 'I6      '           / Fortran-77 format of field
+TUNIT2  = 'km      '           / physical unit of field
+TTYPE3  = 'Density '           / label for field   3
+TBCOL3  =                   17 / beginning column of field   3
+TFORM3  = 'F4.2    '           / Fortran-77 format of field
+TUNIT3  = 'g/cm    '           / physical unit of field
+EXTNAME = 'PLANETS_ASCII'      / name of this ASCII table extension
+END
+
+Header listing for HDU #3:
+XTENSION= 'BINTABLE'           / binary table extension
+BITPIX  =                    8 / 8-bit bytes
+NAXIS   =                    2 / 2-dimensional binary table
+NAXIS1  =                   16 / width of table in bytes
+NAXIS2  =                    6 / number of rows in table
+PCOUNT  =                    0 / size of special data area
+GCOUNT  =                    1 / one data group (required keyword)
+TFIELDS =                    3 / number of fields in each row
+TTYPE1  = 'Planet  '           / label for field   1
+TFORM1  = '8A      '           / data format of field: ASCII Character
+TTYPE2  = 'Diameter'           / label for field   2
+TFORM2  = '1J      '           / data format of field: 4-byte INTEGER
+TUNIT2  = 'km      '           / physical unit of field
+TTYPE3  = 'Density '           / label for field   3
+TFORM3  = '1E      '           / data format of field: 4-byte REAL
+TUNIT3  = 'g/cm    '           / physical unit of field
+EXTNAME = 'PLANETS_Binary'     / name of this binary table extension
+END
+
+
+Min and max image pixels =  0, 498
+
+Reading ASCII table in HDU 2:
+ Row      Planet   Diameter    Density
+    1    Mercury       4880       5.10
+    2      Venus      12112       5.30
+    3      Earth      12742       5.52
+    4       Mars       6800       3.94
+    5    Jupiter     143000       1.33
+    6     Saturn     121000       0.69
+
+Reading binary table in HDU 3:
+ Row      Planet   Diameter    Density
+    1    Mercury       4880       5.10
+    2      Venus      12112       5.30
+    3      Earth      12742       5.52
+    4       Mars       6800       3.94
+    5    Jupiter     143000       1.33
+    6     Saturn     121000       0.69
+
+All the cfitsio cookbook routines ran successfully.
