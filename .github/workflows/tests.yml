@@ -96,7 +96,7 @@ jobs:
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
-          ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
+          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
           make install -j 4
           cd ..
           cd ..
