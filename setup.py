@@ -74,7 +74,7 @@ else:
     )
 
 
-def _print_header(text):
+def _print_msg(text):
     print("\n" + "=" * 79 + f"\n{text}\n" + "=" * 79, flush=True)
 
 
@@ -130,7 +130,7 @@ class build_ext_subclass(build_ext):
                 CC = []
                 for val in CCold:
                     if val == 'ccache':
-                        print("removing ccache from the compiler options")
+                        _print_msg("removing ccache from the compiler options")
                         continue
 
                     CC.append(val)
@@ -156,8 +156,16 @@ class build_ext_subclass(build_ext):
                             if "-lcurl" in _eqpart:
                                 _have_curl = True
                 if _have_bzip2:
+                    _print_msg(
+                        "found -lbz2 in Makefile\n"
+                        "linking Python extension to bzip2"
+                    )
                     self.compiler.add_library('bz2')
                 if _have_curl:
+                    _print_msg(
+                        "found -lcurl in Makefile\n"
+                        "linking Python extension to curl"
+                    )
                     self.compiler.add_library('curl')
 
             self.compile_cfitsio()
@@ -181,8 +189,16 @@ class build_ext_subclass(build_ext):
 
             # Check if system cfitsio was compiled with bzip2 and/or curl
             if self.check_system_cfitsio_objects('bzip2'):
+                _print_msg(
+                    "found bz2 symbol in system cfitsio library\n"
+                    "linking Python extension to bzip2"
+                )
                 self.compiler.add_library('bz2')
             if self.check_system_cfitsio_objects('curl_'):
+                _print_msg(
+                    "found curl_ symbol in system cfitsio library\n"
+                    "linking Python extension to curl"
+                )
                 self.compiler.add_library('curl')
 
             # Make sure the external lib has the fits_use_standard_strings
@@ -191,6 +207,10 @@ class build_ext_subclass(build_ext):
             if not self.check_system_cfitsio_objects(
                 '_fits_use_standard_strings'
             ):
+                _print_msg(
+                    "did not fine _fits_use_standard_strings symbol in "
+                    "system cfitsio library\nalways using non-standard strings"
+                )
                 self.compiler.define_macro(
                     'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS'
                 )
@@ -206,7 +226,7 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def patch_cfitsio(self):
-        _print_header("patching cfitsio")
+        _print_msg("patching cfitsio")
 
         try:
             subprocess.check_call(["patch", "-v"])
@@ -311,10 +331,10 @@ class build_ext_subclass(build_ext):
 
         if os.path.exists(makefile):
             # Makefile already there
-            print("found Makefile so not running configure!", flush=True)
+            _print_msg("found Makefile so not running configure!")
             return
         else:
-            _print_header("configuring cfitsio")
+            _print_msg("configuring cfitsio")
 
         # the latest cfitsio build system links its example
         # programs (e.g., `cookbook`) against the shared library.
@@ -376,7 +396,7 @@ class build_ext_subclass(build_ext):
             )
 
     def compile_cfitsio(self):
-        _print_header("building cfitsio")
+        _print_msg("building cfitsio")
         res = subprocess.run(
             "make",
             cwd=self.cfitsio_build_dir,
