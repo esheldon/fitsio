@@ -282,15 +282,25 @@ class build_ext_subclass(build_ext):
         if not os.path.exists(self.cfitsio_patch_dir):
             os.makedirs(self.cfitsio_patch_dir)
 
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 12:
+            tar_kwargs = {"filter": "fully_trusted"}
+        else:
+            tar_kwargs = {}
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with tarfile.open(self.cfitsio_dir + ".tar.gz", "r:gz") as tar:
-                tar.extractall(path=tmpdir, filter='fully_trusted')
-                copy_update(os.path.join(tmpdir, self.cfitsio_dir), self.cfitsio_build_dir)
+                tar.extractall(path=tmpdir, **tar_kwargs)
+                copy_update(
+                    os.path.join(tmpdir, self.cfitsio_dir),
+                    self.cfitsio_build_dir,
+                )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with tarfile.open("zlib.tar.gz", "r:gz") as tar:
-                tar.extractall(path=tmpdir, filter='fully_trusted')
-                copy_update(os.path.join(tmpdir, "zlib"), self.cfitsio_build_dir)
+                tar.extractall(path=tmpdir, **tar_kwargs)
+                copy_update(
+                    os.path.join(tmpdir, "zlib"), self.cfitsio_build_dir
+                )
 
         copy_update('patches', self.cfitsio_patch_dir)
 
