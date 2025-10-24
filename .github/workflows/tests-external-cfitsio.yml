@@ -102,7 +102,7 @@ jobs:
             --config-settings="--global-option=--use-system-fitsio" \
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
             --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
           python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
