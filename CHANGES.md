@@ -23,6 +23,9 @@ Changes
       variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
     - The C code is now styled uniformly with clang-format.
     - Updated bundled cfitsio to 4.6.3.
+    - Added utilities `cfitsio_has_bzip2_support` and
+      `cfitsio_has_curl_support` to detect at run-time if cfitsio
+      was built with these options.
 
 Bug Fixes
 
