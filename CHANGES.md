@@ -22,6 +22,10 @@ Changes
       line utility is missing. To prevent this, set the environment
       variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
     - The C code is now styled uniformly with clang-format.
+    - Updated bundled cfitsio to 4.6.3.
+    - Added utilities `cfitsio_has_bzip2_support` and
+      `cfitsio_has_curl_support` to detect at run-time if cfitsio
+      was built with these options.
 
 Bug Fixes
 
@@ -43,6 +47,7 @@ Bug Fixes
     - Fixed a bug where writing unsupported image types either did not raise an error
       or did not raise the correct error.
     - Fixed a bug where rectangular subsets of images were not written properly.
+    - Fixed automatic detection of bzip2 and curl libraries.
 
 version 1.2.8
 -------------

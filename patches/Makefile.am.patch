@@ -1,0 +1,14 @@
+--- a/cfitsio-4.6.3/Makefile.am
++++ b/cfitsio-4.6.3/Makefile.am
+@@ -82,7 +82,10 @@ libcfitsio_la_SOURCES =	\
+ 	fits_hdecompress.c \
+ 	simplerng.c \
+ 	zcompress.c \
+-	zuncompress.c
++	zuncompress.c \
++	adler32.c crc32.c deflate.c infback.c \
++	inffast.c inflate.c inftrees.c trees.c \
++	uncompr.c zutil.c	
+ 
+ if !NOFORTRAN
+ libcfitsio_la_SOURCES += $(F77_WRAPPERS)
