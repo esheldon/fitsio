@@ -66,19 +66,15 @@ jobs:
             setuptools
           conda list
 
-      - name: install bzip2 on linux
-        shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install libbz2-dev
-
       - name: build external cfitsio
         shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
-          mkdir cfitsio-external-build
+          mkdir -p cfitsio-external-build
           cd cfitsio-external-build
+          rm -rf *
+
           if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
             cftsver=${LATEST_CFITSIO_VER}
           else
@@ -112,7 +108,44 @@ jobs:
             --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
           SKIP_BZIP_TEST=true pytest -vv fitsio
 
-      - name: test non-bundled build w/ env vars
+      - name: install bzip2 on linux
+        shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install libbz2-dev
+
+      - name: build external cfitsio w/ bzip2
+        shell: bash -l {0}
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          mkdir -p cfitsio-external-build
+          cd cfitsio-external-build
+          rm -rf *
+
+          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
+            cftsver=${LATEST_CFITSIO_VER}
+          else
+            cftsver="${{ matrix.config.cftsver }}"
+          fi
+
+          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
+            config_flags="--with-bzip2"
+          else
+            config_flags="--without-fortran --disable-shared --with-bzip2"
+          fi
+
+          cfitsio_name=cfitsio${cftsver}
+          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
+          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
+          tar -xzvf ${cfitsio_name}.tar.gz
+          cd ${cfitsio_dir}
+          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
+          make install -j 4
+          cd ..
+          cd ..
+
+      - name: test non-bundled build w/ env vars w/ bzip2
         shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
@@ -124,7 +157,7 @@ jobs:
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
           pip install ${PIP_OPTIONS} -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pytest -vv fitsio
 
       - name: test bundled build
         shell: bash -l {0}
