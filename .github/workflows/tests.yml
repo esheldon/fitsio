@@ -71,7 +71,17 @@ jobs:
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            SKIP_BZIP_TEST=true pytest -vv fitsio
+          else
+            pytest -vv fitsio
+          fi
+
+      - name: install bzip2 on linux
+        shell: bash -l {0}
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install libbz2-dev
 
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}

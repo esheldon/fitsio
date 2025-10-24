@@ -312,9 +312,17 @@ class build_ext_subclass(build_ext):
         our_cflags = "-fPIC -fvisibility=hidden"
 
         if "FITSIO_BZIP2_DIR" in os.environ:
-            args += ['--with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]]
+            if not os.environ["FITSIO_BZIP2_DIR"]:
+                args += ["--with-bzip2"]
+            else:
+                args += ['--with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]]
         else:
-            args += ['--with-bzip2']
+            # detect if we have bzip2
+            if shutil.which("bzip2") is not None:
+                args += ['--with-bzip2']
+
+        if shutil.which("curl") is None:
+            args += ["--disable-curl"]
 
         env = {}
         env.update(os.environ)
