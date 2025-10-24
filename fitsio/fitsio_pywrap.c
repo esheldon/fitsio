@@ -4867,6 +4867,22 @@ static PyObject *PyFITS_cfitsio_is_bundled(void) {
 #endif
 }
 
+static PyObject *PyFITS_cfitsio_has_bzip2_support(void) {
+#ifdef FITSIO_HAS_BZIP2_SUPPORT
+    Py_RETURN_TRUE;
+#else
+    Py_RETURN_FALSE;
+#endif
+}
+
+static PyObject *PyFITS_cfitsio_has_curl_support(void) {
+#ifdef FITSIO_HAS_CURL_SUPPORT
+    Py_RETURN_TRUE;
+#else
+    Py_RETURN_FALSE;
+#endif
+}
+
 /*
 
 'C',              'L',     'I',     'F'             'X'
@@ -5162,6 +5178,14 @@ static PyMethodDef fitstype_methods[] = {
      (PyCFunction)PyFITS_cfitsio_use_standard_strings, METH_NOARGS,
      "cfitsio_use_standard_strings\n\nReturn True if using string code that "
      "matches the FITS standard."},
+    {"cfitsio_has_bzip2_support", (PyCFunction)PyFITS_cfitsio_has_bzip2_support,
+     METH_NOARGS,
+     "cfitsio_has_bzip2_support\n\nReturn True if cfitsio has support for "
+     "bzip2."},
+    {"cfitsio_has_curl_support", (PyCFunction)PyFITS_cfitsio_has_curl_support,
+     METH_NOARGS,
+     "cfitsio_has_curl_support\n\nReturn True if cfitsio has support for "
+     "curl."},
     {"parse_card", (PyCFunction)PyFITS_parse_card, METH_VARARGS,
      "parse_card\n\nparse the card to get the key name, value (as a string), "
      "data type and comment."},

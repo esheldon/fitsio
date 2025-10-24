@@ -161,6 +161,7 @@ class build_ext_subclass(build_ext):
                         "linking Python extension to bzip2"
                     )
                     self.compiler.add_library('bz2')
+                    self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
                 else:
                     _print_msg(
                         "did not find -lbz2 in Makefile\n"
@@ -173,6 +174,7 @@ class build_ext_subclass(build_ext):
                         "linking Python extension to curl"
                     )
                     self.compiler.add_library('curl')
+                    self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
                 else:
                     _print_msg(
                         "did not find -lcurl in Makefile\n"
@@ -205,6 +207,7 @@ class build_ext_subclass(build_ext):
                     "linking Python extension to bzip2"
                 )
                 self.compiler.add_library('bz2')
+                self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
             else:
                 _print_msg(
                     "did not find bz2 symbol in system cfitsio library\n"
@@ -217,6 +220,7 @@ class build_ext_subclass(build_ext):
                     "linking Python extension to curl"
                 )
                 self.compiler.add_library('curl')
+                self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
             else:
                 _print_msg(
                     "did not find curl_ symbol in system cfitsio library\n"

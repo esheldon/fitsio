@@ -73,8 +73,12 @@ jobs:
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             SKIP_BZIP_TEST=true pytest -vv fitsio
+            python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
+            python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
             pytest -vv fitsio
+            python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+            python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
       - name: install bzip2 on linux
@@ -123,6 +127,12 @@ jobs:
 
           pip install ${PIP_OPTIONS} -e .
           pytest -vv fitsio
+          python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
+          else
+            python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
+          fi
 
           popd
           popd
