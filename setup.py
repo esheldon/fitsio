@@ -317,12 +317,8 @@ class build_ext_subclass(build_ext):
             else:
                 args += ['--with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]]
         else:
-            # detect if we have bzip2
-            if shutil.which("bzip2") is not None:
-                args += ['--with-bzip2']
-
-        if shutil.which("curl") is None:
-            args += ["--disable-curl"]
+            # let autoconf detect if we have bzip2
+            args += ['--with-bzip2']
 
         env = {}
         env.update(os.environ)
