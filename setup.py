@@ -348,7 +348,6 @@ class build_ext_subclass(build_ext):
         _print_header("building cfitsio")
         p = Popen(
             "make",
-            shell=True,
             cwd=self.cfitsio_build_dir,
         )
         p.wait()
@@ -361,15 +360,16 @@ class build_ext_subclass(build_ext):
         for lib_dir in self.library_dirs:
             if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
                 p = Popen(
-                    "nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
-                    shell=True,
+                    ["nm", "-g", "%s/libcfitsio.a" % lib_dir],
                     stdout=PIPE,
                     stderr=PIPE,
                 )
-                if len(p.stdout.read()) > 0:
-                    return True
-                else:
-                    return False
+                p.wait()
+                for line in p.stdout.decode("utf-8").splitlines():
+                    if obj_name in line:
+                        return True
+
+                return False
         return False
 
 
