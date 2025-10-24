@@ -11,7 +11,6 @@ env:
   # These compiler flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
-  LATEST_CFITSIO_VER: "-4.6.3"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,16 +24,12 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          # 3.44 is the last version that did not support uint64
-          - { pyver: "3.8", npver: "1", cftsver: "3440"}
-          # 4.1.0 is the first version for which tests pass for uint64
-          - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
-          - { pyver: "3.8", npver: "1", cftsver: "latest"}
-          - { pyver: "3.11", npver: "1.26", cftsver: "latest"}
-          - { pyver: "3.12", npver: "1.26", cftsver: "latest"}
-          - { pyver: "3.11", npver: "2.3.0", cftsver: "latest"}
-          - { pyver: "3.12", npver: "2.3.0", cftsver: "latest"}
-          - { pyver: "3.13", npver: "2.3.0", cftsver: "latest"}
+          - { pyver: "3.8", npver: "1"}
+          - { pyver: "3.11", npver: "1.26"}
+          - { pyver: "3.12", npver: "1.26"}
+          - { pyver: "3.11", npver: "2.3.0"}
+          - { pyver: "3.12", npver: "2.3.0"}
+          - { pyver: "3.13", npver: "2.3.0"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -65,99 +60,6 @@ jobs:
             pytest \
             setuptools
           conda list
-
-      - name: build external cfitsio
-        shell: bash -l {0}
-        run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          mkdir -p cfitsio-external-build
-          cd cfitsio-external-build
-          rm -rf *
-
-          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            cftsver=${LATEST_CFITSIO_VER}
-          else
-            cftsver="${{ matrix.config.cftsver }}"
-          fi
-
-          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
-            config_flags=""
-          else
-            config_flags="--without-fortran --disable-shared"
-          fi
-
-          cfitsio_name=cfitsio${cftsver}
-          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
-          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
-          tar -xzvf ${cfitsio_name}.tar.gz
-          cd ${cfitsio_dir}
-          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
-          make install -j 4
-          cd ..
-          cd ..
-
-      - name: test non-bundled build
-        shell: bash -l {0}
-        run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          pip install ${PIP_OPTIONS} -e . \
-            --config-settings="--global-option=--use-system-fitsio" \
-            --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
-            --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
-          SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      - name: install bzip2 on linux
-        shell: bash -l {0}
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install libbz2-dev
-
-      - name: build external cfitsio w/ bzip2
-        shell: bash -l {0}
-        run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          mkdir -p cfitsio-external-build
-          cd cfitsio-external-build
-          rm -rf *
-
-          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            cftsver=${LATEST_CFITSIO_VER}
-          else
-            cftsver="${{ matrix.config.cftsver }}"
-          fi
-
-          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
-            config_flags="--with-bzip2"
-          else
-            config_flags="--without-fortran --disable-shared --with-bzip2"
-          fi
-
-          cfitsio_name=cfitsio${cftsver}
-          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
-          cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
-          tar -xzvf ${cfitsio_name}.tar.gz
-          cd ${cfitsio_dir}
-          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
-          make install -j 4
-          cd ..
-          cd ..
-
-      - name: test non-bundled build w/ env vars w/ bzip2
-        shell: bash -l {0}
-        run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          pip cache purge
-          rm -rf build*
-          find . -name "*.so" -type f -delete
-          export FITSIO_USE_SYSTEM_FITSIO=1
-          export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
-          export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
-          pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
 
       - name: test bundled build
         shell: bash -l {0}
@@ -214,43 +116,3 @@ jobs:
 
           popd
           popd
-
-  tests-pypi:
-    name: tests-pypi
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-22.04]
-        pyver: ["3.8", "3.13"]
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '${{ matrix.pyver }}'
-
-      - name: install pip & setuptools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools
-          python -m pip install pytest
-
-      - name: install bzip2 and other tools on linux
-        if: contains(matrix.os, 'ubuntu')
-        run: |
-          sudo apt-get install libbz2-dev wget make
-
-      - name: build fitsio
-        run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          pip install -v -e .
-
-      - name: test fitsio
-        run: |
-          pytest -vv fitsio

@@ -12,7 +12,7 @@ import warnings
 import sys
 import os
 import subprocess
-from subprocess import Popen, PIPE
+from subprocess import PIPE
 import glob
 import shutil
 
@@ -201,7 +201,6 @@ class build_ext_subclass(build_ext):
         self.compiler.add_library('m')
 
         # call the original build_extensions
-
         build_ext.build_extensions(self)
 
     def patch_cfitsio(self):
@@ -334,13 +333,12 @@ class build_ext_subclass(build_ext):
         if RANLIB:
             env["RANLIB"] = ' '.join(RANLIB)
 
-        p = Popen(
+        res = subprocess.run(
             ["sh", "./configure"] + args,
             cwd=self.cfitsio_build_dir,
             env=env,
         )
-        p.wait()
-        if p.returncode != 0:
+        if res.returncode != 0:
             with open(
                 os.path.join(self.cfitsio_build_dir, "config.log")
             ) as fp:
@@ -355,12 +353,11 @@ class build_ext_subclass(build_ext):
 
     def compile_cfitsio(self):
         _print_header("building cfitsio")
-        p = Popen(
+        res = subprocess.run(
             "make",
             cwd=self.cfitsio_build_dir,
         )
-        p.wait()
-        if p.returncode != 0:
+        if res.returncode != 0:
             raise ValueError(
                 "could not compile cfitsio %s" % self.cfitsio_version
             )
@@ -368,13 +365,12 @@ class build_ext_subclass(build_ext):
     def check_system_cfitsio_objects(self, obj_name):
         for lib_dir in self.library_dirs:
             if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
-                p = Popen(
+                res = subprocess.run(
                     ["nm", "-g", "%s/libcfitsio.a" % lib_dir],
                     stdout=PIPE,
                     stderr=PIPE,
                 )
-                p.wait()
-                for line in p.stdout.decode("utf-8").splitlines():
+                for line in res.stdout.decode("utf-8").splitlines():
                     if obj_name in line:
                         return True
 
