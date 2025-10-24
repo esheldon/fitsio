@@ -161,12 +161,23 @@ class build_ext_subclass(build_ext):
                         "linking Python extension to bzip2"
                     )
                     self.compiler.add_library('bz2')
+                else:
+                    _print_msg(
+                        "did not find -lbz2 in Makefile\n"
+                        "bzip2 support is disabled"
+                    )
+
                 if _have_curl:
                     _print_msg(
                         "found -lcurl in Makefile\n"
                         "linking Python extension to curl"
                     )
                     self.compiler.add_library('curl')
+                else:
+                    _print_msg(
+                        "did not find -lcurl in Makefile\n"
+                        "curl support is disabled"
+                    )
 
             self.compile_cfitsio()
 
@@ -194,12 +205,23 @@ class build_ext_subclass(build_ext):
                     "linking Python extension to bzip2"
                 )
                 self.compiler.add_library('bz2')
+            else:
+                _print_msg(
+                    "did not find bz2 symbol in system cfitsio library\n"
+                    "bzip2 support is disabled"
+                )
+
             if self.check_system_cfitsio_objects('curl_'):
                 _print_msg(
                     "found curl_ symbol in system cfitsio library\n"
                     "linking Python extension to curl"
                 )
                 self.compiler.add_library('curl')
+            else:
+                _print_msg(
+                    "did not find curl_ symbol in system cfitsio library\n"
+                    "curl support is disabled"
+                )
 
             # Make sure the external lib has the fits_use_standard_strings
             # function. If not, then define a macro to tell the wrapper
@@ -208,7 +230,7 @@ class build_ext_subclass(build_ext):
                 '_fits_use_standard_strings'
             ):
                 _print_msg(
-                    "did not fine _fits_use_standard_strings symbol in "
+                    "did not find _fits_use_standard_strings symbol in "
                     "system cfitsio library\nalways using non-standard strings"
                 )
                 self.compiler.define_macro(
