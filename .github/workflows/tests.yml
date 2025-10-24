@@ -81,11 +81,11 @@ jobs:
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
-      - name: install bzip2 on linux
+      - name: install bzip2 and curl on linux
         shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install libbz2-dev
+          sudo apt-get install libbz2-dev curl libcurl4-openssl-dev
 
       - name: test install sdist .gz with no unit tests
         shell: bash -l {0}
@@ -128,11 +128,7 @@ jobs:
           pip install ${PIP_OPTIONS} -e .
           pytest -vv fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
-          else
-            python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
-          fi
+          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 
           popd
           popd
