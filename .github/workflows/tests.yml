@@ -127,6 +127,7 @@ jobs:
 
           pip install ${PIP_OPTIONS} -e .
           pytest -vv fitsio
+          python -c "assert False"
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
