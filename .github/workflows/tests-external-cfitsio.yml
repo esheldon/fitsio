@@ -1,4 +1,4 @@
-name: tests
+name: tests-external-cfitsio
 
 on:
   push:
@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
-    name: tests
+  tests-external-cfitsio:
+    name: tests-external-cfitsio
     strategy:
       fail-fast: false
       matrix:
