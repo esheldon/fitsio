@@ -72,6 +72,10 @@ else:
     )
 
 
+def _print_header(text):
+    print("\n" + "=" * 79 + f"\n{text}\n" + "=" * 79, flush=True)
+
+
 class build_ext_subclass(build_ext):
     cfitsio_version = '4.6.3'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
@@ -192,6 +196,8 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def patch_cfitsio(self):
+        _print_header("patching cfitsio")
+
         try:
             subprocess.check_call(["patch", "-v"])
         except subprocess.CalledProcessError as e:
@@ -279,37 +285,67 @@ class build_ext_subclass(build_ext):
             # Makefile already there
             print("found Makefile so not running configure!", flush=True)
             return
+        else:
+            _print_header("configuring cfitsio")
 
-        args = '--enable-standard-strings --without-fortran --disable-shared'
+        # the latest cfitsio build system links its example
+        # programs (e.g., `cookbook`) against the shared library.
+        # when we use `-fvisibility=hidden` in the CFLAGS (
+        # needed to hide the cfitsio symbols in the python `.so``),
+        # the linking against the shared library fails.
+        # so we disable shared libraries with (`--disable-shared``)
+        # and add `-fPIC` to the flags to ensure the python `.so`
+        # works properly later
+        args = [
+            '--enable-standard-strings',
+            '--without-fortran',
+            '--disable-shared',
+        ]
+        our_cflags = "-fPIC -fvisibility=hidden"
 
         if "FITSIO_BZIP2_DIR" in os.environ:
-            args += ' --with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]
+            args += ['--with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]]
         else:
-            args += ' --with-bzip2'
+            args += ['--with-bzip2']
+
+        env = {}
+        env.update(os.environ)
 
         if CC is not None:
-            args += ' CC="%s"' % ' '.join(CC[:1])
-            args += ' CFLAGS="%s -fPIC -fvisibility=hidden"' % ' '.join(CC[1:])
+            env["CC"] = ' '.join(CC[:1])
+            env["CFLAGS"] = ' '.join(CC[1:]) + our_cflags
         else:
-            args += ' CFLAGS="${CFLAGS} -fPIC -fvisibility=hidden"'
+            if "CFLAGS" in os.environ:
+                env["CFLAGS"] = os.environ["CFLAGS"] + " " + our_cflags
+            else:
+                env["CFLAGS"] = our_cflags
 
         if ARCHIVE:
-            args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
+            env["ARCHIVE"] = ' '.join(ARCHIVE)
         if RANLIB:
-            args += ' RANLIB="%s"' % ' '.join(RANLIB)
+            env["RANLIB"] = ' '.join(RANLIB)
 
         p = Popen(
-            "sh ./configure " + args,
-            shell=True,
+            ["sh", "./configure"] + args,
             cwd=self.cfitsio_build_dir,
+            env=env,
         )
         p.wait()
         if p.returncode != 0:
+            with open(
+                os.path.join(self.cfitsio_build_dir, "config.log")
+            ) as fp:
+                logfile = fp.read()
             raise ValueError(
-                "could not configure cfitsio %s" % self.cfitsio_version
+                "could not configure cfitsio %s: config.log:\n\n%s"
+                % (
+                    self.cfitsio_version,
+                    logfile,
+                )
             )
 
     def compile_cfitsio(self):
+        _print_header("building cfitsio")
         p = Popen(
             "make",
             shell=True,
