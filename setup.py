@@ -9,6 +9,8 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 import warnings
+import tempfile
+import tarfile
 import sys
 import os
 import subprocess
@@ -280,8 +282,16 @@ class build_ext_subclass(build_ext):
         if not os.path.exists(self.cfitsio_patch_dir):
             os.makedirs(self.cfitsio_patch_dir)
 
-        copy_update(self.cfitsio_dir, self.cfitsio_build_dir)
-        copy_update('zlib', self.cfitsio_build_dir)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with tarfile.open(self.cfitsio_dir + ".tar.gz", "r:gz") as tar:
+                tar.extractall(path=tmpdir, filter='fully_trusted')
+                copy_update(os.path.join(tmpdir, self.cfitsio_dir), self.cfitsio_build_dir)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with tarfile.open("zlib.tar.gz", "r:gz") as tar:
+                tar.extractall(path=tmpdir, filter='fully_trusted')
+                copy_update(os.path.join(tmpdir, "zlib"), self.cfitsio_build_dir)
+
         copy_update('patches', self.cfitsio_patch_dir)
 
         # we patch the source in the buil dir to avoid mucking with the repo
