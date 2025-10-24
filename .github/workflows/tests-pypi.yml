@@ -45,7 +45,7 @@ jobs:
       - name: install bzip2 and other tools on linux
         if: contains(matrix.os, 'ubuntu')
         run: |
-          sudo apt-get install libbz2-dev wget make
+          sudo apt-get install libbz2-dev wget make libcurl-dev curl
 
       - name: build fitsio
         run: |
