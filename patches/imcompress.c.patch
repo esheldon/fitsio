@@ -17,6 +17,7 @@
 +
          free(cbuf);  /* finished with this buffer */
      }
+ 
 @@ -6453,20 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
      {
          pixlen = sizeof(short);
