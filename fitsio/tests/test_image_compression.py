@@ -581,7 +581,13 @@ def test_image_mem_reopen_noop():
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
-@pytest.mark.parametrize("fname", ["test.fits", "mem://", ])
+@pytest.mark.parametrize(
+    "fname",
+    [
+        "test.fits",
+        "mem://",
+    ],
+)
 def test_image_compression_nulls(fname, dtype):
     data = np.arange(36).reshape((6, 6)).astype(dtype)
     data[1, 1] = np.nan
@@ -593,10 +599,7 @@ def test_image_compression_nulls(fname, dtype):
             fpth = fname
 
         with FITS(fpth, "rw") as fits:
-            fits.write(
-                data,
-                compress='RICE_1', tile_dims=(3, 3)
-            )
+            fits.write(data, compress='RICE_1', tile_dims=(3, 3))
             read_data = fits[1].read()
 
             np.testing.assert_allclose(

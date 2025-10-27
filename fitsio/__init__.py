@@ -34,7 +34,7 @@ from .fitslib import (
 from .header import (
     FITSHDR as FITSHDR,
     FITSRecord as FITSRecord,
-    FITSCard as FITSCard
+    FITSCard as FITSCard,
 )
 from .hdu import (
     BINARY_TBL as BINARY_TBL,

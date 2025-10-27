@@ -1,6 +1,7 @@
 """
 utilities for the fits library
 """
+
 from contextlib import contextmanager
 import sys
 import numpy

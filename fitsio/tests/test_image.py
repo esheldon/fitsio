@@ -387,11 +387,14 @@ def test_read_ignore_scaling():
             )
 
 
-@pytest.mark.parametrize("compress_kws", [
-    {},
-    {"compress": "RICE", "tile_dims": (3, 1, 2), "qlevel": 2048},
-    {"compress": "GZIP", "tile_dims": (3, 1, 2), "qlevel": 0}
-])
+@pytest.mark.parametrize(
+    "compress_kws",
+    [
+        {},
+        {"compress": "RICE", "tile_dims": (3, 1, 2), "qlevel": 2048},
+        {"compress": "GZIP", "tile_dims": (3, 1, 2), "qlevel": 0},
+    ],
+)
 @pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 @pytest.mark.parametrize("sx", [0, 6, 9])
@@ -445,35 +448,34 @@ def test_image_write_subset_3d(sx, sy, sz, fname, with_nan, compress_kws):
             )
 
 
-@pytest.mark.parametrize("compress_kws", [
-    {},
-    {
-        "compress": "RICE",
-        "tile_dims": (5, 2),
-        "qlevel": 128,
-        "dither_seed": 10
-    },
-    {"compress": "GZIP", "tile_dims": (5, 2), "qlevel": 0}
-])
+@pytest.mark.parametrize(
+    "compress_kws",
+    [
+        {},
+        {
+            "compress": "RICE",
+            "tile_dims": (5, 2),
+            "qlevel": 128,
+            "dither_seed": 10,
+        },
+        {"compress": "GZIP", "tile_dims": (5, 2), "qlevel": 0},
+    ],
+)
 @pytest.mark.parametrize("with_nan_base_img", [False, True])
 @pytest.mark.parametrize("with_nan", [False, True])
-@pytest.mark.parametrize("fname", [
-    "mem://",
-    "test.fits",
-])
+@pytest.mark.parametrize(
+    "fname",
+    [
+        "mem://",
+        "test.fits",
+    ],
+)
 @pytest.mark.parametrize("sx", [0, 1, 9])
 @pytest.mark.parametrize("sy", [0, 1, 9])
 @pytest.mark.parametrize("xnan", [0, 1, 9])
 @pytest.mark.parametrize("ynan", [0, 1, 9])
 def test_image_write_subset_2d(
-    sx,
-    sy,
-    fname,
-    with_nan,
-    compress_kws,
-    with_nan_base_img,
-    xnan,
-    ynan
+    sx, sy, fname, with_nan, compress_kws, with_nan_base_img, xnan, ynan
 ):
     rng = np.random.RandomState(seed=10)
     img = np.arange(100).reshape(10, 10)

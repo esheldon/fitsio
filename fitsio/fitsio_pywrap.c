@@ -1489,16 +1489,15 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     }
 
     static char *kwlist[] = {
-        "array",       "nkeys",       "dims",
-        "comptype",    "tile_dims",   "qlevel",       "qmethod",
-        "dither_seed", "hcomp_scale", "hcomp_smooth",
-        "extname",     "extver",      "any_nan",      NULL,
+        "array",   "nkeys",   "dims",        "comptype",    "tile_dims",
+        "qlevel",  "qmethod", "dither_seed", "hcomp_scale", "hcomp_smooth",
+        "extname", "extver",  "any_nan",     NULL,
     };
     if (!PyArg_ParseTupleAndKeywords(
             args, kwds, "Oi|OOOOOOOOsii", kwlist, &array_obj, &nkeys, &dims_obj,
             &comptype_obj, &tile_dims_obj, &qlevel_obj, &qmethod_obj,
-            &dither_seed_obj, &hcomp_scale_obj, &hcomp_smooth_obj,
-            &extname, &extver, &any_nan)) {
+            &dither_seed_obj, &hcomp_scale_obj, &hcomp_smooth_obj, &extname,
+            &extver, &any_nan)) {
         py_status = 1;
         goto create_image_hdu_cleanup;
     }
@@ -1662,23 +1661,23 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             float fnullval = FLOATNULLVALUE;
             double dnullval = DOUBLENULLVALUE;
             void *nullval_ptr;
-            
+
             if (datatype == TFLOAT) {
-                nullval_ptr = (void*) (&fnullval);
+                nullval_ptr = (void *)(&fnullval);
             } else if (datatype == TDOUBLE) {
-                nullval_ptr = (void*) (&dnullval);
+                nullval_ptr = (void *)(&dnullval);
             } else {
                 nullval_ptr = NULL;
             }
-            
-            if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements, data, nullval_ptr,
-                            &status)) {
+
+            if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
+                                   data, nullval_ptr, &status)) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         } else {
-            if (fits_write_img(self->fits, datatype, firstpixel, nelements, data,
-                            &status)) {
+            if (fits_write_img(self->fits, datatype, firstpixel, nelements,
+                               data, &status)) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
@@ -1818,22 +1817,22 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     nelements = PyArray_SIZE(array);
     firstpixel = (LONGLONG)firstpixel_py;
     any_nan = (LONGLONG)any_nan_py;
-    
+
     if (any_nan_py) {
         float fnullval = FLOATNULLVALUE;
         double dnullval = DOUBLENULLVALUE;
         void *nullval_ptr;
-        
+
         if (datatype == TFLOAT) {
-            nullval_ptr = (void*) (&fnullval);
+            nullval_ptr = (void *)(&fnullval);
         } else if (datatype == TDOUBLE) {
-            nullval_ptr = (void*) (&dnullval);
+            nullval_ptr = (void *)(&dnullval);
         } else {
             nullval_ptr = NULL;
         }
 
-        if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements, data, nullval_ptr,
-                            &status)) {
+        if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
+                               data, nullval_ptr, &status)) {
             set_ioerr_string_from_status(status, self);
             return NULL;
         }
@@ -4326,11 +4325,11 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     float fnullval = NAN;
     double dnullval = NAN;
     void *nullval_ptr;
-    
+
     if (fits_read_dtype == TFLOAT) {
-        nullval_ptr = (void*) (&fnullval);
+        nullval_ptr = (void *)(&fnullval);
     } else if (fits_read_dtype == TDOUBLE) {
-        nullval_ptr = (void*) (&dnullval);
+        nullval_ptr = (void *)(&dnullval);
     } else {
         nullval_ptr = NULL;
     }
@@ -4338,8 +4337,8 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     for (i = 0; i < naxis; i++) {
         firstpixels[i] = 1;
     }
-    if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size, nullval_ptr, data,
-                        &anynul, &status)) {
+    if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
+                        nullval_ptr, data, &anynul, &status)) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4493,17 +4492,17 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     float fnullval = NAN;
     double dnullval = NAN;
     void *nullval_ptr;
-    
+
     if (fits_read_dtype == TFLOAT) {
-        nullval_ptr = (void*) (&fnullval);
+        nullval_ptr = (void *)(&fnullval);
     } else if (fits_read_dtype == TDOUBLE) {
-        nullval_ptr = (void*) (&dnullval);
+        nullval_ptr = (void *)(&dnullval);
     } else {
         nullval_ptr = NULL;
     }
 
-    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step, nullval_ptr, data,
-                         &anynul, &status)) {
+    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
+                         nullval_ptr, data, &anynul, &status)) {
         set_ioerr_string_from_status(status, self);
         goto read_image_slice_cleanup;
     }
@@ -4948,11 +4947,11 @@ static PyObject *PyFITS_cfitsio_has_curl_support(void) {
 }
 
 static PyObject *PyFITS_cfitsio_float_null_value(void) {
-    return PyFloat_FromDouble((double) FLOATNULLVALUE);
+    return PyFloat_FromDouble((double)FLOATNULLVALUE);
 }
 
 static PyObject *PyFITS_cfitsio_double_null_value(void) {
-    return PyFloat_FromDouble((double) DOUBLENULLVALUE);
+    return PyFloat_FromDouble((double)DOUBLENULLVALUE);
 }
 
 /*

@@ -229,15 +229,14 @@ class ImageHDU(HDUBase):
                         ]
                         new_start += [start[-1]]
                         offset = _convert_full_start_to_offset(dims, new_start)
-                        img_slice = (
-                            tuple([slice(ns, ns + 1) for ns in index])
-                            + (slice(None),)
-                        )
+                        img_slice = tuple(
+                            [slice(ns, ns + 1) for ns in index]
+                        ) + (slice(None),)
                         self._FITS.write_image(
                             self._ext + 1,
                             img_send[img_slice],
                             offset + 1,
-                            1 if any_nan else 0
+                            1 if any_nan else 0,
                         )
                         print(img_send)
 

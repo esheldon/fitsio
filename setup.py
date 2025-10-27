@@ -334,14 +334,13 @@ class build_ext_subclass(build_ext):
             tar_kwargs = {}
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            if (
-                os.path.exists(self.cfitsio_dir)
-                and os.path.isdir(self.cfitsio_dir)
+            if os.path.exists(self.cfitsio_dir) and os.path.isdir(
+                self.cfitsio_dir
             ):
                 _print_msg(
-                        "using cfitsio source code from "
-                        f"{self.cfitsio_dir} for debugging"
-                    )
+                    "using cfitsio source code from "
+                    f"{self.cfitsio_dir} for debugging"
+                )
                 copy_update(
                     self.cfitsio_dir,
                     self.cfitsio_build_dir,
