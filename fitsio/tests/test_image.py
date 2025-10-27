@@ -5,7 +5,7 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
-from ..util import cfitsio_version
+from ..util import cfitsio_version, cfitsio_is_bundled
 import numpy as np
 from ..fitslib import FITS
 
@@ -69,6 +69,15 @@ def test_image_write_read_unaligned(dtype):
     by hand to fix a bug.
     """
 
+    if dtype == ">f4" and not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "underflow handling. "
+                "See https://github.com/HEASARC/cfitsio/pull/102."
+            ),
+        )
+
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
@@ -100,6 +109,14 @@ def test_image_write_read_unaligned(dtype):
 
 
 def test_image_subnormal_float32():
+    if not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "underflow handling. "
+                "See https://github.com/HEASARC/cfitsio/pull/102."
+            ),
+        )
     v = 8.82818e-44
     nv = np.array([v] * 10, dtype=np.float32)
 
@@ -111,6 +128,14 @@ def test_image_subnormal_float32():
 
 
 def test_image_subnormal_float64():
+    if not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "underflow handling. "
+                "See https://github.com/HEASARC/cfitsio/pull/102."
+            ),
+        )
     v = 2.225073858507203e-309
     nv = np.array([v] * 10, dtype=np.float64)
 
@@ -465,6 +490,36 @@ def test_image_write_subset_2d(
 
     if compress_kws and (sx == 9 or sy == 9):
         pytest.skip(reason="tile-compressed fits images cannot be resized!")
+
+    # these test cases have the subset image img2 overlapping two
+    # different compressed image tiles which causes a bug when
+    # combined with one of the tiles changing its compression type
+    # due to an edge case in the compression algorithm
+    partial_overlap_str = f"{xnan}-{ynan}-{sx}-{sy}"
+    partial_overlap_str_cases = [
+        "0-0-0-1",
+        "0-0-1-0",
+        "0-0-1-1",
+        "0-1-1-0",
+        "0-1-1-1",
+        "1-0-0-1",
+        "1-0-1-1",
+    ]
+    if (
+        with_nan
+        and with_nan_base_img
+        and partial_overlap_str in partial_overlap_str_cases
+        and not cfitsio_is_bundled()
+        and compress_kws
+        and compress_kws.get("qlevel", 0) > 0
+    ):
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "overwriting tile-compressed images in an edge case. "
+                "See https://github.com/HEASARC/cfitsio/pull/101."
+            ),
+        )
 
     with tempfile.TemporaryDirectory() as tmpdir:
         if "mem://" not in fname:
