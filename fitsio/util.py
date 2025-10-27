@@ -1,7 +1,7 @@
 """
 utilities for the fits library
 """
-
+from contextlib import contextmanager
 import sys
 import numpy
 
@@ -11,6 +11,9 @@ if sys.version_info >= (3, 0, 0):
     IS_PY3 = True
 else:
     IS_PY3 = False
+
+FLOAT_NULL_VALUE = _fitsio_wrap.cfitsio_float_null_value()
+DOUBLE_NULL_VALUE = _fitsio_wrap.cfitsio_double_null_value()
 
 
 class FITSRuntimeWarning(RuntimeWarning):
@@ -195,3 +198,37 @@ def mks(val):
         sval = str(val)
 
     return sval
+
+
+@contextmanager
+def _nans_as_cfitsio_null_value(data):
+    has_nan = False
+    if data is not None and data.dtype.kind == "f":
+        msk_nan = numpy.isnan(data)
+        if numpy.any(msk_nan):
+            has_nan = True
+            if data.dtype.itemsize == 8:
+                if numpy.any(data == DOUBLE_NULL_VALUE):
+                    raise RuntimeError(
+                        "Array has both NaNs and values equal to the "
+                        "cfitsio sentinel value for nulls (%.27e). "
+                        "Thus the data cannot be correctly written "
+                        "to a FITS file." % DOUBLE_NULL_VALUE
+                    )
+                data[msk_nan] = DOUBLE_NULL_VALUE
+            else:
+                if numpy.any(data == FLOAT_NULL_VALUE):
+                    raise RuntimeError(
+                        "Array has both NaNs and values equal to the "
+                        "cfitsio sentinel value for nulls (%.27e). "
+                        "Thus the data cannot be correctly written "
+                        "to a FITS file." % FLOAT_NULL_VALUE
+                    )
+                data[msk_nan] = FLOAT_NULL_VALUE
+    else:
+        msk_nan = None
+
+    yield data, has_nan
+
+    if msk_nan is not None:
+        data[msk_nan] = numpy.nan

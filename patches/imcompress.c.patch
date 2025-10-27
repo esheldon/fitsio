@@ -1,6 +1,23 @@
 --- a/imcompress.c
 +++ b/imcompress.c
-@@ -6453,20 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
+@@ -2217,6 +2217,17 @@ int imcomp_compress_tile (fitsfile *outfptr,
+         ffpclb(outfptr, (outfptr->Fptr)->cn_gzip_data, row, 1,
+              gzip_nelem, (unsigned char *) cbuf, status);
+ 
++        /* we must zero out existing compressed data if it exists. */
++        /* otherwise on read this data is read ahead of the gzipped */
++        /* data and will cause a bug. */
++        LONGLONG _test_nelemll, _test_offset;
++        ffgdesll(outfptr, (outfptr->Fptr)->cn_compressed, row, &_test_nelemll, &_test_offset, 
++            status);
++        if (_test_nelemll) {
++            ffpclb(outfptr, (outfptr->Fptr)->cn_compressed, row, 1,
++                0, NULL, status);
++        }
++
+         free(cbuf);  /* finished with this buffer */
+     }
+ @@ -6453,20 +6453,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
      {
          pixlen = sizeof(short);
  

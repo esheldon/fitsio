@@ -580,6 +580,39 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("fname", ["test.fits", "mem://", ])
+def test_image_compression_nulls(fname, dtype):
+    data = np.arange(36).reshape((6, 6)).astype(dtype)
+    data[1, 1] = np.nan
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(
+                data,
+                compress='RICE_1', tile_dims=(3, 3)
+            )
+            read_data = fits[1].read()
+
+            np.testing.assert_allclose(
+                read_data,
+                data,
+            )
+
+        if "mem://" not in fpth:
+            with FITS(fpth, "r") as fits:
+                read_data = fits[1].read()
+                np.testing.assert_allclose(
+                    read_data,
+                    data,
+                )
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
