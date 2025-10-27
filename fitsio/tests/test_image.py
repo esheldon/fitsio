@@ -104,7 +104,17 @@ def test_image_subnormal_float32():
     nv = np.array([v] * 10, dtype=np.float32)
 
     with FITS("mem://", 'rw') as fits:
-        # note mixing up byte orders a bit
+        fits.write_image(nv)
+        rdata = fits[-1].read()
+
+        np.testing.assert_array_equal(rdata, nv)
+
+
+def test_image_subnormal_float64():
+    v = 2.225073858507203e-309
+    nv = np.array([v] * 10, dtype=np.float64)
+
+    with FITS("mem://", 'rw') as fits:
         fits.write_image(nv)
         rdata = fits[-1].read()
 
