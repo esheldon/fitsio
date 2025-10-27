@@ -1,0 +1,40 @@
+--- a/getcole.c
++++ b/getcole.c
+@@ -1425,7 +1425,7 @@ int fffr4r4(float *input,         /* I - array of values to be converted     */
+                     }
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = 0;
++                     output[ii] = input[ii];
+               }
+               else
+                 output[ii] = input[ii];
+@@ -1450,7 +1450,7 @@ int fffr4r4(float *input,         /* I - array of values to be converted     */
+                     }
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = (float) zero;
++                     output[ii] = (float) (input[ii] * scale + zero);
+               }
+               else
+                   output[ii] = (float) (input[ii] * scale + zero);
+@@ -1549,8 +1549,8 @@ int fffr8r4(double *input,        /* I - array of values to be converted     */
+                     else
+                         nullarray[ii] = 1;
+                   }
+-                  else            /* it's an underflow */
+-                     output[ii] = 0;
++                  else
++                    output[ii] = (float) input[ii];
+               }
+               else
+               {
+@@ -1596,7 +1596,7 @@ int fffr8r4(double *input,        /* I - array of values to be converted     */
+                         output[ii] = FLT_MAX;
+                      }
+                      else
+-                        output[ii] = (float) zero;
++                        output[ii] = (float) (input[ii] * scale + zero);
+                    }
+               }
+               else
