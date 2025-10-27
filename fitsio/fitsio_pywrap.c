@@ -4495,13 +4495,10 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     void *nullval_ptr;
     
     if (fits_read_dtype == TFLOAT) {
-        printf("read: using float null value: %.15e\n", fnullval);
         nullval_ptr = (void*) (&fnullval);
     } else if (fits_read_dtype == TDOUBLE) {
-        printf("read: using double null value: %.15e\n", dnullval);
         nullval_ptr = (void*) (&dnullval);
     } else {
-        printf("read: no int null value\n");
         nullval_ptr = NULL;
     }
 
