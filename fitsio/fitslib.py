@@ -1142,7 +1142,6 @@ class FITS(object):
 
         with _nans_as_cfitsio_null_value(img2send) as img2send_any_nan:
             img2send, any_nan = img2send_any_nan
-            print("any_nan?", any_nan)
             self._FITS.create_image_hdu(
                 img2send,
                 nkeys,

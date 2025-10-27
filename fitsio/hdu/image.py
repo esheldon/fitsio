@@ -238,7 +238,6 @@ class ImageHDU(HDUBase):
                             offset + 1,
                             1 if any_nan else 0,
                         )
-                        print(img_send)
 
         self._update_info()
 
