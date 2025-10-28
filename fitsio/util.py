@@ -202,9 +202,9 @@ def mks(val):
 
 
 @contextmanager
-def _nans_as_cfitsio_null_value(data):
+def _nans_as_cfitsio_null_value(data, target_hdu_compressed):
     has_nan = False
-    if data is not None and data.dtype.kind == "f":
+    if data is not None and data.dtype.kind == "f" and target_hdu_compressed:
         msk_nan = numpy.isnan(data)
         if numpy.any(msk_nan):
             has_nan = True

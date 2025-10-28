@@ -1140,7 +1140,14 @@ class FITS(object):
         else:
             nkeys = 0
 
-        with _nans_as_cfitsio_null_value(img2send) as img2send_any_nan:
+        if comptype != NOT_SET or "[compress" in self._filename.lower():
+            hdu_is_compressed = True
+        else:
+            hdu_is_compressed = False
+
+        with _nans_as_cfitsio_null_value(
+            img2send, hdu_is_compressed
+        ) as img2send_any_nan:
             img2send, any_nan = img2send_any_nan
             self._FITS.create_image_hdu(
                 img2send,

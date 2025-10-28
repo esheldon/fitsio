@@ -189,7 +189,9 @@ class ImageHDU(HDUBase):
         else:
             write_subset = False
 
-        with _nans_as_cfitsio_null_value(img_send) as img_send_any_nan:
+        with _nans_as_cfitsio_null_value(
+            img_send, self.is_compressed()
+        ) as img_send_any_nan:
             img_send, any_nan = img_send_any_nan
             if not write_subset:
                 # write in image at start in a single pass
@@ -201,7 +203,7 @@ class ImageHDU(HDUBase):
                     1 if any_nan else 0,
                 )
             else:
-                if not any_nan and self.get_info()["is_compressed_image"] != 1:
+                if not any_nan and not self.is_compressed():
                     firstpixel = numpy.array(start, ndmin=1, dtype='i8')
                     # lastpixel is the index of the lastpixel so subtract 1
                     lastpixel = (
