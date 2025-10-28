@@ -4324,14 +4324,22 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
 
     float fnullval = NAN;
     double dnullval = NAN;
-    void *nullval_ptr;
+    void *nullval_ptr = NULL;
 
-    if (fits_read_dtype == TFLOAT) {
-        nullval_ptr = (void *)(&fnullval);
-    } else if (fits_read_dtype == TDOUBLE) {
-        nullval_ptr = (void *)(&dnullval);
-    } else {
-        nullval_ptr = NULL;
+    // we only set null checking for compressed images of
+    // floating point data
+    // nans works fine for non-compressed images and we do
+    // not consider int data
+    int tstatus = 0;
+    int colnum, zblank;
+    if (fits_is_compressed_image(fptr, status) &&
+        (ffgcno(fptr, CASEINSEN, "ZBLANK", &colnum, &tstatus) <= 0 ||
+         ffgky(infptr, TINT, "ZBLANK", &zblank, NULL, &tstatus) <= 0)) {
+        if (fits_read_dtype == TFLOAT) {
+            nullval_ptr = (void *)(&fnullval);
+        } else if (fits_read_dtype == TDOUBLE) {
+            nullval_ptr = (void *)(&dnullval);
+        }
     }
 
     for (i = 0; i < naxis; i++) {
