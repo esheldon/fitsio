@@ -32,7 +32,7 @@ from .util import (
     array_to_native,
     isstring,
     copy_if_needed,
-    _nans_as_cfitsio_null_value,
+    _nonfinite_as_cfitsio_floating_null_value,
 )
 from .header import FITSHDR
 from .hdu import (
@@ -1145,7 +1145,7 @@ class FITS(object):
         else:
             hdu_is_compressed = False
 
-        with _nans_as_cfitsio_null_value(
+        with _nonfinite_as_cfitsio_floating_null_value(
             img2send, hdu_is_compressed
         ) as img2send_any_nan:
             img2send, any_nan = img2send_any_nan

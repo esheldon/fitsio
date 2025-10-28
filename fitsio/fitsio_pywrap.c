@@ -1658,8 +1658,8 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
         nelements = PyArray_SIZE(array);
         data = PyArray_DATA(array);
         if (any_nan) {
-            float fnullval = FLOATNULLVALUE;
-            double dnullval = DOUBLENULLVALUE;
+            float fnullval = INFINITY;
+            double dnullval = INFINITY;
             void *nullval_ptr;
 
             if (datatype == TFLOAT) {
@@ -1819,8 +1819,8 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     any_nan = (LONGLONG)any_nan_py;
 
     if (any_nan_py) {
-        float fnullval = FLOATNULLVALUE;
-        double dnullval = DOUBLENULLVALUE;
+        float fnullval = INFINITY;
+        double dnullval = INFINITY;
         void *nullval_ptr;
 
         if (datatype == TFLOAT) {
@@ -4966,12 +4966,8 @@ static PyObject *PyFITS_cfitsio_has_curl_support(void) {
 #endif
 }
 
-static PyObject *PyFITS_cfitsio_float_null_value(void) {
-    return PyFloat_FromDouble((double)FLOATNULLVALUE);
-}
-
-static PyObject *PyFITS_cfitsio_double_null_value(void) {
-    return PyFloat_FromDouble((double)DOUBLENULLVALUE);
+static PyObject *PyFITS_cfitsio_null_value_for_nan(void) {
+    return PyFloat_FromDouble((double)INFINITY);
 }
 
 /*
@@ -5277,12 +5273,10 @@ static PyMethodDef fitstype_methods[] = {
      METH_NOARGS,
      "cfitsio_has_curl_support\n\nReturn True if cfitsio has support for "
      "curl."},
-    {"cfitsio_float_null_value", (PyCFunction)PyFITS_cfitsio_float_null_value,
-     METH_NOARGS,
-     "float_null_value\n\nReturn the default cfitsio null value for floats."},
-    {"cfitsio_double_null_value", (PyCFunction)PyFITS_cfitsio_double_null_value,
-     METH_NOARGS,
-     "double_null_value\n\nReturn the default cfitsio null value for doubles."},
+    {"cfitsio_null_value_for_nan",
+     (PyCFunction)PyFITS_cfitsio_null_value_for_nan, METH_NOARGS,
+     "cfitsio_null_value_for_nan\n\nReturn our default null value for "
+     "floats, which is INFINITY and/or np.inf"},
     {"parse_card", (PyCFunction)PyFITS_parse_card, METH_VARARGS,
      "parse_card\n\nparse the card to get the key name, value (as a string), "
      "data type and comment."},

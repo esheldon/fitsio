@@ -31,7 +31,7 @@ from ..util import (
     IS_PY3,
     array_to_native,
     copy_if_needed,
-    _nans_as_cfitsio_null_value,
+    _nonfinite_as_cfitsio_floating_null_value,
 )
 
 # for python3 compat
@@ -189,7 +189,7 @@ class ImageHDU(HDUBase):
         else:
             write_subset = False
 
-        with _nans_as_cfitsio_null_value(
+        with _nonfinite_as_cfitsio_floating_null_value(
             img_send, self.is_compressed()
         ) as img_send_any_nan:
             img_send, any_nan = img_send_any_nan

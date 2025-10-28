@@ -13,8 +13,7 @@ if sys.version_info >= (3, 0, 0):
 else:
     IS_PY3 = False
 
-FLOAT_NULL_VALUE = _fitsio_wrap.cfitsio_float_null_value()
-DOUBLE_NULL_VALUE = _fitsio_wrap.cfitsio_double_null_value()
+FLOATING_NULL_VALUE = _fitsio_wrap.cfitsio_null_value_for_nan()
 
 
 class FITSRuntimeWarning(RuntimeWarning):
@@ -202,34 +201,16 @@ def mks(val):
 
 
 @contextmanager
-def _nans_as_cfitsio_null_value(data, target_hdu_compressed):
-    has_nan = False
+def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
+    has_nonfinite = False
     if data is not None and data.dtype.kind == "f" and target_hdu_compressed:
-        msk_nan = numpy.isnan(data)
-        if numpy.any(msk_nan):
-            has_nan = True
-            if data.dtype.itemsize == 8:
-                if numpy.any(data == DOUBLE_NULL_VALUE):
-                    raise RuntimeError(
-                        "Array has both NaNs and values equal to the "
-                        "cfitsio sentinel value for nulls (%.27e). "
-                        "Thus the data cannot be correctly written "
-                        "to a FITS file." % DOUBLE_NULL_VALUE
-                    )
-                data[msk_nan] = DOUBLE_NULL_VALUE
-            else:
-                if numpy.any(data == FLOAT_NULL_VALUE):
-                    raise RuntimeError(
-                        "Array has both NaNs and values equal to the "
-                        "cfitsio sentinel value for nulls (%.27e). "
-                        "Thus the data cannot be correctly written "
-                        "to a FITS file." % FLOAT_NULL_VALUE
-                    )
-                data[msk_nan] = FLOAT_NULL_VALUE
-    else:
-        msk_nan = None
+        msk_nonfinite = ~numpy.isfinite(data)
+        if numpy.any(msk_nonfinite):
+            has_nonfinite = True
+            old_vals = data[msk_nonfinite]
+            data[msk_nonfinite] = FLOATING_NULL_VALUE
 
-    yield data, has_nan
+    yield data, has_nonfinite
 
-    if msk_nan is not None:
-        data[msk_nan] = numpy.nan
+    if has_nonfinite:
+        data[msk_nonfinite] = old_vals
