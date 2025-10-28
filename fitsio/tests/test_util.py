@@ -29,17 +29,11 @@ def test_nans_as_cfitsio_null_value(dtype, with_nan, hdu_is_compressed):
             msk_nan = np.isnan(data)
 
             if "4" in dtype:
-                np.testing.assert_array_equal(
-                    data[msk_nan], FLOAT_NULL_VALUE
-                )
+                np.testing.assert_array_equal(data[msk_nan], FLOAT_NULL_VALUE)
             else:
-                np.testing.assert_array_equal(
-                    data[msk_nan], DOUBLE_NULL_VALUE
-                )
+                np.testing.assert_array_equal(data[msk_nan], DOUBLE_NULL_VALUE)
 
-            np.testing.assert_array_equal(
-                data[~msk_nan], nan_data[~msk_nan]
-            )
+            np.testing.assert_array_equal(data[~msk_nan], nan_data[~msk_nan])
         else:
             assert not any_nan
             np.testing.assert_array_equal(nan_data, data)
