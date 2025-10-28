@@ -108,7 +108,8 @@ def test_image_write_read_unaligned(dtype):
             assert not fits[0].is_compressed(), 'not compressed'
 
 
-def test_image_subnormal_float32():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_subnormal_float32(with_nan):
     if not cfitsio_is_bundled():
         pytest.xfail(
             reason=(
@@ -118,7 +119,10 @@ def test_image_subnormal_float32():
             ),
         )
     v = 8.82818e-44
-    nv = np.array([v] * 10, dtype=np.float32)
+    v = [v] * 10
+    if with_nan:
+        v += [np.nan]
+    nv = np.array(v, dtype=np.float32)
 
     with FITS("mem://", 'rw') as fits:
         fits.write_image(nv)
@@ -127,7 +131,8 @@ def test_image_subnormal_float32():
         np.testing.assert_array_equal(rdata, nv)
 
 
-def test_image_subnormal_float64():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_subnormal_float64(with_nan):
     if not cfitsio_is_bundled():
         pytest.xfail(
             reason=(
@@ -137,7 +142,10 @@ def test_image_subnormal_float64():
             ),
         )
     v = 2.225073858507203e-309
-    nv = np.array([v] * 10, dtype=np.float64)
+    v = [v] * 10
+    if with_nan:
+        v += [np.nan]
+    nv = np.array(v, dtype=np.float64)
 
     with FITS("mem://", 'rw') as fits:
         fits.write_image(nv)
