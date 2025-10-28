@@ -15,7 +15,8 @@ if CFITSIO_VERSION > 3.44:
     DTYPES += ["u8"]
 
 
-def test_image_write_read():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read(with_nan):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values
@@ -27,11 +28,14 @@ def test_image_write_read():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
+
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
                 rh = fits[-1].read_header()
                 check_header(header, rh)
@@ -60,8 +64,9 @@ def test_image_write_read_bool(fname):
         assert "Unsupported numpy image datatype 0" in str(e)
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_image_write_read_unaligned(dtype):
+def test_image_write_read_unaligned(dtype, with_nan):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values. The data from numpy is an unaligned view. The code
@@ -69,7 +74,9 @@ def test_image_write_read_unaligned(dtype):
     by hand to fix a bug.
     """
 
-    if dtype == ">f4" and not cfitsio_is_bundled():
+    if (
+        dtype == ">f4" or ("f" in dtype and with_nan)
+    ) and not cfitsio_is_bundled():
         pytest.xfail(
             reason=(
                 "Non-bundled cfitsio libraries have a bug for "
@@ -92,6 +99,10 @@ def test_image_write_read_unaligned(dtype):
             )
             if not dtype.endswith("1"):
                 assert not unaligned_data.flags["ALIGNED"]
+
+            if "f" in dtype and with_nan:
+                unaligned_data[3] = np.nan
+
             header = {
                 'DTYPE': dtype,
                 'NBYTES': unaligned_data.dtype.itemsize,
@@ -99,7 +110,7 @@ def test_image_write_read_unaligned(dtype):
             fits.write_image(unaligned_data, header=header)
             rdata = fits[-1].read()
 
-            compare_array(unaligned_data, rdata, "images")
+            np.testing.assert_array_equal(unaligned_data, rdata)
 
             rh = fits[-1].read_header()
             check_header(header, rh)
@@ -180,7 +191,8 @@ def test_image_write_empty():
                 check_header(header, rh)
 
 
-def test_image_write_read_from_dims():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read_from_dims(with_nan):
     """
     Test creating an image from dims and writing in place
     """
@@ -192,20 +204,23 @@ def test_image_write_read_from_dims():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
                 fits[-1].write(data)
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
         with FITS(fname) as fits:
             for i in range(len(DTYPES)):
                 assert not fits[i].is_compressed(), "not compressed"
 
 
-def test_image_write_read_from_dims_chunks():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read_from_dims_chunks(with_nan):
     """
     Test creating an image and reading/writing chunks
     """
@@ -217,6 +232,8 @@ def test_image_write_read_from_dims_chunks():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 3, dtype=dtype).reshape(5, 3)
+                if "f" in dtype and with_nan:
+                    data[3, 1] = np.nan
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
@@ -234,7 +251,7 @@ def test_image_write_read_from_dims_chunks():
 
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
                 #
                 # now using sequence, easier to calculate
@@ -250,14 +267,15 @@ def test_image_write_read_from_dims_chunks():
 
                 rdata2 = fits[-1].read()
 
-                compare_array(data, rdata2, "images")
+                np.testing.assert_array_equal(data, rdata2)
 
         with FITS(fname) as fits:
             for i in range(len(DTYPES)):
                 assert not fits[i].is_compressed(), "not compressed"
 
 
-def test_image_slice():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_slice(with_nan):
     """
     test reading an image slice
     """
@@ -268,12 +286,15 @@ def test_image_slice():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
+
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
 
                 fits.write_image(data, header=header)
                 rdata = fits[-1][4:12, 9:17]
 
-                compare_array(data[4:12, 9:17], rdata, "images")
+                np.testing.assert_array_equal(data[4:12, 9:17], rdata)
 
                 rh = fits[-1].read_header()
                 check_header(header, rh)
@@ -287,7 +308,8 @@ def _check_shape(expected_data, rdata):
     np.testing.assert_array_equal(expected_data, rdata, mess)
 
 
-def test_read_flip_axis_slice():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_read_flip_axis_slice(with_nan):
     """
     Test reading a slice when the slice's start is less than the slice's stop.
     """
@@ -296,8 +318,10 @@ def test_read_flip_axis_slice():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            dtype = np.int16
+            dtype = np.float32
             data = np.arange(100 * 200, dtype=dtype).reshape(100, 200)
+            if with_nan:
+                data[3, 13] = np.nan
             fits.write_image(data)
             hdu = fits[-1]
             rdata = hdu[:, 130:70]
@@ -330,7 +354,8 @@ def test_read_flip_axis_slice():
             _check_shape(expected_data, rdata)
 
 
-def test_image_slice_striding():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_slice_striding(with_nan):
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
@@ -338,6 +363,8 @@ def test_image_slice_striding():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
 
@@ -346,12 +373,13 @@ def test_image_slice_striding():
                 assert rdata.shape == expected_data.shape, (
                     "Shapes differ with dtype %s" % dtype
                 )
-                compare_array(
+                np.testing.assert_array_equal(
                     expected_data, rdata, "images with dtype %s" % dtype
                 )
 
 
-def test_read_ignore_scaling():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_read_ignore_scaling(with_nan):
     """
     Test the flag to ignore scaling when reading an HDU.
     """
@@ -361,6 +389,8 @@ def test_read_ignore_scaling():
         with FITS(fname, 'rw') as fits:
             dtype = 'i2'
             data = np.arange(10 * 20, dtype=dtype).reshape(10, 20)
+            if "f" in dtype and with_nan:
+                data[3, 13] = np.nan
             header = {
                 'DTYPE': dtype,
                 'BITPIX': 16,

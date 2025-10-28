@@ -5,7 +5,6 @@ import tempfile
 from .checks import (
     # check_header,
     compare_array,
-    compare_array_abstol,
 )
 import numpy as np
 from ..fitslib import (
@@ -24,6 +23,7 @@ from ..util import cfitsio_is_bundled, cfitsio_version
 CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -39,7 +39,7 @@ CFITSIO_VERSION = cfitsio_version(asfloat=True)
 @pytest.mark.parametrize(
     'dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
 )
-def test_compressed_write_read(compress, dtype):
+def test_compressed_write_read(compress, dtype, with_nan):
     """
     Test writing and reading a rice compressed image
     """
@@ -75,27 +75,34 @@ def test_compressed_write_read(compress, dtype):
                 dtype=dtype,
             ).reshape(nrows, ncols)
 
+        if "f" in dtype and with_nan and compress != "plio":
+            data[3, 11] = np.nan
+
         csend = compress.replace('_lossless', '')
         write(fname, data, compress=csend, qlevel=qlevel)
         rdata = read(fname, ext=1)
 
         if 'lossless' in compress or dtype[0] in ['i', 'u']:
-            compare_array(
-                data, rdata, "%s compressed images ('%s')" % (compress, dtype)
+            np.testing.assert_array_equal(
+                data,
+                rdata,
+                err_msg="%s compressed images ('%s')" % (compress, dtype),
             )
         else:
             # lossy floating point
-            compare_array_abstol(
+            np.testing.assert_allclose(
                 data,
                 rdata,
-                0.2,
-                "%s compressed images ('%s')" % (compress, dtype),
+                rtol=0,
+                atol=0.2,
+                err_msg="%s compressed images ('%s')" % (compress, dtype),
             )
 
         with FITS(fname) as fits:
             assert fits[1].is_compressed(), "is compressed"
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -111,7 +118,7 @@ def test_compressed_write_read(compress, dtype):
 @pytest.mark.parametrize(
     'dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
 )
-def test_compressed_write_read_fitsobj(compress, dtype):
+def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
     """
     Test writing and reading a rice compressed image
 
@@ -166,6 +173,9 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                     dtype=dtype,
                 ).reshape(nrows, ncols)
 
+            if "f" in dtype and with_nan and compress != "plio":
+                data[3, 11] = np.nan
+
             csend = compress.replace('_lossless', '')
             fits.write_image(data, compress=csend, qlevel=qlevel)
             rdata = fits[-1].read()
@@ -174,18 +184,19 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                 # for integers we have chosen a wide range of values, so
                 # there will be no quantization and we expect no
                 # information loss
-                compare_array(
+                np.testing.assert_array_equal(
                     data,
                     rdata,
                     "%s compressed images ('%s')" % (compress, dtype),
                 )
             else:
                 # lossy floating point
-                compare_array_abstol(
+                np.testing.assert_allclose(
                     data,
                     rdata,
-                    0.2,
-                    "%s compressed images ('%s')" % (compress, dtype),
+                    rtol=0,
+                    atol=0.2,
+                    err_msg="%s compressed images ('%s')" % (compress, dtype),
                 )
 
         with FITS(fname) as fits:
@@ -211,7 +222,8 @@ def test_gzip_tile_compressed_read_lossless_astropy():
     compare_array(data, data * 0.0, "astropy lossless compressed image")
 
 
-def test_compress_preserve_zeros():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_compress_preserve_zeros(with_nan):
     """
     Test writing and reading gzip compressed image
     """
@@ -236,6 +248,8 @@ def test_compress_preserve_zeros():
                     data = rng.normal(size=5 * 20).reshape(5, 20).astype(dtype)
                     for zind in zinds:
                         data[zind[0], zind[1]] = 0.0
+                    if with_nan:
+                        data[3, 15] = np.nan
 
                     fits.write_image(
                         data,
@@ -247,8 +261,11 @@ def test_compress_preserve_zeros():
 
                     for zind in zinds:
                         assert rdata[zind[0], zind[1]] == 0.0
+                    if with_nan:
+                        assert np.isnan(rdata[3, 15])
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -269,7 +286,9 @@ def test_compress_preserve_zeros():
     'dtype',
     ['f4', 'f8'],
 )
-def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
+def test_compressed_seed(
+    compress, seed_type, use_fits_object, dtype, with_nan
+):
     """
     Test writing and reading a rice compressed image
     """
@@ -305,6 +324,9 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         if compress == 'plio':
             data = data.clip(min=0)
         data = data.astype(dtype)
+
+        if "f" in dtype and with_nan and compress != "plio":
+            data[3, 11] = np.nan
 
         if use_fits_object:
             with FITS(fname1, 'rw') as fits1:
@@ -350,9 +372,17 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         mess = "%s compressed images ('%s')" % (compress, dtype)
 
         if seed_type in ['checksum', 'checksum_int', 'matched']:
-            assert np.all(rdata1 == rdata2), mess
+            np.testing.assert_array_equal(rdata1, rdata2, mess)
         else:
-            assert np.all(rdata1 != rdata2), mess
+            with pytest.raises(AssertionError):
+                np.testing.assert_array_equal(rdata1, rdata2, mess)
+
+        if "f" in dtype and with_nan and compress != "plio":
+            assert np.isnan(rdata1[3, 11])
+            assert np.isnan(rdata2[3, 11])
+        else:
+            assert np.all(np.isfinite(rdata1))
+            assert np.all(np.isfinite(rdata2))
 
 
 @pytest.mark.parametrize(
@@ -514,7 +544,7 @@ def test_image_compression_inmem_lossess_int(compress, dtype, fname):
             ),
         )
     if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
-        pytest.xfail(
+        pytest.skip(
             reason="PLIO lossless compression of int16, uint32, and "
             "int32 types is not supported by cfitsio",
         )
