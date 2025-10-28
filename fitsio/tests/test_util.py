@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 import pytest
@@ -47,9 +48,8 @@ def test_nonfinite_as_cfitsio_floating_null_value(
         np.testing.assert_array_equal(data[1, 9], -np.inf)
 
 
-def test_cfitsio_floating_null_value_float32():
+def test_cfitsio_floating_null_value_equal_inf():
+    assert np.float64(np.inf) == FLOATING_NULL_VALUE
     assert np.float32(np.inf) == FLOATING_NULL_VALUE
-
-
-def test_cfitsio_floating_null_value_float64():
-    assert np.float32(np.inf) == FLOATING_NULL_VALUE
+    assert np.inf == FLOATING_NULL_VALUE
+    assert math.inf == FLOATING_NULL_VALUE
