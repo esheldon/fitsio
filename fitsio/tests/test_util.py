@@ -37,3 +37,32 @@ def test_nans_as_cfitsio_null_value(dtype, with_nan, hdu_is_compressed):
         else:
             assert not any_nan
             np.testing.assert_array_equal(nan_data, data)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("with_nan", [True, False])
+@pytest.mark.parametrize("hdu_is_compressed", [True, False])
+def test_nans_as_cfitsio_null_value_raises(dtype, with_nan, hdu_is_compressed):
+    data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
+    if "f" in dtype and with_nan:
+        data[3, 13] = np.nan
+    if "f" in dtype:
+        if "4" in dtype:
+            data[1, 0] = FLOAT_NULL_VALUE
+        else:
+            data[1, 0] = DOUBLE_NULL_VALUE
+
+    if with_nan and "f" in dtype and hdu_is_compressed:
+        with pytest.raises(RuntimeError):
+            with _nans_as_cfitsio_null_value(data, hdu_is_compressed) as (
+                nan_data,
+                any_nan,
+            ):
+                pass
+    else:
+        with _nans_as_cfitsio_null_value(data, hdu_is_compressed) as (
+            nan_data,
+            any_nan,
+        ):
+            assert not any_nan
+            np.testing.assert_array_equal(nan_data, data)
