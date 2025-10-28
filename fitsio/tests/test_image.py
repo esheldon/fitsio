@@ -554,6 +554,15 @@ def test_image_write_subset_2d(
             else:
                 img_final = fits[0].read()
 
+            if compress_kws:
+                img_final_slice = fits[1][
+                    sy : sy + img2.shape[0], sx : sx + img2.shape[1]
+                ]
+            else:
+                img_final_slice = fits[0][
+                    sy : sy + img2.shape[0], sx : sx + img2.shape[1]
+                ]
+
         if (
             "compress" in compress_kws
             and compress_kws.get("qlevel", np.inf) != 0
@@ -569,6 +578,11 @@ def test_image_write_subset_2d(
                 img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
                 img2,
             )
+
+        np.testing.assert_array_equal(
+            img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+            img_final_slice,
+        )
 
 
 @pytest.mark.parametrize("with_nan", [False, True])

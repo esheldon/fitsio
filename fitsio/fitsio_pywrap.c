@@ -4257,6 +4257,18 @@ recread_asrec_cleanup:
     Py_RETURN_NONE;
 }
 
+static int fits_is_compressed_with_nulls(fitsfile *fits) {
+    int cstatus = 0, clstatus = 0, hstatus = 0;
+    int colnum, zblank;
+    if (fits_is_compressed_image(fits, &cstatus) &&
+        (ffgcno(fits, CASEINSEN, "ZBLANK", &colnum, &clstatus) <= 0 ||
+         ffgky(fits, TINT, "ZBLANK", &zblank, NULL, &hstatus) <= 0)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
 // Note numpy allows a maximum of 32 dimensions
@@ -4330,11 +4342,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     // floating point data
     // nans works fine for non-compressed images and we do
     // not consider int data
-    int cstatus = 0, clstatus = 0, hstatus = 0;
-    int colnum, zblank;
-    if (fits_is_compressed_image(self->fits, &cstatus) &&
-        (ffgcno(self->fits, CASEINSEN, "ZBLANK", &colnum, &clstatus) <= 0 ||
-         ffgky(self->fits, TINT, "ZBLANK", &zblank, NULL, &hstatus) <= 0)) {
+    if (fits_is_compressed_with_nulls(self->fits)) {
         if (fits_read_dtype == TFLOAT) {
             nullval_ptr = (void *)(&fnullval);
         } else if (fits_read_dtype == TDOUBLE) {
@@ -4499,14 +4507,18 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
 
     float fnullval = NAN;
     double dnullval = NAN;
-    void *nullval_ptr;
+    void *nullval_ptr = NULL;
 
-    if (fits_read_dtype == TFLOAT) {
-        nullval_ptr = (void *)(&fnullval);
-    } else if (fits_read_dtype == TDOUBLE) {
-        nullval_ptr = (void *)(&dnullval);
-    } else {
-        nullval_ptr = NULL;
+    // we only set null checking for compressed images of
+    // floating point data
+    // nans works fine for non-compressed images and we do
+    // not consider int data
+    if (fits_is_compressed_with_nulls(self->fits)) {
+        if (fits_read_dtype == TFLOAT) {
+            nullval_ptr = (void *)(&fnullval);
+        } else if (fits_read_dtype == TDOUBLE) {
+            nullval_ptr = (void *)(&dnullval);
+        }
     }
 
     if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
