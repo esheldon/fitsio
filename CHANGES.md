@@ -48,6 +48,7 @@ Bug Fixes
       or did not raise the correct error.
     - Fixed a bug where rectangular subsets of images were not written properly.
     - Fixed automatic detection of bzip2 and curl libraries.
+    - Fixed handling `nan` values when reading and writing compressed images.
 
 version 1.2.8
 -------------
