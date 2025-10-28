@@ -429,8 +429,18 @@ def test_read_ignore_scaling(with_nan):
     "compress_kws",
     [
         {},
-        {"compress": "RICE", "tile_dims": (3, 1, 2), "qlevel": 2048},
-        {"compress": "GZIP", "tile_dims": (3, 1, 2), "qlevel": 0},
+        {
+            "compress": "RICE",
+            "tile_dims": (3, 1, 2),
+            "qlevel": 2048,
+            "dither_seed": 10,
+        },
+        {
+            "compress": "GZIP",
+            "tile_dims": (3, 1, 2),
+            "qlevel": 0,
+            "dither_seed": 10,
+        },
     ],
 )
 @pytest.mark.parametrize("with_nan", [False, True])
