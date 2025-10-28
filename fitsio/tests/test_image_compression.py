@@ -610,6 +610,7 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.parametrize("nan_value", [np.nan, np.inf, -np.inf])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize(
     "fname",
@@ -618,9 +619,17 @@ def test_image_mem_reopen_noop():
         "mem://",
     ],
 )
-def test_image_compression_nulls(fname, dtype):
+def test_image_compression_nulls(fname, dtype, nan_value):
     data = np.arange(36).reshape((6, 6)).astype(dtype)
-    data[1, 1] = np.nan
+    data[1, 1] = nan_value
+
+    # everything comes back as nan
+    if nan_value is not np.nan:
+        msk = ~np.isfinite(data)
+        cdata = data.copy()
+        cdata[msk] = np.nan
+    else:
+        cdata = data
 
     with tempfile.TemporaryDirectory() as tmpdir:
         if "mem://" not in fname:
@@ -629,12 +638,18 @@ def test_image_compression_nulls(fname, dtype):
             fpth = fname
 
         with FITS(fpth, "rw") as fits:
-            fits.write(data, compress='RICE_1', tile_dims=(3, 3))
+            fits.write(
+                data,
+                compress='RICE_1',
+                tile_dims=(3, 3),
+                dither_seed=10,
+                qlevel=2,
+            )
             read_data = fits[1].read()
 
             np.testing.assert_allclose(
                 read_data,
-                data,
+                cdata,
             )
 
         if "mem://" not in fpth:
@@ -642,7 +657,7 @@ def test_image_compression_nulls(fname, dtype):
                 read_data = fits[1].read()
                 np.testing.assert_allclose(
                     read_data,
-                    data,
+                    cdata,
                 )
 
 

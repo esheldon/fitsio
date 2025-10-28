@@ -41,6 +41,11 @@ def test_nonfinite_as_cfitsio_floating_null_value(
             assert not any_nan
             np.testing.assert_array_equal(nan_data, data)
 
+    if with_nan and "f" in dtype:
+        np.testing.assert_array_equal(data[3, 13], np.nan)
+        np.testing.assert_array_equal(data[1, 7], np.inf)
+        np.testing.assert_array_equal(data[1, 9], -np.inf)
+
 
 def test_cfitsio_floating_null_value_float32():
     assert np.float32(np.inf) == FLOATING_NULL_VALUE
