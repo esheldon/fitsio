@@ -56,6 +56,8 @@ Bug Fixes
     - Fixed bug in cfitsio where overwriting a tile-compressed image fails
       when the new values are not lossily compressed but the old values were.
       See https://github.com/HEASARC/cfitsio/pull/101.
+    - Fixed a bug where the FITS HDU properties could go out of sync as header
+      keys were added, modified, etc.
 
 version 1.2.8
 -------------
