@@ -27,7 +27,12 @@ import numpy
 
 from math import floor
 from .base import HDUBase, IMAGE_HDU
-from ..util import IS_PY3, array_to_native, copy_if_needed
+from ..util import (
+    IS_PY3,
+    array_to_native,
+    copy_if_needed,
+    _nonfinite_as_cfitsio_floating_null_value,
+)
 
 # for python3 compat
 if IS_PY3:
@@ -156,7 +161,7 @@ class ImageHDU(HDUBase):
         if not img.flags['C_CONTIGUOUS']:
             # this always makes a copy
             img_send = numpy.ascontiguousarray(img)
-            array_to_native(img_send, inplace=True)
+            img_send = array_to_native(img_send, inplace=True)
         else:
             img_send = array_to_native(img, inplace=False)
 
@@ -184,42 +189,57 @@ class ImageHDU(HDUBase):
         else:
             write_subset = False
 
-        if not write_subset:
-            # write in image at start in a single pass
-            offset = 0
-            self._FITS.write_image(self._ext + 1, img_send, offset + 1)
-        else:
-            firstpixel = numpy.array(start, ndmin=1, dtype='i8')
-            # lastpixel is the index of the lastpixel so subtract 1
-            lastpixel = (
-                firstpixel
-                + numpy.array(img_send.shape, ndmin=1, dtype='i8')
-                - 1
-            )
+        with _nonfinite_as_cfitsio_floating_null_value(
+            img_send, self.is_compressed()
+        ) as img_send_any_nan:
+            img_send, any_nan = img_send_any_nan
+            if not write_subset:
+                # write in image at start in a single pass
+                offset = 0
+                self._FITS.write_image(
+                    self._ext + 1,
+                    img_send,
+                    offset + 1,
+                    1 if any_nan else 0,
+                )
+            else:
+                if not any_nan and not self.is_compressed():
+                    firstpixel = numpy.array(start, ndmin=1, dtype='i8')
+                    # lastpixel is the index of the lastpixel so subtract 1
+                    lastpixel = (
+                        firstpixel
+                        + numpy.array(img_send.shape, ndmin=1, dtype='i8')
+                        - 1
+                    )
 
-            # we have to reverse the dimensions here since cfitsio
-            # uses fortran order and offset by 1 for fortan indexing
-            firstpixel = firstpixel[::-1] + 1
-            lastpixel = lastpixel[::-1] + 1
+                    # we have to reverse the dimensions here since cfitsio
+                    # uses fortran order and offset by 1 for fortan indexing
+                    firstpixel = firstpixel[::-1] + 1
+                    lastpixel = lastpixel[::-1] + 1
 
-            self._FITS.write_subset(
-                self._ext + 1, img_send, firstpixel, lastpixel
-            )
-
-            # this is an old python version that gors row by row
-            # not used
-            # # go "row by row" but in more than two dimensions
-            # ndims = len(dims)
-            # for index in numpy.ndindex(*(img_send.shape[:-1])):
-            #     new_start = [start[i] + index[i] for i in range(ndims - 1)]
-            #     new_start += [start[-1]]
-            #     offset = _convert_full_start_to_offset(dims, new_start)
-            #     img_slice = tuple([slice(ns, ns + 1) for ns in index]) + (
-            #         slice(None),
-            #     )
-            #     self._FITS.write_image(
-            #         self._ext + 1, img_send[img_slice], offset + 1
-            #     )
+                    self._FITS.write_subset(
+                        self._ext + 1, img_send, firstpixel, lastpixel
+                    )
+                else:
+                    # the C API doesn't support nan handling w/ rectangular
+                    # subsets, so emulate in python
+                    # go "row by row" but in more than two dimensions
+                    ndims = len(dims)
+                    for index in numpy.ndindex(*(img_send.shape[:-1])):
+                        new_start = [
+                            start[i] + index[i] for i in range(ndims - 1)
+                        ]
+                        new_start += [start[-1]]
+                        offset = _convert_full_start_to_offset(dims, new_start)
+                        img_slice = tuple(
+                            [slice(ns, ns + 1) for ns in index]
+                        ) + (slice(None),)
+                        self._FITS.write_image(
+                            self._ext + 1,
+                            img_send[img_slice],
+                            offset + 1,
+                            1 if any_nan else 0,
+                        )
 
         self._update_info()
 

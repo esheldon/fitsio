@@ -42,12 +42,18 @@ Bug Fixes
       compression parameters are specified in the filename.
     - Fixed bugs in lossless GZIP compression of integer types. See the
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
-      for the upstream PR for the patch.
+      and https://github.com/HEASARC/cfitsio/pull/98 for the upstream PR for the patch.
     - Fixed a bug where compression parameters were cached across different HDUs.
     - Fixed a bug where writing unsupported image types either did not raise an error
       or did not raise the correct error.
     - Fixed a bug where rectangular subsets of images were not written properly.
     - Fixed automatic detection of bzip2 and curl libraries.
+    - Fixed handling nan values when reading and writing compressed images.
+    - Fixed bug in cfitsio where underflows were cast to zero when handling
+      nan values. See https://github.com/HEASARC/cfitsio/pull/102.
+    - Fixed bug in cfitsio where overwriting a tile-compressed image fails
+      when the new values are not lossily compressed but the old values were.
+      See https://github.com/HEASARC/cfitsio/pull/101.
 
 version 1.2.8
 -------------

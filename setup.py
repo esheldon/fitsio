@@ -334,12 +334,24 @@ class build_ext_subclass(build_ext):
             tar_kwargs = {}
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            with tarfile.open(self.cfitsio_dir + ".tar.gz", "r:gz") as tar:
-                tar.extractall(path=tmpdir, **tar_kwargs)
+            if os.path.exists(self.cfitsio_dir) and os.path.isdir(
+                self.cfitsio_dir
+            ):
+                _print_msg(
+                    "using cfitsio source code from "
+                    f"{self.cfitsio_dir} for debugging"
+                )
                 copy_update(
-                    os.path.join(tmpdir, self.cfitsio_dir),
+                    self.cfitsio_dir,
                     self.cfitsio_build_dir,
                 )
+            else:
+                with tarfile.open(self.cfitsio_dir + ".tar.gz", "r:gz") as tar:
+                    tar.extractall(path=tmpdir, **tar_kwargs)
+                    copy_update(
+                        os.path.join(tmpdir, self.cfitsio_dir),
+                        self.cfitsio_build_dir,
+                    )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with tarfile.open("zlib.tar.gz", "r:gz") as tar:

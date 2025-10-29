@@ -365,7 +365,7 @@ class TableHDU(HDUBase):
             data_send = np.ascontiguousarray(data)
             # this is a copy, we can make sure it is native
             # and modify in place if needed
-            array_to_native(data_send, inplace=True)
+            data_send = array_to_native(data_send, inplace=True)
         else:
             # we can avoid the copy with a try-finally block and
             # some logic

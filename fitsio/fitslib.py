@@ -26,7 +26,14 @@ import os
 import numpy
 
 from . import _fitsio_wrap
-from .util import IS_PY3, mks, array_to_native, isstring, copy_if_needed
+from .util import (
+    IS_PY3,
+    mks,
+    array_to_native,
+    isstring,
+    copy_if_needed,
+    _nonfinite_as_cfitsio_floating_null_value,
+)
 from .header import FITSHDR
 from .hdu import (
     ANY_HDU,
@@ -1012,7 +1019,7 @@ class FITS(object):
                 if not img.flags['C_CONTIGUOUS']:
                     # this always makes a copy
                     img2send = numpy.ascontiguousarray(img)
-                    array_to_native(img2send, inplace=True)
+                    img2send = array_to_native(img2send, inplace=True)
                 else:
                     img2send = array_to_native(img, inplace=False)
 
@@ -1133,20 +1140,30 @@ class FITS(object):
         else:
             nkeys = 0
 
-        self._FITS.create_image_hdu(
-            img2send,
-            nkeys,
-            dims=dims2send,
-            comptype=comptype,
-            tile_dims=tile_dims,
-            qlevel=qlevel,
-            qmethod=qmethod,
-            dither_seed=dither_seed,
-            hcomp_scale=hcomp_scale,
-            hcomp_smooth=hcs,
-            extname=extname,
-            extver=extver,
-        )
+        if comptype != NOT_SET or "[compress" in self._filename.lower():
+            hdu_is_compressed = True
+        else:
+            hdu_is_compressed = False
+
+        with _nonfinite_as_cfitsio_floating_null_value(
+            img2send, hdu_is_compressed
+        ) as img2send_any_nan:
+            img2send, any_nan = img2send_any_nan
+            self._FITS.create_image_hdu(
+                img2send,
+                nkeys,
+                dims=dims2send,
+                comptype=comptype,
+                tile_dims=tile_dims,
+                qlevel=qlevel,
+                qmethod=qmethod,
+                dither_seed=dither_seed,
+                hcomp_scale=hcomp_scale,
+                hcomp_smooth=hcs,
+                extname=extname,
+                extver=extver,
+                any_nan=1 if any_nan else 0,
+            )
 
         self.update_hdu_list(rebuild=False)
 
