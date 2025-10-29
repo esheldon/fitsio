@@ -3101,6 +3101,42 @@ static PyObject *PyFITSObject_write_undefined_key(struct PyFITSObject *self,
     Py_RETURN_NONE;
 }
 
+// let python do the conversions
+static PyObject *PyFITSObject_delete_key(struct PyFITSObject *self,
+                                         PyObject *args) {
+    int status = 0;
+    int hdunum = 0;
+    int hdutype = 0;
+
+    char *keyname = NULL;
+
+    if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &keyname)) {
+        return NULL;
+    }
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    if (fits_delete_key(self->fits, keyname, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    // this does not close and reopen
+    if (fits_flush_buffer(self->fits, 0, &status)) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
 /*
    insert a set of rows
 */
@@ -5193,6 +5229,9 @@ static PyMethodDef PyFITSObject_methods[] = {
      METH_VARARGS,
      "write_undefined_key\n\nWrite a key without a value field into the header "
      "of the specified HDU."},
+
+    {"delete_key", (PyCFunction)PyFITSObject_delete_key, METH_VARARGS,
+     "delete_key\n\nDeleta a key from the header of the specified HDU."},
 
     {"insert_rows", (PyCFunction)PyFITSObject_insert_rows, METH_VARARGS,
      "Insert blank rows"},

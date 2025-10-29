@@ -172,7 +172,9 @@ class HDUBase(object):
         -------
         A dict with keys 'datasum' and 'hdusum'
         """
-        return self._FITS.write_checksum(self._ext + 1)
+        ret = self._FITS.write_checksum(self._ext + 1)
+        self._update_info()
+        return ret
 
     def verify_checksum(self):
         """
@@ -189,18 +191,21 @@ class HDUBase(object):
         Write a comment into the header
         """
         self._FITS.write_comment(self._ext + 1, str(comment))
+        self._update_info()
 
     def write_history(self, history):
         """
         Write history text into the header
         """
         self._FITS.write_history(self._ext + 1, str(history))
+        self._update_info()
 
     def _write_continue(self, value):
         """
         Write history text into the header
         """
         self._FITS.write_continue(self._ext + 1, str(value))
+        self._update_info()
 
     def write_key(self, name, value, comment=""):
         """
@@ -283,6 +288,8 @@ class HDUBase(object):
                 self._ext + 1, str(name), sval, str(comment)
             )
 
+        self._update_info()
+
     def write_keys(self, records_in, clean=True):
         """
         Write the keywords to the header.
@@ -298,8 +305,9 @@ class HDUBase(object):
                   in this case, and the order is arbitrary.
         clean: boolean
             If True, trim out the standard fits header keywords that are
-            created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
-            TDIM, XTENSION, BITPIX, NAXIS, etc.
+            created on HDU creation (e.g., EXTEND, SIMPLE, STTYPE, TFORM,
+            TDIM, XTENSION, BITPIX, NAXIS, etc.) from the input records
+            before they are written to the current fits file.
 
         Notes
         -----
@@ -341,6 +349,8 @@ class HDUBase(object):
                 comment = r.get('comment', '')
                 self.write_key(name, value, comment=comment)
 
+        self._update_info()
+
     def read_header(self):
         """
         Read the header as a FITSHDR
@@ -365,6 +375,30 @@ class HDUBase(object):
             'comment': the comment field as a string.
         """
         return self._FITS.read_header(self._ext + 1)
+
+    def delete_key(self, name):
+        """
+        Delete the key from the header.
+
+        parameters
+        ----------
+        name: string
+            Name of keyword to delete.
+        """
+        self.delete_keys([name])
+
+    def delete_keys(self, names):
+        """
+        Delete the keys from the header.
+
+        parameters
+        ----------
+        names: iterable of keys
+            Names of keywords to delete.
+        """
+        for name in names:
+            self._FITS.delete_key(self._ext + 1, str(name))
+        self._update_info()
 
     def _update_info(self):
         """

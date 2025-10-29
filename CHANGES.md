@@ -26,6 +26,8 @@ Changes
     - Added utilities `cfitsio_has_bzip2_support` and
       `cfitsio_has_curl_support` to detect at run-time if cfitsio
       was built with these options.
+    - Added methods `delete_key` and `delete_keys` to HDUs to allow
+      deleting header keys.
 
 Bug Fixes
 

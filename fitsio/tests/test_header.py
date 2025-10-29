@@ -117,6 +117,33 @@ def test_header_write_read():
             check_header(header, rh)
 
 
+def test_header_delete():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            data = np.zeros(10)
+            header1 = {'SCARD': 'one', 'ICARD': 1, 'FCARD': 1.0, 'LCARD': True}
+            fits.write_image(data, header=header1)
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_key("SCARD")
+            del header1["SCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_keys(["ICARD", "FCARD"])
+            del header1["ICARD"]
+            del header1["FCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+        with FITS(fname) as fits:
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+
 def test_header_update():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
