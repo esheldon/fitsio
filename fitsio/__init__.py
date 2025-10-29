@@ -40,7 +40,6 @@ from .util import (
     cfitsio_version,
     FITSRuntimeWarning,
     cfitsio_is_bundled,
-    FLOATING_NULL_VALUE,
 )
 from ._fitsio_wrap import cfitsio_has_bzip2_support, cfitsio_has_curl_support
 

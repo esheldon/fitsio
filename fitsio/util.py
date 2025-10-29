@@ -13,7 +13,7 @@ if sys.version_info >= (3, 0, 0):
 else:
     IS_PY3 = False
 
-FLOATING_NULL_VALUE = _fitsio_wrap.cfitsio_null_value_for_nan()
+_FLOATING_NULL_VALUE = _fitsio_wrap.cfitsio_null_value_for_nan()
 
 
 class FITSRuntimeWarning(RuntimeWarning):
@@ -213,7 +213,7 @@ def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
             if numpy.any(msk_nonfinite):
                 has_nonfinite = True
                 old_vals = data[msk_nonfinite]
-                data[msk_nonfinite] = FLOATING_NULL_VALUE
+                data[msk_nonfinite] = _FLOATING_NULL_VALUE
 
         yield data, has_nonfinite
     finally:

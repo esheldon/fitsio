@@ -3,8 +3,11 @@ import numpy as np
 
 import pytest
 
-from ..util import _nonfinite_as_cfitsio_floating_null_value, cfitsio_version
-from .. import FLOATING_NULL_VALUE
+from ..util import (
+    _nonfinite_as_cfitsio_floating_null_value,
+    cfitsio_version,
+    _FLOATING_NULL_VALUE,
+)
 
 CFITSIO_VERSION = cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
@@ -34,7 +37,7 @@ def test_nonfinite_as_cfitsio_floating_null_value(
             assert any_nan
             assert not np.any(np.isnan(nan_data))
             msk = ~np.isfinite(data)
-            np.testing.assert_array_equal(data[msk], FLOATING_NULL_VALUE)
+            np.testing.assert_array_equal(data[msk], _FLOATING_NULL_VALUE)
             np.testing.assert_array_equal(data[~msk], nan_data[~msk])
         else:
             assert not any_nan
@@ -47,10 +50,10 @@ def test_nonfinite_as_cfitsio_floating_null_value(
 
 
 def test_cfitsio_floating_null_value_equal_inf():
-    assert np.float64(np.inf) == FLOATING_NULL_VALUE
-    assert np.float32(np.inf) == FLOATING_NULL_VALUE
-    assert np.inf == FLOATING_NULL_VALUE
-    assert math.inf == FLOATING_NULL_VALUE
+    assert np.float64(np.inf) == _FLOATING_NULL_VALUE
+    assert np.float32(np.inf) == _FLOATING_NULL_VALUE
+    assert np.inf == _FLOATING_NULL_VALUE
+    assert math.inf == _FLOATING_NULL_VALUE
 
 
 def test_nonfinite_as_cfitsio_floating_null_value_with_exception():
@@ -67,7 +70,7 @@ def test_nonfinite_as_cfitsio_floating_null_value_with_exception():
             assert any_nan
             assert not np.any(np.isnan(nan_data))
             msk = ~np.isfinite(data)
-            np.testing.assert_array_equal(data[msk], FLOATING_NULL_VALUE)
+            np.testing.assert_array_equal(data[msk], _FLOATING_NULL_VALUE)
             np.testing.assert_array_equal(data[~msk], nan_data[~msk])
             raise RuntimeError("Exception raised while data is modified!")
 
