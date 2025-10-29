@@ -32,11 +32,9 @@ def test_nonfinite_as_cfitsio_floating_null_value(
     ):
         if with_nan and "f" in dtype and hdu_is_compressed:
             assert any_nan
-
+            assert not np.any(np.isinf(data))
             msk = ~np.isfinite(data)
-
             np.testing.assert_array_equal(data[msk], FLOATING_NULL_VALUE)
-
             np.testing.assert_array_equal(data[~msk], nan_data[~msk])
         else:
             assert not any_nan
@@ -53,3 +51,25 @@ def test_cfitsio_floating_null_value_equal_inf():
     assert np.float32(np.inf) == FLOATING_NULL_VALUE
     assert np.inf == FLOATING_NULL_VALUE
     assert math.inf == FLOATING_NULL_VALUE
+
+
+def test_nonfinite_as_cfitsio_floating_null_value_with_exception():
+    data = np.arange(5 * 20, dtype=np.float32).reshape(5, 20)
+    data[3, 13] = np.nan
+    data[1, 7] = np.inf
+    data[1, 9] = -np.inf
+
+    with pytest.raises(AssertionError):
+        with _nonfinite_as_cfitsio_floating_null_value(data, True) as (
+            nan_data,
+            any_nan,
+        ):
+            assert any_nan
+            assert not np.any(np.isinf(data))
+            msk = ~np.isfinite(data)
+            np.testing.assert_array_equal(data[msk], FLOATING_NULL_VALUE)
+            np.testing.assert_array_equal(data[~msk], nan_data[~msk])
+            raise AssertionError("Exception raised while data is modified!")
+
+    assert data[1, 7] == np.inf
+    assert data[1, 9] == -np.inf

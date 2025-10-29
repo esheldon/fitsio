@@ -202,15 +202,20 @@ def mks(val):
 
 @contextmanager
 def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
-    has_nonfinite = False
-    if data is not None and data.dtype.kind == "f" and target_hdu_compressed:
-        msk_nonfinite = ~numpy.isfinite(data)
-        if numpy.any(msk_nonfinite):
-            has_nonfinite = True
-            old_vals = data[msk_nonfinite]
-            data[msk_nonfinite] = FLOATING_NULL_VALUE
+    try:
+        has_nonfinite = False
+        if (
+            data is not None
+            and data.dtype.kind == "f"
+            and target_hdu_compressed
+        ):
+            msk_nonfinite = ~numpy.isfinite(data)
+            if numpy.any(msk_nonfinite):
+                has_nonfinite = True
+                old_vals = data[msk_nonfinite]
+                data[msk_nonfinite] = FLOATING_NULL_VALUE
 
-    yield data, has_nonfinite
-
-    if has_nonfinite:
-        data[msk_nonfinite] = old_vals
+        yield data, has_nonfinite
+    finally:
+        if has_nonfinite:
+            data[msk_nonfinite] = old_vals
