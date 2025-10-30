@@ -72,11 +72,15 @@ def make_data():
             ('u8arr', 'u8', ashape),
         ]
 
-    dtype += [
-        ('Sscalar_nopad', Sdtype),
-        ('Svec_nopad', Sdtype, nvec),
-        ('Sarr_nopad', Sdtype, ashape),
-    ]
+    # cfitsio 3 or earlier does not
+    # handle non-space padded strings
+    # properly
+    if CFITSIO_VERSION < 4:
+        dtype += [
+            ('Sscalar_nopad', Sdtype),
+            ('Svec_nopad', Sdtype, nvec),
+            ('Sarr_nopad', Sdtype, ashape),
+        ]
 
     if sys.version_info > (3, 0, 0):
         dtype += [
@@ -85,11 +89,15 @@ def make_data():
             ('Uarr', Udtype, ashape),
         ]
 
-        dtype += [
-            ('Uscalar_nopad', Udtype),
-            ('Uvec_nopad', Udtype, nvec),
-            ('Uarr_nopad', Udtype, ashape),
-        ]
+        # cfitsio 3 or earlier does not
+        # handle non-space padded strings
+        # properly
+        if CFITSIO_VERSION < 4:
+            dtype += [
+                ('Uscalar_nopad', Udtype),
+                ('Uvec_nopad', Udtype, nvec),
+                ('Uarr_nopad', Udtype, ashape),
+            ]
 
     dtype2 = [
         ('index', 'i4'),
@@ -164,13 +172,17 @@ def make_data():
     s = ['%-6s' % el for el in s]
     data['Sarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-    data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
-    data['Svec_nopad'][:, 0] = 'hello'
-    data['Svec_nopad'][:, 1] = 'world'
+    # cfitsio 3 or earlier does not
+    # handle non-space padded strings
+    # properly
+    if CFITSIO_VERSION < 4:
+        data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
+        data['Svec_nopad'][:, 0] = 'hello'
+        data['Svec_nopad'][:, 1] = 'world'
 
-    s = 1 + np.arange(nrows * ashape[0] * ashape[1])
-    s = ['%s' % el for el in s]
-    data['Sarr_nopad'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
+        s = 1 + np.arange(nrows * ashape[0] * ashape[1])
+        s = ['%s' % el for el in s]
+        data['Sarr_nopad'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
     if sys.version_info >= (3, 0, 0):
         data['Uscalar'] = [
@@ -183,17 +195,21 @@ def make_data():
         s = ['%-6s' % el for el in s]
         data['Uarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-        data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
-        data['Uvec_nopad'][:, 0] = 'hello'
-        data['Uvec_nopad'][:, 1] = 'world'
+        # cfitsio 3 or earlier does not
+        # handle non-space padded strings
+        # properly
+        if CFITSIO_VERSION < 4:
+            data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
+            data['Uvec_nopad'][:, 0] = 'hello'
+            data['Uvec_nopad'][:, 1] = 'world'
 
-        s = 1 + np.arange(nrows * ashape[0] * ashape[1])
-        s = ['%s' % el for el in s]
-        data['Uarr_nopad'] = np.array(s).reshape(
-            nrows,
-            ashape[0],
-            ashape[1],
-        )
+            s = 1 + np.arange(nrows * ashape[0] * ashape[1])
+            s = ['%s' % el for el in s]
+            data['Uarr_nopad'] = np.array(s).reshape(
+                nrows,
+                ashape[0],
+                ashape[1],
+            )
 
     # use a dict list so we can have comments
     # for long key we used the largest possible
