@@ -50,8 +50,28 @@ class HDUBase(object):
         self._ext = ext
         self._ignore_scaling = False
 
-        self._update_info()
+        # init info cache to none
+        self._cached_info = None
         self._filename = self._FITS.filename()
+
+    @property
+    def _info(self):
+        if self._cached_info is None:
+            self._update_info()
+        return self._cached_info
+
+    def _update_info(self):
+        """
+        Update metadata for this HDU
+        """
+        try:
+            self._FITS.movabs_hdu(self._ext + 1)
+        except IOError:
+            raise RuntimeError("no such hdu")
+
+        self._cached_info = self._FITS.get_hdu_info(
+            self._ext + 1, self._ignore_scaling
+        )
 
     @property
     def ignore_scaling(self):
@@ -69,10 +89,10 @@ class HDUBase(object):
         old_val = self._ignore_scaling
         self._ignore_scaling = ignore_scaling_flag
 
-        # Only endure the overhead of updating the info if the new value is
-        # actually different.
+        # if needed invalidate the info cache so it gets
+        # updated the next time we access it
         if old_val != self._ignore_scaling:
-            self._update_info()
+            self._cached_info = None
 
     def get_extnum(self):
         """
@@ -172,7 +192,9 @@ class HDUBase(object):
         -------
         A dict with keys 'datasum' and 'hdusum'
         """
-        return self._FITS.write_checksum(self._ext + 1)
+        ret = self._FITS.write_checksum(self._ext + 1)
+        self._cached_info = None  # invalidate info cache
+        return ret
 
     def verify_checksum(self):
         """
@@ -189,18 +211,21 @@ class HDUBase(object):
         Write a comment into the header
         """
         self._FITS.write_comment(self._ext + 1, str(comment))
+        self._cached_info = None  # invalidate info cache
 
     def write_history(self, history):
         """
         Write history text into the header
         """
         self._FITS.write_history(self._ext + 1, str(history))
+        self._cached_info = None  # invalidate info cache
 
     def _write_continue(self, value):
         """
         Write history text into the header
         """
         self._FITS.write_continue(self._ext + 1, str(value))
+        self._cached_info = None  # invalidate info cache
 
     def write_key(self, name, value, comment=""):
         """
@@ -283,6 +308,8 @@ class HDUBase(object):
                 self._ext + 1, str(name), sval, str(comment)
             )
 
+        self._cached_info = None  # invalidate info cache
+
     def write_keys(self, records_in, clean=True):
         """
         Write the keywords to the header.
@@ -298,8 +325,9 @@ class HDUBase(object):
                   in this case, and the order is arbitrary.
         clean: boolean
             If True, trim out the standard fits header keywords that are
-            created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
-            TDIM, XTENSION, BITPIX, NAXIS, etc.
+            created on HDU creation (e.g., EXTEND, SIMPLE, STTYPE, TFORM,
+            TDIM, XTENSION, BITPIX, NAXIS, etc.) from the input records
+            before they are written to the current fits file.
 
         Notes
         -----
@@ -341,6 +369,8 @@ class HDUBase(object):
                 comment = r.get('comment', '')
                 self.write_key(name, value, comment=comment)
 
+        self._cached_info = None  # invalidate info cache
+
     def read_header(self):
         """
         Read the header as a FITSHDR
@@ -366,18 +396,29 @@ class HDUBase(object):
         """
         return self._FITS.read_header(self._ext + 1)
 
-    def _update_info(self):
+    def delete_key(self, name):
         """
-        Update metadata for this HDU
-        """
-        try:
-            self._FITS.movabs_hdu(self._ext + 1)
-        except IOError:
-            raise RuntimeError("no such hdu")
+        Delete the key from the header.
 
-        self._info = self._FITS.get_hdu_info(
-            self._ext + 1, self._ignore_scaling
-        )
+        parameters
+        ----------
+        name: string
+            Name of keyword to delete.
+        """
+        self.delete_keys([name])
+
+    def delete_keys(self, names):
+        """
+        Delete the keys from the header.
+
+        parameters
+        ----------
+        names: iterable of keys
+            Names of keywords to delete.
+        """
+        for name in names:
+            self._FITS.delete_key(self._ext + 1, str(name))
+        self._cached_info = None  # invalidate info cache
 
     def _get_repr_list(self):
         """

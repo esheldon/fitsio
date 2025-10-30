@@ -928,7 +928,6 @@ class FITS(object):
 
         if header is not None:
             self[-1].write_keys(header)
-            self[-1]._update_info()
 
         # if img is not None:
         #    self[-1].write(img)
@@ -1264,7 +1263,6 @@ class FITS(object):
 
         if header is not None:
             self[-1].write_keys(header)
-            self[-1]._update_info()
 
         self[-1].write(data, names=names)
 
