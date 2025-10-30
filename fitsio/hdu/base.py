@@ -50,8 +50,28 @@ class HDUBase(object):
         self._ext = ext
         self._ignore_scaling = False
 
-        self._update_info()
+        # init info cache to none
+        self._cached_info = None
         self._filename = self._FITS.filename()
+
+    @property
+    def _info(self):
+        if self._cached_info is None:
+            self._update_info()
+        return self._cached_info
+
+    def _update_info(self):
+        """
+        Update metadata for this HDU
+        """
+        try:
+            self._FITS.movabs_hdu(self._ext + 1)
+        except IOError:
+            raise RuntimeError("no such hdu")
+
+        self._cached_info = self._FITS.get_hdu_info(
+            self._ext + 1, self._ignore_scaling
+        )
 
     @property
     def ignore_scaling(self):
@@ -69,10 +89,10 @@ class HDUBase(object):
         old_val = self._ignore_scaling
         self._ignore_scaling = ignore_scaling_flag
 
-        # Only endure the overhead of updating the info if the new value is
-        # actually different.
+        # if needed invalidate the info cache so it gets
+        # updated the next time we access it
         if old_val != self._ignore_scaling:
-            self._update_info()
+            self._cached_info = None
 
     def get_extnum(self):
         """
@@ -173,7 +193,7 @@ class HDUBase(object):
         A dict with keys 'datasum' and 'hdusum'
         """
         ret = self._FITS.write_checksum(self._ext + 1)
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
         return ret
 
     def verify_checksum(self):
@@ -191,21 +211,21 @@ class HDUBase(object):
         Write a comment into the header
         """
         self._FITS.write_comment(self._ext + 1, str(comment))
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write_history(self, history):
         """
         Write history text into the header
         """
         self._FITS.write_history(self._ext + 1, str(history))
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def _write_continue(self, value):
         """
         Write history text into the header
         """
         self._FITS.write_continue(self._ext + 1, str(value))
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write_key(self, name, value, comment=""):
         """
@@ -288,7 +308,7 @@ class HDUBase(object):
                 self._ext + 1, str(name), sval, str(comment)
             )
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write_keys(self, records_in, clean=True):
         """
@@ -349,7 +369,7 @@ class HDUBase(object):
                 comment = r.get('comment', '')
                 self.write_key(name, value, comment=comment)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def read_header(self):
         """
@@ -398,20 +418,7 @@ class HDUBase(object):
         """
         for name in names:
             self._FITS.delete_key(self._ext + 1, str(name))
-        self._update_info()
-
-    def _update_info(self):
-        """
-        Update metadata for this HDU
-        """
-        try:
-            self._FITS.movabs_hdu(self._ext + 1)
-        except IOError:
-            raise RuntimeError("no such hdu")
-
-        self._info = self._FITS.get_hdu_info(
-            self._ext + 1, self._ignore_scaling
-        )
+        self._cached_info = None  # invalidate info cache
 
     def _get_repr_list(self):
         """

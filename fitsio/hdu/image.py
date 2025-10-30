@@ -121,7 +121,7 @@ class ImageHDU(HDUBase):
         # we have to reverse the dimensions here since cfitsio
         # uses fortran order
         self._FITS.reshape_image(self._ext + 1, adims[::-1])
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write(self, img, start=0, **keys):
         """
@@ -241,7 +241,7 @@ class ImageHDU(HDUBase):
                             1 if any_nan else 0,
                         )
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def read(self, **keys):
         """
