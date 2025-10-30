@@ -1575,6 +1575,24 @@ def test_table_big_col():
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
 
 
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_null_end_strings(table_type):
+    d = np.ones(2, dtype=[("blah", "U70")])
+    d["blah"][0] = "".join(["a"] * 60)
+    d["blah"][1] = ""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        write(pth, d, table_type=table_type)
+        data = read(pth)
+        assert len(data["blah"][0]) == 60
+        assert "U70" in data["blah"].dtype.descr[0][1]
+
+        if table_type == "ascii":
+            # null strings in ascii tables are a single blank
+            d["blah"][1] = " "
+        np.testing.assert_array_equal(d, data)
+
+
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])
     adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
