@@ -75,7 +75,7 @@ def make_data():
     # cfitsio 3 or earlier does not
     # handle non-space padded strings
     # properly
-    if CFITSIO_VERSION < 4:
+    if CFITSIO_VERSION >= 4:
         dtype += [
             ('Sscalar_nopad', Sdtype),
             ('Svec_nopad', Sdtype, nvec),
@@ -92,7 +92,7 @@ def make_data():
         # cfitsio 3 or earlier does not
         # handle non-space padded strings
         # properly
-        if CFITSIO_VERSION < 4:
+        if CFITSIO_VERSION >= 4:
             dtype += [
                 ('Uscalar_nopad', Udtype),
                 ('Uvec_nopad', Udtype, nvec),
@@ -175,7 +175,7 @@ def make_data():
     # cfitsio 3 or earlier does not
     # handle non-space padded strings
     # properly
-    if CFITSIO_VERSION < 4:
+    if CFITSIO_VERSION >= 4:
         data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
         data['Svec_nopad'][:, 0] = 'hello'
         data['Svec_nopad'][:, 1] = 'world'
@@ -198,7 +198,7 @@ def make_data():
         # cfitsio 3 or earlier does not
         # handle non-space padded strings
         # properly
-        if CFITSIO_VERSION < 4:
+        if CFITSIO_VERSION >= 4:
             data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
             data['Uvec_nopad'][:, 0] = 'hello'
             data['Uvec_nopad'][:, 1] = 'world'
