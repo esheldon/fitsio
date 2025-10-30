@@ -1584,6 +1584,17 @@ def test_table_big_col(table_type):
             np.testing.assert_array_equal(d, data)
 
 
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_null_end_strings(table_type):
+    d = np.ones(1, dtype=[("blah", "U70")])
+    d["blah"] = "".join(["a"] * 60)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        write(pth, d, table_type=table_type)
+        data = read(pth)
+        np.testing.assert_array_equal(d, data)
+
+
 def test_table_read_write_ulonglong():
     adata = np.zeros(5, dtype=[("u8scalar", "u8")])
     adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
