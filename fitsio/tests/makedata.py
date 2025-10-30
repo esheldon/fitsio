@@ -2,7 +2,6 @@ import sys
 import numpy as np
 from functools import lru_cache
 
-from .._fitsio_wrap import cfitsio_use_standard_strings
 from ..util import cfitsio_version
 
 CFITSIO_VERSION = cfitsio_version(asfloat=True)
@@ -73,12 +72,11 @@ def make_data():
             ('u8arr', 'u8', ashape),
         ]
 
-    if cfitsio_use_standard_strings():
-        dtype += [
-            ('Sscalar_nopad', Sdtype),
-            ('Svec_nopad', Sdtype, nvec),
-            ('Sarr_nopad', Sdtype, ashape),
-        ]
+    dtype += [
+        ('Sscalar_nopad', Sdtype),
+        ('Svec_nopad', Sdtype, nvec),
+        ('Sarr_nopad', Sdtype, ashape),
+    ]
 
     if sys.version_info > (3, 0, 0):
         dtype += [
@@ -87,12 +85,11 @@ def make_data():
             ('Uarr', Udtype, ashape),
         ]
 
-        if cfitsio_use_standard_strings():
-            dtype += [
-                ('Uscalar_nopad', Udtype),
-                ('Uvec_nopad', Udtype, nvec),
-                ('Uarr_nopad', Udtype, ashape),
-            ]
+        dtype += [
+            ('Uscalar_nopad', Udtype),
+            ('Uvec_nopad', Udtype, nvec),
+            ('Uarr_nopad', Udtype, ashape),
+        ]
 
     dtype2 = [
         ('index', 'i4'),
@@ -167,14 +164,13 @@ def make_data():
     s = ['%-6s' % el for el in s]
     data['Sarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-    if cfitsio_use_standard_strings():
-        data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
-        data['Svec_nopad'][:, 0] = 'hello'
-        data['Svec_nopad'][:, 1] = 'world'
+    data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
+    data['Svec_nopad'][:, 0] = 'hello'
+    data['Svec_nopad'][:, 1] = 'world'
 
-        s = 1 + np.arange(nrows * ashape[0] * ashape[1])
-        s = ['%s' % el for el in s]
-        data['Sarr_nopad'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
+    s = 1 + np.arange(nrows * ashape[0] * ashape[1])
+    s = ['%s' % el for el in s]
+    data['Sarr_nopad'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
     if sys.version_info >= (3, 0, 0):
         data['Uscalar'] = [
@@ -187,18 +183,17 @@ def make_data():
         s = ['%-6s' % el for el in s]
         data['Uarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-        if cfitsio_use_standard_strings():
-            data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
-            data['Uvec_nopad'][:, 0] = 'hello'
-            data['Uvec_nopad'][:, 1] = 'world'
+        data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
+        data['Uvec_nopad'][:, 0] = 'hello'
+        data['Uvec_nopad'][:, 1] = 'world'
 
-            s = 1 + np.arange(nrows * ashape[0] * ashape[1])
-            s = ['%s' % el for el in s]
-            data['Uarr_nopad'] = np.array(s).reshape(
-                nrows,
-                ashape[0],
-                ashape[1],
-            )
+        s = 1 + np.arange(nrows * ashape[0] * ashape[1])
+        s = ['%s' % el for el in s]
+        data['Uarr_nopad'] = np.array(s).reshape(
+            nrows,
+            ashape[0],
+            ashape[1],
+        )
 
     # use a dict list so we can have comments
     # for long key we used the largest possible

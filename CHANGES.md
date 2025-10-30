@@ -26,6 +26,9 @@ Changes
     - Added utilities `cfitsio_has_bzip2_support` and
       `cfitsio_has_curl_support` to detect at run-time if cfitsio
       was built with these options.
+    - Changed string handling in python 3 to allow for correct
+      null-terminated behavior when linking to external builds
+      of cfitsio.
 
 Bug Fixes
 
