@@ -1594,6 +1594,7 @@ def test_table_null_end_strings(table_type):
         data = read(pth)
         np.testing.assert_array_equal(d, data)
         assert len(data["blah"][0]) == 60
+        assert "U70" in data["blah"].dtype.descr[0][1]
 
 
 def test_table_read_write_ulonglong():
