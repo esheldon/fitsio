@@ -1586,6 +1586,12 @@ def test_table_big_col(table_type):
             np.testing.assert_array_equal(d, data)
 
 
+@pytest.mark.xfail(
+    condition=CFITSIO_VERSION < 4,
+    reason=(
+        "cfitsio versions < 4 do not easily support null-terminated strings"
+    ),
+)
 @pytest.mark.parametrize("table_type", ["binary", "ascii"])
 def test_table_null_end_strings(table_type):
     d = np.ones(2, dtype=[("blah", "U70")])
@@ -1595,11 +1601,7 @@ def test_table_null_end_strings(table_type):
         pth = os.path.join(tmpdir, "test.fits")
         write(pth, d, table_type=table_type)
         data = read(pth)
-        # v3 cfitsio that is not bundled pads with blanks
-        if CFITSIO_VERSION < 4:
-            assert len(data["blah"][0]) == 70
-        else:
-            assert len(data["blah"][0]) == 60
+        assert len(data["blah"][0]) == 60
         assert "U70" in data["blah"].dtype.descr[0][1]
 
         if table_type == "ascii":
