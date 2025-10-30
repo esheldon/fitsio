@@ -1568,14 +1568,16 @@ def test_table_big_col(table_type):
     d["blah"] = "".join(["a"] * 60000)
     with tempfile.TemporaryDirectory() as tmpdir:
         pth = os.path.join(tmpdir, "test.fits")
-        if table_type == "ascii":
+        # v3 cfitsio that is not bundled fails for big
+        # columns
+        if table_type == "ascii" or CFITSIO_VERSION < 4:
             with pytest.raises(OSError) as e:
                 write(pth, d, table_type=table_type)
             assert "FITSIO status = 236: column exceeds width of table" in str(
                 e.value
             )
             assert (
-                "ASCII string column is too wide: 70000; "
+                "string column is too wide: 70000; "
                 "max supported width is" in str(e.value)
             )
         else:
@@ -1593,7 +1595,11 @@ def test_table_null_end_strings(table_type):
         pth = os.path.join(tmpdir, "test.fits")
         write(pth, d, table_type=table_type)
         data = read(pth)
-        assert len(data["blah"][0]) == 60
+        # v3 cfitsio that is not bundled pads with blanks
+        if CFITSIO_VERSION < 4:
+            assert len(data["blah"][0]) == 70
+        else:
+            assert len(data["blah"][0]) == 60
         assert "U70" in data["blah"].dtype.descr[0][1]
 
         if table_type == "ascii":
