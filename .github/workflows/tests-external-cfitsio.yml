@@ -27,6 +27,10 @@ jobs:
         config:
           # 3.44 is the last version that did not support uint64
           - { pyver: "3.8", npver: "1", cftsver: "3440"}
+          - { pyver: "3.8", npver: "1", cftsver: "3450"}
+          - { pyver: "3.8", npver: "1", cftsver: "-3.47"}
+          - { pyver: "3.8", npver: "1", cftsver: "-3.48"}
+          - { pyver: "3.8", npver: "1", cftsver: "-3.49"}
           # 4.1.0 is the first version for which tests pass for uint64
           - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
           - { pyver: "3.8", npver: "1", cftsver: "latest"}
