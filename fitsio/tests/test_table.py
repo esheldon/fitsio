@@ -16,6 +16,7 @@ from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
 from .. import cfitsio_has_bzip2_support
+from .._fitsio_wrap import cfitsio_use_standard_strings
 
 CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
@@ -1584,6 +1585,31 @@ def test_table_big_col(table_type):
             np.testing.assert_array_equal(d, data)
 
 
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_null_end_strings(table_type):
+    d = np.ones(2, dtype=[("blah", "U70")])
+    d["blah"][0] = "".join(["a"] * 60)
+    d["blah"][1] = ""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        write(pth, d, table_type=table_type)
+        data = read(pth)
+        assert len(data["blah"][0]) == 60
+        assert "U70" in data["blah"].dtype.descr[0][1]
+
+        if table_type == "ascii":
+            # null strings in ascii tables are a single blank
+            d["blah"][1] = " "
+        np.testing.assert_array_equal(d, data)
+
+
+@pytest.mark.xfail(
+    condition=not cfitsio_use_standard_strings(),
+    reason=(
+        "non-bundled builds of cfitsio padd strings with "
+        "spaces things on strings"
+    ),
+)
 @pytest.mark.parametrize("table_type", ["binary", "ascii"])
 def test_table_null_end_strings(table_type):
     d = np.ones(2, dtype=[("blah", "U70")])
