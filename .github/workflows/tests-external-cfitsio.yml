@@ -28,10 +28,7 @@ jobs:
           # 3.44 is the last version that did not support uint64
           - { pyver: "3.8", npver: "1", cftsver: "3440"}
           # python 3 string writing fails on all 3.* builds
-          # - { pyver: "3.8", npver: "1", cftsver: "3450"}
-          # - { pyver: "3.8", npver: "1", cftsver: "-3.47"}
-          # - { pyver: "3.8", npver: "1", cftsver: "-3.48"}
-          # - { pyver: "3.8", npver: "1", cftsver: "-3.49"}
+          # so test first 4.* release
           - { pyver: "3.8", npver: "1", cftsver: "-4.0.0"}
           # 4.1.0 is the first version for which tests pass for uint64
           - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
