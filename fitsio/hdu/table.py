@@ -142,9 +142,9 @@ class TableHDU(HDUBase):
         colnum: integer
             The number for the column, zero offset
         """
-        if colnum < 0 or colnum > (len(self._info["colnames"]) - 1):
+        if colnum < 0 or colnum > (self._info["ncol"] - 1):
             raise ValueError(
-                "colnum out of range [0,%s-1]" % len(self._info["colnames"])
+                "colnum out of range [0,%s-1]" % self._info["ncol"]
             )
         return self._info["colnames"][colnum]
 
