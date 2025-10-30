@@ -28,6 +28,8 @@ Changes
       was built with these options.
     - Added methods `delete_key` and `delete_keys` to HDUs to allow
       deleting header keys.
+    - HDU info loading is now done lazily.
+
 
 Bug Fixes
 
