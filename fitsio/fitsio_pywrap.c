@@ -2169,7 +2169,7 @@ static int write_string_column(
     LONGLONG nelem,            /* I - number of strings to write              */
     char *data, int *status) { /* IO - error status                           */
 
-    if (hdutype == ASCII_TBL) {
+    if (hdutype == ASCII_TBL || CFITSIO_MAJOR < 4) {
         LONGLONG i = 0;
         LONGLONG twidth = 0;
         // need to create a char** representation of the data, just point back
