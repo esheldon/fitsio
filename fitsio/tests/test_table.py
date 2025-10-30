@@ -16,6 +16,7 @@ from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
 from .. import cfitsio_has_bzip2_support
+from .._fitsio_wrap import cfitsio_use_standard_strings
 
 CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
@@ -1575,6 +1576,13 @@ def test_table_big_col():
         assert "FITSIO status = 236: column exceeds width of table" in str(e)
 
 
+@pytest.mark.xfail(
+    condition=not cfitsio_use_standard_strings(),
+    reason=(
+        "non-bundled builds of cfitsio padd strings with "
+        "spaces things on strings"
+    ),
+)
 @pytest.mark.parametrize("table_type", ["binary", "ascii"])
 def test_table_null_end_strings(table_type):
     d = np.ones(2, dtype=[("blah", "U70")])
