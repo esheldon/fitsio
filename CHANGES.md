@@ -28,7 +28,7 @@ Changes
       was built with these options.
     - Changed string handling in python 3 to allow for correct
       null-terminated behavior when linking to external builds
-      of cfitsio.
+      of cfitsio at version 4 or larger.
 
 Bug Fixes
 
