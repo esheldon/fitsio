@@ -227,20 +227,6 @@ class build_ext_subclass(build_ext):
                     "curl support is disabled"
                 )
 
-            # Make sure the external lib has the fits_use_standard_strings
-            # function. If not, then define a macro to tell the wrapper
-            # to always return False.
-            if not self.check_system_cfitsio_objects(
-                '_fits_use_standard_strings'
-            ):
-                _print_msg(
-                    "did not find _fits_use_standard_strings symbol in "
-                    "system cfitsio library\nalways using non-standard strings"
-                )
-                self.compiler.define_macro(
-                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS'
-                )
-
             self.compiler.define_macro('FITSIO_USING_SYSTEM_FITSIO')
 
             self.compiler.add_library('z')
@@ -259,15 +245,13 @@ class build_ext_subclass(build_ext):
         except subprocess.CalledProcessError as e:
             warnings.warn(
                 "`patch` command not found! "
-                "Python 3 strings will not work properly!"
+                "Some bugs in cfitsio may not be fixed! "
+                "See the patches we carry at "
+                "https://github.com/esheldon/fitsio/tree/master/patches."
             )
             if FITSIO_FAIL_ON_BAD_PATCHES:
                 raise e
             else:
-                # skip patching and define a macro to use unpatched sources
-                self.compiler.define_macro(
-                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS'
-                )
                 return
 
         patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
@@ -383,7 +367,6 @@ class build_ext_subclass(build_ext):
         # and add `-fPIC` to the flags to ensure the python `.so`
         # works properly later
         args = [
-            '--enable-standard-strings',
             '--without-fortran',
             '--disable-shared',
         ]

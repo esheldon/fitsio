@@ -29,7 +29,9 @@ Changes
     - Added methods `delete_key` and `delete_keys` to HDUs to allow
       deleting header keys.
     - HDU info loading is now done lazily.
-
+    - Changed string handling in python 3 to allow for correct
+      null-terminated behavior when linking to external builds
+      of cfitsio at version 4 or larger.
 
 Bug Fixes
 

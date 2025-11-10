@@ -45,15 +45,6 @@ struct PyFITSObject {
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
 };
 
-#ifdef FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS
-static int fits_use_standard_strings(void) { return 0; }
-#else
-#ifndef _FITSIO_H_FITS_USE_STANDARD_STRINGS
-#define _FITSIO_H_FITS_USE_STANDARD_STRINGS
-int CFITS_API fits_use_standard_strings(void);
-#endif
-#endif
-
 // check unicode for python3, string for python2
 static int is_python_string(const PyObject *obj) {
 #if PY_MAJOR_VERSION >= 3
@@ -2171,43 +2162,64 @@ static PyObject *PyFITSObject_insert_col(struct PyFITSObject *self,
 // No error checking performed here
 static int write_string_column(
     struct PyFITSObject *self, fitsfile *fits, /* I - FITS file pointer */
+    int hdutype,               /* I - one of ASCII_TABLE or BINARY_TABLE */
     int colnum,                /* I - number of column to write (1 = 1st col) */
     LONGLONG firstrow,         /* I - first row to write (1 = 1st row)        */
     LONGLONG firstelem,        /* I - first vector element to write (1 = 1st) */
     LONGLONG nelem,            /* I - number of strings to write              */
     char *data, int *status) { /* IO - error status                           */
 
-    LONGLONG i = 0;
-    LONGLONG twidth = 0;
-    // need to create a char** representation of the data, just point back
-    // into the data array at string width offsets.  the fits_write_col_str
-    // takes care of skipping between fields.
-    char *cdata = NULL;
-    char **strdata = NULL;
+    if (hdutype == ASCII_TBL || CFITSIO_MAJOR < 4) {
+        LONGLONG i = 0;
+        LONGLONG twidth = 0;
+        // need to create a char** representation of the data, just point back
+        // into the data array at string width offsets.  the fits_write_col_str
+        // takes care of skipping between fields.
+        char *cdata = NULL;
+        char **strdata = NULL;
 
-    // using struct def here, could cause problems
-    twidth = fits->Fptr->tableptr[colnum - 1].twidth;
+        // using struct def here, could cause problems
+        twidth = fits->Fptr->tableptr[colnum - 1].twidth;
 
-    strdata = malloc(nelem * sizeof(char *));
-    if (strdata == NULL) {
-        PyErr_SetString(PyExc_MemoryError,
-                        "could not allocate temporary string pointers");
-        *status = 99;
-        return 1;
-    }
-    cdata = (char *)data;
-    for (i = 0; i < nelem; i++) {
-        strdata[i] = &cdata[twidth * i];
-    }
+        strdata = malloc(nelem * sizeof(char *));
+        if (strdata == NULL) {
+            PyErr_SetString(PyExc_MemoryError,
+                            "could not allocate temporary string pointers");
+            *status = 99;
+            return 1;
+        }
+        cdata = (char *)data;
+        for (i = 0; i < nelem; i++) {
+            strdata[i] = &cdata[twidth * i];
+        }
 
-    if (fits_write_col_str(fits, colnum, firstrow, firstelem, nelem, strdata,
-                           status)) {
-        set_ioerr_string_from_status(*status, self);
+        if (fits_write_col_str(fits, colnum, firstrow, firstelem, nelem,
+                               strdata, status)) {
+            set_ioerr_string_from_status(*status, self);
+            free(strdata);
+            return 1;
+        }
+
         free(strdata);
-        return 1;
-    }
+    } else { // BINARY_TABLE
+        // for string columns in binary tables, cfitsio has a special mode
+        // where you can write the the bytes directly. let's do that to
+        // preserve nulls and prevent
+        // cfitsio from padding with spaces
 
-    free(strdata);
+        LONGLONG nelem_byt;
+        unsigned char *strdata_byt;
+
+        // using struct def here, could cause problems
+        nelem_byt = nelem * (fits->Fptr->tableptr[colnum - 1].twidth);
+        strdata_byt = (unsigned char *)data;
+
+        if (fits_write_col_byt(fits, colnum, firstrow, firstelem, nelem_byt,
+                               strdata_byt, status)) {
+            set_ioerr_string_from_status(*status, self);
+            return 1;
+        }
+    }
 
     return 0;
 }
@@ -2445,9 +2457,9 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
         for (icol = 0; icol < ncols; icol++) {
             data = PyArray_GETPTR1(array_ptrs[icol], irow);
             if (is_string[icol]) {
-                if (write_string_column(self, self->fits, colnums[icol],
-                                        thisrow, firstelem, nperrow[icol],
-                                        (char *)data, &status)) {
+                if (write_string_column(self, self->fits, hdutype,
+                                        colnums[icol], thisrow, firstelem,
+                                        nperrow[icol], (char *)data, &status)) {
                     set_ioerr_string_from_status(status, self);
                     goto _fitsio_pywrap_write_columns_bail;
                 }
@@ -4970,14 +4982,6 @@ static PyObject *PyFITS_cfitsio_version(void) {
     return PyFloat_FromDouble((double)version);
 }
 
-static PyObject *PyFITS_cfitsio_use_standard_strings(void) {
-    if (fits_use_standard_strings()) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
 static PyObject *PyFITS_cfitsio_is_bundled(void) {
 #ifdef FITSIO_USING_SYSTEM_FITSIO
     Py_RETURN_FALSE;
@@ -5300,10 +5304,6 @@ static PyMethodDef fitstype_methods[] = {
     {"cfitsio_is_bundled", (PyCFunction)PyFITS_cfitsio_is_bundled, METH_NOARGS,
      "cfitsio_is_bundled\n\nReturn True if library was built with a bundled "
      "copy of cfitsio."},
-    {"cfitsio_use_standard_strings",
-     (PyCFunction)PyFITS_cfitsio_use_standard_strings, METH_NOARGS,
-     "cfitsio_use_standard_strings\n\nReturn True if using string code that "
-     "matches the FITS standard."},
     {"cfitsio_has_bzip2_support", (PyCFunction)PyFITS_cfitsio_has_bzip2_support,
      METH_NOARGS,
      "cfitsio_has_bzip2_support\n\nReturn True if cfitsio has support for "
