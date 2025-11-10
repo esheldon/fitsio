@@ -27,6 +27,9 @@ jobs:
         config:
           # 3.44 is the last version that did not support uint64
           - { pyver: "3.8", npver: "1", cftsver: "3440"}
+          # python 3 string writing fails on all 3.* builds
+          # so test first 4.* release
+          - { pyver: "3.8", npver: "1", cftsver: "-4.0.0"}
           # 4.1.0 is the first version for which tests pass for uint64
           - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
           - { pyver: "3.8", npver: "1", cftsver: "latest"}
@@ -77,7 +80,7 @@ jobs:
             cftsver="${{ matrix.config.cftsver }}"
           fi
 
-          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
+          if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
             config_flags=""
           else
             config_flags="--without-fortran --disable-shared"
