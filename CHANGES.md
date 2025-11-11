@@ -26,6 +26,9 @@ Changes
     - Added utilities `cfitsio_has_bzip2_support` and
       `cfitsio_has_curl_support` to detect at run-time if cfitsio
       was built with these options.
+    - Added methods `delete_key` and `delete_keys` to HDUs to allow
+      deleting header keys.
+    - HDU info loading is now done lazily.
     - Changed string handling in python 3 to allow for correct
       null-terminated behavior when linking to external builds
       of cfitsio at version 4 or larger.
@@ -57,6 +60,8 @@ Bug Fixes
     - Fixed bug in cfitsio where overwriting a tile-compressed image fails
       when the new values are not lossily compressed but the old values were.
       See https://github.com/HEASARC/cfitsio/pull/101.
+    - Fixed a bug where the FITS HDU properties could go out of sync as header
+      keys were added, modified, etc.
 
 version 1.2.8
 -------------

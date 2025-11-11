@@ -2,6 +2,9 @@ import os
 import tempfile
 import warnings
 import numpy as np
+
+import pytest
+
 from .makedata import make_data, lorem_ipsum
 from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
@@ -115,6 +118,33 @@ def test_header_write_read():
         with FITS(fname) as fits:
             rh = fits[0].read_header()
             check_header(header, rh)
+
+
+def test_header_delete():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            data = np.zeros(10)
+            header1 = {'SCARD': 'one', 'ICARD': 1, 'FCARD': 1.0, 'LCARD': True}
+            fits.write_image(data, header=header1)
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_key("SCARD")
+            del header1["SCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_keys(["ICARD", "FCARD"])
+            del header1["ICARD"]
+            del header1["FCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+        with FITS(fname) as fits:
+            rh = fits[0].read_header()
+            check_header(header1, rh)
 
 
 def test_header_update():
@@ -510,6 +540,36 @@ def test_write_key_dict():
 
             assert h['test'] == keydict['value']
             assert h.get_comment('test') == keydict['comment']
+
+
+@pytest.mark.parametrize("fname", ["test.fits", "mem://"])
+def test_header_update_compressed_image_to_table(fname):
+    data = np.arange(10).reshape(5, 2).astype(np.float32)
+
+    fname = "test.fits"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(data, compress="RICE", qlevel=1, dither_seed=10)
+            hdr = fits[1].read_header()
+
+            info_before = fits[1].get_info()
+            for key in hdr.keys():
+                if key.startswith("Z"):
+                    fits[1].delete_key(key)
+            for i in range(1000):
+                fits[1].write_key("test" + str(i), "blah")
+            fits[1].delete_key("test0")
+
+            fits.update_hdu_list()
+            info_after = fits[1].get_info()
+
+            assert info_after != info_before
+            assert fits[1].get_exttype() == "BINARY_TBL"
 
 
 if __name__ == '__main__':
