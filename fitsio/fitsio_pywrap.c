@@ -4317,6 +4317,58 @@ static int fits_is_compressed_with_nulls(fitsfile *fits) {
     }
 }
 
+static int fits_is_lossy_compressed_with_nulls(fitsfile *fits) {
+    int cstatus = 0, clstatus = 0, hstatus = 0, cistatus = 0;
+    int colnum, zblank;
+    int has_nulls, is_compressed_image, is_lossy;
+    int colNum;
+    char value[128];
+
+    is_compressed_image = fits_is_compressed_image(fits, &cstatus);
+    if (ffgcno(fits, CASEINSEN, "ZBLANK", &colnum, &clstatus) <= 0 ||
+        ffgky(fits, TINT, "ZBLANK", &zblank, NULL, &hstatus) <= 0) {
+        has_nulls = 1;
+    } else {
+        has_nulls = 0;
+    }
+
+    // CODE from cfitsio w/ some simplifications - MRB 2025/11/18
+    /* If ZZERO and ZSCALE columns don't exist for floating-point types,
+     assume there is NO quantization.  Treat exactly as if it had
+     ZQUANTIZ='NONE'. This is true regardless of whether or not file has a
+     ZQUANTIZ keyword. */
+    int tstatus = 0;
+    int tstatus2 = 0;
+    if ((fits->Fptr->zbitpix < 0) &&
+        (fits_get_colnum(fits, CASEINSEN, "ZZERO", &colNum, &tstatus) ==
+         COL_NOT_FOUND) &&
+        (fits_get_colnum(fits, CASEINSEN, " ZSCALE", &colNum, &tstatus2) ==
+         COL_NOT_FOUND)) {
+        is_lossy = 0;
+    } else {
+        /* get the floating point to integer quantization type, if present. */
+        /* FITS files produced before 2009 will not have this keyword */
+        tstatus = 0;
+        if (ffgky(fits, TSTRING, "ZQUANTIZ", value, NULL, &tstatus) > 0) {
+            // assume it is lossy
+            is_lossy = 1;
+        } else {
+            if (!FSTRCMP(value, "NONE")) {
+                is_lossy = 0;
+            } else {
+                is_lossy = 1;
+            }
+        }
+    }
+    // end of CODE from cfitsio w/ some simplifications - MRB 2025/11/18
+
+    if (is_compressed_image && has_nulls && is_lossy) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 // read an n-dimensional "image" into the input array.  Only minimal checking
 // of the input array is done.
 // Note numpy allows a maximum of 32 dimensions
@@ -4390,7 +4442,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     // floating point data
     // nans works fine for non-compressed images and we do
     // not consider int data
-    if (fits_is_compressed_with_nulls(self->fits)) {
+    if (fits_is_lossy_compressed_with_nulls(self->fits)) {
         if (fits_read_dtype == TFLOAT) {
             nullval_ptr = (void *)(&fnullval);
         } else if (fits_read_dtype == TDOUBLE) {
@@ -4561,7 +4613,7 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     // floating point data
     // nans works fine for non-compressed images and we do
     // not consider int data
-    if (fits_is_compressed_with_nulls(self->fits)) {
+    if (fits_is_lossy_compressed_with_nulls(self->fits)) {
         if (fits_read_dtype == TFLOAT) {
             nullval_ptr = (void *)(&fnullval);
         } else if (fits_read_dtype == TDOUBLE) {
