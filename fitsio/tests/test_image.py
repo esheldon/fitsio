@@ -119,31 +119,49 @@ def test_image_write_read_unaligned(dtype, with_nan):
             assert not fits[0].is_compressed(), 'not compressed'
 
 
+@pytest.mark.parametrize("with_compression", [False, True])
 @pytest.mark.parametrize("with_nan", [False, True])
-def test_image_subnormal_float32(with_nan):
+def test_image_subnormal_float32(with_nan, with_compression):
     v = 8.82818e-44
     v = [v] * 10
     if with_nan:
         v += [np.nan]
     nv = np.array(v, dtype=np.float32)
 
+    if with_compression:
+        kwargs = {
+            "compress": "GZIP",
+            "qlevel": 0,
+        }
+    else:
+        kwargs = {}
+
     with FITS("mem://", 'rw') as fits:
-        fits.write_image(nv)
+        fits.write_image(nv, **kwargs)
         rdata = fits[-1].read()
 
         np.testing.assert_array_equal(rdata, nv)
 
 
+@pytest.mark.parametrize("with_compression", [False, True])
 @pytest.mark.parametrize("with_nan", [False, True])
-def test_image_subnormal_float64(with_nan):
+def test_image_subnormal_float64(with_nan, with_compression):
     v = 2.225073858507203e-309
     v = [v] * 10
     if with_nan:
         v += [np.nan]
     nv = np.array(v, dtype=np.float64)
 
+    if with_compression:
+        kwargs = {
+            "compress": "GZIP",
+            "qlevel": 0,
+        }
+    else:
+        kwargs = {}
+
     with FITS("mem://", 'rw') as fits:
-        fits.write_image(nv)
+        fits.write_image(nv, **kwargs)
         rdata = fits[-1].read()
 
         np.testing.assert_array_equal(rdata, nv)
