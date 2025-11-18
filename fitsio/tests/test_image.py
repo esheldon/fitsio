@@ -121,14 +121,6 @@ def test_image_write_read_unaligned(dtype, with_nan):
 
 @pytest.mark.parametrize("with_nan", [False, True])
 def test_image_subnormal_float32(with_nan):
-    if not cfitsio_is_bundled():
-        pytest.xfail(
-            reason=(
-                "Non-bundled cfitsio libraries have a bug for "
-                "underflow handling. "
-                "See https://github.com/HEASARC/cfitsio/pull/102."
-            ),
-        )
     v = 8.82818e-44
     v = [v] * 10
     if with_nan:
@@ -144,14 +136,6 @@ def test_image_subnormal_float32(with_nan):
 
 @pytest.mark.parametrize("with_nan", [False, True])
 def test_image_subnormal_float64(with_nan):
-    if not cfitsio_is_bundled():
-        pytest.xfail(
-            reason=(
-                "Non-bundled cfitsio libraries have a bug for "
-                "underflow handling. "
-                "See https://github.com/HEASARC/cfitsio/pull/102."
-            ),
-        )
     v = 2.225073858507203e-309
     v = [v] * 10
     if with_nan:
