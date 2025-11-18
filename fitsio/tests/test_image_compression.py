@@ -690,13 +690,29 @@ def test_image_compression_nulls_patches_with_subnormal(
             qlevel=qlevel,
         )
         read_data = fits[1].read()
+        read_slice1 = fits[1][1, :][0]
+        read_slice2 = fits[1][2, :][0]
 
         assert np.isnan(read_data[1, 0])
+        assert np.isnan(read_slice1[0])
+        assert np.isnan(read_slice2[0])
 
         if qlevel > 0:
             np.testing.assert_allclose(
                 read_data,
                 data,
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice1,
+                data[1, :],
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice2,
+                data[2, :],
                 rtol=0,
                 atol=0.1,
             )
@@ -708,14 +724,24 @@ def test_image_compression_nulls_patches_with_subnormal(
                 # effect the subnormal float value in this row gets truncated
                 # to zero
                 np.testing.assert_array_equal(read_data[1, 1:], 0.0)
+                np.testing.assert_array_equal(read_slice1[1:], 0.0)
 
                 # this does not happen for row index 2 which doesn't have
                 # subnormal float values
                 np.testing.assert_array_equal(read_data[2, 1:], 5.0)
+                np.testing.assert_array_equal(read_slice2[1:], 5.0)
         else:
             np.testing.assert_array_equal(
                 read_data,
                 data,
+            )
+            np.testing.assert_array_equal(
+                read_slice1,
+                data[1, :],
+            )
+            np.testing.assert_array_equal(
+                read_slice2,
+                data[2, :],
             )
 
 
