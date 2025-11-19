@@ -29,6 +29,7 @@ jobs:
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
+          conda-remove-defaults: true
 
       - name: install conda deps
         shell: bash -l {0}

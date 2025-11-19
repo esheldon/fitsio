@@ -661,6 +661,90 @@ def test_image_compression_nulls(fname, dtype, nan_value):
                 )
 
 
+@pytest.mark.parametrize(
+    "compress,qlevel",
+    [
+        ("RICE_1", 4),
+        ("GZIP", 0),
+    ],
+)
+@pytest.mark.parametrize("ncols", [8, 9, 10, 11, 12])
+def test_image_compression_nulls_patches_with_subnormal(
+    compress, qlevel, ncols
+):
+    rng = np.random.RandomState(seed=10)
+    data = np.arange(ncols * 4).reshape((4, ncols)).astype(np.float32)
+    data += rng.normal(scale=0.5, size=data.shape)
+    data[1, 0] = np.nan
+    data[1, 1:] = 8.82818e-44
+
+    data[2, 0] = np.nan
+    data[2, 1:] = 5.0
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(
+            data,
+            compress=compress,
+            tile_dims=(1, ncols),
+            dither_seed=10,
+            qlevel=qlevel,
+        )
+        read_data = fits[1].read()
+        read_slice1 = fits[1][1, :][0]
+        read_slice2 = fits[1][2, :][0]
+
+        assert np.isnan(read_data[1, 0])
+        assert np.isnan(read_slice1[0])
+        assert np.isnan(read_slice2[0])
+
+        if qlevel > 0:
+            np.testing.assert_allclose(
+                read_data,
+                data,
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice1,
+                data[1, :],
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice2,
+                data[2, :],
+                rtol=0,
+                atol=0.1,
+            )
+            hdr = fits[1].read_header()
+            if "TTYPE4" in hdr and hdr["TTYPE4"] == "GZIP_COMPRESSED_DATA":
+                # in this case, cfitsio finds zero variance in the compressed
+                # tile and so uses GZIP to compress the data losslessly.
+                # however, on read, we send nullcheck=NAN and as a side
+                # effect the subnormal float value in this row gets truncated
+                # to zero
+                np.testing.assert_array_equal(read_data[1, 1:], 0.0)
+                np.testing.assert_array_equal(read_slice1[1:], 0.0)
+
+                # this does not happen for row index 2 which doesn't have
+                # subnormal float values
+                np.testing.assert_array_equal(read_data[2, 1:], 5.0)
+                np.testing.assert_array_equal(read_slice2[1:], 5.0)
+        else:
+            np.testing.assert_array_equal(
+                read_data,
+                data,
+            )
+            np.testing.assert_array_equal(
+                read_slice1,
+                data[1, :],
+            )
+            np.testing.assert_array_equal(
+                read_slice2,
+                data[2, :],
+            )
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
