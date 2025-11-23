@@ -189,6 +189,15 @@
  libcfitsio_la-f77_wrap1.lo: f77_wrap1.c
  @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcfitsio_la_CFLAGS) $(CFLAGS) -MT libcfitsio_la-f77_wrap1.lo -MD -MP -MF $(DEPDIR)/libcfitsio_la-f77_wrap1.Tpo -c -o libcfitsio_la-f77_wrap1.lo `test -f 'f77_wrap1.c' || echo '$(srcdir)/'`f77_wrap1.c
  @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcfitsio_la-f77_wrap1.Tpo $(DEPDIR)/libcfitsio_la-f77_wrap1.Plo
+@@ -1828,7 +1828,7 @@
+ 	       exit 1; } >&2
+ check-am: all-am
+ check: check-am
+-all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(DATA) $(HEADERS)
++all-am: Makefile $(LTLIBRARIES) $(DATA) $(HEADERS)
+ install-binPROGRAMS: install-libLTLIBRARIES
+ 
+ installdirs:
 @@ -1875,9 +1973,12 @@ clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
  
  distclean: distclean-am
