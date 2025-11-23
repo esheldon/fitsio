@@ -660,6 +660,8 @@ def test_image_compression_big_gzip(coef):
             assert len(h) == nHDU + 1
             for k, name in zip([0, 1, -1], ["A", "B", "E"]):
                 assert np.array_equal(h[-1][name][:], out_list[k])
+
+
 @pytest.mark.parametrize("nan_value", [np.nan, np.inf, -np.inf])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize(
