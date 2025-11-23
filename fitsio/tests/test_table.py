@@ -15,8 +15,12 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
+from .. import cfitsio_has_bzip2_support
 
+CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 4:
+    DTYPES += ["u8"]
 
 
 def test_table_read_write():
@@ -871,18 +875,23 @@ def test_table_resize():
         compare_rec(compare_data, d, "shrink from front")
 
         # These don't get zerod
-
+        # the defaults below come out of cfitsio
+        # IDK where they are defined
         nrows = 10
         add_data = np.zeros(nrows - data.size, dtype=data.dtype)
-        add_data['i1scalar'] = -128
-        add_data['i1vec'] = -128
-        add_data['i1arr'] = -128
-        add_data['u2scalar'] = 32768
-        add_data['u2vec'] = 32768
-        add_data['u2arr'] = 32768
-        add_data['u4scalar'] = 2147483648
-        add_data['u4vec'] = 2147483648
-        add_data['u4arr'] = 2147483648
+        add_data['i1scalar'] = -(2**7)
+        add_data['i1vec'] = -(2**7)
+        add_data['i1arr'] = -(2**7)
+        add_data['u2scalar'] = 2**15
+        add_data['u2vec'] = 2**15
+        add_data['u2arr'] = 2**15
+        add_data['u4scalar'] = 2**31
+        add_data['u4vec'] = 2**31
+        add_data['u4arr'] = 2**31
+        if CFITSIO_VERSION > 4:
+            add_data['u8scalar'] = 2**63
+            add_data['u8vec'] = 2**63
+            add_data['u8arr'] = 2**63
 
         #
         # expand at the back
@@ -1088,7 +1097,8 @@ def test_gz_write_read():
 
 
 @pytest.mark.skipif(
-    'SKIP_BZIP_TEST' in os.environ, reason='SKIP_BZIP_TEST set'
+    not cfitsio_has_bzip2_support(),
+    reason='cfitsio was not built with bzip2 support',
 )
 def test_bz2_read():
     '''
@@ -1550,3 +1560,99 @@ def test_table_write_dict_of_arrays_unaligned():
 
         d = read(fname)
         compare_rec(data_stra, d, "list of dicts")
+
+
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_big_col(table_type):
+    d = np.ones(1, dtype=[("blah", "U70000")])
+    d["blah"] = "".join(["a"] * 60000)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        # v3 cfitsio that is not bundled fails for big
+        # columns
+        if table_type == "ascii" or CFITSIO_VERSION < 4:
+            with pytest.raises(OSError) as e:
+                write(pth, d, table_type=table_type)
+            assert "FITSIO status = 236: column exceeds width of table" in str(
+                e.value
+            )
+            assert (
+                "string column is too wide: 70000; "
+                "max supported width is" in str(e.value)
+            )
+        else:
+            write(pth, d, table_type=table_type)
+            data = read(pth)
+            np.testing.assert_array_equal(d, data)
+
+
+@pytest.mark.xfail(
+    condition=CFITSIO_VERSION < 4,
+    reason=(
+        "cfitsio versions < 4 do not easily support null-terminated strings"
+    ),
+)
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_null_end_strings(table_type):
+    d = np.ones(2, dtype=[("blah", "U70")])
+    d["blah"][0] = "".join(["a"] * 60)
+    d["blah"][1] = ""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        write(pth, d, table_type=table_type)
+        data = read(pth)
+        assert len(data["blah"][0]) == 60
+        assert "U70" in data["blah"].dtype.descr[0][1]
+
+        if table_type == "ascii":
+            # null strings in ascii tables are a single blank
+            d["blah"][1] = " "
+        np.testing.assert_array_equal(d, data)
+
+
+def test_table_read_write_ulonglong():
+    adata = np.zeros(5, dtype=[("u8scalar", "u8")])
+    adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(IOError) as e:
+                    fits.write_table(
+                        adata,
+                        extname='mytable',
+                    )
+                assert "'W'" in str(e.value)
+            else:
+                fits.write_table(
+                    adata,
+                    extname='mytable',
+                )
+                d = fits[1].read()
+                compare_rec(adata, d, "table read/write")
+
+
+@pytest.mark.parametrize("typ", ["u8", "u4", "i8"])
+def test_table_read_write_ulonglong_ascii_raises(typ):
+    adata = np.zeros(5, dtype=[("scalar", typ)])
+    if typ == "u8":
+        val = 2**64 - 1
+    elif typ == "u4":
+        val = 2**32 - 1
+    elif typ == "i8":
+        val = 2**31 - 1
+    adata["scalar"] = (val) - np.arange(5, dtype=typ)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            with pytest.raises(ValueError) as e:
+                fits.write_table(
+                    adata,
+                    extname='mytable',
+                    table_type='ascii',
+                )
+            assert f"unsupported type '{typ}' for ascii tables" in str(e.value)

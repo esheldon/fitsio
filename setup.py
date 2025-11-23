@@ -9,17 +9,22 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 import warnings
+import tempfile
+import tarfile
 import sys
 import os
 import subprocess
-from subprocess import Popen, PIPE
+from subprocess import PIPE
 import glob
 import shutil
 
-# used for CI testing to ensure all patches apply
-FITSIO_FAIL_ON_BAD_PATCHES = (
-    False or "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ
-)
+if "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ:
+    if os.environ["FITSIO_FAIL_ON_BAD_PATCHES"].lower() in ["false", "0"]:
+        FITSIO_FAIL_ON_BAD_PATCHES = False
+    else:
+        FITSIO_FAIL_ON_BAD_PATCHES = True
+else:
+    FITSIO_FAIL_ON_BAD_PATCHES = True
 
 if "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
@@ -69,8 +74,12 @@ else:
     )
 
 
+def _print_msg(text):
+    print("\n" + "=" * 79 + f"\n{text}\n" + "=" * 79, flush=True)
+
+
 class build_ext_subclass(build_ext):
-    cfitsio_version = '4.4.1-20240617'
+    cfitsio_version = '4.6.3'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):
@@ -121,7 +130,7 @@ class build_ext_subclass(build_ext):
                 CC = []
                 for val in CCold:
                     if val == 'ccache':
-                        print("removing ccache from the compiler options")
+                        _print_msg("removing ccache from the compiler options")
                         continue
 
                     CC.append(val)
@@ -137,10 +146,40 @@ class build_ext_subclass(build_ext):
             # If configure detected bzlib.h, we have to link to libbz2
             with open(os.path.join(self.cfitsio_build_dir, 'Makefile')) as fp:
                 _makefile = fp.read()
-                if '-DHAVE_BZIP2=1' in _makefile:
+                _have_bzip2 = False
+                _have_curl = False
+                for line in _makefile.splitlines():
+                    for _part in line.split("="):
+                        for _eqpart in _part.split():
+                            if "-lbz2" in _eqpart:
+                                _have_bzip2 = True
+                            if "-lcurl" in _eqpart:
+                                _have_curl = True
+                if _have_bzip2:
+                    _print_msg(
+                        "found -lbz2 in Makefile\n"
+                        "linking Python extension to bzip2"
+                    )
                     self.compiler.add_library('bz2')
-                if '-DCFITSIO_HAVE_CURL=1' in _makefile:
+                    self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
+                else:
+                    _print_msg(
+                        "did not find -lbz2 in Makefile\n"
+                        "bzip2 support is disabled"
+                    )
+
+                if _have_curl:
+                    _print_msg(
+                        "found -lcurl in Makefile\n"
+                        "linking Python extension to curl"
+                    )
                     self.compiler.add_library('curl')
+                    self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
+                else:
+                    _print_msg(
+                        "did not find -lcurl in Makefile\n"
+                        "curl support is disabled"
+                    )
 
             self.compile_cfitsio()
 
@@ -163,18 +202,29 @@ class build_ext_subclass(build_ext):
 
             # Check if system cfitsio was compiled with bzip2 and/or curl
             if self.check_system_cfitsio_objects('bzip2'):
+                _print_msg(
+                    "found bz2 symbol in system cfitsio library\n"
+                    "linking Python extension to bzip2"
+                )
                 self.compiler.add_library('bz2')
-            if self.check_system_cfitsio_objects('curl_'):
-                self.compiler.add_library('curl')
+                self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
+            else:
+                _print_msg(
+                    "did not find bz2 symbol in system cfitsio library\n"
+                    "bzip2 support is disabled"
+                )
 
-            # Make sure the external lib has the fits_use_standard_strings
-            # function. If not, then define a macro to tell the wrapper
-            # to always return False.
-            if not self.check_system_cfitsio_objects(
-                '_fits_use_standard_strings'
-            ):
-                self.compiler.define_macro(
-                    'FITSIO_PYWRAP_ALWAYS_NONSTANDARD_STRINGS'
+            if self.check_system_cfitsio_objects('curl_'):
+                _print_msg(
+                    "found curl_ symbol in system cfitsio library\n"
+                    "linking Python extension to curl"
+                )
+                self.compiler.add_library('curl')
+                self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
+            else:
+                _print_msg(
+                    "did not find curl_ symbol in system cfitsio library\n"
+                    "curl support is disabled"
                 )
 
             self.compiler.define_macro('FITSIO_USING_SYSTEM_FITSIO')
@@ -185,18 +235,37 @@ class build_ext_subclass(build_ext):
         self.compiler.add_library('m')
 
         # call the original build_extensions
-
         build_ext.build_extensions(self)
 
     def patch_cfitsio(self):
+        _print_msg("patching cfitsio")
+
+        try:
+            subprocess.check_call(["patch", "-v"])
+        except subprocess.CalledProcessError as e:
+            warnings.warn(
+                "`patch` command not found! "
+                "Some bugs in cfitsio may not be fixed! "
+                "See the patches we carry at "
+                "https://github.com/esheldon/fitsio/tree/master/patches."
+            )
+            if FITSIO_FAIL_ON_BAD_PATCHES:
+                raise e
+            else:
+                return
+
         patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
         for patch in patches:
             fname = os.path.basename(patch.replace('.patch', ''))
             try:
                 subprocess.check_call(
-                    'patch -N --dry-run %s/%s %s'
-                    % (self.cfitsio_build_dir, fname, patch),
-                    shell=True,
+                    [
+                        "patch",
+                        "-N",
+                        "--dry-run",
+                        "%s/%s" % (self.cfitsio_build_dir, fname),
+                        patch,
+                    ]
                 )
             except subprocess.CalledProcessError as e:
                 warnings.warn(
@@ -206,8 +275,11 @@ class build_ext_subclass(build_ext):
                     raise e
             else:
                 subprocess.check_call(
-                    'patch %s/%s %s' % (self.cfitsio_build_dir, fname, patch),
-                    shell=True,
+                    [
+                        "patch",
+                        "%s/%s" % (self.cfitsio_build_dir, fname),
+                        patch,
+                    ],
                 )
 
     def configure_cfitsio(self, CC=None, ARCHIVE=None, RANLIB=None):
@@ -240,8 +312,38 @@ class build_ext_subclass(build_ext):
         if not os.path.exists(self.cfitsio_patch_dir):
             os.makedirs(self.cfitsio_patch_dir)
 
-        copy_update(self.cfitsio_dir, self.cfitsio_build_dir)
-        copy_update('zlib', self.cfitsio_build_dir)
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 12:
+            tar_kwargs = {"filter": "fully_trusted"}
+        else:
+            tar_kwargs = {}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if os.path.exists(self.cfitsio_dir) and os.path.isdir(
+                self.cfitsio_dir
+            ):
+                _print_msg(
+                    "using cfitsio source code from "
+                    f"{self.cfitsio_dir} for debugging"
+                )
+                copy_update(
+                    self.cfitsio_dir,
+                    self.cfitsio_build_dir,
+                )
+            else:
+                with tarfile.open(self.cfitsio_dir + ".tar.gz", "r:gz") as tar:
+                    tar.extractall(path=tmpdir, **tar_kwargs)
+                    copy_update(
+                        os.path.join(tmpdir, self.cfitsio_dir),
+                        self.cfitsio_build_dir,
+                    )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with tarfile.open("zlib.tar.gz", "r:gz") as tar:
+                tar.extractall(path=tmpdir, **tar_kwargs)
+                copy_update(
+                    os.path.join(tmpdir, "zlib"), self.cfitsio_build_dir
+                )
+
         copy_update('patches', self.cfitsio_patch_dir)
 
         # we patch the source in the buil dir to avoid mucking with the repo
@@ -251,46 +353,76 @@ class build_ext_subclass(build_ext):
 
         if os.path.exists(makefile):
             # Makefile already there
-            print("found Makefile so not running configure!", flush=True)
+            _print_msg("found Makefile so not running configure!")
             return
+        else:
+            _print_msg("configuring cfitsio")
 
-        args = ''
+        # the latest cfitsio build system links its example
+        # programs (e.g., `cookbook`) against the shared library.
+        # when we use `-fvisibility=hidden` in the CFLAGS (
+        # needed to hide the cfitsio symbols in the python `.so``),
+        # the linking against the shared library fails.
+        # so we disable shared libraries with (`--disable-shared``)
+        # and add `-fPIC` to the flags to ensure the python `.so`
+        # works properly later
+        args = [
+            '--without-fortran',
+            '--disable-shared',
+        ]
+        our_cflags = "-fPIC -fvisibility=hidden"
 
         if "FITSIO_BZIP2_DIR" in os.environ:
-            args += ' --with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]
+            if not os.environ["FITSIO_BZIP2_DIR"]:
+                args += ["--with-bzip2"]
+            else:
+                args += ['--with-bzip2="%s"' % os.environ["FITSIO_BZIP2_DIR"]]
         else:
-            args += ' --with-bzip2'
+            # let autoconf detect if we have bzip2
+            args += ['--with-bzip2']
+
+        env = {}
+        env.update(os.environ)
 
         if CC is not None:
-            args += ' CC="%s"' % ' '.join(CC[:1])
-            args += ' CFLAGS="%s -fvisibility=hidden"' % ' '.join(CC[1:])
+            env["CC"] = ' '.join(CC[:1])
+            env["CFLAGS"] = ' '.join(CC[1:]) + our_cflags
         else:
-            args += ' CFLAGS="${CFLAGS} -fvisibility=hidden"'
+            if "CFLAGS" in os.environ:
+                env["CFLAGS"] = os.environ["CFLAGS"] + " " + our_cflags
+            else:
+                env["CFLAGS"] = our_cflags
 
         if ARCHIVE:
-            args += ' ARCHIVE="%s"' % ' '.join(ARCHIVE)
+            env["ARCHIVE"] = ' '.join(ARCHIVE)
         if RANLIB:
-            args += ' RANLIB="%s"' % ' '.join(RANLIB)
+            env["RANLIB"] = ' '.join(RANLIB)
 
-        p = Popen(
-            "sh ./configure --enable-standard-strings " + args,
-            shell=True,
+        res = subprocess.run(
+            ["sh", "./configure"] + args,
             cwd=self.cfitsio_build_dir,
+            env=env,
         )
-        p.wait()
-        if p.returncode != 0:
+        if res.returncode != 0:
+            with open(
+                os.path.join(self.cfitsio_build_dir, "config.log")
+            ) as fp:
+                logfile = fp.read()
             raise ValueError(
-                "could not configure cfitsio %s" % self.cfitsio_version
+                "could not configure cfitsio %s: config.log:\n\n%s"
+                % (
+                    self.cfitsio_version,
+                    logfile,
+                )
             )
 
     def compile_cfitsio(self):
-        p = Popen(
+        _print_msg("building cfitsio")
+        res = subprocess.run(
             "make",
-            shell=True,
             cwd=self.cfitsio_build_dir,
         )
-        p.wait()
-        if p.returncode != 0:
+        if res.returncode != 0:
             raise ValueError(
                 "could not compile cfitsio %s" % self.cfitsio_version
             )
@@ -298,16 +430,16 @@ class build_ext_subclass(build_ext):
     def check_system_cfitsio_objects(self, obj_name):
         for lib_dir in self.library_dirs:
             if os.path.isfile('%s/libcfitsio.a' % (lib_dir)):
-                p = Popen(
-                    "nm -g %s/libcfitsio.a | grep %s" % (lib_dir, obj_name),
-                    shell=True,
+                res = subprocess.run(
+                    ["nm", "-g", "%s/libcfitsio.a" % lib_dir],
                     stdout=PIPE,
                     stderr=PIPE,
                 )
-                if len(p.stdout.read()) > 0:
-                    return True
-                else:
-                    return False
+                for line in res.stdout.decode("utf-8").splitlines():
+                    if obj_name in line:
+                        return True
+
+                return False
         return False
 
 

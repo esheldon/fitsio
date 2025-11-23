@@ -29,12 +29,13 @@ jobs:
           channel-priority: strict
           show-channel-urls: true
           miniforge-version: latest
+          conda-remove-defaults: true
 
       - name: install conda deps
         shell: bash -l {0}
         run: |
           conda list
-          conda install pre-commit
+          conda install pre-commit "identify>2.6"
 
       - name: pre-commit
         shell: bash -l {0}

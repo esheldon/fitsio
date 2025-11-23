@@ -131,7 +131,7 @@ class TableHDU(HDUBase):
         """
         Get a copy of the column names for a table HDU
         """
-        return copy.copy(self._colnames)
+        return copy.copy(self._info["colnames"])
 
     def get_colname(self, colnum):
         """
@@ -142,11 +142,11 @@ class TableHDU(HDUBase):
         colnum: integer
             The number for the column, zero offset
         """
-        if colnum < 0 or colnum > (len(self._colnames) - 1):
+        if colnum < 0 or colnum > (self._info["ncol"] - 1):
             raise ValueError(
-                "colnum out of range [0,%s-1]" % len(self._colnames)
+                "colnum out of range [0,%s-1]" % self._info["ncol"]
             )
-        return self._colnames[colnum]
+        return self._info["colnames"][colnum]
 
     def get_vstorage(self):
         """
@@ -324,7 +324,7 @@ class TableHDU(HDUBase):
             if isobj[i]:
                 self.write_var_column(name, data_list[i], firstrow=firstrow)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write_column(self, column, data, firstrow=0, **keys):
         """
@@ -365,7 +365,7 @@ class TableHDU(HDUBase):
             data_send = np.ascontiguousarray(data)
             # this is a copy, we can make sure it is native
             # and modify in place if needed
-            array_to_native(data_send, inplace=True)
+            data_send = array_to_native(data_send, inplace=True)
         else:
             # we can avoid the copy with a try-finally block and
             # some logic
@@ -387,7 +387,7 @@ class TableHDU(HDUBase):
         )
 
         del data_send
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def _verify_column_data(self, colnum, data):
         """
@@ -482,7 +482,7 @@ class TableHDU(HDUBase):
         self._FITS.write_var_column(
             self._ext + 1, colnum + 1, data, firstrow=firstrow + 1
         )
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def insert_column(
         self, name, data, colnum=None, write_bitcols=None, **keys
@@ -522,7 +522,7 @@ class TableHDU(HDUBase):
         if write_bitcols is None:
             write_bitcols = self.write_bitcols
 
-        if name in self._colnames:
+        if name in self._info["colnames"]:
             raise ValueError("column '%s' already exists" % name)
 
         if IS_PY3 and data.dtype.char == 'U':
@@ -561,7 +561,7 @@ class TableHDU(HDUBase):
 
         self._FITS.insert_col(self._ext + 1, new_colnum, name, fmt, tdim=dims)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
         self.write_column(name, data)
 
@@ -647,7 +647,7 @@ class TableHDU(HDUBase):
 
             self._FITS.delete_rows(self._ext + 1, rows)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def resize(self, nrows, front=False):
         """
@@ -693,7 +693,7 @@ class TableHDU(HDUBase):
                 firstrow = nrows_current
             self._FITS.insert_rows(self._ext + 1, firstrow, rowdiff)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def read(
         self,
@@ -1969,7 +1969,7 @@ class TableHDU(HDUBase):
         Extract an array of columns from the input
         """
         if columns is None:
-            return np.arange(self._ncol, dtype='i8')
+            return np.arange(self._info["ncol"], dtype='i8')
 
         if not isinstance(columns, (tuple, list, np.ndarray)):
             # is a scalar
@@ -1990,21 +1990,22 @@ class TableHDU(HDUBase):
         if isinteger(col):
             colnum = col
 
-            if (colnum < 0) or (colnum > (self._ncol - 1)):
+            if (colnum < 0) or (colnum > (self._info["ncol"] - 1)):
                 raise ValueError(
-                    "column number should be in [0,%d]" % (self._ncol - 1)
+                    "column number should be in [0,%d]"
+                    % (self._info["ncol"] - 1)
                 )
         else:
             colstr = mks(col)
             try:
                 if self.case_sensitive:
                     mess = "column name '%s' not found (case sensitive)" % col
-                    colnum = self._colnames.index(colstr)
+                    colnum = self._info["colnames"].index(colstr)
                 else:
                     mess = (
                         "column name '%s' not found (case insensitive)" % col
                     )
-                    colnum = self._colnames_lower.index(colstr.lower())
+                    colnum = self._info["colnames_lower"].index(colstr.lower())
             except ValueError:
                 raise ValueError(mess)
         return int(colnum)
@@ -2019,11 +2020,11 @@ class TableHDU(HDUBase):
             mess = "Extension %s is not a Table HDU" % self.ext
             raise ValueError(mess)
         if 'colinfo' in self._info:
-            self._colnames = [i['name'] for i in self._info['colinfo']]
-            self._colnames_lower = [
+            self._info["colnames"] = [i['name'] for i in self._info['colinfo']]
+            self._info["colnames_lower"] = [
                 i['name'].lower() for i in self._info['colinfo']
             ]
-            self._ncol = len(self._colnames)
+            self._info["ncol"] = len(self._info["colnames"])
 
     def __getitem__(self, arg):
         """
@@ -2632,6 +2633,7 @@ _table_fits2npy = {
     40: 'u4',  # 40=TULONG
     41: 'i4',  # 41=TLONG
     42: 'f4',
+    80: 'u8',  # 80=TULONGLON
     81: 'i8',
     82: 'f8',
     83: 'c8',  # TCOMPLEX
@@ -2663,6 +2665,7 @@ _table_npy2fits_form = {
     'u4': 'V',  # gets converted to signed
     'i4': 'J',
     'i8': 'K',
+    'u8': 'W',
     'f4': 'E',
     'f8': 'D',
     'c8': 'C',
@@ -2725,8 +2728,16 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
     if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
         raise ValueError("got S or U type: use _npy_string2fits")
 
-    if npy_dtype not in _table_npy2fits_form:
-        raise ValueError("unsupported type '%s'" % npy_dtype)
+    if table_type == 'binary':
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError(
+                "unsupported type '%s' for binary tables" % npy_dtype
+            )
+    else:
+        if npy_dtype not in _table_npy2fits_form_ascii:
+            raise ValueError(
+                "unsupported type '%s' for ascii tables" % npy_dtype
+            )
 
     if table_type == 'binary':
         form = _table_npy2fits_form[npy_dtype]

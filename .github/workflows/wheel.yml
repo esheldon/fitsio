@@ -43,7 +43,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
@@ -60,7 +60,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: whl-linux
           path: ./wheelhouse/*.whl
@@ -80,7 +80,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_BUILD: "*musllinux*"
           CIBW_ARCHS: auto64
@@ -105,14 +105,14 @@ jobs:
           pytest --pyargs fitsio
           deactivate
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: whl-musl
           path: ./wheelhouse/*.whl
 
   osx-intel:
     name: osx-intel
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v5
         with:
@@ -125,7 +125,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: auto64
@@ -143,7 +143,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: whl-macos
           path: ./wheelhouse/*.whl
@@ -163,7 +163,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: arm64
@@ -181,7 +181,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: whl-arm
           path: ./wheelhouse/*.whl
@@ -208,7 +208,7 @@ jobs:
           pip install -U build
 
       - name: download wheels
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: ./wheels
           pattern: whl-*

@@ -36,6 +36,11 @@ from .header import FITSHDR, FITSRecord, FITSCard
 from .hdu import BINARY_TBL, ASCII_TBL, IMAGE_HDU
 
 from . import util
-from .util import cfitsio_version, FITSRuntimeWarning, cfitsio_is_bundled
+from .util import (
+    cfitsio_version,
+    FITSRuntimeWarning,
+    cfitsio_is_bundled,
+)
+from ._fitsio_wrap import cfitsio_has_bzip2_support, cfitsio_has_curl_support
 
 from .fits_exceptions import FITSFormatError

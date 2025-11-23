@@ -1,15 +1,22 @@
 import os
 import tempfile
 
+import pytest
+
 # import warnings
 from .checks import check_header, compare_array
+from ..util import cfitsio_version, cfitsio_is_bundled
 import numpy as np
 from ..fitslib import FITS
 
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 3.44:
+    DTYPES += ["u8"]
 
 
-def test_image_write_read():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read(with_nan):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values
@@ -21,11 +28,14 @@ def test_image_write_read():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
+
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
                 rh = fits[-1].read_header()
                 check_header(header, rh)
@@ -35,7 +45,28 @@ def test_image_write_read():
                 assert not fits[i].is_compressed(), 'not compressed'
 
 
-def test_image_write_read_unaligned():
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+def test_image_write_read_bool(fname):
+    rng = np.random.RandomState(seed=10)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            a = rng.rand(10)
+            fits.write(a)
+            a = rng.rand(10) > 0.5
+            with pytest.raises(TypeError) as e:
+                fits.write(a)
+
+        assert "Unsupported numpy image datatype 0" in str(e)
+
+
+@pytest.mark.parametrize("with_nan", [False, True])
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_image_write_read_unaligned(dtype, with_nan):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values. The data from numpy is an unaligned view. The code
@@ -43,36 +74,97 @@ def test_image_write_read_unaligned():
     by hand to fix a bug.
     """
 
+    if (
+        dtype == ">f4" or ("f" in dtype and with_nan)
+    ) and not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "underflow handling. "
+                "See https://github.com/HEASARC/cfitsio/pull/102."
+            ),
+        )
+
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
             # note mixing up byte orders a bit
-            for dtype in DTYPES:
-                data = np.arange(20, dtype=dtype)
-                unaligned_data = np.ndarray(
-                    shape=(19,),
-                    dtype=data.dtype,
-                    buffer=data.data,
-                    offset=1,  # Offset by 1 byte
-                    strides=data.strides,
-                )
-                if not dtype.endswith("1"):
-                    assert not unaligned_data.flags["ALIGNED"]
-                header = {
-                    'DTYPE': dtype,
-                    'NBYTES': unaligned_data.dtype.itemsize,
-                }
-                fits.write_image(unaligned_data, header=header)
-                rdata = fits[-1].read()
+            data = np.arange(20, dtype=dtype)
+            unaligned_data = np.ndarray(
+                shape=(19,),
+                dtype=data.dtype,
+                buffer=data.data,
+                offset=1,  # Offset by 1 byte
+                strides=data.strides,
+            )
+            if not dtype.endswith("1"):
+                assert not unaligned_data.flags["ALIGNED"]
 
-                compare_array(unaligned_data, rdata, "images")
+            if "f" in dtype and with_nan:
+                unaligned_data[3] = np.nan
 
-                rh = fits[-1].read_header()
-                check_header(header, rh)
+            header = {
+                'DTYPE': dtype,
+                'NBYTES': unaligned_data.dtype.itemsize,
+            }
+            fits.write_image(unaligned_data, header=header)
+            rdata = fits[-1].read()
+
+            np.testing.assert_array_equal(unaligned_data, rdata)
+
+            rh = fits[-1].read_header()
+            check_header(header, rh)
 
         with FITS(fname) as fits:
-            for i in range(len(DTYPES)):
-                assert not fits[i].is_compressed(), 'not compressed'
+            assert not fits[0].is_compressed(), 'not compressed'
+
+
+@pytest.mark.parametrize("with_compression", [False, True])
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_subnormal_float32(with_nan, with_compression):
+    v = 8.82818e-44
+    v = [v] * 10
+    if with_nan:
+        v += [np.nan]
+    nv = np.array(v, dtype=np.float32)
+
+    if with_compression:
+        kwargs = {
+            "compress": "GZIP",
+            "qlevel": 0,
+        }
+    else:
+        kwargs = {}
+
+    with FITS("mem://", 'rw') as fits:
+        fits.write_image(nv, **kwargs)
+        rdata = fits[-1].read()
+
+        np.testing.assert_array_equal(rdata, nv)
+
+
+@pytest.mark.parametrize("with_compression", [False, True])
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_subnormal_float64(with_nan, with_compression):
+    v = 2.225073858507203e-309
+    v = [v] * 10
+    if with_nan:
+        v += [np.nan]
+    nv = np.array(v, dtype=np.float64)
+
+    if with_compression:
+        kwargs = {
+            "compress": "GZIP",
+            "qlevel": 0,
+        }
+    else:
+        kwargs = {}
+
+    with FITS("mem://", 'rw') as fits:
+        fits.write_image(nv, **kwargs)
+        rdata = fits[-1].read()
+
+        np.testing.assert_array_equal(rdata, nv)
 
 
 def test_image_write_empty():
@@ -101,7 +193,8 @@ def test_image_write_empty():
                 check_header(header, rh)
 
 
-def test_image_write_read_from_dims():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read_from_dims(with_nan):
     """
     Test creating an image from dims and writing in place
     """
@@ -113,20 +206,23 @@ def test_image_write_read_from_dims():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 20, dtype=dtype).reshape(5, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
                 fits[-1].write(data)
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
         with FITS(fname) as fits:
             for i in range(len(DTYPES)):
                 assert not fits[i].is_compressed(), "not compressed"
 
 
-def test_image_write_read_from_dims_chunks():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_write_read_from_dims_chunks(with_nan):
     """
     Test creating an image and reading/writing chunks
     """
@@ -138,6 +234,8 @@ def test_image_write_read_from_dims_chunks():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(5 * 3, dtype=dtype).reshape(5, 3)
+                if "f" in dtype and with_nan:
+                    data[3, 1] = np.nan
 
                 fits.create_image_hdu(dims=data.shape, dtype=data.dtype)
 
@@ -155,7 +253,7 @@ def test_image_write_read_from_dims_chunks():
 
                 rdata = fits[-1].read()
 
-                compare_array(data, rdata, "images")
+                np.testing.assert_array_equal(data, rdata)
 
                 #
                 # now using sequence, easier to calculate
@@ -171,14 +269,15 @@ def test_image_write_read_from_dims_chunks():
 
                 rdata2 = fits[-1].read()
 
-                compare_array(data, rdata2, "images")
+                np.testing.assert_array_equal(data, rdata2)
 
         with FITS(fname) as fits:
             for i in range(len(DTYPES)):
                 assert not fits[i].is_compressed(), "not compressed"
 
 
-def test_image_slice():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_slice(with_nan):
     """
     test reading an image slice
     """
@@ -189,12 +288,15 @@ def test_image_slice():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
+
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
 
                 fits.write_image(data, header=header)
                 rdata = fits[-1][4:12, 9:17]
 
-                compare_array(data[4:12, 9:17], rdata, "images")
+                np.testing.assert_array_equal(data[4:12, 9:17], rdata)
 
                 rh = fits[-1].read_header()
                 check_header(header, rh)
@@ -208,7 +310,8 @@ def _check_shape(expected_data, rdata):
     np.testing.assert_array_equal(expected_data, rdata, mess)
 
 
-def test_read_flip_axis_slice():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_read_flip_axis_slice(with_nan):
     """
     Test reading a slice when the slice's start is less than the slice's stop.
     """
@@ -217,8 +320,10 @@ def test_read_flip_axis_slice():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            dtype = np.int16
+            dtype = np.float32
             data = np.arange(100 * 200, dtype=dtype).reshape(100, 200)
+            if with_nan:
+                data[3, 13] = np.nan
             fits.write_image(data)
             hdu = fits[-1]
             rdata = hdu[:, 130:70]
@@ -251,7 +356,8 @@ def test_read_flip_axis_slice():
             _check_shape(expected_data, rdata)
 
 
-def test_image_slice_striding():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_image_slice_striding(with_nan):
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
@@ -259,6 +365,8 @@ def test_image_slice_striding():
             # note mixing up byte orders a bit
             for dtype in DTYPES:
                 data = np.arange(16 * 20, dtype=dtype).reshape(16, 20)
+                if "f" in dtype and with_nan:
+                    data[3, 13] = np.nan
                 header = {'DTYPE': dtype, 'NBYTES': data.dtype.itemsize}
                 fits.write_image(data, header=header)
 
@@ -267,12 +375,13 @@ def test_image_slice_striding():
                 assert rdata.shape == expected_data.shape, (
                     "Shapes differ with dtype %s" % dtype
                 )
-                compare_array(
+                np.testing.assert_array_equal(
                     expected_data, rdata, "images with dtype %s" % dtype
                 )
 
 
-def test_read_ignore_scaling():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_read_ignore_scaling(with_nan):
     """
     Test the flag to ignore scaling when reading an HDU.
     """
@@ -282,6 +391,8 @@ def test_read_ignore_scaling():
         with FITS(fname, 'rw') as fits:
             dtype = 'i2'
             data = np.arange(10 * 20, dtype=dtype).reshape(10, 20)
+            if "f" in dtype and with_nan:
+                data[3, 13] = np.nan
             header = {
                 'DTYPE': dtype,
                 'BITPIX': 16,
@@ -314,3 +425,382 @@ def test_read_ignore_scaling():
                 rdata,
                 err_msg='Wrong scaled data returned.',
             )
+
+
+@pytest.mark.parametrize(
+    "compress_kws",
+    [
+        {},
+        {
+            "compress": "RICE",
+            "tile_dims": (3, 1, 2),
+            "qlevel": 2048,
+            "dither_seed": 10,
+        },
+        {
+            "compress": "GZIP",
+            "tile_dims": (3, 1, 2),
+            "qlevel": 0,
+            "dither_seed": 10,
+        },
+    ],
+)
+@pytest.mark.parametrize("with_nan", [False, True])
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+@pytest.mark.parametrize("sx", [0, 6, 9])
+@pytest.mark.parametrize("sy", [0, 3, 4])
+@pytest.mark.parametrize("sz", [0, 2, 5])
+def test_image_write_subset_3d(sx, sy, sz, fname, with_nan, compress_kws):
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(300).reshape(6, 5, 10).astype(np.float32)
+    img2 = (rng.normal(size=30).reshape(3, 2, 5) * 1000).astype(np.float32)
+    if with_nan:
+        img2[0, 1, 2] = np.nan
+
+    if compress_kws and (sx > 5 or sy > 3 or sz > 3):
+        pytest.skip(reason="tile-compressed fits images cannot be resized!")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img, **compress_kws)
+            if compress_kws:
+                fits[1].write(img2, start=[sz, sy, sx])
+                img_final = fits[1].read()
+            else:
+                fits[0].write(img2, start=[sz, sy, sx])
+                img_final = fits[0].read()
+
+        if (
+            "compress" in compress_kws
+            and compress_kws.get("qlevel", np.inf) != 0
+        ):
+            np.testing.assert_allclose(
+                img_final[
+                    sz : sz + img2.shape[0],
+                    sy : sy + img2.shape[1],
+                    sx : sx + img2.shape[2],
+                ],
+                img2,
+            )
+        else:
+            np.testing.assert_array_equal(
+                img_final[
+                    sz : sz + img2.shape[0],
+                    sy : sy + img2.shape[1],
+                    sx : sx + img2.shape[2],
+                ],
+                img2,
+            )
+
+
+@pytest.mark.parametrize(
+    "compress_kws",
+    [
+        {},
+        {
+            "compress": "RICE",
+            "tile_dims": (5, 2),
+            "qlevel": 128,
+            "dither_seed": 10,
+        },
+        {"compress": "GZIP", "tile_dims": (5, 2), "qlevel": 0},
+    ],
+)
+@pytest.mark.parametrize("with_nan_base_img", [False, True])
+@pytest.mark.parametrize("with_nan", [False, True])
+@pytest.mark.parametrize(
+    "fname",
+    [
+        "mem://",
+        "test.fits",
+    ],
+)
+@pytest.mark.parametrize("sx", [0, 1, 9])
+@pytest.mark.parametrize("sy", [0, 1, 9])
+@pytest.mark.parametrize("xnan", [0, 1, 9])
+@pytest.mark.parametrize("ynan", [0, 1, 9])
+def test_image_write_subset_2d(
+    sx, sy, fname, with_nan, compress_kws, with_nan_base_img, xnan, ynan
+):
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(100).reshape(10, 10)
+    nse = rng.normal(size=100).reshape(10, 10)
+    img = (img + 1e-4 * nse).reshape(10, 10).astype(np.float32)
+    img2 = (10 + rng.normal(size=6).reshape(3, 2)).astype(np.float32)
+    if with_nan_base_img:
+        img[ynan, xnan] = np.nan
+    if with_nan:
+        img2[1, 0] = np.nan
+
+    if compress_kws and (sx > 8 or sy > 7):
+        pytest.skip(reason="tile-compressed fits images cannot be resized!")
+
+    if compress_kws and (sx == 9 or sy == 9):
+        pytest.skip(reason="tile-compressed fits images cannot be resized!")
+
+    # these test cases have the subset image img2 overlapping two
+    # different compressed image tiles which causes a bug when
+    # combined with one of the tiles changing its compression type
+    # due to an edge case in the compression algorithm
+    partial_overlap_str = f"{xnan}-{ynan}-{sx}-{sy}"
+    partial_overlap_str_cases = [
+        "0-0-0-1",
+        "0-0-1-0",
+        "0-0-1-1",
+        "0-1-1-0",
+        "0-1-1-1",
+        "1-0-0-1",
+        "1-0-1-1",
+    ]
+    if (
+        with_nan
+        and with_nan_base_img
+        and partial_overlap_str in partial_overlap_str_cases
+        and not cfitsio_is_bundled()
+        and compress_kws
+        and compress_kws.get("qlevel", 0) > 0
+    ):
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug for "
+                "overwriting tile-compressed images in an edge case. "
+                "See https://github.com/HEASARC/cfitsio/pull/101."
+            ),
+        )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img, **compress_kws)
+
+            if compress_kws:
+                img_final = fits[1].read()
+            else:
+                img_final = fits[0].read()
+
+            np.testing.assert_allclose(
+                img,
+                img_final,
+                atol=1e-3,
+                rtol=0.2,
+            )
+
+            if compress_kws:
+                fits[1].write(img2, start=[sy, sx])
+            else:
+                fits[0].write(img2, start=[sy, sx])
+
+            if compress_kws:
+                img_final = fits[1].read()
+            else:
+                img_final = fits[0].read()
+
+            if compress_kws:
+                img_final_slice = fits[1][
+                    sy : sy + img2.shape[0], sx : sx + img2.shape[1]
+                ]
+            else:
+                img_final_slice = fits[0][
+                    sy : sy + img2.shape[0], sx : sx + img2.shape[1]
+                ]
+
+        if (
+            "compress" in compress_kws
+            and compress_kws.get("qlevel", np.inf) != 0
+        ):
+            np.testing.assert_allclose(
+                img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+                img2,
+                atol=0,
+                rtol=0.2,
+            )
+        else:
+            np.testing.assert_array_equal(
+                img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+                img2,
+            )
+
+        np.testing.assert_array_equal(
+            img_final[sy : sy + img2.shape[0], sx : sx + img2.shape[1]],
+            img_final_slice,
+        )
+
+
+@pytest.mark.parametrize("with_nan", [False, True])
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+@pytest.mark.parametrize("sx", [0, 13, 99])
+def test_image_write_subset_1d(sx, fname, with_nan):
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(100)
+    img2 = (rng.normal(size=6) * 1000).astype(np.int_)
+    if with_nan:
+        img = img.astype(np.float32)
+        img2 = img2.astype(np.float32)
+        img2[5] = np.nan
+
+    for _sx in [sx, [sx]]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            if "mem://" not in fname:
+                fpth = os.path.join(tmpdir, fname)
+            else:
+                fpth = fname
+
+            with FITS(fpth, "rw") as fits:
+                fits.write(img)
+                fits[0].write(img2, start=_sx)
+                img_final = fits[0].read()
+
+            np.testing.assert_array_equal(
+                img_final[sx : sx + img2.shape[0]],
+                img2,
+            )
+
+
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+@pytest.mark.parametrize(
+    "shape,reshape",
+    [
+        ((6, 5, 10), (10, 12, 23)),
+        ((1,), (10,)),
+        ((6, 5), (10, 12)),
+        ((6, 5, 10), (3, 2, 7)),
+        ((10,), (3,)),
+        ((10, 5), (12, 2)),
+    ],
+)
+def test_image_reshape(shape, reshape, fname):
+    img = np.arange(int(np.prod(shape))).reshape(shape)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            fits[0].reshape(reshape)
+            img_final = fits[0].read()
+
+        nel = img.ravel().shape[0]
+        nel_final = img_final.ravel().shape[0]
+        min_nel = min(nel, nel_final)
+        assert np.array_equal(
+            img_final.ravel()[:min_nel],
+            img.ravel()[:min_nel],
+        )
+        if nel_final > nel:
+            assert np.array_equal(
+                img_final.ravel()[nel:],
+                np.zeros(nel_final - nel),
+            )
+
+
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+@pytest.mark.parametrize(
+    "dims",
+    [
+        ((1,)),
+        (
+            (
+                2,
+                3,
+            )
+        ),
+        (
+            4,
+            5,
+            6,
+        ),
+    ],
+)
+def test_image_write_subset_raises(dims, fname):
+    ndims = len(dims)
+    rng = np.random.RandomState(seed=10)
+    img = np.arange(int(np.prod(dims))).reshape(dims)
+    exdims = dims + (5,)
+    img2 = (
+        rng.normal(size=int(np.prod(exdims))).reshape(exdims) * 1000
+    ).astype(np.int_)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            with pytest.raises(ValueError) as err:
+                fits[0].write(img2, start=0)
+            assert (
+                "the input image must have the same number of dimensions"
+                in str(err.value)
+            )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(img)
+            if ndims > 1:
+                with pytest.raises(ValueError) as err:
+                    fits[0].write(img2[..., 0], start=9999)
+                assert (
+                    "the start keyword must have the same number of dimensions"
+                    in str(err.value)
+                )
+            else:
+                fits[0].write(img2[..., 0], start=9999)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "fpth" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS("mem://", "rw") as fits:
+            fits.write(img)
+            if ndims > 1:
+                fits[0].write(img2[..., :-1, 0], start=1)
+            else:
+                fits[0].write(img2[..., 0], start=1)
+
+
+def test_image_read_write_ulonglong():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with FITS(fname, 'rw') as fits:
+            data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
+            header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(TypeError) as e:
+                    fits.write_image(data, header=header)
+                assert (
+                    "Unsigned 8 byte integer images are not supported "
+                    "by the FITS standard" in str(e.value)
+                )
+            else:
+                fits.write_image(data, header=header)
+                rdata = fits[-1].read()
+
+                compare_array(data, rdata, "images")
+
+                rh = fits[-1].read_header()
+                check_header(header, rh)
+
+        if CFITSIO_VERSION >= 3.45:
+            with FITS(fname) as fits:
+                assert not fits[0].is_compressed(), 'not compressed'

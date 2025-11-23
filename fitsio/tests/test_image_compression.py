@@ -5,7 +5,6 @@ import tempfile
 from .checks import (
     # check_header,
     compare_array,
-    compare_array_abstol,
 )
 import numpy as np
 from ..fitslib import (
@@ -14,10 +13,17 @@ from ..fitslib import (
     write,
     RICE_1,
     SUBTRACTIVE_DITHER_1,
+    GZIP_1,
+    GZIP_2,
+    PLIO_1,
+    HCOMPRESS_1,
 )
-from ..util import cfitsio_is_bundled
+from ..util import cfitsio_is_bundled, cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -33,7 +39,7 @@ from ..util import cfitsio_is_bundled
 @pytest.mark.parametrize(
     'dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
 )
-def test_compressed_write_read(compress, dtype):
+def test_compressed_write_read(compress, dtype, with_nan):
     """
     Test writing and reading a rice compressed image
     """
@@ -69,27 +75,34 @@ def test_compressed_write_read(compress, dtype):
                 dtype=dtype,
             ).reshape(nrows, ncols)
 
+        if "f" in dtype and with_nan and compress != "plio":
+            data[3, 11] = np.nan
+
         csend = compress.replace('_lossless', '')
         write(fname, data, compress=csend, qlevel=qlevel)
         rdata = read(fname, ext=1)
 
         if 'lossless' in compress or dtype[0] in ['i', 'u']:
-            compare_array(
-                data, rdata, "%s compressed images ('%s')" % (compress, dtype)
+            np.testing.assert_array_equal(
+                data,
+                rdata,
+                err_msg="%s compressed images ('%s')" % (compress, dtype),
             )
         else:
             # lossy floating point
-            compare_array_abstol(
+            np.testing.assert_allclose(
                 data,
                 rdata,
-                0.2,
-                "%s compressed images ('%s')" % (compress, dtype),
+                rtol=0,
+                atol=0.2,
+                err_msg="%s compressed images ('%s')" % (compress, dtype),
             )
 
         with FITS(fname) as fits:
             assert fits[1].is_compressed(), "is compressed"
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -105,7 +118,7 @@ def test_compressed_write_read(compress, dtype):
 @pytest.mark.parametrize(
     'dtype', ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'f4', 'f8']
 )
-def test_compressed_write_read_fitsobj(compress, dtype):
+def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
     """
     Test writing and reading a rice compressed image
 
@@ -160,6 +173,9 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                     dtype=dtype,
                 ).reshape(nrows, ncols)
 
+            if "f" in dtype and with_nan and compress != "plio":
+                data[3, 11] = np.nan
+
             csend = compress.replace('_lossless', '')
             fits.write_image(data, compress=csend, qlevel=qlevel)
             rdata = fits[-1].read()
@@ -168,18 +184,19 @@ def test_compressed_write_read_fitsobj(compress, dtype):
                 # for integers we have chosen a wide range of values, so
                 # there will be no quantization and we expect no
                 # information loss
-                compare_array(
+                np.testing.assert_array_equal(
                     data,
                     rdata,
                     "%s compressed images ('%s')" % (compress, dtype),
                 )
             else:
                 # lossy floating point
-                compare_array_abstol(
+                np.testing.assert_allclose(
                     data,
                     rdata,
-                    0.2,
-                    "%s compressed images ('%s')" % (compress, dtype),
+                    rtol=0,
+                    atol=0.2,
+                    err_msg="%s compressed images ('%s')" % (compress, dtype),
                 )
 
         with FITS(fname) as fits:
@@ -187,6 +204,7 @@ def test_compressed_write_read_fitsobj(compress, dtype):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
+@pytest.mark.skipif(CFITSIO_VERSION < 3.49, reason='bug in cfitsio < 3.49')
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
@@ -204,7 +222,8 @@ def test_gzip_tile_compressed_read_lossless_astropy():
     compare_array(data, data * 0.0, "astropy lossless compressed image")
 
 
-def test_compress_preserve_zeros():
+@pytest.mark.parametrize("with_nan", [False, True])
+def test_compress_preserve_zeros(with_nan):
     """
     Test writing and reading gzip compressed image
     """
@@ -229,6 +248,8 @@ def test_compress_preserve_zeros():
                     data = rng.normal(size=5 * 20).reshape(5, 20).astype(dtype)
                     for zind in zinds:
                         data[zind[0], zind[1]] = 0.0
+                    if with_nan:
+                        data[3, 15] = np.nan
 
                     fits.write_image(
                         data,
@@ -240,8 +261,11 @@ def test_compress_preserve_zeros():
 
                     for zind in zinds:
                         assert rdata[zind[0], zind[1]] == 0.0
+                    if with_nan:
+                        assert np.isnan(rdata[3, 15])
 
 
+@pytest.mark.parametrize("with_nan", [False, True])
 @pytest.mark.parametrize(
     'compress',
     [
@@ -262,7 +286,9 @@ def test_compress_preserve_zeros():
     'dtype',
     ['f4', 'f8'],
 )
-def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
+def test_compressed_seed(
+    compress, seed_type, use_fits_object, dtype, with_nan
+):
     """
     Test writing and reading a rice compressed image
     """
@@ -298,6 +324,9 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         if compress == 'plio':
             data = data.clip(min=0)
         data = data.astype(dtype)
+
+        if "f" in dtype and with_nan and compress != "plio":
+            data[3, 11] = np.nan
 
         if use_fits_object:
             with FITS(fname1, 'rw') as fits1:
@@ -343,9 +372,17 @@ def test_compressed_seed(compress, seed_type, use_fits_object, dtype):
         mess = "%s compressed images ('%s')" % (compress, dtype)
 
         if seed_type in ['checksum', 'checksum_int', 'matched']:
-            assert np.all(rdata1 == rdata2), mess
+            np.testing.assert_array_equal(rdata1, rdata2, mess)
         else:
-            assert np.all(rdata1 != rdata2), mess
+            with pytest.raises(AssertionError):
+                np.testing.assert_array_equal(rdata1, rdata2, mess)
+
+        if "f" in dtype and with_nan and compress != "plio":
+            assert np.isnan(rdata1[3, 11])
+            assert np.isnan(rdata2[3, 11])
+        else:
+            assert np.all(np.isfinite(rdata1))
+            assert np.all(np.isfinite(rdata2))
 
 
 @pytest.mark.parametrize(
@@ -475,21 +512,62 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
         F.write(img, dither_seed=10)
 
 
-@pytest.mark.xfail(
-    not cfitsio_is_bundled(),
-    reason=(
-        "Non-bundled cfitsio libraries have a bug. "
-        "See https://github.com/HEASARC/cfitsio/pull/97."
-    ),
+@pytest.mark.parametrize(
+    "compress",
+    [
+        RICE_1,
+        GZIP_1,
+        GZIP_2,
+        PLIO_1,
+        HCOMPRESS_1,
+    ],
 )
-def test_image_compression_inmem_lossessgzip_int():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.uint8,
+        np.int8,
+        np.uint16,
+        np.int16,
+        np.uint32,
+        np.int32,
+    ],
+)
+@pytest.mark.parametrize("fname", ["mem://", "test.fits"])
+def test_image_compression_inmem_lossess_int(compress, dtype, fname):
+    if not cfitsio_is_bundled():
+        pytest.xfail(
+            reason=(
+                "Non-bundled cfitsio libraries have a bug. "
+                "See https://github.com/HEASARC/cfitsio/pull/97 "
+                "and https://github.com/HEASARC/cfitsio/pull/99."
+            ),
+        )
+    if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
+        pytest.skip(
+            reason="PLIO lossless compression of int16, uint32, and "
+            "int32 types is not supported by cfitsio",
+        )
     rng = np.random.RandomState(seed=10)
-    img = rng.normal(size=(300, 300)).astype(np.int32)
-    with FITS('mem://', 'rw') as F:
-        F.write(img, compress='GZIP', qlevel=0)
-        rimg = F[-1].read()
-        assert rimg is not None
-        assert np.array_equal(rimg, img)
+    img = rng.normal(size=(300, 300))
+    if dtype in [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+    ]:
+        img = np.abs(img)
+    img = img.astype(dtype)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, 'rw') as F:
+            F.write(img, compress=compress, qlevel=0)
+            rimg = F[-1].read()
+            assert rimg is not None
+            assert np.array_equal(rimg, img)
 
 
 def test_image_compression_inmem_lossessgzip_int_zeros():
@@ -582,6 +660,139 @@ def test_image_compression_big_gzip(coef):
             assert len(h) == nHDU + 1
             for k, name in zip([0, 1, -1], ["A", "B", "E"]):
                 assert np.array_equal(h[-1][name][:], out_list[k])
+@pytest.mark.parametrize("nan_value", [np.nan, np.inf, -np.inf])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize(
+    "fname",
+    [
+        "test.fits",
+        "mem://",
+    ],
+)
+def test_image_compression_nulls(fname, dtype, nan_value):
+    data = np.arange(36).reshape((6, 6)).astype(dtype)
+    data[1, 1] = nan_value
+
+    # everything comes back as nan
+    if nan_value is not np.nan:
+        msk = ~np.isfinite(data)
+        cdata = data.copy()
+        cdata[msk] = np.nan
+    else:
+        cdata = data
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(
+                data,
+                compress='RICE_1',
+                tile_dims=(3, 3),
+                dither_seed=10,
+                qlevel=2,
+            )
+            read_data = fits[1].read()
+
+            np.testing.assert_allclose(
+                read_data,
+                cdata,
+            )
+
+        if "mem://" not in fpth:
+            with FITS(fpth, "r") as fits:
+                read_data = fits[1].read()
+                np.testing.assert_allclose(
+                    read_data,
+                    cdata,
+                )
+
+
+@pytest.mark.parametrize(
+    "compress,qlevel",
+    [
+        ("RICE_1", 4),
+        ("GZIP", 0),
+    ],
+)
+@pytest.mark.parametrize("ncols", [8, 9, 10, 11, 12])
+def test_image_compression_nulls_patches_with_subnormal(
+    compress, qlevel, ncols
+):
+    rng = np.random.RandomState(seed=10)
+    data = np.arange(ncols * 4).reshape((4, ncols)).astype(np.float32)
+    data += rng.normal(scale=0.5, size=data.shape)
+    data[1, 0] = np.nan
+    data[1, 1:] = 8.82818e-44
+
+    data[2, 0] = np.nan
+    data[2, 1:] = 5.0
+
+    with FITS("mem://", "rw") as fits:
+        fits.write(
+            data,
+            compress=compress,
+            tile_dims=(1, ncols),
+            dither_seed=10,
+            qlevel=qlevel,
+        )
+        read_data = fits[1].read()
+        read_slice1 = fits[1][1, :][0]
+        read_slice2 = fits[1][2, :][0]
+
+        assert np.isnan(read_data[1, 0])
+        assert np.isnan(read_slice1[0])
+        assert np.isnan(read_slice2[0])
+
+        if qlevel > 0:
+            np.testing.assert_allclose(
+                read_data,
+                data,
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice1,
+                data[1, :],
+                rtol=0,
+                atol=0.1,
+            )
+            np.testing.assert_allclose(
+                read_slice2,
+                data[2, :],
+                rtol=0,
+                atol=0.1,
+            )
+            hdr = fits[1].read_header()
+            if "TTYPE4" in hdr and hdr["TTYPE4"] == "GZIP_COMPRESSED_DATA":
+                # in this case, cfitsio finds zero variance in the compressed
+                # tile and so uses GZIP to compress the data losslessly.
+                # however, on read, we send nullcheck=NAN and as a side
+                # effect the subnormal float value in this row gets truncated
+                # to zero
+                np.testing.assert_array_equal(read_data[1, 1:], 0.0)
+                np.testing.assert_array_equal(read_slice1[1:], 0.0)
+
+                # this does not happen for row index 2 which doesn't have
+                # subnormal float values
+                np.testing.assert_array_equal(read_data[2, 1:], 5.0)
+                np.testing.assert_array_equal(read_slice2[1:], 5.0)
+        else:
+            np.testing.assert_array_equal(
+                read_data,
+                data,
+            )
+            np.testing.assert_array_equal(
+                read_slice1,
+                data[1, :],
+            )
+            np.testing.assert_array_equal(
+                read_slice2,
+                data[2, :],
+            )
 
 
 if __name__ == '__main__':

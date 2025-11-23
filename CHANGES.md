@@ -9,9 +9,29 @@ Changes
       image compression parameters now use this singleton.
       However, the actual underlying defaults used have not
       changed.
-    - Added a a new function `fitsio.cfitsio_is_bundled()`
+    - Added a new function `fitsio.cfitsio_is_bundled()`
       that detects if the cfitsio library is bundled with
       the Python code.
+    - Enabled the code to track all cfitsio error messages,
+      including those put onto the internal stack and then
+      later removed. This feature should help with debugging.
+    - Added support for uint64 / ULONLONG data for binary tables
+      and images. You need cfitsio version at least 4.1.0 (or
+      to use the bundled cfitsio) for this feature to work.
+    - Installation of fitsio will fail if the `patch` command
+      line utility is missing. To prevent this, set the environment
+      variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
+    - The C code is now styled uniformly with clang-format.
+    - Updated bundled cfitsio to 4.6.3.
+    - Added utilities `cfitsio_has_bzip2_support` and
+      `cfitsio_has_curl_support` to detect at run-time if cfitsio
+      was built with these options.
+    - Added methods `delete_key` and `delete_keys` to HDUs to allow
+      deleting header keys.
+    - HDU info loading is now done lazily.
+    - Changed string handling in python 3 to allow for correct
+      null-terminated behavior when linking to external builds
+      of cfitsio at version 4 or larger.
 
 Bug Fixes
 
@@ -28,8 +48,20 @@ Bug Fixes
       compression parameters are specified in the filename.
     - Fixed bugs in lossless GZIP compression of integer types. See the
       new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
-      for the upstream PR for the patch.
+      and https://github.com/HEASARC/cfitsio/pull/98 for the upstream PR for the patch.
     - Fixed a bug where compression parameters were cached across different HDUs.
+    - Fixed a bug where writing unsupported image types either did not raise an error
+      or did not raise the correct error.
+    - Fixed a bug where rectangular subsets of images were not written properly.
+    - Fixed automatic detection of bzip2 and curl libraries.
+    - Fixed handling nan values when reading and writing compressed images.
+    - Fixed bug in cfitsio where underflows were cast to zero when handling
+      nan values. See https://github.com/HEASARC/cfitsio/pull/102.
+    - Fixed bug in cfitsio where overwriting a tile-compressed image fails
+      when the new values are not lossily compressed but the old values were.
+      See https://github.com/HEASARC/cfitsio/pull/101.
+    - Fixed a bug where the FITS HDU properties could go out of sync as header
+      keys were added, modified, etc.
 
 version 1.2.8
 -------------

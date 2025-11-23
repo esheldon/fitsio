@@ -2,7 +2,9 @@ import sys
 import numpy as np
 from functools import lru_cache
 
-from .._fitsio_wrap import cfitsio_use_standard_strings
+from ..util import cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
 lorem_ipsum = (
     'Lorem ipsum dolor sit amet, consectetur adipiscing '
@@ -63,7 +65,17 @@ def make_data():
         ('Sarr', Sdtype, ashape),
     ]
 
-    if cfitsio_use_standard_strings():
+    if CFITSIO_VERSION > 4:
+        dtype += [
+            ('u8scalar', 'u8'),
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+        ]
+
+    # cfitsio 3 or earlier does not
+    # handle non-space padded strings
+    # properly
+    if CFITSIO_VERSION >= 4:
         dtype += [
             ('Sscalar_nopad', Sdtype),
             ('Svec_nopad', Sdtype, nvec),
@@ -77,7 +89,10 @@ def make_data():
             ('Uarr', Udtype, ashape),
         ]
 
-        if cfitsio_use_standard_strings():
+        # cfitsio 3 or earlier does not
+        # handle non-space padded strings
+        # properly
+        if CFITSIO_VERSION >= 4:
             dtype += [
                 ('Uscalar_nopad', Udtype),
                 ('Uvec_nopad', Udtype, nvec),
@@ -106,6 +121,9 @@ def make_data():
         'c8',
         'c16',
     ]
+    if CFITSIO_VERSION > 4:
+        dtypes += ["u8"]
+
     for t in dtypes:
         if t in ['c8', 'c16']:
             data[t + 'scalar'] = [
@@ -154,7 +172,10 @@ def make_data():
     s = ['%-6s' % el for el in s]
     data['Sarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-    if cfitsio_use_standard_strings():
+    # cfitsio 3 or earlier does not
+    # handle non-space padded strings
+    # properly
+    if CFITSIO_VERSION >= 4:
         data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
         data['Svec_nopad'][:, 0] = 'hello'
         data['Svec_nopad'][:, 1] = 'world'
@@ -174,7 +195,10 @@ def make_data():
         s = ['%-6s' % el for el in s]
         data['Uarr'] = np.array(s).reshape(nrows, ashape[0], ashape[1])
 
-        if cfitsio_use_standard_strings():
+        # cfitsio 3 or earlier does not
+        # handle non-space padded strings
+        # properly
+        if CFITSIO_VERSION >= 4:
             data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
             data['Uvec_nopad'][:, 0] = 'hello'
             data['Uvec_nopad'][:, 1] = 'world'
@@ -319,6 +343,13 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
+    if CFITSIO_VERSION > 4:
+        dtype += [
+            ('u8vec', 'u8', nvec),
+            ('u8arr', 'u8', ashape),
+            ('u8scalar', 'i8'),
+            ('u8obj', 'O'),
+        ]
 
     if sys.version_info > (3, 0, 0):
         dtype += [
@@ -330,7 +361,10 @@ def make_data():
     nrows = 4
     vardata = np.zeros(nrows, dtype=dtype)
 
-    for t in ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']:
+    _dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']
+    if CFITSIO_VERSION > 4:
+        _dtypes += ["u8"]
+    for t in _dtypes:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
         vardata[t + 'vec'] = 1 + np.arange(nrows * nvec, dtype=t).reshape(
             nrows,

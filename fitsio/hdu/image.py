@@ -22,13 +22,17 @@ See the main docs at https://github.com/esheldon/fitsio
 """
 
 from __future__ import with_statement, print_function
-from functools import reduce
 
 import numpy
 
 from math import floor
 from .base import HDUBase, IMAGE_HDU
-from ..util import IS_PY3, array_to_native, copy_if_needed
+from ..util import (
+    IS_PY3,
+    array_to_native,
+    copy_if_needed,
+    _nonfinite_as_cfitsio_floating_null_value,
+)
 
 # for python3 compat
 if IS_PY3:
@@ -94,6 +98,19 @@ class ImageHDU(HDUBase):
         """
         reshape an existing image to the requested dimensions
 
+        If the new shape is bigger than the current shape,
+        the existing values in the image are "wrapped" around in C
+        order, via the process of
+
+            1. flattening the image in C order
+            2. appending zeros to the image so that it matches the new
+               total size
+            3. reshaping the image to the new dimensions
+
+        If the new shape is smaller than the current image, the current
+        image is flattened, trunctaed to the new total length, and then
+        reshaped to the new shape.
+
         parameters
         ----------
         dims: sequence
@@ -101,7 +118,10 @@ class ImageHDU(HDUBase):
         """
 
         adims = numpy.array(dims, ndmin=1, dtype='i8')
-        self._FITS.reshape_image(self._ext + 1, adims)
+        # we have to reverse the dimensions here since cfitsio
+        # uses fortran order
+        self._FITS.reshape_image(self._ext + 1, adims[::-1])
+        self._cached_info = None  # invalidate info cache
 
     def write(self, img, start=0, **keys):
         """
@@ -132,8 +152,6 @@ class ImageHDU(HDUBase):
                 stacklevel=2,
             )
 
-        dims = self.get_dims()
-
         if img.dtype.fields is not None:
             raise ValueError("got recarray, expected regular ndarray")
         if img.size == 0:
@@ -143,7 +161,7 @@ class ImageHDU(HDUBase):
         if not img.flags['C_CONTIGUOUS']:
             # this always makes a copy
             img_send = numpy.ascontiguousarray(img)
-            array_to_native(img_send, inplace=True)
+            img_send = array_to_native(img_send, inplace=True)
         else:
             img_send = array_to_native(img, inplace=False)
 
@@ -152,20 +170,78 @@ class ImageHDU(HDUBase):
             # this will error if the character is not in ascii
             img_send = img_send.astype('S', copy=copy_if_needed)
 
-        if not numpy.isscalar(start):
-            # convert to scalar offset
-            # note we use the on-disk data type to get itemsize
-
-            offset = _convert_full_start_to_offset(dims, start)
-        else:
-            offset = start
-
         # see if we need to resize the image
         if self.has_data():
-            self._expand_if_needed(dims, img.shape, start, offset)
+            self._expand_if_needed(self.get_dims(), img.shape, start)
+            dims = self.get_dims()
 
-        self._FITS.write_image(self._ext + 1, img_send, offset + 1)
-        self._update_info()
+            if numpy.isscalar(start):
+                start = numpy.unravel_index(start, dims)
+
+            if all(od == nd for od, nd in zip(dims, img.shape)) and all(
+                st == 0 for st in start
+            ):
+                # we are replacing the whole image, so no need to
+                # write a subset
+                write_subset = False
+            else:
+                write_subset = True
+        else:
+            write_subset = False
+
+        with _nonfinite_as_cfitsio_floating_null_value(
+            img_send, self.is_compressed()
+        ) as img_send_any_nan:
+            img_send, any_nan = img_send_any_nan
+            if not write_subset:
+                # write in image at start in a single pass
+                offset = 0
+                self._FITS.write_image(
+                    self._ext + 1,
+                    img_send,
+                    offset + 1,
+                    1 if any_nan else 0,
+                )
+            else:
+                if not any_nan and not self.is_compressed():
+                    firstpixel = numpy.array(start, ndmin=1, dtype='i8')
+                    # lastpixel is the index of the lastpixel so subtract 1
+                    lastpixel = (
+                        firstpixel
+                        + numpy.array(img_send.shape, ndmin=1, dtype='i8')
+                        - 1
+                    )
+
+                    # we have to reverse the dimensions here since cfitsio
+                    # uses fortran order and offset by 1 for fortan indexing
+                    firstpixel = firstpixel[::-1] + 1
+                    lastpixel = lastpixel[::-1] + 1
+
+                    self._FITS.write_subset(
+                        self._ext + 1, img_send, firstpixel, lastpixel
+                    )
+                else:
+                    # the C API doesn't support nan handling w/ rectangular
+                    # subsets, so emulate in python
+                    # go "row by row" but in more than two dimensions
+                    ndims = len(dims)
+                    for index in numpy.ndindex(*(img_send.shape[:-1])):
+                        new_start = [
+                            start[i] + index[i] for i in range(ndims - 1)
+                        ]
+                        new_start += [start[-1]]
+                        offset = _convert_full_start_to_offset(dims, new_start)
+                        img_slice = tuple(
+                            [slice(ns, ns + 1) for ns in index]
+                        ) + (slice(None),)
+                        self._FITS.write_image(
+                            self._ext + 1,
+                            img_send[img_slice],
+                            offset + 1,
+                            1 if any_nan else 0,
+                        )
+
+        self._cached_info = None  # invalidate info cache
 
     def read(self, **keys):
         """
@@ -343,57 +419,64 @@ class ImageHDU(HDUBase):
         )
         return array
 
-    def _expand_if_needed(self, dims, write_dims, start, offset):
+    def _expand_if_needed(self, dims, write_dims, start):
         """
         expand the on-disk image if the indended write will extend
         beyond the existing dimensions
         """
-        from operator import mul
+        ndim = len(dims)
+        idim = len(write_dims)
+
+        if idim != ndim:
+            raise ValueError(
+                "When expanding "
+                "an existing image while writing, the input image "
+                "must have the same number of dimensions "
+                "as the original.  "
+                "Got %d instead of %d" % (idim, ndim)
+            )
 
         if numpy.isscalar(start):
-            start_is_scalar = True
-        else:
-            start_is_scalar = False
-
-        existing_size = reduce(mul, dims, 1)
-        required_size = offset + reduce(mul, write_dims, 1)
-
-        if required_size > existing_size:
-            # we need to expand the image
-            ndim = len(dims)
-            idim = len(write_dims)
-
-            if start_is_scalar:
-                if start == 0:
-                    start = [0] * ndim
-                else:
+            if len(dims) > 1:
+                try:
+                    _start = numpy.unravel_index(start, dims)
+                except Exception:
+                    # the unravel_index call fails when start is beyond
+                    # end of the existing array.
+                    # this means we are expanding the image and so we should
+                    # error
                     raise ValueError(
                         "When expanding "
                         "an existing image while writing, the start keyword "
                         "must have the same number of dimensions "
                         "as the image or be exactly 0, got %s " % start
                     )
+            else:
+                _start = [start]
+        else:
+            _start = start
 
-            if idim != ndim:
-                raise ValueError(
-                    "When expanding "
-                    "an existing image while writing, the input image "
-                    "must have the same number of dimensions "
-                    "as the original.  "
-                    "Got %d instead of %d" % (idim, ndim)
-                )
-            new_dims = []
-            for i in xrange(ndim):
-                required_dim = start[i] + write_dims[i]
+        new_dims = []
+        for i in xrange(ndim):
+            required_dim = _start[i] + write_dims[i]
 
-                if required_dim < dims[i]:
-                    # careful not to shrink the image!
-                    dimsize = dims[i]
-                else:
-                    dimsize = required_dim
+            if required_dim < dims[i]:
+                # careful not to shrink the image!
+                dimsize = dims[i]
+            else:
+                dimsize = required_dim
 
-                new_dims.append(dimsize)
+            new_dims.append(dimsize)
 
+        if any(nd != od for nd, od in zip(new_dims, dims)):
+            if numpy.isscalar(start) and len(dims) > 1:
+                if start != 0:
+                    raise ValueError(
+                        "When expanding "
+                        "an existing image while writing, the start keyword "
+                        "must have the same number of dimensions "
+                        "as the image or be exactly 0, got %s " % start
+                    )
             self.reshape(new_dims)
 
     def __repr__(self):
@@ -435,16 +518,21 @@ def _convert_full_start_to_offset(dims, start):
         m = "start has len %d, which does not match requested dims %d"
         raise ValueError(m % (len(start), ndim))
 
-    # this is really strides / itemsize
-    strides = [1]
-    for i in xrange(1, ndim):
-        strides.append(strides[i - 1] * dims[ndim - i])
+    # MRB: I changed this to use the numpy util below.
+    #      I have left the old code here for posterity.
+    #      I checked that they give the same answer.
+    # # this is really strides / itemsize
+    # strides = [1]
+    # for i in xrange(1, ndim):
+    #     strides.append(strides[i - 1] * dims[ndim - i])
 
-    strides.reverse()
-    s = start
-    start_index = sum([s[i] * strides[i] for i in xrange(ndim)])
+    # strides.reverse()
+    # s = start
+    # start_index = sum([s[i] * strides[i] for i in xrange(ndim)])
 
-    return start_index
+    # return start_index
+
+    return numpy.ravel_multi_index(start, dims)
 
 
 # remember, you should be using the equivalent image type for this
@@ -456,6 +544,7 @@ _image_bitpix2npy = {
     32: 'i4',
     40: 'u4',
     64: 'i8',
+    80: 'u8',
     -32: 'f4',
     -64: 'f8',
 }

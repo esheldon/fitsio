@@ -1,0 +1,60 @@
+name: tests-pypi
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+env:
+  PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-pypi:
+    name: tests-pypi
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04]
+        pyver: ["3.8", "3.13"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '${{ matrix.pyver }}'
+
+      - name: install pip & setuptools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools
+          python -m pip install pytest
+
+      - name: install bzip2 and other tools on linux
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install libbz2-dev wget make curl libcurl4-openssl-dev
+
+      - name: build fitsio
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip install -v -e .
+
+      - name: test fitsio
+        run: |
+          pytest -vv fitsio
+          python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"

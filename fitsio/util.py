@@ -2,6 +2,7 @@
 utilities for the fits library
 """
 
+from contextlib import contextmanager
 import sys
 import numpy
 
@@ -11,6 +12,8 @@ if sys.version_info >= (3, 0, 0):
     IS_PY3 = True
 else:
     IS_PY3 = False
+
+_FLOATING_NULL_VALUE = _fitsio_wrap.cfitsio_null_value_for_nan()
 
 
 class FITSRuntimeWarning(RuntimeWarning):
@@ -195,3 +198,24 @@ def mks(val):
         sval = str(val)
 
     return sval
+
+
+@contextmanager
+def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
+    try:
+        has_nonfinite = False
+        if (
+            data is not None
+            and data.dtype.kind == "f"
+            and target_hdu_compressed
+        ):
+            msk_nonfinite = ~numpy.isfinite(data)
+            if numpy.any(msk_nonfinite):
+                has_nonfinite = True
+                old_vals = data[msk_nonfinite]
+                data[msk_nonfinite] = _FLOATING_NULL_VALUE
+
+        yield data, has_nonfinite
+    finally:
+        if has_nonfinite:
+            data[msk_nonfinite] = old_vals
