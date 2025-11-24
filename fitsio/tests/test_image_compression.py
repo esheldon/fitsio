@@ -654,9 +654,11 @@ def test_image_compression_big_gzip(coef):
 
                 out.write(out_list, names=out_names)
 
-        print("wrote %0.2f MB" % (tot / 1e6))
+        print("wrote %0.2f MB" % (tot / 1e6), flush=True)
+        os.system(f"ls -lah {tmpdir}/test.fits.gz")
 
         with FITS(pth, "r") as h:
+            print(h, flush=True)
             assert len(h) == nHDU + 1
             for k, name in zip([0, 1, -1], ["A", "B", "E"]):
                 assert np.array_equal(h[-1][name][:], out_list[k])
