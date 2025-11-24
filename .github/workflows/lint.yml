@@ -23,19 +23,18 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
+      - uses: mamba-org/setup-micromamba@v2.0.7
         with:
-          channels: conda-forge
-          channel-priority: strict
-          show-channel-urls: true
-          miniforge-version: latest
-          conda-remove-defaults: true
-
-      - name: install conda deps
-        shell: bash -l {0}
-        run: |
-          conda list
-          conda install pre-commit "identify>2.6"
+          environment-name: fitsio-dev
+          condarc: |
+            channels:
+            - conda-forge
+            show_channel_urls: true
+            channel_priority: strict
+            always_yes: true
+          create-args: >-
+            pre-commit
+            identify>2.6
 
       - name: pre-commit
         shell: bash -l {0}

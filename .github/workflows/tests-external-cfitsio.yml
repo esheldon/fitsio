@@ -45,26 +45,23 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f  # v3.2.0
+      - uses: mamba-org/setup-micromamba@v2.0.7
         with:
-          python-version: ${{ matrix.config.pyver }}
-          channels: conda-forge
-          channel-priority: strict
-          show-channel-urls: true
-          miniforge-version: latest
-          conda-remove-defaults: true
-
-      - name: install conda deps
-        shell: bash -l {0}
-        run: |
-          conda install \
-            numpy=${{ matrix.config.npver }} \
-            "setuptools-scm>=8" \
-            wget \
-            make \
-            pytest \
+          environment-name: fitsio-dev
+          condarc: |
+            channels:
+            - conda-forge
+            show_channel_urls: true
+            channel_priority: strict
+            always_yes: true
+          create-args: >-
+            python=${{ matrix.config.pyver }}
+            numpy=${{ matrix.config.npver }}
+            setuptools-scm>=8
+            wget
+            make
+            pytest
             setuptools
-          conda list
 
       - name: build external cfitsio
         shell: bash -l {0}
