@@ -620,7 +620,7 @@ def test_image_mem_reopen_noop():
                 condition=CFITSIO_VERSION < 4.4,
                 reason=(
                     "Writing compressed binary tables exceeding "
-                    "2*32 bytes fails for cfitsio < 4.40!"
+                    "2**32 bytes fails for cfitsio < 4.40!"
                 ),
             ),
         ),
