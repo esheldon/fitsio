@@ -621,7 +621,7 @@ def test_image_compression_big_gzip(coef):
     if coef == 2 and CFITSIO_VERSION < 4.4:
         pytest.skip(
             "Writing compressed binary tables exceeding "
-            "2*32 bytes fails for cfitsio < 4.40!"
+            "2**32 bytes fails for cfitsio < 4.40!"
         )
 
     n1 = 50
