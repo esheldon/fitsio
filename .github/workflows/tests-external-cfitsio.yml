@@ -13,6 +13,10 @@ env:
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
   LATEST_CFITSIO_VER: "-4.6.3"
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -64,7 +68,6 @@ jobs:
             setuptools
 
       - name: build external cfitsio
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -95,7 +98,6 @@ jobs:
           cd ..
 
       - name: test non-bundled build
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -115,13 +117,11 @@ jobs:
           fi
 
       - name: install bzip2 on linux
-        shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install libbz2-dev
 
       - name: build external cfitsio w/ bzip2
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -152,7 +152,6 @@ jobs:
           cd ..
 
       - name: test non-bundled build w/ env vars w/ bzip2
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
