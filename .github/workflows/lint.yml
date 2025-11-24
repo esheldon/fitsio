@@ -9,6 +9,10 @@ on:
 env:
   PY_COLORS: "1"
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -37,6 +41,5 @@ jobs:
             identify>2.6
 
       - name: pre-commit
-        shell: bash -l {0}
         run: |
           pre-commit run -a

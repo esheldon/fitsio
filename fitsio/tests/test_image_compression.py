@@ -610,6 +610,69 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.parametrize(
+    "coef",
+    [
+        1,
+        pytest.param(
+            2,
+            marks=pytest.mark.xfail(
+                condition=CFITSIO_VERSION < 4.4,
+                reason=(
+                    "Writing compressed binary tables exceeding "
+                    "2**32 bytes fails for cfitsio < 4.40!"
+                ),
+            ),
+        ),
+    ],
+)
+def test_image_compression_big_gzip(coef):
+    n1 = 50
+    n2 = 50
+    nHDU = 10
+    rng = np.random.RandomState(seed=10)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tot = 0
+        pth = os.path.join(tmpdir, "test.fits.gz")
+        with FITS(pth, "rw", clobber=True) as out:
+            for i in range(nHDU):
+                out_list = []
+                out_names = []
+
+                out_names += ['A']
+                out_list += [rng.normal(size=n1 * n2 * coef * coef)]
+
+                out_names += ['B']
+                out_list += [np.ones(n1 * n2 * coef * coef)]
+
+                out_names += ['C']
+                out_list += [np.ones(n1 * n2 * coef * coef)]
+
+                out_names += ['D']
+                out_list += [np.ones(n1 * n2 * coef * coef)]
+
+                out_names += ['E']
+                out_list += [
+                    np.ones((n1 * n2 * coef * coef, n1 * n2 * coef * coef))
+                ]
+
+                tot += sum(
+                    out_val.itemsize * out_val.size for out_val in out_list
+                )
+
+                out.write(out_list, names=out_names)
+
+        print("wrote %0.2f MB" % (tot / 1e6), flush=True)
+        os.system(f"ls -lah {tmpdir}/test.fits.gz")
+
+        with FITS(pth, "r") as h:
+            print(h, flush=True)
+            assert len(h) == nHDU + 1
+            for k, name in zip([0, 1, -1], ["A", "B", "E"]):
+                assert np.array_equal(h[-1][name][:], out_list[k])
+
+
 @pytest.mark.parametrize("nan_value", [np.nan, np.inf, -np.inf])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize(

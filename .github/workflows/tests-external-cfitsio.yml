@@ -13,6 +13,10 @@ env:
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
   LATEST_CFITSIO_VER: "-4.6.3"
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -32,6 +36,9 @@ jobs:
           - { pyver: "3.8", npver: "1", cftsver: "-4.0.0"}
           # 4.1.0 is the first version for which tests pass for uint64
           - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
+          # 4.4.0 is first version for which tests pass for compressed
+          # binary tables that exceed 2**32 bytes
+          - { pyver: "3.8", npver: "1", cftsver: "-4.4.0"}
           - { pyver: "3.8", npver: "1", cftsver: "latest"}
           - { pyver: "3.13", npver: "2.3.0", cftsver: "latest"}
 
@@ -64,7 +71,6 @@ jobs:
             setuptools
 
       - name: build external cfitsio
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -95,7 +101,6 @@ jobs:
           cd ..
 
       - name: test non-bundled build
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -103,7 +108,7 @@ jobs:
             --config-settings="--global-option=--use-system-fitsio" \
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
             --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
-          pytest -vv fitsio
+
           python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
@@ -111,14 +116,14 @@ jobs:
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
+          pytest -vv fitsio
+
       - name: install bzip2 on linux
-        shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install libbz2-dev
 
       - name: build external cfitsio w/ bzip2
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -149,7 +154,6 @@ jobs:
           cd ..
 
       - name: test non-bundled build w/ env vars w/ bzip2
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -160,10 +164,12 @@ jobs:
           export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
+
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
+
+          pytest -vv fitsio

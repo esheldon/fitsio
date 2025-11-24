@@ -12,6 +12,10 @@ env:
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -60,7 +64,6 @@ jobs:
             setuptools
 
       - name: test bundled build
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -80,13 +83,11 @@ jobs:
           fi
 
       - name: install bzip2 and curl on linux
-        shell: bash -l {0}
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install libbz2-dev curl libcurl4-openssl-dev
 
       - name: test install sdist .gz with no unit tests
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -105,7 +106,6 @@ jobs:
           pip uninstall fitsio --yes
 
       - name: test sdist
-        shell: bash -l {0}
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
