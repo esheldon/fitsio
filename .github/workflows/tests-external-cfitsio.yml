@@ -106,6 +106,7 @@ jobs:
           # pytest -vv fitsio
           # FIXME
           pytest -vvsx -k test_image_compression_big_gzip
+          echo $?
           python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
