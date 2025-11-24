@@ -37,7 +37,7 @@ jobs:
           # 4.1.0 is the first version for which tests pass for uint64
           - { pyver: "3.8", npver: "1", cftsver: "-4.1.0"}
           # 4.4.0 is first version for which tests pass for compressed
-          # binary tables that exceed 2*32 bytes
+          # binary tables that exceed 2**32 bytes
           - { pyver: "3.8", npver: "1", cftsver: "-4.4.0"}
           - { pyver: "3.8", npver: "1", cftsver: "latest"}
           - { pyver: "3.13", npver: "2.3.0", cftsver: "latest"}
