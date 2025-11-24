@@ -614,16 +614,19 @@ def test_image_mem_reopen_noop():
     "coef",
     [
         1,
-        2,
+        pytest.param(
+            2,
+            marks=pytest.mark.xfail(
+                condition=CFITSIO_VERSION < 4.4,
+                reason=(
+                    "Writing compressed binary tables exceeding "
+                    "2*32 bytes fails for cfitsio < 4.40!"
+                ),
+            ),
+        ),
     ],
 )
 def test_image_compression_big_gzip(coef):
-    if coef == 2 and CFITSIO_VERSION < 4.4:
-        pytest.skip(
-            "Writing compressed binary tables exceeding "
-            "2*32 bytes fails for cfitsio < 4.40!"
-        )
-
     n1 = 50
     n2 = 50
     nHDU = 10
