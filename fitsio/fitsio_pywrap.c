@@ -451,6 +451,8 @@ void append_string_to_list(PyObject* list, const char* str) {
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
+
+    ALLOW_NOGIL
     char *filename;
     int mode;
     int status = 0;
@@ -465,12 +467,12 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
 
     if (create) {
         // create and open
-        if (fits_create_file(&self->fits, filename, &status)) {
+        if (NOGIL(fits_create_file(&self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             return -1;
         }
     } else {
-        if (fits_open_file(&self->fits, filename, mode, &status)) {
+        if (NOGIL(fits_open_file(&self->fits, filename, mode, &status))) {
             set_ioerr_string_from_status(status, self);
             return -1;
         }
@@ -519,8 +521,10 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 }
 
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
+    ALLOW_NOGIL
+
     int status = 0;
-    if (fits_close_file(self->fits, &status)) {
+    if (NOGIL(fits_close_file(self->fits, &status))) {
         self->fits = NULL;
         /*
         set_ioerr_string_from_status(status, self);
@@ -532,8 +536,9 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
+    ALLOW_NOGIL
     int status = 0;
-    fits_close_file(self->fits, &status);
+    NOGIL(fits_close_file(self->fits, &status));
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
@@ -1359,11 +1364,12 @@ static int fits_to_npy_table_type(int fits_dtype, int *isvariable) {
 }
 
 static int create_empty_hdu(struct PyFITSObject *self) {
+    ALLOW_NOGIL
     int status = 0;
     int bitpix = SHORT_IMG;
     int naxis = 0;
     long *naxes = NULL;
-    if (fits_create_img(self->fits, bitpix, naxis, naxes, &status)) {
+    if (NOGIL(fits_create_img(self->fits, bitpix, naxis, naxes, &status))) {
         set_ioerr_string_from_status(status, self);
         return 1;
     }
@@ -1442,6 +1448,8 @@ static int pyarray_get_ndim(PyArrayObject *arr) { return arr->nd; }
 
 static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
                                                PyObject *args, PyObject *kwds) {
+
+    ALLOW_NOGIL
     int ndims = 0;
     long *dims = NULL;
     int image_datatype = 0; // fits type for image, AKA bitpix
@@ -1621,7 +1629,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             }
         }
 
-        if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
+        if (NOGIL(fits_create_img(self->fits, image_datatype, ndims, dims, &status))) {
             set_ioerr_string_from_status(status, self);
             goto create_image_hdu_cleanup;
         }
@@ -1671,14 +1679,14 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
                 nullval_ptr = NULL;
             }
 
-            if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
-                                   data, nullval_ptr, &status)) {
+            if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
+                                   data, nullval_ptr, &status))) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         } else {
-            if (fits_write_img(self->fits, datatype, firstpixel, nelements,
-                               data, &status)) {
+            if (NOGIL(fits_write_img(self->fits, datatype, firstpixel, nelements,
+                               data, &status))) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
@@ -1686,7 +1694,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     }
 
     // this flushes all buffers
-    if (fits_flush_file(self->fits, &status)) {
+    if (NOGIL(fits_flush_file(self->fits, &status))) {
         set_ioerr_string_from_status(status, self);
         goto create_image_hdu_cleanup;
     }

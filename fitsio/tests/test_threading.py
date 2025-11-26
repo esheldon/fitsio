@@ -13,7 +13,8 @@ def test_threading():
     check the values
     """
 
-    size = 3000
+    size = 10000
+    nt = 8
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
@@ -40,14 +41,14 @@ def test_threading():
         print("one file time:", t0_one, flush=True)
 
         t0 = time.time()
-        with ThreadPool(32) as pool:
-            pool.map(create_file, range(32))
-            pool.map(read_file, range(32))
+        with ThreadPool(nt) as pool:
+            pool.map(create_file, range(nt))
+            pool.map(read_file, range(nt))
         t0_threads = time.time() - t0
         print("threaded time:", t0_threads, flush=True)
 
         t0 = time.time()
-        for i in range(32):
+        for i in range(nt):
             create_file(i)
             read_file(i)
         t0_serial = time.time() - t0
