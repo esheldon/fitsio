@@ -647,6 +647,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     int status = 0, tstatus = 0, is_compressed = 0;
     PyObject *dict = NULL;
 
+    char filename[FLEN_FILENAME] = "";
     char extname[FLEN_VALUE];
     char hduname[FLEN_VALUE];
     int extver = 0, hduver = 0;
@@ -680,6 +681,14 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     add_long_to_dict(dict, "hdunum", (long)hdunum);
     add_long_to_dict(dict, "extnum", (long)ext);
     add_long_to_dict(dict, "hdutype", (long)hdutype);
+
+    tstatus = 0;
+    if (fits_file_name(self->fits, filename, &status) == 0) {
+        convert_extname_to_ascii(filename);
+        add_string_to_dict(dict, "filename", filename);
+    } else {
+        add_string_to_dict(dict, "filename", "");
+    }
 
     tstatus = 0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
