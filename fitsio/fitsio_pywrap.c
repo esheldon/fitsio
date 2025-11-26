@@ -46,9 +46,7 @@
 #define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
 
 struct PyFITSObject {
-    PyObject_HEAD
-
-        fitsfile *fits;
+    PyObject_HEAD fitsfile *fits;
     // we store the python error message here so that we record all error
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
