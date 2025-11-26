@@ -1696,7 +1696,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     }
 
     // this flushes all buffers
-    if (NOGIL(fits_flush_file(self->fits, &status))) {
+    if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
         goto create_image_hdu_cleanup;
     }
