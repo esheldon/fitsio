@@ -4424,7 +4424,7 @@ recread_asrec_cleanup:
     Py_RETURN_NONE;
 }
 
-static int fits_is_compressed_with_nulls(fitsfile *fits) {
+static int img_is_compressed_with_nulls(fitsfile *fits) {
     int cstatus = 0, clstatus = 0, hstatus = 0;
     int colnum, zblank;
     if (fits_is_compressed_image(fits, &cstatus) &&
@@ -4436,7 +4436,7 @@ static int fits_is_compressed_with_nulls(fitsfile *fits) {
     }
 }
 
-static int fits_is_lossy_compressed_with_nulls(fitsfile *fits) {
+static int img_is_lossy_compressed_with_nulls(fitsfile *fits) {
     int cstatus = 0, clstatus = 0, hstatus = 0, cistatus = 0;
     int colnum, zblank;
     int has_nulls, is_compressed_image, is_lossy;
@@ -4563,7 +4563,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     // floating point data
     // nans works fine for non-compressed images and we do
     // not consider int data
-    if (NOGIL(fits_is_lossy_compressed_with_nulls(self->fits))) {
+    if (NOGIL(img_is_lossy_compressed_with_nulls(self->fits))) {
         if (fits_read_dtype == TFLOAT) {
             nullval_ptr = (void *)(&fnullval);
         } else if (fits_read_dtype == TDOUBLE) {
@@ -4735,7 +4735,7 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     // floating point data
     // nans works fine for non-compressed images and we do
     // not consider int data
-    if (NOGIL(fits_is_lossy_compressed_with_nulls(self->fits))) {
+    if (NOGIL(img_is_lossy_compressed_with_nulls(self->fits))) {
         if (fits_read_dtype == TFLOAT) {
             nullval_ptr = (void *)(&fnullval);
         } else if (fits_read_dtype == TDOUBLE) {
@@ -4983,14 +4983,14 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                            (strchr(longstr, 'E') != NULL) ||
                            (strchr(longstr, 'e') != NULL)) {
                     // we found a floating point value
-                    fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment,
-                                  &status);
+                    NOGIL(fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment,
+                                  &status));
                     add_double_to_dict(dict, "value", dval);
                 } else {
 
                     // we might have found an integer
-                    if (fits_read_key(self->fits, TLONGLONG, keyname, &lval,
-                                      comment, &status)) {
+                    if (NOGIL(fits_read_key(self->fits, TLONGLONG, keyname, &lval,
+                                      comment, &status))) {
 
                         // something non standard, just store it as a string
                         convert_to_ascii(longstr);
