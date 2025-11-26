@@ -34,6 +34,12 @@ def test_threading():
                 assert (fits[0].read() == i).all()
 
         t0 = time.time()
+        create_file(0)
+        read_file(0)
+        t0_one = time.time() - t0
+        print("one file time:", t0_one, flush=True)
+
+        t0 = time.time()
         with ThreadPool(32) as pool:
             pool.map(create_file, range(32))
             pool.map(read_file, range(32))
