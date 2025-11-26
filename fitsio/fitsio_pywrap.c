@@ -3403,8 +3403,8 @@ static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
  * is true for ascii.
  */
 
-static int read_ascii_column_all(fitsfile *fits, int colnum, PyArrayObject *array,
-                                 int *status) {
+static int read_ascii_column_all(fitsfile *fits, int colnum,
+                                 PyArrayObject *array, int *status) {
     ALLOW_NOGIL
 
     int npy_dtype = 0;
@@ -3676,8 +3676,8 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
             sortind = get_int64_from_array(sortind_array, &nsortind);
         }
 
-        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, sortind, data,
-                                     stride, &status))) {
+        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, sortind,
+                                     data, stride, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
         }
@@ -4061,7 +4061,6 @@ static int read_columns_as_rec_byoffset(
         *field_offsets, // offsets of corresponding fields within array
     npy_intp nrows, const npy_int64 *rows, const npy_int64 *sortind, char *data,
     npy_intp recsize, int *status) {
-
 
     ALLOW_NOGIL
     FITSfile *hdu = NULL;
@@ -4983,14 +4982,14 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                            (strchr(longstr, 'E') != NULL) ||
                            (strchr(longstr, 'e') != NULL)) {
                     // we found a floating point value
-                    NOGIL(fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment,
-                                  &status));
+                    NOGIL(fits_read_key(self->fits, TDOUBLE, keyname, &dval,
+                                        comment, &status));
                     add_double_to_dict(dict, "value", dval);
                 } else {
 
                     // we might have found an integer
-                    if (NOGIL(fits_read_key(self->fits, TLONGLONG, keyname, &lval,
-                                      comment, &status))) {
+                    if (NOGIL(fits_read_key(self->fits, TLONGLONG, keyname,
+                                            &lval, comment, &status))) {
 
                         // something non standard, just store it as a string
                         convert_to_ascii(longstr);
@@ -5143,13 +5142,15 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     if (ngood > 0) {
         data = PyArray_DATA((PyArrayObject *)indices_obj);
 
-        Py_BEGIN_ALLOW_THREADS for (i = 0; i < nrows; i++) {
+        Py_BEGIN_ALLOW_THREADS;
+
+        for (i = 0; i < nrows; i++) {
             if (row_status[i]) {
                 *data = (npy_intp)i;
                 data++;
             }
         }
-        Py_END_ALLOW_THREADS
+        Py_END_ALLOW_THREADS;
     }
 where_function_cleanup:
     free(row_status);
