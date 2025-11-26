@@ -34,8 +34,6 @@
 // not sure where this is defined in numpy...
 #define NUMPY_MAX_DIMS 32
 
-// Fall back to comma expresions
-// this may give R-value unused warnings
 #define ALLOW_NOGIL                                                            \
     PyThreadState *_save1_;                                                    \
     int _evaltmp123_;
@@ -5100,7 +5098,7 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     if (ngood > 0) {
         data = PyArray_DATA((PyArrayObject *)indices_obj);
 
-        Py_BEGIN_ALLOW_THREADS 
+        Py_BEGIN_ALLOW_THREADS
         for (i = 0; i < nrows; i++) {
             if (row_status[i]) {
                 *data = (npy_intp)i;
