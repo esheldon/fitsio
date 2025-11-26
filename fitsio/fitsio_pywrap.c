@@ -39,9 +39,10 @@
 #define ALLOW_NOGIL                                                            \
     PyThreadState *_save1_;                                                    \
     int _evaltmp123_;
-#define NOGIL(x)                                                               \
+#define _NOGIL(x)                                                               \
     ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
      (void)(PyEval_RestoreThread(_save1_)), _evaltmp123_)
+#define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
 
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
