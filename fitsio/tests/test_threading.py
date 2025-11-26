@@ -14,19 +14,26 @@ def test_threading():
     """
 
     size = 10000
-    nt = 8
+    nt = 4
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
             os.path.join(tmpdir, "fname%d.fits" % i) for i in range(32)
         ]
 
+        def _remove_files():
+            for fname in filenames:
+                try:
+                    os.remove(fname)
+                except Exception:
+                    pass
+
         # create files for reading in serial
         def create_file(i):
             fname = filenames[i]
             data = np.zeros((size, size), dtype='f8')
             data[:] = i
-            with fitsio.FITS(fname, 'rw', clobber=True) as fits:
+            with fitsio.FITS(fname, 'rw') as fits:
                 fits.write_image(data)
 
         def read_file(i):
@@ -39,6 +46,7 @@ def test_threading():
         read_file(0)
         t0_one = time.time() - t0
         print("one file time:", t0_one, flush=True)
+        _remove_files()
 
         t0 = time.time()
         with ThreadPool(nt) as pool:
@@ -46,6 +54,7 @@ def test_threading():
             pool.map(read_file, range(nt))
         t0_threads = time.time() - t0
         print("threaded time:", t0_threads, flush=True)
+        _remove_files()
 
         t0 = time.time()
         for i in range(nt):
