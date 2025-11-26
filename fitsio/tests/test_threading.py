@@ -13,8 +13,7 @@ def test_threading():
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
-            os.path.join(tmpdir, "fname%d.fits" % i)
-            for i in range(32)
+            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(32)
         ]
 
         # create files for reading in serial

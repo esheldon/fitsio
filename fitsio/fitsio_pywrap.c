@@ -37,8 +37,18 @@
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
 
+#define ALLOW_NOGIL                                                            \
+    PyThreadState *_save1_;                                                    \
+    int _evaltmp123_;
+#define _NOGIL(x)                                                              \
+    ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
+     (void)(PyEval_RestoreThread(_save1_)), _evaltmp123_)
+#define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
+
 struct PyFITSObject {
-    PyObject_HEAD fitsfile *fits;
+    PyObject_HEAD
+
+        fitsfile *fits;
     // we store the python error message here so that we record all error
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
@@ -1762,6 +1772,8 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
 // dims are not checked
 static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
                                           PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0;
     int hdutype = 0;
     LONGLONG nelements = 1;
@@ -1822,14 +1834,14 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
             nullval_ptr = NULL;
         }
 
-        if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
-                               data, nullval_ptr, &status)) {
+        if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel,
+                                     nelements, data, nullval_ptr, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
         }
     } else {
-        if (fits_write_img(self->fits, datatype, firstpixel, nelements, data,
-                           &status)) {
+        if (NOGIL(fits_write_img(self->fits, datatype, firstpixel, nelements,
+                                 data, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
         }
@@ -1848,6 +1860,8 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
 // dims are not checked
 static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
                                            PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0;
     int hdutype = 0;
     int image_datatype = 0; // fits type for image, AKA bitpix
@@ -1922,8 +1936,8 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
     }
 
     data = PyArray_DATA(array);
-    if (fits_write_subset(self->fits, datatype, fpixel, lpixel, data,
-                          &status)) {
+    if (NOGIL(fits_write_subset(self->fits, datatype, fpixel, lpixel, data,
+                                &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4374,6 +4388,8 @@ static int fits_is_lossy_compressed_with_nulls(fitsfile *fits) {
 // Note numpy allows a maximum of 32 dimensions
 static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
                                          PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
@@ -4453,8 +4469,8 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     for (i = 0; i < naxis; i++) {
         firstpixels[i] = 1;
     }
-    if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
-                        nullval_ptr, data, &anynul, &status)) {
+    if (NOGIL(fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
+                              nullval_ptr, data, &anynul, &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4565,6 +4581,8 @@ static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,
 // of the input array is done.
 static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
                                                PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
@@ -4621,8 +4639,8 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
         }
     }
 
-    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
-                         nullval_ptr, data, &anynul, &status)) {
+    if (NOGIL(fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
+                               nullval_ptr, data, &anynul, &status))) {
         set_ioerr_string_from_status(status, self);
         goto read_image_slice_cleanup;
     }
