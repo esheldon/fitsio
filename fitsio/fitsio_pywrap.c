@@ -4840,7 +4840,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
         // this just returns the character string stored in the header; we
         // can eval in python
         if (fits_read_keyn(self->fits, i + 1, keyname, value, scomment,
-                                 &status)) {
+                           &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status, self);
             return NULL;
@@ -4868,7 +4868,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                 is_comment_or_history = 0;
 
                 if (fits_read_key_longstr(self->fits, keyname, &longstr,
-                                                comment, &status)) {
+                                          comment, &status)) {
                     Py_XDECREF(list);
                     set_ioerr_string_from_status(status, self);
                     return NULL;
@@ -4982,14 +4982,14 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                            (strchr(longstr, 'E') != NULL) ||
                            (strchr(longstr, 'e') != NULL)) {
                     // we found a floating point value
-                    fits_read_key(self->fits, TDOUBLE, keyname, &dval,
-                                        comment, &status);
+                    fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment,
+                                  &status);
                     add_double_to_dict(dict, "value", dval);
                 } else {
 
                     // we might have found an integer
-                    if (fits_read_key(self->fits, TLONGLONG, keyname,
-                                            &lval, comment, &status)) {
+                    if (fits_read_key(self->fits, TLONGLONG, keyname, &lval,
+                                      comment, &status)) {
 
                         // something non standard, just store it as a string
                         convert_to_ascii(longstr);
