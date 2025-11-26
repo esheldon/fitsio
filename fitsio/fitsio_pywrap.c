@@ -1629,7 +1629,8 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             }
         }
 
-        if (NOGIL(fits_create_img(self->fits, image_datatype, ndims, dims, &status))) {
+        if (NOGIL(fits_create_img(self->fits, image_datatype, ndims, dims,
+                                  &status))) {
             set_ioerr_string_from_status(status, self);
             goto create_image_hdu_cleanup;
         }
@@ -1679,14 +1680,15 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
                 nullval_ptr = NULL;
             }
 
-            if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
-                                   data, nullval_ptr, &status))) {
+            if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel,
+                                         nelements, data, nullval_ptr,
+                                         &status))) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         } else {
-            if (NOGIL(fits_write_img(self->fits, datatype, firstpixel, nelements,
-                               data, &status))) {
+            if (NOGIL(fits_write_img(self->fits, datatype, firstpixel,
+                                     nelements, data, &status))) {
                 set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
