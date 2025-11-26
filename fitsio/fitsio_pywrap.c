@@ -36,8 +36,12 @@
 
 // Fall back to comma expresions
 // this may give R-value unused warnings
-#define ALLOW_NOGIL PyThreadState *_save1_; int _evaltmp123_;
-#define NOGIL(x) ((void)(_save1_=PyEval_SaveThread()), (void) (_evaltmp123_ = (x)), (void) (PyEval_RestoreThread(_save1_)), _evaltmp123_)
+#define ALLOW_NOGIL                                                            \
+    PyThreadState *_save1_;                                                    \
+    int _evaltmp123_;
+#define NOGIL(x)                                                               \
+    ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
+     (void)(PyEval_RestoreThread(_save1_)), _evaltmp123_)
 
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
@@ -444,14 +448,11 @@ void append_string_to_list(PyObject* list, const char* str) {
 }
 */
 
-
-
-static int
-PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
-{
+static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
+                             PyObject *kwds) {
     ALLOW_NOGIL
 
-    char* filename;
+    char *filename;
     int mode;
     int status = 0;
     int create = 0;
@@ -479,9 +480,7 @@ PyFITSObject_init(struct PyFITSObject* self, PyObject *args, PyObject *kwds)
     return 0;
 }
 
-
-static PyObject *
-PyFITSObject_repr(struct PyFITSObject* self) {
+static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
     ALLOW_NOGIL
 
     if (self->fits != NULL) {
@@ -501,14 +500,13 @@ PyFITSObject_repr(struct PyFITSObject* self) {
     }
 }
 
-static PyObject *
-PyFITSObject_filename(struct PyFITSObject* self) {
+static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
     ALLOW_NOGIL
 
     if (self->fits != NULL) {
         int status = 0;
         char filename[FLEN_FILENAME];
-        PyObject* fnameObj=NULL;
+        PyObject *fnameObj = NULL;
         if (NOGIL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
@@ -523,16 +521,12 @@ PyFITSObject_filename(struct PyFITSObject* self) {
     }
 }
 
-
-
-static PyObject *
-PyFITSObject_close(struct PyFITSObject* self)
-{
+static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     ALLOW_NOGIL
 
-    int status=0;
+    int status = 0;
     if (NOGIL(fits_close_file(self->fits, &status))) {
-        self->fits=NULL;
+        self->fits = NULL;
         /*
         set_ioerr_string_from_status(status, self);
         return NULL;
@@ -542,14 +536,10 @@ PyFITSObject_close(struct PyFITSObject* self)
     Py_RETURN_NONE;
 }
 
-
-
-static void
-PyFITSObject_dealloc(struct PyFITSObject* self)
-{
+static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     ALLOW_NOGIL
 
-    int status=0;
+    int status = 0;
     NOGIL(fits_close_file(self->fits, &status));
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
@@ -607,15 +597,15 @@ static npy_int64 *get_int64_from_array(PyArrayObject *arr, npy_intp *ncols) {
 }
 
 // move hdu by name and possibly version, return the hdu number
-static PyObject *
-PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
+static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
+                                         PyObject *args) {
     ALLOW_NOGIL
 
-    int   status=0;
-    int   hdutype=ANY_HDU; // means we don't care if its image or table
-    char* extname=NULL;
-    int   extver=0;        // zero means it is ignored
-    int   hdunum=0;
+    int status = 0;
+    int hdutype = ANY_HDU; // means we don't care if its image or table
+    char *extname = NULL;
+    int extver = 0; // zero means it is ignored
+    int hdunum = 0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -626,7 +616,7 @@ PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (NOGIL(fits_movnam_hdu(self->fits, hdutype, extname,  extver, &status))) {
+    if (NOGIL(fits_movnam_hdu(self->fits, hdutype, extname, extver, &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -635,15 +625,13 @@ PyFITSObject_movnam_hdu(struct PyFITSObject* self, PyObject* args) {
     return PyLong_FromLong((long)hdunum);
 }
 
-
-
-static PyObject *
-PyFITSObject_movabs_hdu(struct PyFITSObject* self, PyObject* args) {
+static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
+                                         PyObject *args) {
     ALLOW_NOGIL;
 
-    int hdunum=0, hdutype=0;
-    int status=0;
-    PyObject* hdutypeObj=NULL;
+    int hdunum = 0, hdutype = 0;
+    int status = 0;
+    PyObject *hdutypeObj = NULL;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -706,7 +694,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 
     tstatus = 0;
     if (NOGIL(fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
-                      &tstatus)) == 0) {
+                            &tstatus)) == 0) {
         convert_extname_to_ascii(extname);
         add_string_to_dict(dict, "extname", extname);
     } else {
@@ -715,22 +703,24 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 
     tstatus = 0;
     if (NOGIL(fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL,
-                      &tstatus)) == 0) {
+                            &tstatus)) == 0) {
         convert_extname_to_ascii(hduname);
         add_string_to_dict(dict, "hduname", hduname);
     } else {
         add_string_to_dict(dict, "hduname", "");
     }
 
-    tstatus=0;
-    if (NOGIL(fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus))==0) {
+    tstatus = 0;
+    if (NOGIL(fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL,
+                            &tstatus)) == 0) {
         add_long_to_dict(dict, "extver", (long)extver);
     } else {
         add_long_to_dict(dict, "extver", (long)0);
     }
 
-    tstatus=0;
-    if (NOGIL(fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus))==0) {
+    tstatus = 0;
+    if (NOGIL(fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL,
+                            &tstatus)) == 0) {
         add_long_to_dict(dict, "hduver", (long)hduver);
     } else {
         add_long_to_dict(dict, "hduver", (long)0);
@@ -767,8 +757,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         // if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
         //                        dims, pcount_p, gcount_p, extend_p, &status))
         //                        {
-        if (NOGIL(fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims,
-                                 &tstatus))) {
+        if (NOGIL(fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims,
+                                       dims, &tstatus))) {
             add_string_to_dict(dict, "error",
                                "could not determine image parameters");
         } else {
@@ -779,14 +769,15 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 // Get the raw type if scaling is being ignored.
                 NOGIL(fits_get_img_type(self->fits, &bitpix_equiv, &status));
             } else {
-                NOGIL(fits_get_img_equivtype(self->fits, &bitpix_equiv, &status));
+                NOGIL(
+                    fits_get_img_equivtype(self->fits, &bitpix_equiv, &status));
             }
 
             add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv);
 
             tstatus = 0;
-            if (NOGIL(fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL,
-                              &tstatus)) == 0) {
+            if (NOGIL(fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype,
+                                    NULL, &tstatus)) == 0) {
                 convert_to_ascii(comptype);
                 add_string_to_dict(dict, "comptype", comptype);
             } else {
@@ -809,8 +800,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 
         NOGIL(fits_get_num_rowsll(self->fits, &nrows, &tstatus));
         NOGIL(fits_get_num_cols(self->fits, &ncols, &tstatus));
-        add_long_long_to_dict(dict,"nrows",(long long)nrows);
-        add_long_to_dict(dict,"ncols",(long)ncols);
+        add_long_long_to_dict(dict, "nrows", (long long)nrows);
+        add_long_to_dict(dict, "ncols", (long)ncols);
 
         {
             PyObject *d = NULL;
@@ -826,8 +817,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             }
             // just get the names: no other way to do it!
             NOGIL(fits_read_btblhdrll(self->fits, ncols, NULL, NULL,
-                                names->data, tforms->data,
-                                NULL, NULL, NULL, &tstatus));
+                                      names->data, tforms->data, NULL, NULL,
+                                      NULL, &tstatus));
 
             for (i = 0; i < ncols; i++) {
                 d = PyDict_New();
@@ -840,19 +831,19 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 convert_to_ascii(tforms->data[i]);
                 add_string_to_dict(d, "tform", tforms->data[i]);
 
-                NOGIL(fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
-                                   &tstatus));
+                NOGIL(fits_get_coltypell(self->fits, i + 1, &type, &repeat,
+                                         &width, &tstatus));
                 add_long_to_dict(d, "type", (long)type);
                 add_long_long_to_dict(d, "repeat", (long long)repeat);
                 add_long_long_to_dict(d, "width", (long long)width);
 
-                NOGIL(fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
-                                     &tstatus));
+                NOGIL(fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat,
+                                           &width, &tstatus));
                 add_long_to_dict(d, "eqtype", (long)type);
 
                 tstatus = 0;
-                if (NOGIL(fits_read_tdimll(self->fits, i + 1, maxdim, &ndims, dims,
-                                     &tstatus))) {
+                if (NOGIL(fits_read_tdimll(self->fits, i + 1, maxdim, &ndims,
+                                           dims, &tstatus))) {
                     add_none_to_dict(d, "tdim");
                 } else {
                     PyObject *dimsObj = PyList_New(0);
@@ -906,11 +897,12 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             // just get the names: no other way to do it!
 
             //                                        rowlen nrows
-            NOGIL(fits_read_atblhdrll(self->fits, ncols, NULL, NULL,
-                                //          tfields             tbcol units
-                                NULL, names->data, NULL, tforms->data, NULL,
-                                //          extname
-                                NULL, &tstatus));
+            NOGIL(
+                fits_read_atblhdrll(self->fits, ncols, NULL, NULL,
+                                    //          tfields             tbcol units
+                                    NULL, names->data, NULL, tforms->data, NULL,
+                                    //          extname
+                                    NULL, &tstatus));
 
             for (i = 0; i < ncols; i++) {
                 PyObject *d = PyDict_New();
@@ -923,19 +915,19 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 convert_to_ascii(tforms->data[i]);
                 add_string_to_dict(d, "tform", tforms->data[i]);
 
-                NOGIL(fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
-                                   &tstatus));
+                NOGIL(fits_get_coltypell(self->fits, i + 1, &type, &repeat,
+                                         &width, &tstatus));
                 add_long_to_dict(d, "type", (long)type);
                 add_long_long_to_dict(d, "repeat", (long long)repeat);
                 add_long_long_to_dict(d, "width", (long long)width);
 
-                NOGIL(fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
-                                     &tstatus));
+                NOGIL(fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat,
+                                           &width, &tstatus));
                 add_long_to_dict(d, "eqtype", (long)type);
 
                 tstatus = 0;
-                if (NOGIL(fits_read_tdimll(self->fits, i + 1, maxdim, &ndims, dims,
-                                     &tstatus))) {
+                if (NOGIL(fits_read_tdimll(self->fits, i + 1, maxdim, &ndims,
+                                           dims, &tstatus))) {
                     add_none_to_dict(dict, "tdim");
                 } else {
                     PyObject *dimsObj = PyList_New(0);
@@ -2038,14 +2030,14 @@ static int add_tdims_from_listobj(struct PyFITSObject *self, fitsfile *fits,
 }
 
 // create a new table structure.  No physical rows are added yet.
-static PyObject *
-PyFITSObject_create_table_hdu(struct PyFITSObject* self, PyObject* args, PyObject* kwds) {
+static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
+                                               PyObject *args, PyObject *kwds) {
     ALLOW_NOGIL
 
-    int status=0;
-    int table_type=0, nkeys=0;
-    int nfields=0;
-    LONGLONG nrows=0; // start empty
+    int status = 0;
+    int table_type = 0, nkeys = 0;
+    int nfields = 0;
+    LONGLONG nrows = 0; // start empty
 
     static char *kwlist[] = {"table_type", "nkeys",  "ttyp",
                              "tform",      "tunit",  "tdim",
@@ -2186,7 +2178,8 @@ static PyObject *PyFITSObject_insert_col(struct PyFITSObject *self,
         tmp = PyList_GetItem(tdimObj, 0);
 
         tdim = get_object_as_string(tmp);
-        NOGIL(fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status));
+        NOGIL(
+            fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status));
         free(tdim);
 
         if (status) {
@@ -2340,17 +2333,17 @@ columns"); return NULL;
     if (fits_dtype == TSTRING) {
 
         // this is my wrapper for strings
-        if (NOGIL(write_string_column(self->fits, colnum, firstrow, firstelem, nelem, data, &status))) {
-            set_ioerr_string_from_status(status, self);
-            return NULL;
+        if (NOGIL(write_string_column(self->fits, colnum, firstrow, firstelem,
+nelem, data, &status))) { set_ioerr_string_from_status(status, self); return
+NULL;
         }
     } else if (fits_dtype == TBIT) {
         if (fits_write_col_bit(self->fits, colnum, firstrow, firstelem, nelem,
 data, &status)) { set_ioerr_string_from_status(status, self); return NULL;
         }
     } else {
-        if (NOGIL(fits_write_col(self->fits, fits_dtype, colnum, firstrow, firstelem, nelem, data, &status))) {
-            set_ioerr_string_from_status(status, self);
+        if (NOGIL(fits_write_col(self->fits, fits_dtype, colnum, firstrow,
+firstelem, nelem, data, &status))) { set_ioerr_string_from_status(status, self);
             return NULL;
         }
     }
@@ -2573,13 +2566,11 @@ _fitsio_pywrap_write_columns_bail:
 }
 
 // No error checking performed here
-static
-int write_var_string_column(
-        fitsfile *fits,  /* I - FITS file pointer                       */
-        int  colnum,     /* I - number of column to write (1 = 1st col) */
-        LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
-        PyObject* array,
-        int  *status) {   /* IO - error status                           */
+static int write_var_string_column(
+    fitsfile *fits,    /* I - FITS file pointer                       */
+    int colnum,        /* I - number of column to write (1 = 1st col) */
+    LONGLONG firstrow, /* I - first row to write (1 = 1st row)        */
+    PyObject *array, int *status) { /* IO - error status */
     ALLOW_NOGIL
 
     LONGLONG firstelem = 1; // ignored
@@ -2602,9 +2593,8 @@ int write_var_string_column(
 
         // just a container
         strarr[0] = strdata;
-        res=NOGIL(fits_write_col_str(fits, colnum,
-                               firstrow+i, firstelem, nelem,
-                               strarr, status));
+        res = NOGIL(fits_write_col_str(fits, colnum, firstrow + i, firstelem,
+                                       nelem, strarr, status));
 
         free(strdata);
         if (res > 0) {
@@ -2624,14 +2614,11 @@ write_var_string_column_cleanup:
 /*
  * No error checking performed here
  */
-static
-int write_var_num_column(
-        fitsfile *fits,  /* I - FITS file pointer                       */
-        int  colnum,     /* I - number of column to write (1 = 1st col) */
-        LONGLONG  firstrow,  /* I - first row to write (1 = 1st row)        */
-        int fits_dtype,
-        PyObject* array,
-        int  *status) {   /* IO - error status                           */
+static int write_var_num_column(
+    fitsfile *fits,    /* I - FITS file pointer                       */
+    int colnum,        /* I - number of column to write (1 = 1st col) */
+    LONGLONG firstrow, /* I - first row to write (1 = 1st row)        */
+    int fits_dtype, PyObject *array, int *status) { /* IO - error status */
     ALLOW_NOGIL
 
     LONGLONG firstelem = 1;
@@ -2668,10 +2655,10 @@ int write_var_num_column(
             return 1;
         }
 
-        nelem=PyArray_SIZE(el);
-        data=PyArray_DATA(el_array);
-        res=NOGIL(fits_write_col(fits, abs(fits_dtype), colnum,
-                           firstrow+i, firstelem, (LONGLONG) nelem, data, status));
+        nelem = PyArray_SIZE(el);
+        data = PyArray_DATA(el_array);
+        res = NOGIL(fits_write_col(fits, abs(fits_dtype), colnum, firstrow + i,
+                                   firstelem, (LONGLONG)nelem, data, status));
         Py_XDECREF(el_array);
 
         if (res > 0) {
@@ -2743,7 +2730,8 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
 
     // determine the fits dtype for this column.  We will use this to get data
     // from the array for writing
-    if (NOGIL(fits_get_eqcoltypell(self->fits, colnum, &fits_dtype, NULL, NULL, &status)) > 0) {
+    if (NOGIL(fits_get_eqcoltypell(self->fits, colnum, &fits_dtype, NULL, NULL,
+                                   &status)) > 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -2847,7 +2835,8 @@ static PyObject *PyFITSObject_write_string_key(struct PyFITSObject *self,
         comment = comment_in;
     }
 
-    if (NOGIL(fits_update_key_str(self->fits, keyname, value, comment, &status))) {
+    if (NOGIL(fits_update_key_str(self->fits, keyname, value, comment,
+                                  &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -2894,7 +2883,8 @@ static PyObject *PyFITSObject_write_double_key(struct PyFITSObject *self,
         comment = comment_in;
     }
 
-    if (NOGIL(fits_update_key_dbl(self->fits, keyname, value, decimals, comment, &status))) {
+    if (NOGIL(fits_update_key_dbl(self->fits, keyname, value, decimals, comment,
+                                  &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -3378,7 +3368,8 @@ static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
  * is true for ascii.
  */
 
-static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, int* status) {
+static int read_ascii_column_all(fitsfile *fits, int colnum, PyObject *array,
+                                 int *status) {
     ALLOW_NOGIL
 
     int npy_dtype = 0;
@@ -3404,8 +3395,9 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
 
         for (i = 0; i < nelem; i++) {
             cdata = PyArray_GETPTR1(array, i);
-            rownum = (LONGLONG) (1+i);
-            if (NOGIL(fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status)) > 0) {
+            rownum = (LONGLONG)(1 + i);
+            if (NOGIL(fits_read_col_str(fits, colnum, rownum, firstelem, 1,
+                                        nulstr, &cdata, anynul, status)) > 0) {
                 return 1;
             }
         }
@@ -3432,17 +3424,18 @@ static int read_ascii_column_all(fitsfile* fits, int colnum, PyObject* array, in
         ascii strdata[i] = (char*) PyArray_GETPTR1(array, i);
         }
 
-        if (NOGIL(fits_read_col_str(fits,colnum,firstrow,firstelem,nelem,nulstr,strdata,anynul,status)) > 0) {
-            free(strdata);
-            return 1;
+        if
+        (NOGIL(fits_read_col_str(fits,colnum,firstrow,firstelem,nelem,nulstr,strdata,anynul,status))
+        > 0) { free(strdata); return 1;
         }
 
         free(strdata);
         */
 
     } else {
-        data=PyArray_DATA(array);
-        if (NOGIL(fits_read_col(fits,fits_dtype,colnum,firstrow,firstelem,nelem,nulval,data,anynul,status)) > 0) {
+        data = PyArray_DATA(array);
+        if (NOGIL(fits_read_col(fits, fits_dtype, colnum, firstrow, firstelem,
+                                nelem, nulval, data, anynul, status)) > 0) {
             return 1;
         }
     }
@@ -3500,13 +3493,15 @@ static int read_ascii_column_byrow(fitsfile *fits, int colnum,
         }
         // assuming 1-D
         data = PyArray_GETPTR1(array, i);
-        if (fits_dtype==TSTRING) {
-            cdata = (char* ) data;
-            if (NOGIL(fits_read_col_str(fits,colnum,rownum,firstelem,1,nulstr,&cdata,anynul,status)) > 0) {
+        if (fits_dtype == TSTRING) {
+            cdata = (char *)data;
+            if (NOGIL(fits_read_col_str(fits, colnum, rownum, firstelem, 1,
+                                        nulstr, &cdata, anynul, status)) > 0) {
                 return 1;
             }
         } else {
-            if (NOGIL(fits_read_col(fits,fits_dtype,colnum,rownum,firstelem,1,nulval,data,anynul,status)) > 0) {
+            if (NOGIL(fits_read_col(fits, fits_dtype, colnum, rownum, firstelem,
+                                    1, nulval, data, anynul, status)) > 0) {
                 return 1;
             }
         }
@@ -3645,7 +3640,8 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
             sortind = get_int64_from_array(sortind_array, &nsortind);
         }
 
-        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, data, stride, &status))) {
+        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, data,
+                                     stride, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
         }
@@ -3685,7 +3681,8 @@ static PyObject *read_var_string(fitsfile *fits, int colnum, LONGLONG row,
     }
 
     strarr[0] = str;
-    if (NOGIL(fits_read_col(fits,TSTRING,colnum,row,firstelem,nchar,nulval,strarr,anynul,status)) > 0) {
+    if (NOGIL(fits_read_col(fits, TSTRING, colnum, row, firstelem, nchar,
+                            nulval, strarr, anynul, status)) > 0) {
         goto read_var_string_cleanup;
     }
 #if PY_MAJOR_VERSION >= 3
@@ -3727,7 +3724,8 @@ static PyObject *read_var_nums(fitsfile *fits, int colnum, LONGLONG row,
         return NULL;
     }
     data = PyArray_DATA(arrayObj);
-    if (NOGIL(fits_read_col(fits,abs(fits_dtype),colnum,row,firstelem,nelem,nulval,data,anynul,status)) > 0) {
+    if (NOGIL(fits_read_col(fits, abs(fits_dtype), colnum, row, firstelem,
+                            nelem, nulval, data, anynul, status)) > 0) {
         Py_XDECREF(arrayObj);
         return NULL;
     }
@@ -3797,7 +3795,8 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (NOGIL(fits_get_coltypell(self->fits, colnum, &fits_dtype, &repeat, &width, &status)) > 0) {
+    if (NOGIL(fits_get_coltypell(self->fits, colnum, &fits_dtype, &repeat,
+                                 &width, &status)) > 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -3814,7 +3813,7 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
 
     if (rowsObj == Py_None) {
         NOGIL(fits_get_num_rowsll(self->fits, &nrows, &tstatus));
-        get_all_rows=1;
+        get_all_rows = 1;
     } else {
         npy_intp tnrows = 0, nsortind = 0;
         rows = (const npy_int64 *)get_int64_from_array(rows_array, &tnrows);
@@ -3837,7 +3836,8 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
         }
 
         // repeat holds how many elements are in this row
-        if (NOGIL(fits_read_descriptll(self->fits, colnum, row, &repeat, &offset, &status)) > 0) {
+        if (NOGIL(fits_read_descriptll(self->fits, colnum, row, &repeat,
+                                       &offset, &status)) > 0) {
             goto read_var_column_cleanup;
         }
 
@@ -4085,7 +4085,6 @@ static PyObject *
 PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
                                           PyObject *args) {
 
-
     ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
@@ -4157,14 +4156,9 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
 
     data = PyArray_DATA(array);
     recsize = PyArray_ITEMSIZE(array);
-    if (NOGIL(read_columns_as_rec_byoffset(
-                self->fits,
-                ncols, colnums, offsets,
-                nrows,
-                rows,
-                (char*) data,
-                recsize,
-                &status)) > 0) {
+    if (NOGIL(read_columns_as_rec_byoffset(self->fits, ncols, colnums, offsets,
+                                           nrows, rows, (char *)data, recsize,
+                                           &status)) > 0) {
         goto recread_columns_byoffset_cleanup;
     }
 
@@ -4492,8 +4486,8 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (NOGIL(fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis,
-                             naxes, &status))) {
+    if (NOGIL(fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes,
+                                   &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4537,7 +4531,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
         firstpixels[i] = 1;
     }
     if (NOGIL(fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
-                        nullval_ptr, data, &anynul, &status))) {
+                              nullval_ptr, data, &anynul, &status))) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -5105,8 +5099,7 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     if (ngood > 0) {
         data = PyArray_DATA((PyArrayObject *)indices_obj);
 
-        Py_BEGIN_ALLOW_THREADS
-        for (i=0; i<nrows; i++) {
+        Py_BEGIN_ALLOW_THREADS for (i = 0; i < nrows; i++) {
             if (row_status[i]) {
                 *data = (npy_intp)i;
                 data++;
