@@ -465,12 +465,12 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
 
     if (create) {
         // create and open
-        if (NOGIL(fits_create_file(&self->fits, filename, &status))) {
+        if (fits_create_file(&self->fits, filename, &status)) {
             set_ioerr_string_from_status(status, self);
             return -1;
         }
     } else {
-        if (NOGIL(fits_open_file(&self->fits, filename, mode, &status))) {
+        if (fits_open_file(&self->fits, filename, mode, &status)) {
             set_ioerr_string_from_status(status, self);
             return -1;
         }
@@ -522,7 +522,7 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     ALLOW_NOGIL
 
     int status = 0;
-    if (NOGIL(fits_close_file(self->fits, &status))) {
+    if (fits_close_file(self->fits, &status)) {
         self->fits = NULL;
         /*
         set_ioerr_string_from_status(status, self);
@@ -536,7 +536,7 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     ALLOW_NOGIL
     int status = 0;
-    NOGIL(fits_close_file(self->fits, &status));
+    fits_close_file(self->fits, &status);
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
