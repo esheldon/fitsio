@@ -449,8 +449,6 @@ void append_string_to_list(PyObject* list, const char* str) {
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
-
-    ALLOW_NOGIL
     char *filename;
     int mode;
     int status = 0;
@@ -519,8 +517,6 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 }
 
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
-    ALLOW_NOGIL
-
     int status = 0;
     if (fits_close_file(self->fits, &status)) {
         self->fits = NULL;
@@ -534,7 +530,6 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
-    ALLOW_NOGIL
     int status = 0;
     fits_close_file(self->fits, &status);
 #if PY_MAJOR_VERSION >= 3
