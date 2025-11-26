@@ -2334,7 +2334,7 @@ columns"); return NULL;
     if (fits_dtype == TSTRING) {
 
         // this is my wrapper for strings
-        if (NOGIL(write_string_column(self->fits, colnum, firstrow, firstelem,
+        if (NOGIL(write_string_column(self, self->fits, colnum, firstrow, firstelem,
 nelem, data, &status))) { set_ioerr_string_from_status(status, self); return
 NULL;
         }
@@ -2571,7 +2571,7 @@ static int write_var_string_column(
     fitsfile *fits,    /* I - FITS file pointer                       */
     int colnum,        /* I - number of column to write (1 = 1st col) */
     LONGLONG firstrow, /* I - first row to write (1 = 1st row)        */
-    PyObject *array, int *status) { /* IO - error status */
+    PyArrayObject *array, int *status) { /* IO - error status */
     ALLOW_NOGIL
 
     LONGLONG firstelem = 1; // ignored
@@ -2616,10 +2616,10 @@ write_var_string_column_cleanup:
  * No error checking performed here
  */
 static int write_var_num_column(
-    fitsfile *fits,    /* I - FITS file pointer                       */
+    struct PyFITSObject *self, fitsfile *fits,    /* I - FITS file pointer                       */
     int colnum,        /* I - number of column to write (1 = 1st col) */
     LONGLONG firstrow, /* I - first row to write (1 = 1st row)        */
-    int fits_dtype, PyObject *array, int *status) { /* IO - error status */
+    int fits_dtype, PyArrayObject *array, int *status) { /* IO - error status */
     ALLOW_NOGIL
 
     LONGLONG firstelem = 1;
@@ -2656,7 +2656,7 @@ static int write_var_num_column(
             return 1;
         }
 
-        nelem = PyArray_SIZE(el);
+        nelem = PyArray_SIZE(el_array);
         data = PyArray_DATA(el_array);
         res = NOGIL(fits_write_col(fits, abs(fits_dtype), colnum, firstrow + i,
                                    firstelem, (LONGLONG)nelem, data, status));
@@ -3724,10 +3724,10 @@ static PyObject *read_var_nums(fitsfile *fits, int colnum, LONGLONG row,
                      nelem);
         return NULL;
     }
-    data = PyArray_DATA(arrayObj);
+    data = PyArray_DATA(array);
     if (NOGIL(fits_read_col(fits, abs(fits_dtype), colnum, row, firstelem,
                             nelem, nulval, data, anynul, status)) > 0) {
-        Py_XDECREF(arrayObj);
+        Py_XDECREF(array);
         return NULL;
     }
 
@@ -4158,7 +4158,7 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
     data = PyArray_DATA(array);
     recsize = PyArray_ITEMSIZE(array);
     if (NOGIL(read_columns_as_rec_byoffset(self->fits, ncols, colnums, offsets,
-                                           nrows, rows, (char *)data, recsize,
+                                           nrows, rows, sortind, (char *)data, recsize,
                                            &status)) > 0) {
         goto recread_columns_byoffset_cleanup;
     }
@@ -5100,7 +5100,8 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     if (ngood > 0) {
         data = PyArray_DATA((PyArrayObject *)indices_obj);
 
-        Py_BEGIN_ALLOW_THREADS for (i = 0; i < nrows; i++) {
+        Py_BEGIN_ALLOW_THREADS 
+        for (i = 0; i < nrows; i++) {
             if (row_status[i]) {
                 *data = (npy_intp)i;
                 data++;
