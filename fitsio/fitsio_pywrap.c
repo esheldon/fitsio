@@ -962,6 +962,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 // get info for the specified HDU
 static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
                                                    PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0, hdutype = 0;
     int status = 0;
 
@@ -1747,6 +1749,7 @@ create_image_hdu_cleanup:
 static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
                                             PyObject *args) {
 
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0, hdutype = 0;
     PyObject *dims_obj = NULL;
@@ -1886,6 +1889,8 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
 // dims are not checked
 static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
                                            PyObject *args) {
+
+    ALLOW_NOGIL
     int hdunum = 0;
     int hdutype = 0;
     int image_datatype = 0; // fits type for image, AKA bitpix
@@ -2214,6 +2219,8 @@ static int write_string_column(
     LONGLONG firstelem,        /* I - first vector element to write (1 = 1st) */
     LONGLONG nelem,            /* I - number of strings to write              */
     char *data, int *status) { /* IO - error status                           */
+
+    ALLOW_NOGIL
 
     if (hdutype == ASCII_TBL || CFITSIO_MAJOR < 4) {
         LONGLONG i = 0;
@@ -2774,6 +2781,8 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
 */
 static PyObject *PyFITSObject_write_record(struct PyFITSObject *self,
                                            PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -2790,7 +2799,7 @@ static PyObject *PyFITSObject_write_record(struct PyFITSObject *self,
         return NULL;
     }
     if (NOGIL(fits_movabs_hdu(self->fits, hdunum, &hdutype, &status))) {
-        set_ioerr_string_from_status(status, self));
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
     // card not null terminated, so we copy everything.  GCC will
@@ -2954,6 +2963,8 @@ static PyObject *PyFITSObject_write_long_long_key(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_write_logical_key(struct PyFITSObject *self,
                                                 PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -3036,6 +3047,8 @@ static PyObject *PyFITSObject_write_comment(struct PyFITSObject *self,
 // let python do the conversions
 static PyObject *PyFITSObject_write_history(struct PyFITSObject *self,
                                             PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -3079,6 +3092,7 @@ static int write_continue(fitsfile *fptr,   /* I - FITS file pointer  */
   be continued on multiple CONTINUE keywords.
 */
 {
+    ALLOW_NOGIL
     char card[FLEN_CARD];
     int len, ii;
 
@@ -3101,6 +3115,8 @@ static int write_continue(fitsfile *fptr,   /* I - FITS file pointer  */
 // let python do the conversions
 static PyObject *PyFITSObject_write_continue(struct PyFITSObject *self,
                                              PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -3136,6 +3152,8 @@ static PyObject *PyFITSObject_write_continue(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_write_undefined_key(struct PyFITSObject *self,
                                                   PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -3179,6 +3197,8 @@ static PyObject *PyFITSObject_write_undefined_key(struct PyFITSObject *self,
 // let python do the conversions
 static PyObject *PyFITSObject_delete_key(struct PyFITSObject *self,
                                          PyObject *args) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -3218,6 +3238,8 @@ static PyObject *PyFITSObject_delete_key(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_insert_rows(struct PyFITSObject *self,
                                           PyObject *args, PyObject *kwds) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
 
@@ -3272,6 +3294,8 @@ static PyObject *PyFITSObject_insert_rows(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_delete_row_range(struct PyFITSObject *self,
                                                PyObject *args, PyObject *kwds) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
 
@@ -3326,6 +3350,8 @@ static PyObject *PyFITSObject_delete_row_range(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
                                           PyObject *args, PyObject *kwds) {
+
+    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
 
@@ -3377,7 +3403,7 @@ static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
  * is true for ascii.
  */
 
-static int read_ascii_column_all(fitsfile *fits, int colnum, PyObject *array,
+static int read_ascii_column_all(fitsfile *fits, int colnum, PyArrayObject *array,
                                  int *status) {
     ALLOW_NOGIL
 
@@ -3650,7 +3676,7 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
             sortind = get_int64_from_array(sortind_array, &nsortind);
         }
 
-        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, data,
+        if (NOGIL(read_binary_column(self->fits, colnum, nrows, rows, sortind, data,
                                      stride, &status))) {
             set_ioerr_string_from_status(status, self);
             return NULL;
@@ -3823,7 +3849,7 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (rowsObj == Py_None) {
+    if (rows_obj == Py_None) {
         NOGIL(fits_get_num_rowsll(self->fits, &nrows, &tstatus));
         get_all_rows = 1;
     } else {
@@ -3886,6 +3912,8 @@ static int read_binary_rec_columns(fitsfile *fits, npy_intp ncols,
                                    npy_int64 *colnums, npy_intp nrows,
                                    npy_int64 *rows, npy_int64 *sortind,
                                    PyArrayObject *array, int *status) {
+
+    ALLOW_NOGIL
     FITSfile *hdu = NULL;
     tcolumn *colptr = NULL;
     LONGLONG file_pos = 0;
@@ -4034,6 +4062,8 @@ static int read_columns_as_rec_byoffset(
     npy_intp nrows, const npy_int64 *rows, const npy_int64 *sortind, char *data,
     npy_intp recsize, int *status) {
 
+
+    ALLOW_NOGIL
     FITSfile *hdu = NULL;
     tcolumn *colptr = NULL;
     LONGLONG file_pos = 0;
@@ -5130,6 +5160,7 @@ where_function_cleanup:
 
 static PyObject *PyFITS_cfitsio_version(void) {
     float version = 0;
+    ALLOW_NOGIL
     NOGIL(fits_get_version(&version));
     return PyFloat_FromDouble((double)version);
 }
@@ -5171,6 +5202,7 @@ character string, logical, integer, floating point, complex
 
 static PyObject *PyFITS_get_keytype(PyObject *self, PyObject *args) {
 
+    ALLOW_NOGIL
     int status = 0;
     char *card = NULL;
     char dtype[2] = {0};
@@ -5187,6 +5219,8 @@ static PyObject *PyFITS_get_keytype(PyObject *self, PyObject *args) {
     }
 }
 static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
+
+    ALLOW_NOGIL
 
     int status = 0;
     char *card = NULL;
@@ -5217,6 +5251,7 @@ static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
 
 static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
 
+    ALLOW_NOGIL
     int status = 0;
     char name[FLEN_VALUE] = {0};
     char value[FLEN_VALUE] = {0};
