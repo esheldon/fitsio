@@ -1,52 +1,44 @@
-A python library to read from and write to FITS files.
+# fitsio
 
-[![Build Status (master)](https://travis-ci.org/esheldon/fitsio.svg?branch=master)](https://travis-ci.org/esheldon/fitsio)
+[![build wheels/sdist](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml/badge.svg)](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml) [![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
 
-Do not use numpy 1.10.0 or 1.10.1
-----------------------------------
-There is a serious performance regression in numpy 1.10 that results
-in fitsio running tens to hundreds of times slower.  A fix may be
-forthcoming in a later release.  Please comment here if this
-has already impacted your work https://github.com/numpy/numpy/issues/6467
+A Python library to read from and write to `FITS` files.
 
-Description
------------
+## Description
 
-This is a python extension written in c and python.  Data are read into
-numerical python arrays.
+This is a Python extension written in C and Python.  Data are read into
+numerical Python arrays.
 
-A version of cfitsio is bundled with this package, there is no need to install
+A version of `cfitsio` is bundled with this package, there is no need to install
 your own, nor will this conflict with a version you have installed.
 
+## Some Features
 
-Some Features
--------------
-
-- Read from and write to image, binary, and ascii table extensions.
+- Read from and write to image, binary, and ASCII table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
   to memory.
-- Read image subsets without reading the whole image.  Write subsets to existing images.
+- Read image subsets without reading the whole image.
+- Write subsets to existing images.
 - Write and read variable length table columns.
-- Read images and tables using slice notation similar to numpy arrays.  This is like a more
-  powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
-    or insert rows.
+- Read images and tables using slice notation similar to `numpy` arrays. (This is like a more
+  powerful `memmap`, since it is column-aware for tables.)
+- Append rows to an existing table.
+- Delete row sets and row ranges, resize tables, or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
-- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).  
-- Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
-- TDIM information is used to return array columns in the correct shape.
+- Read and write images in tile-compressed format (`RICE`, `GZIP`, `PLIO` ,`HCOMPRESS`).
+- Read/write `GZIP` files directly.
+- Read unix compress (`.Z`, `.zip`) and bzip2 (`.bz2`) files.
+- `TDIM` information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write complex, bool (logical), unsigned integer, signed bytes types.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
-- Iterate over rows in a table.  Data are buffered for efficiency.
-- python 3 support
+- Iterate over rows in a table. Data are buffered for efficiency.
+- Python 3 support, including Python 3 strings.
 
-
-Examples
---------
+## Examples
 
 ```python
 import fitsio
@@ -56,30 +48,29 @@ from fitsio import FITS,FITSHDR
 # create a FITS object.  In that case, you can use the read and write
 # convienience functions.
 
-# read all data from the first hdu with data
+# read all data from the first hdu that has data
 filename='data.fits'
 data = fitsio.read(filename)
 
 # read a subset of rows and columns from a table
 data = fitsio.read(filename, rows=[35,1001], columns=['x','y'], ext=2)
 
-# read the header, or both at once
-h = fitsio.read_header(filename, extension)
-data,h = fitsio.read(filename, ext=ext, header=True)
+# read the header
+h = fitsio.read_header(filename)
+# read both data and header
+data,h = fitsio.read(filename, header=True)
 
-# open the file, write a new binary table extension, and then write  the
-# data from "recarray" into the table. By default a new extension is
+# open the file and write a new binary table extension with the data
+# array, which is a numpy array with fields, or "recarray".
+
+data = np.zeros(10, dtype=[('id','i8'),('ra','f8'),('dec','f8')])
+fitsio.write(filename, data)
+
+# Write an image to the same file. By default a new extension is
 # added to the file.  use clobber=True to overwrite an existing file
 # instead.  To append rows to an existing table, see below.
-fitsio.write(filename, recarray)
 
-# write an image
 fitsio.write(filename, image)
-
-# NOTE when reading row subsets, the data must still be read from disk.
-# This is most efficient if the data are read in the order they appear in
-# the file.  For this reason, the rows are always returned in row-sorted
-# order.
 
 #
 # the FITS class gives the you the ability to explore the data, and gives
@@ -98,15 +89,15 @@ extnum hdutype         hduname
 0      IMAGE_HDU
 1      BINARY_TBL      mytable
 
-# at the python prompt, you could just type "fits" and it will automatically
-# print itself.  Same for ipython.
+# at the python or ipython prompt the fits object will
+# print itself
 >>> fits
 file: data.fits
 ... etc
 
 # explore the extensions, either by extension number or
 # extension name if available
-print(fits[0])
+>>> fits[0]
 
 file: data.fits
 extension: 0
@@ -115,7 +106,8 @@ image info:
   data type: f8
   dims: [4096,2048]
 
-print(fits['mytable']  # can also use fits[1])
+# by name; can also use fits[1]
+>>> fits['mytable']
 
 file: data.fits
 extension: 1
@@ -136,7 +128,7 @@ column info:
 # See bottom for how to get more information for an extension
 
 # [-1] to refers the last HDU
-print(fits[-1])
+>>> fits[-1]
 ...
 
 # if there are multiple HDUs with the same name, and an EXTVER
@@ -159,7 +151,7 @@ data = fits[1][:]
 
 # read a subset of rows and columns. By default uses a case-insensitive
 # match. The result retains the names with original case.  If columns is a
-# sequence, a recarray is returned
+# sequence, a numpy array with fields, or recarray is returned
 data = fits[1].read(rows=[1,5], columns=['index','x','y'])
 
 # Similar but using slice notation
@@ -168,6 +160,13 @@ data = fits[1][10:20]
 data = fits[1][10:20:2]
 data = fits[1][[1,5,18]]
 
+# Using EXTNAME and EXTVER values
+data = fits['SCI',2][10:20]
+
+# Slicing with reverse (flipped) striding
+data = fits[1][40:25]
+data = fits[1][40:25:-5]
+
 # all rows of column 'x'
 data = fits[1]['x'][:]
 
@@ -175,10 +174,14 @@ data = fits[1]['x'][:]
 # each column
 data = fits[1]['x','y'][:]
 
-# General column and row subsets.  As noted above, the data are returned
-# in row sorted order for efficiency reasons.
+# General column and row subsets.
 columns=['index','x','y']
-rows=[1,5]
+rows = [1, 5]
+data = fits[1][columns][rows]
+
+# data are returned in the order requested by the user
+# and duplicates are preserved
+rows = [2, 2, 5]
 data = fits[1][columns][rows]
 
 # iterate over rows in a table hdu
@@ -232,12 +235,12 @@ fits = FITS('test.fits','rw')
 # create a rec array.  Note vstr
 # is a variable length string
 nrows=35
-data = numpy.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
-                                 ('arr','f4',(3,4))])
-data['index'] = numpy.arange(nrows,dtype='i4')
-data['x'] = numpy.random.random(nrows)
+data = np.zeros(nrows, dtype=[('index','i4'),('vstr','O'),('x','f8'),
+                              ('arr','f4',(3,4))])
+data['index'] = np.arange(nrows,dtype='i4')
+data['x'] = np.random.random(nrows)
 data['vstr'] = [str(i) for i in xrange(nrows)]
-data['arr'] = numpy.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
+data['arr'] = np.arange(nrows*3*4,dtype='f4').reshape(nrows,3,4)
 
 # create a new table extension and write the data
 fits.write(data)
@@ -269,13 +272,21 @@ fits[-1].write(data, firstrow=350)
 
 
 # create an image
-img=numpy.arange(2*3,dtype='i4').reshape(2,3)
+img=np.arange(2*3,dtype='i4').reshape(2,3)
 
 # write an image in a new HDU (if this is a new file, the primary HDU)
 fits.write(img)
 
 # write an image with rice compression
 fits.write(img, compress='rice')
+
+# control the compression
+fimg=np.random.normal(size=2*3).reshape(2, 3)
+fits.write(img, compress='rice', qlevel=16, qmethod='SUBTRACTIVE_DITHER_2')
+
+# lossless gzip compression for integers or floating point
+fits.write(img, compress='gzip', qlevel=None)
+fits.write(fimg, compress='gzip', qlevel=None)
 
 # overwrite the image
 fits[ext].write(img2)
@@ -293,7 +304,7 @@ fits[-1].write_checksum()
 # can later verify data integridy
 fits[-1].verify_checksum()
 
-# you can also write a header at the same time.  The header can be 
+# you can also write a header at the same time.  The header can be
 #   - a simple dict (no comments)
 #   - a list of dicts with 'name','value','comment' fields
 #   - a FITSHDR object
@@ -310,7 +321,7 @@ fits.write(data, header=hdr)
 # you can add individual keys to an existing HDU
 fits[1].write_key(name, value, comment="my comment")
 
-# Write multiple header keys to an existing HDU. Here records 
+# Write multiple header keys to an existing HDU. Here records
 # is the same as sent with header= above
 fits[1].write_keys(records)
 
@@ -348,7 +359,7 @@ f[1].get_colname(colnum)    # for tables find the name from column number
 f[1].get_nrows()            # for tables
 f[1].get_rec_dtype()        # for tables
 f[1].get_rec_column_descr() # for tables
-f[1].get_vstorage()         # for tables, storage mechanism for variable 
+f[1].get_vstorage()         # for tables, storage mechanism for variable
                             # length columns
 
 # public attributes you can feel free to change as needed
@@ -356,81 +367,122 @@ f[1].lower           # If True, lower case colnames on output
 f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
 ```
-Installation
-------------
 
-The easiest way is using pip. To get the latest release
+## Installation
 
-    pip install fitsio
+The easiest way is using `pip` or `conda`. To get the latest release
 
-    # update fitsio (and everything else)
-    pip install fitsio --upgrade
+```bash
+pip install fitsio
 
-    # if pip refuses to update to a newer version
-    pip install fitsio --upgrade --ignore-installed
+# update fitsio (and everything else)
+pip install fitsio --upgrade
 
-    # if you only want to upgrade fitsio
-    pip install fitsio --no-deps --upgrade --ignore-installed
+# if pip refuses to update to a newer version
+pip install fitsio --upgrade --ignore-installed
+
+# if you only want to upgrade fitsio
+pip install fitsio --no-deps --upgrade --ignore-installed
+
+# for conda, use conda-forge
+conda install -c conda-forge fitsio
+```
 
 You can also get the latest source tarball release from
 
-    https://pypi.python.org/pypi/fitsio
+```url
+https://pypi.python.org/pypi/fitsio
+```
 
-or the bleeding edge source from github or use git. To check out
+or the bleeding edge source from GitHub or use git. To check out
 the code for the first time
 
-    git clone https://github.com/esheldon/fitsio.git
+```bash
+git clone https://github.com/esheldon/fitsio.git
+```
 
 Or at a later time to update to the latest
 
-    cd fitsio
-    git update
+```bash
+cd fitsio
+git update
+```
 
-Use tar xvfz to untar the file, enter the fitsio directory and type
+Use `tar xvfz` to unpack the file, enter the `fitsio` directory and type
 
-    python setup.py install
+```bash
+pip install .
+```
 
-optionally with a prefix 
+## Requirements
 
-    python setup.py install --prefix=/some/path
+- python >=3.8
+- a C compiler and build tools like `make`, `patch`, etc.
+- numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
-Requirements
-------------
+### Do not use `numpy` 1.10.0 or 1.10.1
 
-    - python 2 or python 3
-    - you need a c compiler and build tools like Make
-    - You need numerical python (numpy).
+There is a serious performance regression in `numpy` 1.10 that results
+in `fitsio` running tens to hundreds of times slower.  A fix may be
+forthcoming in a later release. Please comment on GitHub issue
+[numpy/issues/6467](https://github.com/numpy/numpy/issues/6467)
+here if this has already impacted your work
 
-test
-----
+## Tests
+
 The unit tests should all pass for full support.
 
-    import fitsio
-    fitsio.test.test()
+```bash
+pytest fitsio
+```
 
 Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
 be read, without affecting other functionality.
 
-TODO
-----
+## Linting and Code Formatting
 
-- HDU groups: does anyone use these? If so open an issue!
+We use the `pre-commit` framework for linting and code formatting. To
+run the linting and code formatting, use the following command
 
-Notes on cfitsio bundling
--------------------------
+```bash
+pre-commit run -a
+```
 
-We bundle partly because many deployed versions of cfitsio in the wild do not
-have support for interesting features like tiled image compression.   Bundling
-a version that meets our needs is a safe alternative.
+## Notes on Usage and Features
 
-Note on array ordering
-----------------------
-        
+### `cfitsio` bundling
+
+We bundle cfitsio partly because many deployed versions of cfitsio in the
+wild do not have support for interesting features like tiled image compression.
+Bundling a version that meets our needs is a safe alternative.
+
+### Array Ordering
+
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
 to also reverse the dims as read from the header when creating the numpy dtype,
 but read as is.
 
+### `distutils` vs `setuptools`
 
+As of version `1.0.0`, `fitsio` has been transitioned to `setuptools` for packaging
+and installation. There are many reasons to do this (and to not do this). However,
+at a practical level, what this means for you is that you may have trouble uninstalling
+older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing to do is
+to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
+for example.
 
+### Python 3 Strings
+
+As of version `1.0.0`, fitsio now supports Python 3 strings natively. This support
+means that for Python 3, native strings are read from and written correctly to
+FITS files. All byte string columns are treated as ASCII-encoded unicode strings
+as well. For FITS files written with a previous version of fitsio, the data
+in Python 3 will now come back as a string and not a byte string. Note that this
+support is not the same as full unicode support. Internally, fitsio only supports
+the ASCII character set.
+
+## TODO
+
+- HDU groups: does anyone use these? If so open an issue!

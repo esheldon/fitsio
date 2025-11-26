@@ -1,0 +1,6 @@
+include *.txt
+include README.md
+include cfitsio-4.6.3.tar.gz
+include zlib.tar.gz
+recursive-include patches *
+recursive-include fitsio/test_images *

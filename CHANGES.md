@@ -1,25 +1,475 @@
-version 1.0
+version 1.3.1
+-------------
+
+Changes
+
+    - Removed patches that truncate subnormal floats (underflows)
+      to zero when reading images with nulls. These patches were
+      rejected by the upstream maintainers. The net effect of
+      this change is that for lossily compressed images w/ NaNs
+      subnormal values may be truncated to zero. This change
+      should be relatively harmless given that it only applies
+      to very small values which are lossily compressed anyways.
+
+Bug Fixes
+
+    - Added patch to skip building the cfitsio test programs.
+      These are not used by fitsio, but they fail to build on
+      some machines and cause installation failures.
+
+version 1.3.0
+-------------
+
+Changes
+
+    - Introduced a `fitsio.NOT_SET` singleton for some
+      parameters whose defaults are deferred at the Python
+      level and instead set at the C level by cfitsio. The
+      image compression parameters now use this singleton.
+      However, the actual underlying defaults used have not
+      changed.
+    - Added a new function `fitsio.cfitsio_is_bundled()`
+      that detects if the cfitsio library is bundled with
+      the Python code.
+    - Enabled the code to track all cfitsio error messages,
+      including those put onto the internal stack and then
+      later removed. This feature should help with debugging.
+    - Added support for uint64 / ULONLONG data for binary tables
+      and images. You need cfitsio version at least 4.1.0 (or
+      to use the bundled cfitsio) for this feature to work.
+    - Installation of fitsio will fail if the `patch` command
+      line utility is missing. To prevent this, set the environment
+      variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
+    - The C code is now styled uniformly with clang-format.
+    - Updated bundled cfitsio to 4.6.3.
+    - Added utilities `cfitsio_has_bzip2_support` and
+      `cfitsio_has_curl_support` to detect at run-time if cfitsio
+      was built with these options.
+    - Added methods `delete_key` and `delete_keys` to HDUs to allow
+      deleting header keys.
+    - HDU info loading is now done lazily.
+    - Changed string handling in python 3 to allow for correct
+      null-terminated behavior when linking to external builds
+      of cfitsio at version 4 or larger.
+
+Bug Fixes
+
+    - Fixed incorrect/unspecified minimum python version,
+      setting it to `>=3.8`.
+    - Fixed bug where we attempted to open `mem://` files
+      as existing files when calling `fitsio.FITS.reopen`.
+    - Fixed a bug where compression parameters set in filenames
+      were inconsistently applied, especially when compression
+      parameters were specified in Python too. Now the code will
+      raise an exception if a user sets Python keyword compression
+      parameters while also using filename compression parameters.
+      However, the `dither_seed` can be set from Python even if other
+      compression parameters are specified in the filename.
+    - Fixed bugs in lossless GZIP compression of integer types. See the
+      new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
+      and https://github.com/HEASARC/cfitsio/pull/98 for the upstream PR for the patch.
+    - Fixed a bug where compression parameters were cached across different HDUs.
+    - Fixed a bug where writing unsupported image types either did not raise an error
+      or did not raise the correct error.
+    - Fixed a bug where rectangular subsets of images were not written properly.
+    - Fixed automatic detection of bzip2 and curl libraries.
+    - Fixed handling nan values when reading and writing compressed images.
+    - Fixed bug in cfitsio where underflows were cast to zero when handling
+      nan values. See https://github.com/HEASARC/cfitsio/pull/102.
+    - Fixed bug in cfitsio where overwriting a tile-compressed image fails
+      when the new values are not lossily compressed but the old values were.
+      See https://github.com/HEASARC/cfitsio/pull/101.
+    - Fixed a bug where the FITS HDU properties could go out of sync as header
+      keys were added, modified, etc.
+
+version 1.2.8
+-------------
+
+Changes
+
+    - Arrays passed to cfitsio are now forced to be
+      aligned via `numpy.require`. This change prevents
+      failures due to rare instances of unaligned memory
+      access on certain platforms. No additional copies
+      of arrays are made unless they are unaligned. As
+      unaligned arrays are rare, this change should have
+      minimal performance implications.
+
+Bug Fixes
+
+    - Fixed error in PyPI uploads.
+
+version 1.2.7
+-------------
+
+Changes
+
+    - Replace deprecated `NPY_*` constants (Michał Górny)
+
+version 1.2.6
+-------------
+
+Bug Fixes
+
+    - Fix bug parsing header cards with free-form strings
+    - Fix writing and reading of string columns with length
+      1 vectors in numpy 2.
+    - Fix building against NumPy 2.3.0.
+
+version 1.2.5
+-------------
+
+New Features
+
+    - writing images supports the dither_seed keyword, to seed
+      the random number generator for subtractive dithering
+    - PyPI now has wheels in addition to sdists
+
+Bug Fixes
+
+    - Fix bug slicing tables that have TBIT columns
+
+version 1.2.4
+-------------
+
+Changes
+
+    - use cfitsio-4.4.1-20240617 which reverts to a free license
+
+version 1.2.3
+-------------
+
+Changes
+
+    - bundle cfitsio 4.4.0.
+    - update manifest to include new cfitsio
+
+Bug Fixes
+
+    - Reading images with empty slices was returning data
+    - Using cfitsio 4.4.0 fixes a bug reading HIERARCH+CONTINUE keywords
+    - zlib subdir not in manifest
+
+version 1.2.2
+-------------
+
+Changes
+
+    - Updates for numpy version 2 (Eli Rykoff, ESS)
+    - setup.py: rename env variable BZIP2 to FITSIO_BZIP2_DIR (Maximillian Bensch)
+    - Add support for LoongArch (liuxiang)
+
+version 1.2.1
+-------------
+
+Changes
+
+    - raise new fitsio.FITSFormatError exception when we detect format
+      errors in a FITS file.  Currently this only raises when extensions
+      are not properly marked with XTENSION but we can expand this over time
+
+Bug Fixes
+
+    - Bug not writing compression qlevel when it is set to None/0.0
+      This was preventing lossless gzip compression
+    - work around cfitsio bug when creating HDU for lossless gzip compression,
+      reopen file instead of just an update hdu list
+
+version 1.2.0
+--------------
+
+Changes
+
+    - move to cfitsio 4
+
+Bug Fixes
+
+    - Fixed issue where the patched C fitsio headers were not
+      first in the include path.
+    - Added extra header guards and headers to help with compilation issues.
+    - Fixed builds of the bundled cfitsio code to hide symbols and directly
+      include the *.o files when linking.
+
+version 1.1.10
+--------------
+
+Changes
+
+Bug Fixes
+
+    - Fix errors on 32 bit builds where default numpy integer
+      types were 32 rather than 64 bit assumed by the C code.
+    - Fix checks for rows being sent to C codes
+
+version 1.1.9
+-------------
+
+Changes
+
+    - Row subsets of table data are returned in the order sent by the user
+      rather than sorted and unique.  E.g. rows = [2, 2, 1] will return
+      data corresponding to that order of rows, including duplicates.
+    - Removed deprecated `pkg_resources` from tests (M. Becker).
+    - converted tests to use pytest
+    - Improved doc strings (N. Tessore)
+
+Bug Fixes
+    - Bug updating header string cards was adding new key rather than updating
+    - Bug gzip compression when not using quantization
+
+version 1.1.8
+-------------
+
+Bug Fixes
+    - Bug in repr of FITS where it only worked the first time it was generated
+
+version 1.1.7
+-------------
+
+Bug Fixes
+
+    - Bug converting extension names, should just ensure ascii rather than
+      subset of ascii
+    - Bugs in the repr of headers where history keywords had extra spaces.
+      Also a bug with not upper casing things like 1.0E20 which is the
+      fits standard
+
+version 1.1.6
+-------------
+
+Bug Fixes
+
+    - fixed bug where Updating an existing record in an image header raises an
+      exception (user ussegliog)
+    - fix bug append not forwarding arguments to write (Nicolas Tessore)
+
+version 1.1.5
+---------------------------------
+
+Bug Fixes
+
+    - Deal with case that a header keyword has non-ascii
+      characters and the value is numerical. In this case
+      we cannot convert the value because fits_read_key
+      can segfault in some scenarios.  We instead return
+      a string.
+    - Fixed residual segfaults for header cards with non-ascii
+      characters.
+    - HIERARCH keywords are now properly parsed.
+    - Header keywords with `*`, `#` or `?` in them now properly raise an error
+      before writing since the generated FITS files cannot be read.
+
+Changes
+
+    - Non-allowed characters in header keywords are now converted to `_` instead
+      of `JUNK___...`.
+
+version 1.1.4
 ---------------------------------
 
 New Features
 
+    - Moved most testing to GitHub actions (linux, osx).
+    - Added testing on ppc64le w/ TravisCI (thanks @asellappen)
+
+Bug Fixes
+
+    - Don't remove BLANK keywords in header clean
+    - Preserve order of comments in header
+
+Compatibility changes
+
+    - moved to sing `bool` rather than `np.bool` to be compatible
+      with numpy 1.2
+
+version 1.1.3
+---------------------------------
+
+This release moves to cfitsio 3.49, which has bug fixes and now properly
+supports reading certain classes of lossless compressed files
+
+New Features
+
+    - Added keywords to control compression
+        - qlevel control the quantization level
+        - qmethod set the quantization method
+        - hcomp_scale, hcomp_smooth HCOMPRESS specific settings
+
+        A nice result of this is that one can do lossless gzip compression
+        (setting qlevel=0) and
+    - Work around some types of garbage characters that might appear
+      in headers
+
+BACKWARDS INCOMPATIBLE CHANGES
+
+    - non-ascii junk in headers is replaced by ascii characters to
+      avoid segmentation faults in the python standard library
+      when non-unicode characters are detected.  This will cause
+      codes that check for consistency between copied headers
+      to fail, since the header data is modified.
+
+Bug Fixes
+
+    - Write integer keywords using the long long support rather than long
+    - Fix bug where a new file is started and the user can access a
+      fictional HDU, causing book keeping problems
+    - Return zero length result when requested rows have
+      zero length (rainwoodman)
+
+version 1.1.2
+---------------------------------
+
+Bug Fixes
+
+    - Fixed deprecation warnings for extra keyword arguments.
+    - Fixed SyntaxWarning: "is" with a literal (Michka Popoff)
+
+version 1.1.1
+---------------------------------
+
+Bug Fixes
+
+    - Fix bug in drvrnet.c in printf statement, causing compile
+      issues on some systems.
+
+version 1.1.0
+---------------------------------
+
+Bumping the minor version due to the update of the cfitsio version
+
+This reverts to the behavior that compression settings are set as a toggle,
+which is the cfitsio convention.  The user needs to turn compression on and off
+selectively.  The alternative behavior, introduced in 1.0.1, broke the mode
+where compression is set in the filename, as well as breaking with convention.
+
+New Features
+
+    - Updated to cfitsio version 3.470 (#261)
+    - Add ability to stride (step value) when slicing (Dustin Jenkins)
+    - Add feature to flip along axis when slicing (Dustin Jenkins)
+    - Feature to ignore image scaling (Dustin Jenkins)
+
+Bug Fixes
+
+    - Fix error reading with an empty rows argument (rainwoodman)
+    - Fix bug when reading slice with step, but no start/stop (Mike Jarvis)
+    - Fix bug with clobber when compression is sent in filename
+
+Deprecations
+
+    - Removed the use of `**kwargs` in various read/write routines. This
+      pattern was causing silent bugs. All functions now use explicit
+      keyword arguments. A warning will be raised in any keyword arguments
+      are passed. In version `1.2`, this warning will become an error.
+
+version 1.0.5
+---------------------------------
+
+Bug Fixes
+
+    - fixed bug getting `None` keywords
+    - fixed bug writing 64 bit images (#256, #257)
+    - fixed HISTORY card value not being read
+
+version 1.0.4
+---------------------------------
+
+New Features
+
+    - support for empty keywords in header, which are supported
+      by the standard and are used for cosmetic comments
+
+Bug Fixes
+
+    - Fix for inserting bit columns and appending data with bitcols
+    - deal with non-standard header values such as NAN
+      [by returning as strings
+    - fixed many bugs reading headers; these were a casualty of
+      the header reading optimizations put in for  1.0.1
+
+version 1.0.3
+---------------------------------
+
+This is a bug fix release
+
+Bug Fixes
+
+    - The new header reading code did not deal properly with some
+      HIERARCH non-standard header key values.
+
+version 1.0.2
+---------------------------------
+
+This is a bug fix release
+
+Bug Fixes
+
+    - the read_header function was not treating the case_sensitive
+      keyword properly (Stephen Bailey)
+
+version 1.0.1
+---------------------------------
+
+Backwards Incompatible Changes
+
+    - Support for python 3 strings.
+    - Support for proper string null termination.  This means you can read back exactly
+      what you wrote.  However this departs from previous fitsio which used
+      the non-standard cfitsio convention of padding strings with spaces.
+    - Scalar indexing of FITS objects now returns a scalar, consistent
+      with numpy indexing rules (rainwoodman)
+
+New Features
+
+    - Installation moved to setuptools from distutils.
+    - Bundling of cfitsio now done with patches against the upstream
+      version instead of direct edits to the upstream code.
+    - Speed improvements for the read_header conveniance function, and
+      reading of headers in general.
+
+Bug Fixes
+
+    - CONTINUE in headers are now properly read.  Note there is a corner
+      case that is mis-handled by the underlying cfitsio library.  A bug
+      report has been sent.  (thanks for help with Alex Drlica-Wagner
+      identifying and testing this issue)
+    - Fixed bug where some long strings were not properly written to headers
+    - Fixed bug where compression settings for an open FITS object was inherited
+      from the previous HDU by a new HDU
+    - Fixed bug where comment strings were lost when setting the value in
+      a FITSHDR entry
+    - Fixed bug where get_comment was raising ValueError rather than KeyError
+    - For py3 need to ensure by hand that strings sizes are greater than 0
+
+Deprecations
+
+    - removed `convert` keyword in `FITSRecord` and `FITSHDR` classes.
+
+version 0.9.12
+---------------------------------
+
+New Features
+
+    - Deal properly with undefined value header entries
+    - can delete rows from a table
+    - can insert rows with resize()
+    - can create empty HDU extension for extensions beyond 0 (Felipe Menanteau)
+    - sanitize string input for py3
+    - GZIP_2 compression support (Felipe Menanteau)
+    - Improvements to python packaging for easier installation.
+    - Using cfitsio 3.430 now with patches for known bugs
     - Now support reading and writing bit columns (Eli Rykoff)
-    
     - Can now read CONTINUE keywords in headers.  It is currently
       treated as a comment; full implementation to come. (Alex Drlica-Wagner)
-
     - Can now use a standard key dict when writing a header key using
       the write_key method via `**`, e.g. `write_key(**key_dict)`
       (Alex Drlica-Wagner)
-
     - Delete row sets and row ranges using the delete_rows() method
       for tables
     - Resize tables, adding or removing rows, using the resize() method for
       tables
-
-    - make write_key usable with standard dictionary using the **keydict
+    - make write_key usable with standard dictionary using the `**keydict`
       style
-
     - allow writing empty HDUs after the first one using
         ignore_empty=True to the FITS constructor or
         the write convenience function (Felipe Menanteau)
@@ -28,10 +478,14 @@ New Features
 
 Bug Fixes
 
+    - Only raise exception when PLIO u4/u8 is selected now that u1/u2 is supported
+      in cfitsio (Eli Rykoff)
+    - link curl library if cfitsio linked to it
+    - don't require numpy to run setup (Simon Conseil)
+    - strings with understores in headers, such as `1_000_000` are now not converted to numbers in py3
     - check that the input fields names for tables are unique after converting
       to upper case
-    - link against libm explicitly for compatability on some systems
-
+    - link against libm explicitly for compatibility on some systems
 
 version 0.9.11
 ---------------------------------
@@ -88,7 +542,6 @@ Workarounds
       -O2 fixes the issue.  This was an issue on linux in both anaconda python2
       and python3.
 
-
 version 0.9.9.1
 ----------------------------------
 
@@ -97,7 +550,7 @@ New tag so that pypi will accept the updated version
 version 0.9.9
 ----------------------------------
 
-New Features 
+New Features
 
     - header_start, data_start, data_end now available in the
       info dictionary, as well as the new get_offsets() method
@@ -186,8 +639,7 @@ New Features
     - IOError is now used to indicate a number of errors that
         were previously ValueError
 
-
-version 0.9.6 
+version 0.9.6
 --------------
 
 New Features
@@ -228,7 +680,7 @@ New Features
     - Specify tile dimensions for compressed images.
     - write_comment and write_history methods added.
     - is_compressed() for image HDUs, True if tile compressed.
-    - added **keys to the image hdu reading routines to provide a more uniform
+    - added `**keys` to the image hdu reading routines to provide a more uniform
       interface for all hdu types
 
 Bug Fixes
@@ -241,7 +693,7 @@ Bug Fixes
     - Simplified reading string columns in ascii tables so that certain
       incorrectly formatted tables from  CASUTools are now read accurately.
       The change was minimal and did not affect reading well formatted tables,
-      so seemed worth it. 
+      so seemed worth it.
     - Support non-standard TSHORT and TFLOAT columns in ascii tables as
       generated by CASUTools.  They are non-standard but supporting them
       does not seem to break anything (pulled from Simon Walker).
@@ -250,6 +702,7 @@ All changes E. Sheldon except where noted.
 
 version 0.9.3
 --------------------------
+
 New Features
 
     - Can write lists of arrays and dictionaries of arrays
@@ -262,7 +715,7 @@ New Features
             fits=fitsio.FITS(filename)
             if 'name' in fits:
                 data=fits['name'].read()
-    - added **keys to the read_header function
+    - added `**keys` to the read_header function
     - added get_exttype() to the FITSHDU class
         'BINARY_TBL' 'ASCII_TBL' 'IMAGE_HDU'
     - added get_nrows() for binary tables
@@ -281,12 +734,12 @@ minor changes
 Backwards incompatible changes
 
     - renamed some attributes; use the getters instead
-        - colnames -> _colnames
-        - info -> _info
-        - filename -> _filename
-        - ext -> _ext
-        - vstorage -> _vstorage
-        - is_comparessed -> _is_compressed
+        - `colnames` -> `_colnames`
+        - `info` -> `_info`
+        - `filename` -> `_filename`
+        - `ext` -> `_ext`
+        - `vstorage` -> `_vstorage`
+        - `is_comparessed` -> `_is_compressed`
             ( use the getter )
 
 Bug Fixes
@@ -322,7 +775,7 @@ version 0.9.1
 
 New features
 
-    - Added reading of image slices, e.g. f[ext][2:25, 10:100]
+    - Added reading of image slices, e.g. `f[ext][2:25, 10:100]`
     - Added insert_column(name, data, colnum=) method for HDUs., 2011-11-14 ESS
     - Added a verify_checksum() method for HDU objects. 2011-10-24, ESS
     - Headers are cleaned of required keyword before writing.  E.g. if you have
@@ -333,7 +786,7 @@ New features
       the required keywords.
 
     - when accessing a column subset object, more metadata are shown
-        f[ext][name]
+        `f[ext][name]`
     - can write None as an image for extension 0, as supported by
       the spirit standard.  Similarly reading gives None in that case.
     - the setup.py is now set up for registering versions to pypi.
@@ -364,7 +817,6 @@ Rykoff for help with OS X testing and bug fixes.
 
 New features
 
-
     - Write and read variable length columns.  When writing a table, any fields
       declared "object" ("O" type char) in the input array will be written to a
       variable length column.  For numbers, this means vectors of varying
@@ -378,7 +830,7 @@ New features
       storage can also be written back out to a new FITS file with variable
       length columns. You can also over-ride the default vstorage when calling
       read functions.
-      
+
     - Write and read ascii tables.  cfitsio supports writing scalar 2- and
       4-byte integers, floats and doubles. But for reading only 4-byte integers
       and doubles are supported, presumably because of the ambiguity in the
@@ -401,21 +853,24 @@ New features
 
     - You can now read rows and columns from a table HDU using slice notation. e.g.
       to read row subsets from extension 1
-            fits=fitsio.FITS(filename)
-            data=fits[1][:]
-            data=fits[1][10:30]
-            data=fits[1][10:30:2]
+            >>> fits=fitsio.FITS(filename)
+            >>> data=fits[1][:]
+            >>> data=fits[1][10:30]
+            >>> data=fits[1][10:30:2]
+
       You can also specify a list of rows
-            rows=[3,8,25]
-            data=fits[1][rows]
-      this is equivalent to
-            data=fits[1].read(rows=rows)
+            >>> rows=[3,8,25]
+            >>> data=fits[1][rows]
+
+      This is equivalent to
+            >>> data=fits[1].read(rows=rows)
+
       To get columns subsets, the notation is similar.  The data are read
-      when the rows are specified.  If a sequence of columns is entered, 
+      when the rows are specified.  If a sequence of columns is entered,
       a recarray is returned, otherwise a simple array.
-            data=fits[1]['x'][:]
-            data=fits[1]['x','y'][3:20]
-            data=fits[1][column_list][row_list]
+            >>> data=fits[1]['x'][:]
+            >>> data=fits[1]['x','y'][3:20]
+            >>> data=fits[1][column_list][row_list]
 
 
     - Added support for EXTVER header keywords.  When choosing an HDU by name,

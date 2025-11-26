@@ -1,0 +1,42 @@
+--- cfitsio-4.2.0/configure	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.2.0/configure	2023-07-14 11:46:53.298055665 -0400
+@@ -15493,19 +15493,24 @@ fi
+ printf "%s\n" "$ac_cv_lib_bz2_main" >&6; }
+ if test "x$ac_cv_lib_bz2_main" = xyes
+ then :
+-  printf "%s\n" "#define HAVE_LIBBZ2 1" >>confdefs.h
++  LIBS="$LIBS -lbz2"; printf "%s\n" "#define HAVE_LIBBZ2 1" >>confdefs.h
++         for ac_header in bzlib.h
++do :
++  ac_fn_c_check_header_compile "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
++if test "x$ac_cv_header_bzlib_h" = xyes
++then :
++  printf "%s\n" "#define HAVE_BZLIB_H 1" >>confdefs.h
+ 
+-  LIBS="-lbz2 $LIBS"
++printf "%s\n" "#define HAVE_BZIP2 1" >>confdefs.h
+ 
+-else case e in #(
+-  e) as_fn_error $? "Unable to locate bz2 library needed when enabling bzip2 support; try specifying the path" "$LINENO" 5 ;;
+-esac
++fi
++
++done
+ fi
+ 
+         else
+             BZIP2_PATH="${withval}"
+-        fi
+-               for ac_header in bzlib.h
++                   for ac_header in bzlib.h
+ do :
+   ac_fn_c_check_header_compile "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
+ if test "x$ac_cv_header_bzlib_h" = xyes
+@@ -15517,6 +15522,7 @@ printf "%s\n" "#define HAVE_BZIP2 1" >>confdefs.h
+ fi
+ 
+ done
++        fi
+     fi
+ 
+ 

@@ -1,0 +1,21 @@
+--- cfitsio-4.2.0/configure.ac	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.2.0/configure.ac	2023-07-14 11:45:00.797390794 -0400
+@@ -170,11 +170,16 @@ AC_ARG_WITH(
+   [AS_HELP_STRING([--with-bzip2[[=PATH]]],[Enable bzip2 support. Optional path to the location of include/bzlib.h and lib/libbz2])],
+   [ if test "x$withval" != "xno"; then
+         if test "x$withval" = "xyes" ; then
+-            AC_CHECK_LIB([bz2],[main],[],[AC_MSG_ERROR(Unable to locate bz2 library needed when enabling bzip2 support; try specifying the path)])
++            AC_CHECK_LIB(
++              [bz2],
++              [main],
++              [LIBS="$LIBS -lbz2"; AC_DEFINE(HAVE_LIBBZ2) AC_CHECK_HEADERS(bzlib.h,[AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])])],
++              []
++            )
+         else
+             BZIP2_PATH="${withval}"
++            AC_CHECK_HEADERS(bzlib.h,[AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])])
+         fi
+-        AC_CHECK_HEADERS(bzlib.h,[AC_DEFINE(HAVE_BZIP2,1,[Define if you want bzip2 read support])])
+     fi
+   ]
+ )
