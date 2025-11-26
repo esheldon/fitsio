@@ -4781,7 +4781,6 @@ static int hierarch_is_string(const char *card) {
 // card
 static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                                           PyObject *args) {
-    ALLOW_NOGIL
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -5161,8 +5160,7 @@ where_function_cleanup:
 
 static PyObject *PyFITS_cfitsio_version(void) {
     float version = 0;
-    ALLOW_NOGIL
-    NOGIL(fits_get_version(&version));
+    fits_get_version(&version);
     return PyFloat_FromDouble((double)version);
 }
 
@@ -5203,7 +5201,6 @@ character string, logical, integer, floating point, complex
 
 static PyObject *PyFITS_get_keytype(PyObject *self, PyObject *args) {
 
-    ALLOW_NOGIL
     int status = 0;
     char *card = NULL;
     char dtype[2] = {0};
@@ -5212,16 +5209,15 @@ static PyObject *PyFITS_get_keytype(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    if (NOGIL(fits_get_keytype(card, dtype, &status))) {
+    if (fits_get_keytype(card, dtype, &status)) {
         set_ioerr_string_from_status(status, NULL);
         return NULL;
     } else {
         return Py_BuildValue("s", dtype);
     }
 }
-static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
 
-    ALLOW_NOGIL
+static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
 
     int status = 0;
     char *card = NULL;
@@ -5232,9 +5228,9 @@ static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    keyclass = NOGIL(fits_get_keyclass(card));
+    keyclass = fits_get_keyclass(card);
 
-    if (NOGIL(fits_get_keytype(card, dtype, &status))) {
+    if (fits_get_keytype(card, dtype, &status)) {
         set_ioerr_string_from_status(status, NULL);
         return NULL;
     }
@@ -5252,7 +5248,6 @@ static PyObject *PyFITS_get_key_meta(PyObject *self, PyObject *args) {
 
 static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
 
-    ALLOW_NOGIL
     int status = 0;
     char name[FLEN_VALUE] = {0};
     char value[FLEN_VALUE] = {0};
@@ -5269,7 +5264,7 @@ static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
         goto bail;
     }
 
-    keyclass = NOGIL(fits_get_keyclass(card));
+    keyclass = fits_get_keyclass(card);
 
     // only proceed if not comment or history, but note the special first four
     // comment fields will not be called comment but structural!  That will
@@ -5278,15 +5273,15 @@ static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
 
     if (keyclass != TYP_COMM_KEY && keyclass != TYP_CONT_KEY) {
 
-        if (NOGIL(fits_get_keyname(card, name, &keylen, &status))) {
+        if (fits_get_keyname(card, name, &keylen, &status)) {
             set_ioerr_string_from_status(status, NULL);
             goto bail;
         }
-        if (NOGIL(fits_parse_value(card, value, comment, &status))) {
+        if (fits_parse_value(card, value, comment, &status)) {
             set_ioerr_string_from_status(status, NULL);
             goto bail;
         }
-        if (NOGIL(fits_get_keytype(value, dtype, &status))) {
+        if (fits_get_keytype(value, dtype, &status)) {
 
             if (status == VALUE_UNDEFINED) {
                 is_undefined = 1;
