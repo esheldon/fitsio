@@ -4817,12 +4817,12 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
         return NULL;
     }
-    if (NOGIL(fits_movabs_hdu(self->fits, hdunum, &hdutype, &status))) {
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
-    if (NOGIL(fits_get_hdrspace(self->fits, &nkeys, &morekeys, &status))) {
+    if (fits_get_hdrspace(self->fits, &nkeys, &morekeys, &status)) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4831,7 +4831,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
     for (i = 0; i < nkeys; i++) {
 
         // the full card
-        if (NOGIL(fits_read_record(self->fits, i + 1, card, &status))) {
+        if (fits_read_record(self->fits, i + 1, card, &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status, self);
             return NULL;
@@ -4839,8 +4839,8 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
 
         // this just returns the character string stored in the header; we
         // can eval in python
-        if (NOGIL(fits_read_keyn(self->fits, i + 1, keyname, value, scomment,
-                                 &status))) {
+        if (fits_read_keyn(self->fits, i + 1, keyname, value, scomment,
+                                 &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status, self);
             return NULL;
@@ -4867,8 +4867,8 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
             } else {
                 is_comment_or_history = 0;
 
-                if (NOGIL(fits_read_key_longstr(self->fits, keyname, &longstr,
-                                                comment, &status))) {
+                if (fits_read_key_longstr(self->fits, keyname, &longstr,
+                                                comment, &status)) {
                     Py_XDECREF(list);
                     set_ioerr_string_from_status(status, self);
                     return NULL;
@@ -4982,14 +4982,14 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                            (strchr(longstr, 'E') != NULL) ||
                            (strchr(longstr, 'e') != NULL)) {
                     // we found a floating point value
-                    NOGIL(fits_read_key(self->fits, TDOUBLE, keyname, &dval,
-                                        comment, &status));
+                    fits_read_key(self->fits, TDOUBLE, keyname, &dval,
+                                        comment, &status);
                     add_double_to_dict(dict, "value", dval);
                 } else {
 
                     // we might have found an integer
-                    if (NOGIL(fits_read_key(self->fits, TLONGLONG, keyname,
-                                            &lval, comment, &status))) {
+                    if (fits_read_key(self->fits, TLONGLONG, keyname,
+                                            &lval, comment, &status)) {
 
                         // something non standard, just store it as a string
                         convert_to_ascii(longstr);
