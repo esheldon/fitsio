@@ -49,7 +49,8 @@
     _save1_ = NULL
 #define _NOGIL(x)                                                              \
     ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
-     (void)(PyEval_RestoreThread(_save1_)), _evaltmp123_)
+     (void)(PyEval_RestoreThread(_save1_)), (void)(_save1_ = NULL),            \
+     _evaltmp123_)
 #define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
 
 struct PyFITSObject {
