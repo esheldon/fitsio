@@ -1368,70 +1368,12 @@ static int fits_to_npy_table_type(int fits_dtype, int *isvariable) {
     return 0;
 }
 
-static int create_empty_hdu(struct PyFITSObject *self) {
-    ALLOW_NOGIL
-    int status = 0;
+static int create_empty_hdu(struct PyFITSObject *self, int *status) {
     int bitpix = SHORT_IMG;
     int naxis = 0;
     long *naxes = NULL;
-    if (NOGIL(fits_create_img(self->fits, bitpix, naxis, naxes, &status))) {
-        set_ioerr_string_from_status(status, self);
-        return 1;
-    }
 
-    return 0;
-}
-
-// follows fits convention that return value is true
-// for failure
-//
-// exception strings are set internally
-//
-// length checking should happen in python
-//
-// note tile dims are written reverse order since
-// python orders C and fits orders Fortran
-static int set_compression(struct PyFITSObject *self, fitsfile *fits,
-                           int comptype, PyObject *tile_dims_obj, int *status) {
-
-    npy_int64 *tile_dims_py = NULL;
-    long *tile_dims_fits = NULL;
-    npy_intp ndims = 0, i = 0;
-
-    // can be NOCOMPRESS (0)
-    if (fits_set_compression_type(fits, comptype, status)) {
-        set_ioerr_string_from_status(*status, self);
-        goto _set_compression_bail;
-        return 1;
-    }
-
-    if (tile_dims_obj != Py_None) {
-
-        tile_dims_py =
-            get_int64_from_array((PyArrayObject *)tile_dims_obj, &ndims);
-        if (tile_dims_py == NULL) {
-            *status = 1;
-        } else {
-            tile_dims_fits = calloc(ndims, sizeof(long));
-            if (!tile_dims_fits) {
-                PyErr_Format(PyExc_MemoryError, "failed to allocate %ld longs",
-                             ndims);
-                goto _set_compression_bail;
-            }
-
-            for (i = 0; i < ndims; i++) {
-                tile_dims_fits[ndims - i - 1] = tile_dims_py[i];
-            }
-
-            fits_set_tile_dim(fits, ndims, tile_dims_fits, status);
-
-            free(tile_dims_fits);
-            tile_dims_fits = NULL;
-        }
-    }
-
-_set_compression_bail:
-    return *status;
+    return fits_create_img(self->fits, bitpix, naxis, naxes, status);
 }
 
 static int pyarray_get_ndim(PyArrayObject *arr) { return arr->nd; }
@@ -1473,6 +1415,8 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     int npy_dtype = 0, nkeys = 0, write_data = 0;
     int i = 0;
     int status = 0;
+    int cleanup_status = 0;
+    int dither_seed_status = 0;
     int py_status = 0;
 
     char *extname = NULL;
@@ -1486,20 +1430,17 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     int orig_dither_seed;
     int got_dither_seed = 0;
     int any_nan = 0;
+    int firstpixel = 1;
+    LONGLONG nelements = 0;
+    void *data = NULL;
+
+    npy_int64 *tile_dims_py = NULL;
+    long *tile_dims_fits = NULL;
+    npy_intp tile_ndims = 0, tile_i = 0;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
         return NULL;
-    }
-
-    // We do allow overriding the dither seed and then putting it back
-    // Luckily cfitsio has public APIs for that so this should be robust
-    if (fits_get_dither_seed(self->fits, &orig_dither_seed, &status)) {
-        set_ioerr_string_from_status(status, self);
-        goto create_image_hdu_cleanup;
-    } else {
-        // tell the code to put back the dither seed later
-        got_dither_seed = 1;
     }
 
     static char *kwlist[] = {
@@ -1513,107 +1454,140 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             &dither_seed_obj, &hcomp_scale_obj, &hcomp_smooth_obj, &extname,
             &extver, &any_nan)) {
         py_status = 1;
+    } else {
+        if (array_obj != Py_None) {
+            array = (PyArrayObject *)array_obj;
+            if (!PyArray_Check(array)) {
+                PyErr_SetString(PyExc_TypeError, "input must be an array.");
+                py_status = 1;
+            }
+
+            npy_dtype = PyArray_TYPE(array);
+            if (npy_to_fits_image_types(npy_dtype, &image_datatype,
+                                        &datatype)) {
+                py_status = 1;
+            }
+
+            if (PyArray_Check(dims_obj)) {
+                // get dims from input, which must be of type 'i8'
+                // this means we are not writing the array that was input,
+                // it is only used to determine the data type
+                dims_array = (PyArrayObject *)dims_obj;
+
+                npy_int64 *tptr = NULL, tmp = 0;
+                ndims = PyArray_SIZE(dims_array);
+                dims = calloc(ndims, sizeof(long));
+                for (i = 0; i < ndims; i++) {
+                    tptr = (npy_int64 *)PyArray_GETPTR1(dims_array, i);
+                    tmp = *tptr;
+                    dims[ndims - i - 1] = (long)tmp;
+                }
+                write_data = 0;
+            } else {
+                // we get the dimensions from the array, which means we are
+                // going to write it as well
+                ndims = pyarray_get_ndim(array);
+                dims = calloc(ndims, sizeof(long));
+                for (i = 0; i < ndims; i++) {
+                    dims[ndims - i - 1] = PyArray_DIM(array, i);
+                }
+                write_data = 1;
+            }
+
+            if (comptype_obj != Py_None) {
+                comptype = (int)PyLong_AsLong(comptype_obj);
+            } else {
+                // get what the code is going to use just in case we override
+                // the HCOMPRESS options
+                comptype = self->fits->Fptr->request_compress_type;
+            }
+
+            if (qlevel_obj != Py_None) {
+                qlevel = (float)PyFloat_AsDouble(qlevel_obj);
+            }
+
+            if (qmethod_obj != Py_None) {
+                qmethod = (int)PyLong_AsLong(qmethod_obj);
+            }
+
+            if (dither_seed_obj != Py_None) {
+                dither_seed = (int)PyLong_AsLong(dither_seed_obj);
+            }
+
+            if (hcomp_scale_obj != Py_None) {
+                hcomp_scale = (float)PyFloat_AsDouble(hcomp_scale_obj);
+            }
+
+            if (hcomp_smooth_obj != Py_None) {
+                hcomp_smooth = (int)PyLong_AsLong(hcomp_smooth_obj);
+            }
+
+            if (write_data) {
+                nelements = PyArray_SIZE(array);
+                data = PyArray_DATA(array);
+            }
+
+            if (tile_dims_obj != Py_None) {
+                tile_dims_py = get_int64_from_array(
+                    (PyArrayObject *)tile_dims_obj, &tile_ndims);
+                if (tile_dims_py == NULL) {
+                    py_status = 1;
+                } else {
+                    tile_dims_fits = calloc(tile_ndims, sizeof(long));
+                    if (!tile_dims_fits) {
+                        PyErr_Format(PyExc_MemoryError,
+                                     "failed to allocate %ld longs", ndims);
+                        py_status = 1;
+                    }
+                    for (i = 0; i < tile_ndims; i++) {
+                        tile_dims_fits[tile_ndims - i - 1] = tile_dims_py[i];
+                    }
+                }
+            }
+        }
+    }
+
+    Py_BEGIN_ALLOW_THREADS;
+
+    if (py_status != 0) {
         goto create_image_hdu_cleanup;
     }
 
+    // We do allow overriding the dither seed and then putting it back
+    // Luckily cfitsio has public APIs for that so this should be robust
+    if (fits_get_dither_seed(self->fits, &orig_dither_seed, &status) == 0) {
+        // tell the code to put back the dither seed later
+        got_dither_seed = 1;
+    }
+
     if (array_obj == Py_None) {
-        if (create_empty_hdu(self)) {
-            // error string is set in create_empty_hdu
-            return NULL;
-        }
+        create_empty_hdu(self, &status);
     } else {
-        array = (PyArrayObject *)array_obj;
-        if (!PyArray_Check(array)) {
-            PyErr_SetString(PyExc_TypeError, "input must be an array.");
-            py_status = 1;
-            goto create_image_hdu_cleanup;
-        }
-
-        npy_dtype = PyArray_TYPE(array);
-        if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
-            py_status = 1;
-            goto create_image_hdu_cleanup;
-        }
-
-        if (PyArray_Check(dims_obj)) {
-            // get dims from input, which must be of type 'i8'
-            // this means we are not writing the array that was input,
-            // it is only used to determine the data type
-            dims_array = (PyArrayObject *)dims_obj;
-
-            npy_int64 *tptr = NULL, tmp = 0;
-            ndims = PyArray_SIZE(dims_array);
-            dims = calloc(ndims, sizeof(long));
-            for (i = 0; i < ndims; i++) {
-                tptr = (npy_int64 *)PyArray_GETPTR1(dims_array, i);
-                tmp = *tptr;
-                dims[ndims - i - 1] = (long)tmp;
-            }
-            write_data = 0;
-        } else {
-            // we get the dimensions from the array, which means we are going
-            // to write it as well
-            ndims = pyarray_get_ndim(array);
-            dims = calloc(ndims, sizeof(long));
-            for (i = 0; i < ndims; i++) {
-                dims[ndims - i - 1] = PyArray_DIM(array, i);
-            }
-            write_data = 1;
-        }
-
-        if (comptype_obj != Py_None) {
-            comptype = (int)PyLong_AsLong(comptype_obj);
-        } else {
-            // get what the code is going to use just in case we override the
-            // HCOMPRESS options
-            comptype = self->fits->Fptr->request_compress_type;
-        }
-
-        if (qlevel_obj != Py_None) {
-            qlevel = (float)PyFloat_AsDouble(qlevel_obj);
-        }
-
-        if (qmethod_obj != Py_None) {
-            qmethod = (int)PyLong_AsLong(qmethod_obj);
-        }
-
-        if (dither_seed_obj != Py_None) {
-            dither_seed = (int)PyLong_AsLong(dither_seed_obj);
-        }
-
-        if (hcomp_scale_obj != Py_None) {
-            hcomp_scale = (float)PyFloat_AsDouble(hcomp_scale_obj);
-        }
-
-        if (hcomp_smooth_obj != Py_None) {
-            hcomp_smooth = (int)PyLong_AsLong(hcomp_smooth_obj);
-        }
-
         if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None)) {
-            // exception strings are set internally
-            if (set_compression(self, self->fits, comptype, tile_dims_obj,
-                                &status)) {
+            if (fits_set_compression_type(self->fits, comptype, &status)) {
+                goto create_image_hdu_cleanup;
+            }
+
+            if (fits_set_tile_dim(self->fits, tile_ndims, tile_dims_fits,
+                                  &status)) {
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (qlevel_obj != Py_None) {
             if (fits_set_quantize_level(self->fits, qlevel, &status)) {
-                set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (qmethod_obj != Py_None) {
             if (fits_set_quantize_method(self->fits, qmethod, &status)) {
-                set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         }
 
         if (dither_seed_obj != Py_None) {
             if (fits_set_dither_seed(self->fits, dither_seed, &status)) {
-                set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
         }
@@ -1621,22 +1595,18 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
         if (comptype == HCOMPRESS_1) {
             if (hcomp_scale_obj != Py_None) {
                 if (fits_set_hcomp_scale(self->fits, hcomp_scale, &status)) {
-                    set_ioerr_string_from_status(status, self);
                     goto create_image_hdu_cleanup;
                 }
             }
 
             if (hcomp_smooth_obj != Py_None) {
                 if (fits_set_hcomp_smooth(self->fits, hcomp_smooth, &status)) {
-                    set_ioerr_string_from_status(status, self);
                     goto create_image_hdu_cleanup;
                 }
             }
         }
 
-        if (NOGIL(fits_create_img(self->fits, image_datatype, ndims, dims,
-                                  &status))) {
-            set_ioerr_string_from_status(status, self);
+        if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
             goto create_image_hdu_cleanup;
         }
     }
@@ -1646,13 +1616,11 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             // comments are NULL
             if (fits_update_key_str(self->fits, "EXTNAME", extname, NULL,
                                     &status)) {
-                set_ioerr_string_from_status(status, self);
                 goto create_image_hdu_cleanup;
             }
             if (extver > 0) {
                 if (fits_update_key_lng(self->fits, "EXTVER", (LONGLONG)extver,
                                         NULL, &status)) {
-                    set_ioerr_string_from_status(status, self);
                     goto create_image_hdu_cleanup;
                 }
             }
@@ -1661,17 +1629,11 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
 
     if (nkeys > 0) {
         if (fits_set_hdrsize(self->fits, nkeys, &status)) {
-            set_ioerr_string_from_status(status, self);
             goto create_image_hdu_cleanup;
         }
     }
 
     if (write_data) {
-        int firstpixel = 1;
-        LONGLONG nelements = 0;
-        void *data = NULL;
-        nelements = PyArray_SIZE(array);
-        data = PyArray_DATA(array);
         if (any_nan) {
             float fnullval = INFINITY;
             double dnullval = INFINITY;
@@ -1685,46 +1647,50 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
                 nullval_ptr = NULL;
             }
 
-            if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel,
-                                         nelements, data, nullval_ptr,
-                                         &status))) {
-                set_ioerr_string_from_status(status, self);
-                goto create_image_hdu_cleanup;
-            }
+            fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
+                               data, nullval_ptr, &status);
         } else {
-            if (NOGIL(fits_write_img(self->fits, datatype, firstpixel,
-                                     nelements, data, &status))) {
-                set_ioerr_string_from_status(status, self);
-                goto create_image_hdu_cleanup;
-            }
+            fits_write_img(self->fits, datatype, firstpixel, nelements, data,
+                           &status);
+        }
+        if (status != 0) {
+            goto create_image_hdu_cleanup;
         }
     }
 
-    // this flushes all buffers
-    if (NOGIL(fits_flush_file(self->fits, &status))) {
-        set_ioerr_string_from_status(status, self);
-        goto create_image_hdu_cleanup;
-    }
-
 create_image_hdu_cleanup:
+    // this flushes all buffers
+    fits_flush_file(self->fits, &status);
+
+    free(tile_dims_fits);
+    tile_dims_fits = NULL;
     free(dims);
     dims = NULL;
     if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None) ||
         (qlevel_obj != Py_None) || (qmethod_obj != Py_None) ||
         (hcomp_scale_obj != Py_None) || (hcomp_smooth_obj != Py_None)) {
-        if (fits_unset_compression_request(self->fits, &status)) {
-            set_ioerr_string_from_status(status, self);
-        }
+        cleanup_status = 0;
+        fits_unset_compression_request(self->fits, &cleanup_status);
     }
 
     // put back the dither seed after we reset any compression params
     if (got_dither_seed == 1) {
-        if (fits_set_dither_seed(self->fits, orig_dither_seed, &status)) {
-            set_ioerr_string_from_status(status, self);
-        }
+        dither_seed_status = 0;
+        fits_set_dither_seed(self->fits, orig_dither_seed, &dither_seed_status);
     }
 
-    if (status != 0 || py_status != 0) {
+    Py_END_ALLOW_THREADS;
+
+    if (cleanup_status != 0) {
+        set_ioerr_string_from_status(cleanup_status, self);
+    } else if (dither_seed_status != 0) {
+        set_ioerr_string_from_status(dither_seed_status, self);
+    } else if (status != 0) {
+        set_ioerr_string_from_status(status, self);
+    }
+
+    if (cleanup_status != 0 || dither_seed_status != 0 || status != 0 ||
+        py_status != 0) {
         return NULL;
     }
 

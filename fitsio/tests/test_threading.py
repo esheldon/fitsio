@@ -1,4 +1,4 @@
-from multiprocessing.pool import ThreadPool
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import os
 import tempfile
 import time
@@ -6,20 +6,41 @@ import time
 import numpy as np
 import fitsio
 
+import pytest
 
-# @pytest.mark.xfail(reason="Releasing the GIL doesn't help much so far!")
-def test_threading():
+SIZE = 10000
+
+
+def create_file(fname):
+    val = int(
+        os.path.basename(fname).replace(".fits", "").replace("fname", "")
+    )
+    data = np.zeros((SIZE, SIZE), dtype='f8')
+    data[:] = val
+    with fitsio.FITS(fname, 'rw') as fits:
+        fits.write_image(data)
+
+
+def read_file(fname):
+    val = int(
+        os.path.basename(fname).replace(".fits", "").replace("fname", "")
+    )
+    with fitsio.FITS(fname, 'r') as fits:
+        assert (fits[0].read() == val).all()
+
+
+@pytest.mark.xfail(reason="Releasing the GIL doesn't help much so far!")
+@pytest.mark.parametrize("klass", [ThreadPoolExecutor, ProcessPoolExecutor])
+def test_threading(klass):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values
     """
-
-    size = 10000
     nt = 4
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
-            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(32)
+            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt)
         ]
 
         def _remove_files():
@@ -29,40 +50,30 @@ def test_threading():
                 except Exception:
                     pass
 
-        # create files for reading in serial
-        def create_file(i):
-            fname = filenames[i]
-            data = np.zeros((size, size), dtype='f8')
-            data[:] = i
-            with fitsio.FITS(fname, 'rw') as fits:
-                fits.write_image(data)
-
-        def read_file(i):
-            fname = filenames[i]
-            with fitsio.FITS(fname, 'r') as fits:
-                assert (fits[0].read() == i).all()
-
         t0 = time.time()
-        create_file(0)
-        read_file(0)
+        create_file(filenames[0])
+        read_file(filenames[0])
         t0_one = time.time() - t0
         print("one file time:", t0_one, flush=True)
         _remove_files()
 
         t0 = time.time()
-        with ThreadPool(nt) as pool:
-            pool.map(create_file, range(nt))
-            pool.map(read_file, range(nt))
+        with klass(max_workers=nt) as pool:
+            for _ in pool.map(create_file, filenames):
+                pass
+            for _ in pool.map(read_file, filenames):
+                pass
         t0_threads = time.time() - t0
-        print("threaded time:", t0_threads, flush=True)
+        print("parallel time / one file time", t0_threads / t0_one, flush=True)
         _remove_files()
 
         t0 = time.time()
-        for i in range(nt):
-            create_file(i)
-            read_file(i)
+        for fname in filenames:
+            create_file(fname)
+        for fname in filenames:
+            read_file(fname)
         t0_serial = time.time() - t0
-        print("serial time:", t0_serial, flush=True)
+        print("serial time / one file time:", t0_serial / t0_one, flush=True)
 
         assert t0_threads < t0_serial, (
             "Threading should be faster than serial! ( %f < %f)"
