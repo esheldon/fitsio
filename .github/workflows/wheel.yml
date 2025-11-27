@@ -87,7 +87,7 @@ jobs:
           CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
           # I think musl always uses apk, but keep all options available.
           CIBW_BEFORE_ALL: yum install -y bzip2-devel || apt-get install libbz2-dev || apk add --upgrade bzip2-dev
-          CIBW_ENVIRONMENT: 'CFLAGS="-Wno-implicit-function-declaration -Wno-int-conversion'
+          CIBW_ENVIRONMENT: 'CFLAGS="-Wno-implicit-function-declaration -Wno-int-conversion"'
 
       - uses: jirutka/setup-alpine@v1
         with:
