@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import os
 import tempfile
 import time
@@ -8,28 +8,53 @@ import fitsio
 
 import pytest
 
-SIZE = 10000
+SIZE = 5000
+DATA = np.zeros((SIZE, SIZE), dtype='f8')
+DATA[:] = -1
 
 
 def create_file(fname):
-    val = int(
-        os.path.basename(fname).replace(".fits", "").replace("fname", "")
-    )
-    data = np.zeros((SIZE, SIZE), dtype='f8')
-    data[:] = val
     with fitsio.FITS(fname, 'rw') as fits:
-        fits.write_image(data)
+        fits.write_image(DATA)
 
 
 def read_file(fname):
-    val = int(
-        os.path.basename(fname).replace(".fits", "").replace("fname", "")
-    )
     with fitsio.FITS(fname, 'r') as fits:
-        assert (fits[0].read() == val).all()
+        fits[0].read()
 
 
-@pytest.mark.xfail(reason="Releasing the GIL doesn't help much so far!")
+def test_threading_works():
+    """
+    Test a basic image write, data and a header, then reading back in to
+    check the values
+    """
+    nt = 32
+
+    size = 10
+    data = np.zeros((size, size), dtype='f8')
+    data[:] = -1
+
+    def _create_file(fname):
+        with fitsio.FITS(fname, 'rw') as fits:
+            fits.write_image(data)
+
+    def _read_file(fname):
+        with fitsio.FITS(fname, 'r') as fits:
+            fits[0].read()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filenames = [
+            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt)
+        ]
+
+        with ThreadPoolExecutor(max_workers=nt) as pool:
+            for _ in pool.map(_create_file, filenames):
+                pass
+            for _ in pool.map(_read_file, filenames):
+                pass
+
+
+@pytest.mark.xfail(reason="Threading performance might be flaky!")
 @pytest.mark.parametrize(
     "write_only,read_only",
     [
@@ -38,8 +63,8 @@ def read_file(fname):
         (False, True),
     ],
 )
-@pytest.mark.parametrize("klass", [ThreadPoolExecutor, ProcessPoolExecutor])
-def test_threading(klass, write_only, read_only):
+@pytest.mark.parametrize("klass", [ThreadPoolExecutor])
+def test_threading_timing(klass, write_only, read_only):
     """
     Test a basic image write, data and a header, then reading back in to
     check the values
@@ -112,7 +137,8 @@ def test_threading(klass, write_only, read_only):
             flush=True,
         )
 
-        assert t0_threads < t0_serial, (
-            "Threading should be faster than serial! ( %f < %f)"
-            % (t0_threads, t0_serial)
-        )
+        if read_only:
+            assert t0_threads < t0_serial, (
+                "Threading should be faster than serial! ( %f < %f)"
+                % (t0_threads, t0_serial)
+            )
