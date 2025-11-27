@@ -1660,7 +1660,9 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
 
 create_image_hdu_cleanup:
     // this flushes all buffers
-    fits_flush_file(self->fits, &status);
+    if (status == 0) {
+        fits_flush_file(self->fits, &status);
+    }
 
     free(tile_dims_fits);
     tile_dims_fits = NULL;
