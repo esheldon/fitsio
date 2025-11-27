@@ -1433,6 +1433,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     int firstpixel = 1;
     LONGLONG nelements = 0;
     void *data = NULL;
+    int flush_hdu = 0;
 
     npy_int64 *tile_dims_py = NULL;
     long *tile_dims_fits = NULL;
@@ -1561,7 +1562,11 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     }
 
     if (array_obj == Py_None) {
-        create_empty_hdu(self, &status);
+        if (create_empty_hdu(self, &status)) {
+            goto create_image_hdu_cleanup;
+        } else {
+            flush_hdu = 1;
+        }
     } else {
         if ((comptype_obj != Py_None) || (tile_dims_obj != Py_None)) {
             if (fits_set_compression_type(self->fits, comptype, &status)) {
@@ -1608,6 +1613,8 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
 
         if (fits_create_img(self->fits, image_datatype, ndims, dims, &status)) {
             goto create_image_hdu_cleanup;
+        } else {
+            flush_hdu = 1;
         }
     }
     if (extname != NULL) {
@@ -1660,7 +1667,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
 
 create_image_hdu_cleanup:
     // this flushes all buffers
-    if (status == 0) {
+    if (flush_hdu == 1) {
         fits_flush_file(self->fits, &status);
     }
 
