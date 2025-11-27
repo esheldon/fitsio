@@ -25,25 +25,25 @@ concurrency:
 
 env:
   PYVER: '3.11'
-  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38* cp39*' }}
+  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
 
 jobs:
   linux-manylinux:
     name: linux-manylinux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.2.1
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc  # v3.3.0
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
@@ -69,13 +69,13 @@ jobs:
     name: linux-musl
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
@@ -114,13 +114,13 @@ jobs:
     name: osx-intel
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
@@ -152,13 +152,13 @@ jobs:
     name: osx-arm
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
@@ -192,13 +192,13 @@ jobs:
     # Just need to build sdist on a single machine
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
