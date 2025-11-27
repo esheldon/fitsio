@@ -38,8 +38,15 @@
 #define PYFITS_ERRMSG_LEN 1024
 
 #define ALLOW_NOGIL                                                            \
-    PyThreadState *_save1_;                                                    \
-    int _evaltmp123_;
+    PyThreadState *_save1_ = NULL;                                             \
+    int _evaltmp123_
+#define RELEASE_GIL                                                            \
+    _save1_ = (fits_is_reentrant() == 0 ? NULL : PyEval_SaveThread())
+#define CAPTURE_GIL                                                            \
+    if (_save1_ != NULL) {                                                     \
+        PyEval_RestoreThread(_save1_);                                         \
+    }                                                                          \
+    _save1_ = NULL
 #define _NOGIL(x)                                                              \
     ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
      (void)(PyEval_RestoreThread(_save1_)), _evaltmp123_)
@@ -449,7 +456,7 @@ void append_string_to_list(PyObject* list, const char* str) {
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     char *filename;
     int mode;
     int status = 0;
@@ -518,7 +525,7 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 }
 
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int status = 0;
     if (NOGIL(fits_close_file(self->fits, &status))) {
         self->fits = NULL;
@@ -532,7 +539,7 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int status = 0;
     NOGIL(fits_close_file(self->fits, &status));
 #if PY_MAJOR_VERSION >= 3
@@ -1396,7 +1403,8 @@ static int pyarray_get_ndim(PyArrayObject *arr) { return arr->nd; }
 static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
                                                PyObject *args, PyObject *kwds) {
 
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
+
     int ndims = 0;
     long *dims = NULL;
     int image_datatype = 0; // fits type for image, AKA bitpix
@@ -1548,7 +1556,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
         }
     }
 
-    Py_BEGIN_ALLOW_THREADS;
+    RELEASE_GIL;
 
     if (py_status != 0) {
         goto create_image_hdu_cleanup;
@@ -1688,7 +1696,7 @@ create_image_hdu_cleanup:
         fits_set_dither_seed(self->fits, orig_dither_seed, &dither_seed_status);
     }
 
-    Py_END_ALLOW_THREADS;
+    CAPTURE_GIL;
 
     if (cleanup_status != 0) {
         set_ioerr_string_from_status(cleanup_status, self);
@@ -1763,7 +1771,7 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
 static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
                                           PyObject *args) {
 
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     LONGLONG nelements = 1;
@@ -1851,7 +1859,7 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
 static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
                                            PyObject *args) {
 
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     int image_datatype = 0; // fits type for image, AKA bitpix
@@ -4379,7 +4387,7 @@ static int fits_is_lossy_compressed_with_nulls(fitsfile *fits) {
 static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
                                          PyObject *args) {
 
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
@@ -4572,7 +4580,7 @@ static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,
 static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
                                                PyObject *args) {
 
-    ALLOW_NOGIL
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
