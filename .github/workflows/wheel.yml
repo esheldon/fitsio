@@ -25,7 +25,7 @@ concurrency:
 
 env:
   PYVER: '3.11'
-  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
+  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38* cp39*' }}
 
 jobs:
   linux-manylinux:
