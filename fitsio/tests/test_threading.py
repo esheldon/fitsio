@@ -30,27 +30,28 @@ def test_threading_works():
     """
     nt = 32
 
-    size = 10
-    data = np.zeros((size, size), dtype='f8')
-    data[:] = -1
-
-    def _create_file(fname):
-        with fitsio.FITS(fname, 'rw') as fits:
-            fits.write_image(data)
-
-    def _read_file(fname):
-        with fitsio.FITS(fname, 'r') as fits:
-            fits[0].read()
-
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
             os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt)
         ]
 
+        # create files for reading in serial
+        def _create_file(i):
+            fname = filenames[i]
+            data = np.zeros((32, 32), dtype='f8')
+            data[:] = i
+            with fitsio.FITS(fname, 'rw', clobber=True) as fits:
+                fits.write_image(data)
+
+        def _read_file(i):
+            fname = filenames[i]
+            with fitsio.FITS(fname, 'r') as fits:
+                assert (fits[0].read() == i).all()
+
         with ThreadPoolExecutor(max_workers=nt) as pool:
-            for _ in pool.map(_create_file, filenames):
+            for _ in pool.map(_create_file, range(nt)):
                 pass
-            for _ in pool.map(_read_file, filenames):
+            for _ in pool.map(_read_file, range(nt)):
                 pass
 
 
