@@ -43,10 +43,8 @@
 #define RELEASE_GIL                                                            \
     _save1_ = (fits_is_reentrant() == 0 ? NULL : PyEval_SaveThread())
 #define CAPTURE_GIL                                                            \
-    if (_save1_ != NULL) {                                                     \
-        PyEval_RestoreThread(_save1_);                                         \
-    }                                                                          \
-    _save1_ = NULL
+    ((void)(_save1_ != NULL ? PyEval_RestoreThread(_save1_) : NULL),           \
+     (void)(_save1_ = NULL), _save1_)
 #define _NOGIL(x)                                                              \
     ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
      (void)(PyEval_RestoreThread(_save1_)), (void)(_save1_ = NULL),            \
