@@ -35,7 +35,6 @@ def test_threading_works():
             os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt)
         ]
 
-        # create files for reading in serial
         def _create_file(i):
             fname = filenames[i]
             data = np.zeros((32, 32), dtype='f8')
