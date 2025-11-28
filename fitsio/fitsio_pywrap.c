@@ -4407,49 +4407,47 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     npy_intp arrsize = 0;
 
     int anynul = 0;
+    float fnullval = NAN;
+    double dnullval = NAN;
+    void *nullval_ptr = NULL;
+
+    int dims_mismatch = 0;
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        return NULL;
+    }
 
     if (!PyArg_ParseTuple(args, (char *)"iO", &hdunum, &array_obj)) {
         return NULL;
     }
 
     array = (PyArrayObject *)array_obj;
+    arrsize = PyArray_SIZE(array);
+    data = PyArray_DATA(array);
+    npy_dtype = PyArray_TYPE(array);
+    npy_to_fits_image_types(npy_dtype, &dummy, &fits_read_dtype);
 
-    if (self->fits == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
-        return NULL;
-    }
+    RELEASE_GIL;
+
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        return NULL;
+        goto read_image_cleanup;
     }
 
     if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes,
                              &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+        goto read_image_cleanup;
     }
 
-    // make sure dims match
-    size = 0;
     size = naxes[0];
     for (i = 1; i < naxis; i++) {
         size *= naxes[i];
     }
-    arrsize = PyArray_SIZE(array);
-    data = PyArray_DATA(array);
 
     if (size != arrsize) {
-        PyErr_Format(PyExc_RuntimeError,
-                     "Input array size is %ld but on disk array size is %lld",
-                     arrsize, size);
-        return NULL;
+        dims_mismatch = 1;
+        goto read_image_cleanup;
     }
-
-    npy_dtype = PyArray_TYPE(array);
-    npy_to_fits_image_types(npy_dtype, &dummy, &fits_read_dtype);
-
-    float fnullval = NAN;
-    double dnullval = NAN;
-    void *nullval_ptr = NULL;
 
     // we only set null checking for compressed images of
     // floating point data
@@ -4466,9 +4464,26 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     for (i = 0; i < naxis; i++) {
         firstpixels[i] = 1;
     }
-    if (NOGIL(fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
-                              nullval_ptr, data, &anynul, &status))) {
+    if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
+                        nullval_ptr, data, &anynul, &status)) {
+        goto read_image_cleanup;
+    }
+
+read_image_cleanup:
+
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
+    }
+
+    if (dims_mismatch != 0) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "Input array size is %ld but on disk array size is %lld",
+                     arrsize, size);
+    }
+
+    if (status != 0 || dims_mismatch != 0) {
         return NULL;
     }
 
