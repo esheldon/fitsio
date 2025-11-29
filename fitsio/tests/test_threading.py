@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import tempfile
 import time
@@ -58,9 +58,9 @@ def test_threading_works():
 @pytest.mark.parametrize(
     "write_only,read_only",
     [
-        (False, False),
-        (True, False),
         (False, True),
+        (True, False),
+        (False, False),
     ],
 )
 @pytest.mark.parametrize("klass", [ThreadPoolExecutor])
@@ -69,7 +69,8 @@ def test_threading_timing(klass, write_only, read_only):
     Test a basic image write, data and a header, then reading back in to
     check the values
     """
-    nt = 4
+    nt = 2
+    fac = 8
 
     if read_only:
         print("\nread only", flush=True)
@@ -80,7 +81,7 @@ def test_threading_timing(klass, write_only, read_only):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filenames = [
-            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt)
+            os.path.join(tmpdir, "fname%d.fits" % i) for i in range(nt * fac)
         ]
 
         def _remove_files():
@@ -107,16 +108,24 @@ def test_threading_timing(klass, write_only, read_only):
         t0 = time.time()
         with klass(max_workers=nt) as pool:
             if not read_only:
-                for _ in pool.map(create_file, filenames):
-                    pass
+                futs = [
+                    pool.submit(create_file, filenames[i])
+                    for i in range(nt * fac)
+                ]
+                for fut in as_completed(futs):
+                    fut.result()
             if not write_only:
-                for _ in pool.map(read_file, filenames):
-                    pass
+                futs = [
+                    pool.submit(read_file, filenames[i])
+                    for i in range(nt * fac)
+                ]
+                for fut in as_completed(futs):
+                    fut.result()
         t0_threads = time.time() - t0
         print(
             "parallel time / one file time",
             t0_threads / t0_one,
-            "(perfect is 1)",
+            "(perfect is %d)" % fac,
             flush=True,
         )
         if not read_only:
@@ -133,7 +142,7 @@ def test_threading_timing(klass, write_only, read_only):
         print(
             "serial time / one file time:",
             t0_serial / t0_one,
-            f"(should be about {nt})",
+            f"(should be about {nt * fac})",
             flush=True,
         )
 

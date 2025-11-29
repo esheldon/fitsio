@@ -599,6 +599,7 @@ static npy_int64 *get_int64_from_array(PyArrayObject *arr, npy_intp *ncols) {
 // move hdu by name and possibly version, return the hdu number
 static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
                                          PyObject *args) {
+    ALLOW_NOGIL;
     int status = 0;
     int hdutype = ANY_HDU; // means we don't care if its image or table
     char *extname = NULL;
@@ -614,17 +615,28 @@ static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
+
     if (fits_movnam_hdu(self->fits, hdutype, extname, extver, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+        goto movnam_hdu_cleanup;
     }
 
     fits_get_hdu_num(self->fits, &hdunum);
-    return PyLong_FromLong((long)hdunum);
+
+movnam_hdu_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    } else {
+        return PyLong_FromLong((long)hdunum);
+    }
 }
 
 static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
                                          PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
     int status = 0;
     PyObject *hdutypeObj = NULL;
@@ -638,29 +650,51 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+    RELEASE_GIL;
+    fits_movabs_hdu(self->fits, hdunum, &hdutype, &status);
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
+    } else {
+        return PyLong_FromLong((long)hdutype);
     }
-    hdutypeObj = PyLong_FromLong((long)hdutype);
-    return hdutypeObj;
 }
 
 // get info for the specified HDU
 static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                                            PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0, ext = 0, ignore_scaling = FALSE;
     int status = 0, tstatus = 0, is_compressed = 0;
     PyObject *dict = NULL;
 
     char filename[FLEN_FILENAME] = "";
-    char extname[FLEN_VALUE];
-    char hduname[FLEN_VALUE];
+    char extname[FLEN_VALUE] = "";
+    char hduname[FLEN_VALUE] = "";
     int extver = 0, hduver = 0;
 
-    long long header_start;
-    long long data_start;
-    long long data_end;
+    long long header_start = -1;
+    long long data_start = -1;
+    long long data_end = -1;
+
+    int ndims = 0;
+    int maxdim = CFITSIO_MAX_ARRAY_DIMS;
+    LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS];
+
+    int bitpix = 0;
+    int bitpix_equiv = 0;
+    char comptype[20] = "";
+    PyObject *dimsObj = NULL;
+    int i;
+    int img_error = 0;
+    int comptype_status = 0;
+
+    LONGLONG nrows = 0;
+    int ncols = 0;
+    PyObject *colinfo = NULL;
+    int j;
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
@@ -671,13 +705,88 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
+
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+        goto get_hdu_info_cleanup;
     }
 
     if (ignore_scaling == TRUE &&
         fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+        goto get_hdu_info_cleanup;
+    }
+
+    tstatus = 0;
+    if (fits_file_name(self->fits, filename, &tstatus) == 0) {
+        convert_extname_to_ascii(filename);
+    }
+
+    tstatus = 0;
+    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
+                      &tstatus) == 0) {
+        convert_extname_to_ascii(extname);
+    }
+
+    tstatus = 0;
+    if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL,
+                      &tstatus) == 0) {
+        convert_extname_to_ascii(hduname);
+    }
+
+    tstatus = 0;
+    fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus);
+
+    tstatus = 0;
+    fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus);
+
+    tstatus = 0;
+    is_compressed = fits_is_compressed_image(self->fits, &tstatus);
+
+    // get byte offsets
+    fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end,
+                       &tstatus);
+
+    if (hdutype == IMAGE_HDU) {
+        // if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
+        //                        dims, pcount_p, gcount_p, extend_p, &status))
+        //                        {
+        tstatus = 0;
+        if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims,
+                                 &tstatus)) {
+            img_error = 1;
+        } else {
+            tstatus = 0;
+            if (ignore_scaling == TRUE) {
+                // Get the raw type if scaling is being ignored.
+                fits_get_img_type(self->fits, &bitpix_equiv, &tstatus);
+            } else {
+                fits_get_img_equivtype(self->fits, &bitpix_equiv, &tstatus);
+            }
+
+            comptype_status = 0;
+            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL,
+                              &comptype_status) == 0) {
+                convert_to_ascii(comptype);
+            }
+        }
+    } else if (hdutype == BINARY_TBL) {
+        tstatus = 0;
+        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        tstatus = 0;
+        fits_get_num_cols(self->fits, &ncols, &tstatus);
+
+    } else {
+        tstatus = 0;
+        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        tstatus = 0;
+        fits_get_num_cols(self->fits, &ncols, &tstatus);
+    }
+
+get_hdu_info_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
@@ -687,125 +796,42 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     add_long_to_dict(dict, "hdunum", (long)hdunum);
     add_long_to_dict(dict, "extnum", (long)ext);
     add_long_to_dict(dict, "hdutype", (long)hdutype);
-
-    tstatus = 0;
-    if (fits_file_name(self->fits, filename, &status) == 0) {
-        convert_extname_to_ascii(filename);
-        add_string_to_dict(dict, "filename", filename);
-    } else {
-        add_string_to_dict(dict, "filename", "");
-    }
-
-    tstatus = 0;
-    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
-                      &tstatus) == 0) {
-        convert_extname_to_ascii(extname);
-        add_string_to_dict(dict, "extname", extname);
-    } else {
-        add_string_to_dict(dict, "extname", "");
-    }
-
-    tstatus = 0;
-    if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL,
-                      &tstatus) == 0) {
-        convert_extname_to_ascii(hduname);
-        add_string_to_dict(dict, "hduname", hduname);
-    } else {
-        add_string_to_dict(dict, "hduname", "");
-    }
-
-    tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "extver", (long)extver);
-    } else {
-        add_long_to_dict(dict, "extver", (long)0);
-    }
-
-    tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "hduver", (long)hduver);
-    } else {
-        add_long_to_dict(dict, "hduver", (long)0);
-    }
-
-    tstatus = 0;
-    is_compressed = fits_is_compressed_image(self->fits, &tstatus);
+    add_string_to_dict(dict, "filename", filename);
+    add_string_to_dict(dict, "extname", extname);
+    add_string_to_dict(dict, "hduname", hduname);
+    add_long_to_dict(dict, "extver", (long)extver);
+    add_long_to_dict(dict, "hduver", (long)hduver);
     add_long_to_dict(dict, "is_compressed_image", (long)is_compressed);
+    add_long_long_to_dict(dict, "header_start", (long)header_start);
+    add_long_long_to_dict(dict, "data_start", (long)data_start);
+    add_long_long_to_dict(dict, "data_end", (long)data_end);
 
-    // get byte offsets
-    if (0 == fits_get_hduaddrll(self->fits, &header_start, &data_start,
-                                &data_end, &tstatus)) {
-        add_long_long_to_dict(dict, "header_start", (long)header_start);
-        add_long_long_to_dict(dict, "data_start", (long)data_start);
-        add_long_long_to_dict(dict, "data_end", (long)data_end);
-    } else {
-        add_long_long_to_dict(dict, "header_start", -1);
-        add_long_long_to_dict(dict, "data_start", -1);
-        add_long_long_to_dict(dict, "data_end", -1);
-    }
-
-    int ndims = 0;
-    int maxdim = CFITSIO_MAX_ARRAY_DIMS;
-    LONGLONG dims[CFITSIO_MAX_ARRAY_DIMS];
     if (hdutype == IMAGE_HDU) {
-        // move this into it's own func
-        int tstatus = 0;
-        int bitpix = 0;
-        int bitpix_equiv = 0;
-        char comptype[20];
-        PyObject *dimsObj = PyList_New(0);
-        int i = 0;
-
-        // if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
-        //                        dims, pcount_p, gcount_p, extend_p, &status))
-        //                        {
-        if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims,
-                                 &tstatus)) {
+        if (img_error == 1) {
             add_string_to_dict(dict, "error",
                                "could not determine image parameters");
         } else {
             add_long_to_dict(dict, "ndims", (long)ndims);
             add_long_to_dict(dict, "img_type", (long)bitpix);
-
-            if (ignore_scaling == TRUE) {
-                // Get the raw type if scaling is being ignored.
-                fits_get_img_type(self->fits, &bitpix_equiv, &status);
-            } else {
-                fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
-            }
-
             add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv);
-
-            tstatus = 0;
-            if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL,
-                              &tstatus) == 0) {
-                convert_to_ascii(comptype);
+            if (comptype_status == 0) {
                 add_string_to_dict(dict, "comptype", comptype);
             } else {
                 add_none_to_dict(dict, "comptype");
             }
 
+            dimsObj = PyList_New(0);
             for (i = 0; i < ndims; i++) {
                 append_long_long_to_list(dimsObj, (long long)dims[i]);
             }
             PyDict_SetItemString(dict, "dims", dimsObj);
             Py_XDECREF(dimsObj);
         }
-
     } else if (hdutype == BINARY_TBL) {
-        int tstatus = 0;
-        LONGLONG nrows = 0;
-        int ncols = 0;
-        PyObject *colinfo = PyList_New(0);
-        int i = 0, j = 0;
-
-        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
-        fits_get_num_cols(self->fits, &ncols, &tstatus);
         add_long_long_to_dict(dict, "nrows", (long long)nrows);
         add_long_to_dict(dict, "ncols", (long)ncols);
 
+        colinfo = PyList_New(0);
         {
             PyObject *d = NULL;
             tcolumn *col = NULL;
@@ -819,6 +845,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 stringlist_push_size(tforms, 70);
             }
             // just get the names: no other way to do it!
+            tstatus = 0;
             fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data,
                                 tforms->data, NULL, NULL, NULL, &tstatus);
 
@@ -833,12 +860,14 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 convert_to_ascii(tforms->data[i]);
                 add_string_to_dict(d, "tform", tforms->data[i]);
 
+                tstatus = 0;
                 fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
                                    &tstatus);
                 add_long_to_dict(d, "type", (long)type);
                 add_long_long_to_dict(d, "repeat", (long long)repeat);
                 add_long_long_to_dict(d, "width", (long long)width);
 
+                tstatus = 0;
                 fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
                                      &tstatus);
                 add_long_to_dict(d, "eqtype", (long)type);
@@ -869,22 +898,14 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             }
             names = stringlist_delete(names);
             tforms = stringlist_delete(tforms);
-
-            PyDict_SetItemString(dict, "colinfo", colinfo);
-            Py_XDECREF(colinfo);
         }
+        PyDict_SetItemString(dict, "colinfo", colinfo);
+        Py_XDECREF(colinfo);
     } else {
-        int tstatus = 0;
-        LONGLONG nrows = 0;
-        int ncols = 0;
-        PyObject *colinfo = PyList_New(0);
-        int i = 0, j = 0;
-
-        fits_get_num_rowsll(self->fits, &nrows, &tstatus);
-        fits_get_num_cols(self->fits, &ncols, &tstatus);
         add_long_long_to_dict(dict, "nrows", (long long)nrows);
         add_long_to_dict(dict, "ncols", (long)ncols);
 
+        colinfo = PyList_New(0);
         {
             tcolumn *col = NULL;
             struct stringlist *names = NULL;
@@ -899,6 +920,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             // just get the names: no other way to do it!
 
             //                                        rowlen nrows
+            tstatus = 0;
             fits_read_atblhdrll(self->fits, ncols, NULL, NULL,
                                 //          tfields             tbcol units
                                 NULL, names->data, NULL, tforms->data, NULL,
@@ -916,12 +938,14 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 convert_to_ascii(tforms->data[i]);
                 add_string_to_dict(d, "tform", tforms->data[i]);
 
+                tstatus = 0;
                 fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
                                    &tstatus);
                 add_long_to_dict(d, "type", (long)type);
                 add_long_long_to_dict(d, "repeat", (long long)repeat);
                 add_long_long_to_dict(d, "width", (long long)width);
 
+                tstatus = 0;
                 fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
                                      &tstatus);
                 add_long_to_dict(d, "eqtype", (long)type);
@@ -952,21 +976,22 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             }
             names = stringlist_delete(names);
             tforms = stringlist_delete(tforms);
-
-            PyDict_SetItemString(dict, "colinfo", colinfo);
-            Py_XDECREF(colinfo);
         }
+        PyDict_SetItemString(dict, "colinfo", colinfo);
+        Py_XDECREF(colinfo);
     }
+
     return dict;
 }
 
 // get info for the specified HDU
 static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
                                                    PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
-    int status = 0;
+    int status = 0, tstatus = 0;
 
-    char extname[FLEN_VALUE];
+    char extname[FLEN_VALUE] = "";
     int extver = 0;
 
     if (self->fits == NULL) {
@@ -978,23 +1003,25 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto get_hdu_name_version_cleanup;
+    }
+
+    tstatus = 0;
+    fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus);
+
+    tstatus = 0;
+    fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &tstatus);
+
+get_hdu_name_version_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
-    }
-
-    status = 0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &status) !=
-        0) {
-        extver = 0;
-    }
-
-    status = 0;
-    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &status) ==
-        0) {
-        return Py_BuildValue("si", extname, extver);
     } else {
-        return Py_BuildValue("si", "", extver);
+        return Py_BuildValue("si", extname, extver);
     }
 }
 
@@ -1798,11 +1825,6 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     }
     array = (PyArrayObject *)array_obj;
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-    }
-
     if (!PyArray_Check(array)) {
         PyErr_SetString(PyExc_TypeError, "input must be an array.");
         return NULL;
@@ -1818,6 +1840,12 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     firstpixel = (LONGLONG)firstpixel_py;
     any_nan = (LONGLONG)any_nan_py;
 
+    RELEASE_GIL;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto write_image_cleanup;
+    }
+
     if (any_nan_py) {
         float fnullval = INFINITY;
         double dnullval = INFINITY;
@@ -1831,25 +1859,31 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
             nullval_ptr = NULL;
         }
 
-        if (NOGIL(fits_write_imgnull(self->fits, datatype, firstpixel,
-                                     nelements, data, nullval_ptr, &status))) {
-            set_ioerr_string_from_status(status, self);
-            return NULL;
+        if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
+                               data, nullval_ptr, &status)) {
+            goto write_image_cleanup;
         }
     } else {
-        if (NOGIL(fits_write_img(self->fits, datatype, firstpixel, nelements,
-                                 data, &status))) {
-            set_ioerr_string_from_status(status, self);
-            return NULL;
+        if (fits_write_img(self->fits, datatype, firstpixel, nelements, data,
+                           &status)) {
+            goto write_image_cleanup;
         }
     }
+
     // this is a full file close and reopen
-    if (NOGIL(fits_flush_file(self->fits, &status))) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+    if (fits_flush_file(self->fits, &status)) {
+        goto write_image_cleanup;
     }
 
-    Py_RETURN_NONE;
+write_image_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    } else {
+        Py_RETURN_NONE;
+    }
 }
 
 // write a rectangular subset to the image in an existing HDU
@@ -1886,11 +1920,6 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
 
     if (!PyArg_ParseTuple(args, (char *)"iOOO", &hdunum, &array_obj,
                           &firstpixel_obj, &lastpixel_obj)) {
-        return NULL;
-    }
-
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
@@ -1933,14 +1962,27 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
     }
 
     data = PyArray_DATA(array);
-    if (NOGIL(fits_write_subset(self->fits, datatype, fpixel, lpixel, data,
-                                &status))) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+
+    RELEASE_GIL;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto write_image_subset_cleanup;
+    }
+
+    if (fits_write_subset(self->fits, datatype, fpixel, lpixel, data,
+                          &status)) {
+        goto write_image_subset_cleanup;
     }
 
     // this is a full file close and reopen
-    if (NOGIL(fits_flush_file(self->fits, &status))) {
+    if (fits_flush_file(self->fits, &status)) {
+        goto write_image_subset_cleanup;
+    }
+
+write_image_subset_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4470,7 +4512,6 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     }
 
 read_image_cleanup:
-
     CAPTURE_GIL;
 
     if (status != 0) {
@@ -4617,15 +4658,6 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        return NULL;
-    }
-
-    if (ignore_scaling == TRUE &&
-        fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
-        return NULL;
-    }
-
     if (get_long_slices((PyArrayObject *)fpix_obj, (PyArrayObject *)lpix_obj,
                         (PyArrayObject *)step_obj, &fpix, &lpix, &step)) {
         return NULL;
@@ -4639,6 +4671,17 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     double dnullval = NAN;
     void *nullval_ptr = NULL;
 
+    RELEASE_GIL;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto read_image_slice_cleanup;
+    }
+
+    if (ignore_scaling == TRUE &&
+        fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+        goto read_image_slice_cleanup;
+    }
+
     // we only set null checking for compressed images of
     // floating point data
     // nans works fine for non-compressed images and we do
@@ -4651,18 +4694,20 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
         }
     }
 
-    if (NOGIL(fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
-                               nullval_ptr, data, &anynul, &status))) {
-        set_ioerr_string_from_status(status, self);
+    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
+                         nullval_ptr, data, &anynul, &status)) {
         goto read_image_slice_cleanup;
     }
 
 read_image_slice_cleanup:
+    CAPTURE_GIL;
+
     free(fpix);
     free(lpix);
     free(step);
 
     if (status != 0) {
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
