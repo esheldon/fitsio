@@ -4968,6 +4968,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_write_checksum(struct PyFITSObject *self,
                                              PyObject *args) {
+    ALLOW_NOGIL;
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -4981,16 +4982,22 @@ static PyObject *PyFITSObject_write_checksum(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-    }
+    RELEASE_GIL;
 
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto write_checksum_cleanup;
+    }
     if (fits_write_chksum(self->fits, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+        goto write_checksum_cleanup;
     }
     if (fits_get_chksum(self->fits, &datasum, &hdusum, &status)) {
+        goto write_checksum_cleanup;
+    }
+
+write_checksum_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -5001,8 +5008,10 @@ static PyObject *PyFITSObject_write_checksum(struct PyFITSObject *self,
 
     return dict;
 }
+
 static PyObject *PyFITSObject_verify_checksum(struct PyFITSObject *self,
                                               PyObject *args) {
+    ALLOW_NOGIL;
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -5015,12 +5024,20 @@ static PyObject *PyFITSObject_verify_checksum(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
+
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
+        goto verify_checksum_cleanup;
     }
 
     if (fits_verify_chksum(self->fits, &dataok, &hduok, &status)) {
+        goto verify_checksum_cleanup;
+    }
+
+verify_checksum_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }

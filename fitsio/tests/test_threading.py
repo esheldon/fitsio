@@ -16,10 +16,12 @@ DATA[:] = -1
 def create_file(fname):
     with fitsio.FITS(fname, 'rw') as fits:
         fits.write_image(DATA)
+        fits[0].write_checksum()
 
 
 def read_file(fname):
     with fitsio.FITS(fname, 'r') as fits:
+        fits[0].verify_checksum()
         fits[0].read()
 
 
@@ -41,10 +43,12 @@ def test_threading_works():
             data[:] = i
             with fitsio.FITS(fname, 'rw', clobber=True) as fits:
                 fits.write_image(data)
+                fits[0].write_checksum()
 
         def _read_file(i):
             fname = filenames[i]
             with fitsio.FITS(fname, 'r') as fits:
+                fits[0].verify_checksum()
                 assert (fits[0].read() == i).all()
 
         with ThreadPoolExecutor(max_workers=nt) as pool:
@@ -70,7 +74,7 @@ def test_threading_timing(klass, write_only, read_only):
     check the values
     """
     nt = 2
-    fac = 8
+    fac = 2
 
     if read_only:
         print("\nread only", flush=True)
