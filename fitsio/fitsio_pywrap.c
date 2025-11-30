@@ -1745,6 +1745,7 @@ create_image_hdu_cleanup:
 static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
                                             PyObject *args) {
 
+    ALLOW_NOGIL;
     int status = 0;
     int hdunum = 0, hdutype = 0;
     PyObject *dims_obj = NULL;
@@ -1764,27 +1765,34 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
     if (!PyArg_ParseTuple(args, (char *)"iO", &hdunum, &dims_obj)) {
         return NULL;
     }
+
     dims_array = (PyArrayObject *)dims_obj;
-
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-    }
-
-    // existing image params, just to get bitpix
-    if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims_orig,
-                             dims_orig, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-    }
-
     ndims = PyArray_SIZE(dims_array);
     for (i = 0; i < ndims; i++) {
         dim = *(npy_int64 *)PyArray_GETPTR1(dims_array, i);
         dims[i] = (LONGLONG)dim;
     }
 
+    RELEASE_GIL;
+
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto reshape_image_cleanup;
+    }
+
+    // existing image params, just to get bitpix
+    if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims_orig,
+                             dims_orig, &status)) {
+        goto reshape_image_cleanup;
+    }
+
     if (fits_resize_imgll(self->fits, bitpix, ndims, dims, &status)) {
+        goto reshape_image_cleanup;
+    }
+
+reshape_image_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -5235,27 +5243,24 @@ static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
     if (keyclass != TYP_COMM_KEY && keyclass != TYP_CONT_KEY) {
 
         if (fits_get_keyname(card, name, &keylen, &status)) {
-            set_ioerr_string_from_status(status, NULL);
-            goto bail;
+            goto parse_card_cleanup;
         }
         if (fits_parse_value(card, value, comment, &status)) {
-            set_ioerr_string_from_status(status, NULL);
-            goto bail;
+            goto parse_card_cleanup;
         }
         if (fits_get_keytype(value, dtype, &status)) {
-
             if (status == VALUE_UNDEFINED) {
                 is_undefined = 1;
                 status = 0;
             } else {
-                set_ioerr_string_from_status(status, NULL);
-                goto bail;
+                goto parse_card_cleanup;
             }
         }
     }
 
-bail:
+parse_card_cleanup:
     if (status != 0) {
+        set_ioerr_string_from_status(status, NULL);
         return NULL;
     }
 
