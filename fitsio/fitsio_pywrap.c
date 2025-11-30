@@ -5230,7 +5230,7 @@ static PyObject *PyFITS_parse_card(PyObject *self, PyObject *args) {
     PyObject *output = NULL;
 
     if (!PyArg_ParseTuple(args, (char *)"s", &card)) {
-        goto bail;
+        goto parse_card_cleanup;
     }
 
     keyclass = fits_get_keyclass(card);
