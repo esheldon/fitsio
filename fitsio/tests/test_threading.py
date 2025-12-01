@@ -17,6 +17,7 @@ def create_file(fname):
     with fitsio.FITS(fname, 'rw') as fits:
         fits.write_image(DATA)
         fits[0].write_checksum()
+        fits.read_raw()
 
 
 def read_file(fname):

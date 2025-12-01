@@ -4545,6 +4545,7 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
         return NULL;
     }
+    ALLOW_NOGIL;
     // fitsfile* fits = self->fits;
     FITSfile *FITS = self->fits->Fptr;
     int status = 0;
@@ -4552,9 +4553,10 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
     LONGLONG sz;
     LONGLONG io_pos;
     PyObject *stringobj;
+    int ioerr = 0;
 
     // Flush (close & reopen HDU) to make everything consistent
-    ffflus(self->fits, &status);
+    NOGIL(ffflus(self->fits, &status));
     if (status) {
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to flush FITS file data to disk; CFITSIO code %i",
@@ -4581,28 +4583,47 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
     }
     // Remember old file position
     io_pos = FITS->io_pos;
+
+    RELEASE_GIL;
+
     // Seek to beginning of file
     if (ffseek(FITS, 0)) {
-        Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to seek to beginning of FITS file");
-        return NULL;
+        ioerr = 1;
+        goto read_raw_cleanup;
     }
+
     // Read into filedata
     if (ffread(FITS, sz, filedata, &status)) {
-        Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to read file data into memory: CFITSIO code %i",
-                     status);
-        return NULL;
+        ioerr = 2;
+        goto read_raw_cleanup;
     }
+
     // Seek back to where we were
     if (ffseek(FITS, io_pos)) {
+        ioerr = 3;
+        goto read_raw_cleanup;
+    }
+
+read_raw_cleanup:
+    CAPTURE_GIL;
+
+    if (ioerr != 0) {
         Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to seek back to original FITS file position");
+        if (ioerr == 1) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed to seek to beginning of FITS file");
+        } else if (ioerr == 2) {
+            PyErr_Format(
+                PyExc_RuntimeError,
+                "Failed to read file data into memory: CFITSIO code %i",
+                status);
+        } else if (ioerr == 3) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed to seek back to original FITS file position");
+        }
         return NULL;
     }
+
     return stringobj;
 }
 
@@ -5058,6 +5079,7 @@ verify_checksum_cleanup:
 }
 
 static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
+    ALLOW_NOGIL;
     int status = 0;
     int hdunum = 0;
     int hdutype = 0;
@@ -5086,11 +5108,6 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-    }
-
     row_status = malloc(nrows * sizeof(char));
     if (row_status == NULL) {
         PyErr_SetString(PyExc_MemoryError,
@@ -5098,32 +5115,51 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
         return NULL;
     }
 
-    if (fits_find_rows(self->fits, expression, firstrow, nrows, &ngood,
-                       row_status, &status)) {
-        set_ioerr_string_from_status(status, self);
+    RELEASE_GIL;
+    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         goto where_function_cleanup;
     }
+
+    if (fits_find_rows(self->fits, expression, firstrow, nrows, &ngood,
+                       row_status, &status)) {
+        goto where_function_cleanup;
+    }
+    CAPTURE_GIL;
 
     dims[0] = ngood;
     indices_obj = PyArray_EMPTY(ndim, dims, NPY_INTP, 0);
     if (indices_obj == NULL) {
-        PyErr_SetString(PyExc_MemoryError, "Could not allocate index array");
         goto where_function_cleanup;
     }
 
     if (ngood > 0) {
         data = PyArray_DATA((PyArrayObject *)indices_obj);
 
+        RELEASE_GIL;
         for (i = 0; i < nrows; i++) {
             if (row_status[i]) {
                 *data = (npy_intp)i;
                 data++;
             }
         }
+        CAPTURE_GIL;
     }
+
 where_function_cleanup:
     free(row_status);
-    return indices_obj;
+
+    // capture GIL is idempotent
+    CAPTURE_GIL;
+
+    if (indices_obj == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate index array");
+        return NULL;
+    } else if (status != 0) {
+        set_ioerr_string_from_status(status, self);
+        return NULL;
+    } else {
+        return indices_obj;
+    }
 }
 
 // generic functions, not tied to an object
