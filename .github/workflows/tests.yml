@@ -28,13 +28,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1", ft: ""}
-          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
-          - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
-          - { pyver: "3.11", npver: "2.3.0", ft: "python-gil"}
-          - { pyver: "3.12", npver: "2.3.0", ft: "python-gil"}
-          - { pyver: "3.13", npver: "2.3.0", ft: "python-gil"}
-          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
+          - { pyver: "3.8", npver: "1", ft: "", prp: ""}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil", prp: ""}
+          - { pyver: "3.12", npver: "1.26", ft: "python-gil", prp: ""}
+          - { pyver: "3.11", npver: "2.3.0", ft: "python-gil", prp: ""}
+          - { pyver: "3.12", npver: "2.3.0", ft: "python-gil", prp: ""}
+          - { pyver: "3.13", npver: "2.3.0", ft: "python-gil", prp: "pytest-run-parallel"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading", prp: "pytest-run-parallel"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -63,8 +63,14 @@ jobs:
             make
             pytest
             setuptools
-            pytest-run-parallel
+            ${{ matrix.config.prp }}
             ${{ matrix.config.ft }}
+
+      - name: configure parallel testing
+        run: |
+          if [[ "${{ matrix.config.prp }}" != "" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> $GITHUB_ENV
+          fi
 
       - name: test bundled build
         run: |
@@ -76,11 +82,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv --parallel-threads 4 --iterations 4 fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv --parallel-threads 4 --iterations 4 fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -127,7 +133,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv --parallel-threads 4 --iterations 4 fitsio
+          pytest -vv ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 
