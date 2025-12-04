@@ -610,6 +610,7 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.iterations(1)
 @pytest.mark.parametrize(
     "coef",
     [

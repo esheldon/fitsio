@@ -62,6 +62,7 @@ jobs:
             make
             pytest
             setuptools
+            pytest-run-parallel
 
       - name: test bundled build
         run: |
@@ -73,11 +74,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv fitsio
+            pytest -vv --parallel-threads 4 --iterations 4 fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv fitsio
+            pytest -vv --parallel-threads 4 --iterations 4 fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -124,7 +125,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
+          pytest -vv --parallel-threads 4 --iterations 4 fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 
