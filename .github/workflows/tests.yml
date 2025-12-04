@@ -8,6 +8,7 @@ on:
 
 env:
   PY_COLORS: "1"
+  PRP_FLAGS: "--parallel-threads 4 --iterations 4"
   # These compiler flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
   TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
@@ -28,13 +29,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1", ft: "", prp: ""}
-          - { pyver: "3.11", npver: "1.26", ft: "python-gil", prp: ""}
-          - { pyver: "3.12", npver: "1.26", ft: "python-gil", prp: ""}
-          - { pyver: "3.11", npver: "2.3.0", ft: "python-gil", prp: ""}
-          - { pyver: "3.12", npver: "2.3.0", ft: "python-gil", prp: ""}
-          - { pyver: "3.13", npver: "2.3.0", ft: "python-gil", prp: "pytest-run-parallel"}
-          - { pyver: "3.14", npver: "2", ft: "python-freethreading", prp: "pytest-run-parallel"}
+          - { pyver: "3.9", npver: "1", ft: ""}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.11", npver: "2.3.0", ft: "python-gil"}
+          - { pyver: "3.12", npver: "2.3.0", ft: "python-gil"}
+          - { pyver: "3.13", npver: "2.3.0", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -63,14 +64,8 @@ jobs:
             make
             pytest
             setuptools
-            ${{ matrix.config.prp }}
+            pytest-run-parallel
             ${{ matrix.config.ft }}
-
-      - name: configure parallel testing
-        run: |
-          if [[ "${{ matrix.config.prp }}" != "" ]]; then
-            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> $GITHUB_ENV
-          fi
 
       - name: test bundled build
         run: |
