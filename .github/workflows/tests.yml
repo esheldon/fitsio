@@ -28,12 +28,13 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1"}
-          - { pyver: "3.11", npver: "1.26"}
-          - { pyver: "3.12", npver: "1.26"}
-          - { pyver: "3.11", npver: "2.3.0"}
-          - { pyver: "3.12", npver: "2.3.0"}
-          - { pyver: "3.13", npver: "2.3.0"}
+          - { pyver: "3.8", npver: "1", ft: ""}
+          - { pyver: "3.11", npver: "1.26", ft: ""}
+          - { pyver: "3.12", npver: "1.26", ft: ""}
+          - { pyver: "3.11", npver: "2.3.0", ft: ""}
+          - { pyver: "3.12", npver: "2.3.0", ft: ""}
+          - { pyver: "3.13", npver: "2.3.0", ft: ""}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -63,6 +64,7 @@ jobs:
             pytest
             setuptools
             pytest-run-parallel
+            ${{ matrix.config.ft }}
 
       - name: test bundled build
         run: |

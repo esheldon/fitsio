@@ -5563,6 +5563,13 @@ init_fitsio_wrap(void)
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
 
     import_array();
+
+#if PY_MAJOR_VERSION >= 3
+#ifdef Py_GIL_DISABLED
+    PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
+#endif
+
 #if PY_MAJOR_VERSION >= 3
     return m;
 #endif
