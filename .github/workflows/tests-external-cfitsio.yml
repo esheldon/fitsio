@@ -40,7 +40,7 @@ jobs:
           # binary tables that exceed 2**32 bytes
           - { pyver: "3.9", npver: "1", cftsver: "-4.4.0"}
           - { pyver: "3.9", npver: "1", cftsver: "latest"}
-          - { pyver: "3.14", npver: "2.3.0", cftsver: "latest"}
+          - { pyver: "3.14", npver: "2", cftsver: "latest"}
 
     runs-on: ${{ matrix.os }}
     env:
