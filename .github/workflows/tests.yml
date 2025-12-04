@@ -28,7 +28,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1", ft: "python-gil"}
+          - { pyver: "3.8", npver: "1", ft: ""}
           - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
           - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
           - { pyver: "3.11", npver: "2.3.0", ft: "python-gil"}
