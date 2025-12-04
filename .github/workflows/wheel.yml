@@ -32,6 +32,14 @@ jobs:
     name: linux-manylinux
     runs-on: ubuntu-latest
     steps:
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
@@ -69,6 +77,14 @@ jobs:
     name: linux-musl
     runs-on: ubuntu-latest
     steps:
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
@@ -193,6 +209,14 @@ jobs:
     # Just need to build sdist on a single machine
     runs-on: ubuntu-latest
     steps:
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
