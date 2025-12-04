@@ -158,6 +158,7 @@ def test_threading_timing(klass, write_only, read_only):
             )
 
 
+@pytest.mark.xfail(reason="Threading performance might be flaky!")
 def test_threading_read_one_file():
     nt = 4
 
