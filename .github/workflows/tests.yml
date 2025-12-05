@@ -28,26 +28,38 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1"}
-          - { pyver: "3.11", npver: "1.26"}
-          - { pyver: "3.12", npver: "1.26"}
-          - { pyver: "3.11", npver: "2.3.0"}
-          - { pyver: "3.12", npver: "2.3.0"}
-          - { pyver: "3.13", npver: "2.3.0"}
+          - { pyver: "3.9", npver: "1", ft: ""}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.11", npver: "2", ft: "python-gil"}
+          - { pyver: "3.12", npver: "2", ft: "python-gil"}
+          - { pyver: "3.13", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
     env:
       PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
     steps:
-      - uses: actions/checkout@v6
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: mamba-org/setup-micromamba@v2.0.7
+      - uses: mamba-org/setup-micromamba@7f29b8b80078b1b601dfa018b0f7425c587c63bb  #v2.0.7
         with:
           environment-name: fitsio-dev
+          environment-file: environment.yml
           condarc: |
             channels:
             - conda-forge
@@ -57,11 +69,13 @@ jobs:
           create-args: >-
             python=${{ matrix.config.pyver }}
             numpy=${{ matrix.config.npver }}
-            setuptools-scm>=8
-            wget
-            make
-            pytest
-            setuptools
+            ${{ matrix.config.ft }}
+
+      - name: set parallel testing flags
+        run: |
+          if [[ "${{ matrix.config.ft }}" == "python-freethreading" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
+          fi
 
       - name: test bundled build
         run: |
@@ -73,11 +87,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -124,7 +138,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
+          pytest -vv ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 

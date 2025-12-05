@@ -52,7 +52,10 @@ class HDUBase(object):
 
         # init info cache to none
         self._cached_info = None
-        self._filename = self._FITS.filename()
+
+    @property
+    def _filename(self):
+        return self._info["filename"]
 
     @property
     def _info(self):
@@ -64,11 +67,6 @@ class HDUBase(object):
         """
         Update metadata for this HDU
         """
-        try:
-            self._FITS.movabs_hdu(self._ext + 1)
-        except IOError:
-            raise RuntimeError("no such hdu")
-
         self._cached_info = self._FITS.get_hdu_info(
             self._ext + 1, self._ignore_scaling
         )

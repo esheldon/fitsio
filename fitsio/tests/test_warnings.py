@@ -2,10 +2,14 @@ import os
 import tempfile
 import warnings
 import numpy as np
+
 from ..fitslib import FITS
 from ..util import FITSRuntimeWarning
 
+import pytest
 
+
+@pytest.mark.thread_unsafe
 def test_non_standard_key_value():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
