@@ -59,6 +59,7 @@ jobs:
       - uses: mamba-org/setup-micromamba@7f29b8b80078b1b601dfa018b0f7425c587c63bb  #v2.0.7
         with:
           environment-name: fitsio-dev
+          environment-file: environment.yml
           condarc: |
             channels:
             - conda-forge
@@ -68,12 +69,6 @@ jobs:
           create-args: >-
             python=${{ matrix.config.pyver }}
             numpy=${{ matrix.config.npver }}
-            setuptools-scm>=8
-            wget
-            make
-            pytest
-            setuptools
-            pytest-run-parallel
             ${{ matrix.config.ft }}
 
       - name: set parallel testing flags

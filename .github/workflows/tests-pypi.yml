@@ -45,11 +45,11 @@ jobs:
         with:
           python-version: '${{ matrix.pyver }}'
 
-      - name: install pip & setuptools
+      - name: install pip, setuptools, & pytest
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools
-          python -m pip install pytest pytest-run-parallel
+          python -m pip install pytest pytest-run-parallel pytest-mark-slow
 
       - name: install bzip2 and other tools on linux
         if: contains(matrix.os, 'ubuntu')
@@ -64,6 +64,6 @@ jobs:
 
       - name: test fitsio
         run: |
-          pytest -vv fitsio
+          pytest --slow -vv fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
