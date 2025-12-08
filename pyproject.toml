@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=80",
+    "setuptools>=78",
     "setuptools_scm>=8",
     "numpy>=1.7"
 ]
