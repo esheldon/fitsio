@@ -10,6 +10,8 @@ Changes
       subnormal values may be truncated to zero. This change
       should be relatively harmless given that it only applies
       to very small values which are lossily compressed anyways.
+    - Moved to `pyproject.toml` for packaging.
+    - Bumped minimum python to 3.9.
 
 Bug Fixes
 

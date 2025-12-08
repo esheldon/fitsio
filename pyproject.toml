@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=78",
+    "setuptools>=80",
     "setuptools_scm>=8",
     "numpy>=1.7"
 ]
@@ -22,7 +22,7 @@ classifiers = [
     "Intended Audience :: Science/Research"
 ]
 dependencies = ["numpy>=1.7"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.urls]
 home = "https://github.com/esheldon/fitsio"
