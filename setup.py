@@ -5,7 +5,7 @@
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/
 
 from __future__ import print_function
-from setuptools import setup, Extension, find_packages
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 import warnings
@@ -447,39 +447,7 @@ sources = ["fitsio/fitsio_pywrap.c"]
 
 ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
 
-description = (
-    "A full featured python library to read from and write to FITS files."
-)
-
-with open(os.path.join(os.path.dirname(__file__), "README.md")) as fp:
-    long_description = fp.read()
-
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: GNU General Public License (GPL)",
-    "Topic :: Scientific/Engineering :: Astronomy",
-    "Intended Audience :: Science/Research",
-]
-
 setup(
-    name="fitsio",
-    description=description,
-    long_description=long_description,
-    long_description_content_type='text/markdown; charset=UTF-8; variant=GFM',
-    license="GPL",
-    classifiers=classifiers,
-    url="https://github.com/esheldon/fitsio",
-    author="Erin Scott Sheldon",
-    author_email="erin.sheldon@gmail.com",
-    setup_requires=['numpy>=1.7', 'setuptools-scm>=8'],
-    install_requires=['numpy>=1.7'],
-    packages=find_packages(),
-    python_requires=">=3.8",
-    include_package_data=True,
     ext_modules=[ext],
     cmdclass={"build_ext": build_ext_subclass},
-    use_scm_version={
-        "version_file": "fitsio/_version.py",
-        "version_file_template": "__version__ = '{version}'\n",
-    },
 )
