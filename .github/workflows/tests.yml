@@ -61,7 +61,7 @@ jobs:
             wget
             make
             pytest
-            setuptools
+            setuptools>=80
 
       - name: test bundled build
         run: |
