@@ -68,7 +68,7 @@ jobs:
             wget
             make
             pytest
-            setuptools>=80
+            setuptools>=78
 
       - name: build external cfitsio
         run: |
