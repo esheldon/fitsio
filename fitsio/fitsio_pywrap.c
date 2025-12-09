@@ -573,6 +573,7 @@ static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     if (self->fits != NULL) {
         check_py_fits_object_same_thread(self);
         fits_close_file(self->fits, &status);
+        self->fits = NULL;
     }
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
