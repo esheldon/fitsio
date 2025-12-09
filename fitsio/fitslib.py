@@ -24,6 +24,7 @@ See the main docs at https://github.com/esheldon/fitsio
 from __future__ import with_statement, print_function
 import os
 import threading
+import uuid
 
 import numpy
 
@@ -530,15 +531,18 @@ def write(
 class _CFITS(_fitsio_wrap.FITS):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._lock = threading.RLock()
+        self._thread_id = threading.get_ident()
+        self._fits_id = uuid.uuid4().hex
 
     def __getattribute__(self, name):
-        if not object.__getattribute__(self, "_lock").acquire(blocking=False):
-            raise RuntimeError("Concurrent use of FITS object detected!")
-        try:
-            return object.__getattribute__(self, name)
-        finally:
-            object.__getattribute__(self, "_lock").release()
+        if (
+            object.__getattribute__(self, "_thread_id")
+            != threading.get_ident()
+        ):
+            raise RuntimeError(
+                "Concurrent use of FITS object detected! Do not do that!"
+            )
+        return object.__getattribute__(self, name)
 
 
 class FITS(object):
