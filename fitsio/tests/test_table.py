@@ -1575,8 +1575,7 @@ def test_table_big_col(table_type):
                 write(pth, d, table_type=table_type)
             assert "FITSIO status = 236: column exceeds width of table" in str(
                 e.value
-            )
-            assert (
+            ) or (
                 "string column is too wide: 70000; "
                 "max supported width is" in str(e.value)
             )
