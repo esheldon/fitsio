@@ -30,6 +30,6 @@ def test_concurrent_shared_usage_raises():
                     with pytest.raises(RuntimeError) as e:
                         fut.result()
                     assert (
-                        "Shared use of FITS object between objects detected!"
+                        "Shared use of FITS object between threads detected!"
                         in str(e.value)
                     )
