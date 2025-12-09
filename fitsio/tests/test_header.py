@@ -443,6 +443,7 @@ DATASUM =                      / checksum of the data records\n"""
         hdr.add_record(line)
 
 
+@pytest.mark.thread_unsafe
 def test_corrupt_continue():
     """
     test with corrupt continue, just make sure it doesn't crash
