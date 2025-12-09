@@ -483,6 +483,20 @@ in Python 3 will now come back as a string and not a byte string. Note that this
 support is not the same as full unicode support. Internally, fitsio only supports
 the ASCII character set.
 
+## Thread Safety and Python Free Threading
+
+`fitsio` is a Python wrapper for the `cfitsio` library and so inherits the constraints
+on multithreaded programs from `cfitsio`. Specifically this means that
+
+- `fitsio.FITS` file objects are NOT thread-safe and should never be shared between threads.
+- Concurrent reading from FITS files is thread-safe, but every thread must open the FITS file
+  on its own, getting unique `fitsio.FITS` object.
+- Concurrent writing to FITS files is NOT thread-safe.
+
+`fitsio` is compatible with Python free threading, and will not reenable the GIL
+when imported. However, the constraints above must be respected even when using Python
+free threading.
+
 ## TODO
 
 - HDU groups: does anyone use these? If so open an issue!
