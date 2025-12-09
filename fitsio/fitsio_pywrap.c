@@ -447,7 +447,7 @@ static int check_py_fits_object_same_thread(struct PyFITSObject *self) {
 
     if (self->thread_native_id != curr_thread_native_id) {
         PyErr_SetString(PyExc_RuntimeError,
-                        "Shared use of FITS object between objects detected! "
+                        "Shared use of FITS object between threads detected! "
                         "`cfitsio` does NOT support shared use of FITS file "
                         "pointers! You can read from the same FITS file with "
                         "multiple threads, but each threads to open the file "
