@@ -1,0 +1,36 @@
+[build-system]
+requires = [
+    "setuptools>=78",
+    "setuptools_scm>=8",
+    "numpy>=1.7"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fitsio"
+authors = [
+    {name = "Erin Scott Sheldon", email = "erin.sheldon@gmail.com"},
+]
+description = "A full featured python library to read from and write to FITS files."
+dynamic = ["version"]
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE.txt"]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Intended Audience :: Science/Research"
+]
+dependencies = ["numpy>=1.7"]
+requires-python = ">=3.9"
+
+[project.urls]
+home = "https://github.com/esheldon/fitsio"
+
+[tool.setuptools]
+include-package-data = true
+packages = {find = {exclude=["patches*", "zlib*"]}}
+
+[tool.setuptools_scm]
+write_to = "fitsio/_version.py"
+write_to_template = "__version__ = '{version}'\n"

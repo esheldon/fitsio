@@ -28,7 +28,7 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.8", npver: "1"}
+          - { pyver: "3.9", npver: "1"}
           - { pyver: "3.11", npver: "1.26"}
           - { pyver: "3.12", npver: "1.26"}
           - { pyver: "3.11", npver: "2.3.0"}
@@ -61,7 +61,7 @@ jobs:
             wget
             make
             pytest
-            setuptools
+            setuptools>=78
 
       - name: test bundled build
         run: |

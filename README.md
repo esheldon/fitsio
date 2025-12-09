@@ -416,7 +416,7 @@ pip install .
 
 ## Requirements
 
-- python >=3.8
+- python >=3.9
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
