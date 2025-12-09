@@ -23,7 +23,6 @@ See the main docs at https://github.com/esheldon/fitsio
 
 from __future__ import with_statement, print_function
 import os
-
 import numpy
 
 from . import _fitsio_wrap
