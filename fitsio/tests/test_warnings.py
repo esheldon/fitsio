@@ -2,7 +2,6 @@ import os
 import tempfile
 import warnings
 import numpy as np
-
 from ..fitslib import FITS
 from ..util import FITSRuntimeWarning
 
