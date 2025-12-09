@@ -533,12 +533,12 @@ class _CFITS(_fitsio_wrap.FITS):
         self._lock = threading.RLock()
 
     def __getattribute__(self, name):
-        if not self._lock.acquire(blocking=False):
+        if not object.__getattribute__(self, "_lock").acquire(blocking=False):
             raise RuntimeError("Concurrent use of FITS object detected!")
         try:
             return object.__getattribute__(self, name)
         finally:
-            self._lock.release()
+            object.__getattribute__(self, "_lock").release()
 
 
 class FITS(object):
