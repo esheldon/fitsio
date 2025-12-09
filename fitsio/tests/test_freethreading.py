@@ -29,4 +29,7 @@ def test_concurrent_shared_usage_raises():
                 for fut in as_completed(futs):
                     with pytest.raises(RuntimeError) as e:
                         fut.result()
-                    assert "Concurrent" in str(e.value)
+                    assert (
+                        "Shared use of FITS object between objects detected!"
+                        in str(e.value)
+                    )

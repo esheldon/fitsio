@@ -23,8 +23,6 @@ See the main docs at https://github.com/esheldon/fitsio
 
 from __future__ import with_statement, print_function
 import os
-import threading
-import uuid
 
 import numpy
 
@@ -234,7 +232,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
     except TypeError:
         hdunum = None
 
-    _fits = _CFITS(filename, READONLY, dont_create)
+    _fits = _fitsio_wrap.FITS(filename, READONLY, dont_create)
 
     if hdunum is None:
         extname = mks(ext)
@@ -528,23 +526,6 @@ def write(
         )
 
 
-class _CFITS(_fitsio_wrap.FITS):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._thread_id = threading.get_ident()
-        self._fits_id = uuid.uuid4().hex
-
-    def __getattribute__(self, name):
-        if (
-            object.__getattribute__(self, "_thread_id")
-            != threading.get_ident()
-        ):
-            raise RuntimeError(
-                "Concurrent use of FITS object detected! Do not do that!"
-            )
-        return object.__getattribute__(self, name)
-
-
 class FITS(object):
     """
     A class to read and write FITS images and tables.
@@ -666,7 +647,7 @@ class FITS(object):
                     create = 1
 
         self._did_create = create == 1
-        self._FITS = _CFITS(filename, self.intmode, create)
+        self._FITS = _fitsio_wrap.FITS(filename, self.intmode, create)
 
     def close(self):
         """
@@ -770,7 +751,7 @@ class FITS(object):
         if not self._filename.startswith("mem://"):
             self._FITS.close()
             del self._FITS
-            self._FITS = _CFITS(self._filename, self.intmode, 0)
+            self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
         self.update_hdu_list()
 
     @_doc_string_formatter
