@@ -24,10 +24,7 @@ def test_concurrent_shared_usage_raises():
             assert (res == 1).all()
 
             with ThreadPoolExecutor(max_workers=2) as exc:
-                futs = [
-                    exc.submit(_read_data, fp)
-                    for _ in range(2)
-                ]
+                futs = [exc.submit(_read_data, fp) for _ in range(2)]
 
                 for fut in as_completed(futs):
                     with pytest.raises(RuntimeError) as e:
