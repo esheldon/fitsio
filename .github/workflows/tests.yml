@@ -28,12 +28,14 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.9", npver: "1"}
-          - { pyver: "3.11", npver: "1.26"}
-          - { pyver: "3.12", npver: "1.26"}
-          - { pyver: "3.11", npver: "2.3.0"}
-          - { pyver: "3.12", npver: "2.3.0"}
-          - { pyver: "3.13", npver: "2.3.0"}
+          - { pyver: "3.9", npver: "1", ft: ""}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
+          - { pyver: "3.11", npver: "2", ft: "python-gil"}
+          - { pyver: "3.12", npver: "2", ft: "python-gil"}
+          - { pyver: "3.13", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -63,6 +65,14 @@ jobs:
             pytest
             setuptools>=78
             pytest-skip-slow
+            pytest-run-parallel
+            ${{ matrix.config.ft }}
+
+      - name: set parallel testing flags
+        run: |
+          if [[ "${{ matrix.config.ft }}" == "python-freethreading" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
+          fi
 
       - name: test bundled build
         run: |
@@ -74,11 +84,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv fitsio
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -125,7 +135,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv fitsio
+          pytest -vv ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 

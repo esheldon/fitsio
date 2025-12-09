@@ -369,6 +369,7 @@ class build_ext_subclass(build_ext):
         args = [
             '--without-fortran',
             '--disable-shared',
+            '--enable-reentrant',
         ]
         our_cflags = "-fPIC -fvisibility=hidden"
 
