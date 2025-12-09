@@ -30,17 +30,17 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         config:
           # 3.44 is the last version that did not support uint64
-          - { pyver: "3.9", npver: "1", cftsver: "3440"}
+          - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: ""}
           # python 3 string writing fails on all 3.* builds
           # so test first 4.* release
-          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0"}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0", doslow: ""}
           # 4.1.0 is the first version for which tests pass for uint64
-          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0"}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0", doslow: ""}
           # 4.4.0 is first version for which tests pass for compressed
           # binary tables that exceed 2**32 bytes
-          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0"}
-          - { pyver: "3.9", npver: "1", cftsver: "latest"}
-          - { pyver: "3.13", npver: "2.3.0", cftsver: "latest"}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0", doslow: "--slow"}
+          - { pyver: "3.9", npver: "1", cftsver: "latest", doslow: "--slow"}
+          - { pyver: "3.13", npver: "2", cftsver: "latest", doslow: "--slow"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -69,6 +69,7 @@ jobs:
             make
             pytest
             setuptools>=78
+            pytest-skip-slow
 
       - name: build external cfitsio
         run: |
@@ -172,4 +173,4 @@ jobs:
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
-          pytest -vv fitsio
+          pytest -vv ${{ matrix.config.doslow }} fitsio

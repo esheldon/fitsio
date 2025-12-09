@@ -12,6 +12,8 @@ Changes
       to very small values which are lossily compressed anyways.
     - Moved to `pyproject.toml` for packaging.
     - Bumped minimum python to 3.9.
+    - Marked some tests as slow to speed up testing. Pass `--slow` to
+      pytest to run them.
 
 Bug Fixes
 
