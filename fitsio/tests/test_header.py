@@ -1,5 +1,6 @@
 import os
 import tempfile
+import warnings
 import numpy as np
 
 import pytest
@@ -443,46 +444,47 @@ DATASUM =                      / checksum of the data records\n"""
 
 
 @pytest.mark.thread_unsafe
-@pytest.mark.filterwarnings("ignore:warning")
 def test_corrupt_continue():
     """
     test with corrupt continue, just make sure it doesn't crash
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
-        hdr_from_cards = FITSHDR(
-            [
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ]
-        )
+        with warnings.catch_warnings(record=True) as _:
+            hdr_from_cards = FITSHDR(
+                [
+                    "IVAL    =                   35 / integer value                                  ",  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
+                    "UND     =                                                                       ",  # noqa
+                    "DBL     =                 1.25                                                  ",  # noqa
+                ]
+            )
 
-        with FITS(fname, 'rw') as fits:
-            fits.write(None, header=hdr_from_cards)
+            with FITS(fname, 'rw') as fits:
+                fits.write(None, header=hdr_from_cards)
 
-        read_header(fname)
+            read_header(fname)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
-        hdr_from_cards = FITSHDR(
-            [
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
-                "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
-                "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ]
-        )
+        with warnings.catch_warnings(record=True) as _:
+            hdr_from_cards = FITSHDR(
+                [
+                    "IVAL    =                   35 / integer value                                  ",  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
+                    "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
+                    "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
+                    "UND     =                                                                       ",  # noqa
+                    "DBL     =                 1.25                                                  ",  # noqa
+                ]
+            )
 
-        with FITS(fname, 'rw') as fits:
-            fits.write(None, header=hdr_from_cards)
+            with FITS(fname, 'rw') as fits:
+                fits.write(None, header=hdr_from_cards)
 
-        read_header(fname)
+            read_header(fname)
 
 
 def record_exists(header_records, key, value):
