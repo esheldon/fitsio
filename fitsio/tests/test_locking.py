@@ -28,9 +28,7 @@ def test_locking_read():
         with fitsio.FITS(fname) as fp:
             t0 = time.time()
             with ThreadPoolExecutor(max_workers=nt) as exc:
-                futs = [
-                    exc.submit(_read_file, fp) for _ in range(nt)
-                ]
+                futs = [exc.submit(_read_file, fp) for _ in range(nt)]
                 for fut in futs:
                     res = fut.result()
                     np.testing.assert_array_equal(res, data)
