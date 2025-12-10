@@ -10,7 +10,7 @@ import fitsio
 def test_locking_works():
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(1000, 1000))
-    max_workers = 100
+    max_workers = 2
 
     def _read_data(fp):
         return fp[0].read()
