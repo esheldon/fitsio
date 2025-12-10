@@ -4,12 +4,14 @@ import tempfile
 
 import numpy as np
 
-import pytest
-
 import fitsio
 
 
-def test_concurrent_shared_usage_raises():
+def test_locking_works():
+    rng = np.random.RandomState(seed=10)
+    img = rng.normal(size=(1000, 1000))
+    max_workers = 100
+
     def _read_data(fp):
         return fp[0].read()
 
@@ -17,19 +19,16 @@ def test_concurrent_shared_usage_raises():
         fname = os.path.join(tmpdir, "fname.fits")
 
         with fitsio.FITS(fname, "rw", clobber=True) as fp:
-            fp.write_image(np.ones((1000, 100)))
+            fp.write_image(img)
 
         with fitsio.FITS(fname, "r") as fp:
             res = fp[0].read()
-            assert (res == 1).all()
+            assert (res == img).all()
 
-            with ThreadPoolExecutor(max_workers=2) as exc:
-                futs = [exc.submit(_read_data, fp) for _ in range(2)]
-
+            with ThreadPoolExecutor(max_workers=max_workers) as exc:
+                futs = [
+                    exc.submit(_read_data, fp) for _ in range(10 * max_workers)
+                ]
                 for fut in as_completed(futs):
-                    with pytest.raises(RuntimeError) as e:
-                        fut.result()
-                    assert (
-                        "Shared use of FITS object between threads detected!"
-                        in str(e.value)
-                    )
+                    res = fut.result()
+                    assert (res == img).all()
