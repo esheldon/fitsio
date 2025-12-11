@@ -620,10 +620,10 @@ def test_image_mem_reopen_noop():
             2,
             marks=[
                 pytest.mark.xfail(
-                    condition=CFITSIO_VERSION < 4.4,
+                    condition=CFITSIO_VERSION < 4.04,
                     reason=(
                         "Writing compressed binary tables exceeding "
-                        "2**32 bytes fails for cfitsio < 4.40!"
+                        "2**32 bytes fails for cfitsio < 4.4!"
                     ),
                 ),
                 pytest.mark.slow,

@@ -32,18 +32,26 @@ jobs:
     name: linux-manylinux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc  # v3.3.0
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
@@ -69,18 +77,26 @@ jobs:
     name: linux-musl
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc  # v3.3.0
         env:
           CIBW_BUILD: "*musllinux*"
           CIBW_ARCHS: auto64
@@ -115,18 +131,18 @@ jobs:
     name: osx-intel
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc  # v3.3.0
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: auto64
@@ -153,18 +169,18 @@ jobs:
     name: osx-arm
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@v3.3.0
+        uses: pypa/cibuildwheel@63fd63b352a9a8bdcc24791c9dbee952ee9a8abc  # v3.3.0
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: arm64
@@ -193,13 +209,21 @@ jobs:
     # Just need to build sdist on a single machine
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ env.PYVER }}'
 
@@ -209,7 +233,7 @@ jobs:
           pip install -U build
 
       - name: download wheels
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
         with:
           path: ./wheels
           pattern: whl-*
@@ -230,7 +254,7 @@ jobs:
           ls -l dist
 
       - name: publish to pypi
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         with:
           verbose: true
