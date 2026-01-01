@@ -60,7 +60,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: whl-linux
           path: ./wheelhouse/*.whl
@@ -106,7 +106,7 @@ jobs:
           pytest --pyargs fitsio
           deactivate
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: whl-musl
           path: ./wheelhouse/*.whl
@@ -144,7 +144,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: whl-macos
           path: ./wheelhouse/*.whl
@@ -182,7 +182,7 @@ jobs:
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: whl-arm
           path: ./wheelhouse/*.whl
@@ -209,7 +209,7 @@ jobs:
           pip install -U build
 
       - name: download wheels
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: ./wheels
           pattern: whl-*
