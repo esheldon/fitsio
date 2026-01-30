@@ -488,14 +488,40 @@ the ASCII character set.
 `fitsio` is a Python wrapper for the `cfitsio` library and so inherits the constraints
 on multithreaded programs from `cfitsio`. Specifically this means that
 
-- `fitsio.FITS` file objects are NOT thread-safe and should never be shared between threads.
 - Concurrent reading from FITS files is thread-safe, but every thread must open the FITS file
-  on its own, getting unique `fitsio.FITS` object.
+  on its own, getting a unique `fitsio.FITS` object.
 - Concurrent writing to FITS files is NOT thread-safe.
+- `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
+  can use the file object at a time and so use needs to be controlled via a lock or some
+  other mechanism. See the example below.
 
 `fitsio` is compatible with Python free threading, and will not reenable the GIL
 when imported. However, the constraints above must be respected even when using Python
 free threading.
+
+Here is an example of using a lock to share a `fitsio.FITS` file pointer across threads:
+
+```python
+import concurrent.futures
+import threading
+import fitsio
+
+
+lock = threading.RLock()
+
+def _read_file(fp):
+    with lock:
+        # do something with fp here
+        pass
+
+with fitsio.FITS(fname) as fp:
+    with ThreadPoolExecutor(max_workers=10) as exc:
+        futs = [
+            exc.submit(_read_file, fp) for _ in range(10)
+        ]
+        for fut in futs:
+            res = fut.result()
+```
 
 ## TODO
 
