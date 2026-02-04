@@ -532,6 +532,8 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
         set_ioerr_string_from_status(status, self);
         return NULL;
         */
+    if (self->fits != NULL) {
+        NOGIL(fits_close_file(self->fits, &status));
     }
     self->fits = NULL;
     Py_RETURN_NONE;
