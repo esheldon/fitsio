@@ -461,7 +461,8 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     int status = 0;
     int create = 0;
 
-    // init the error message to an empty string
+    // init the error message and file to NULL vals
+    self->fits = NULL;
     self->pyfits_errmsg[0] = '\0';
 
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
