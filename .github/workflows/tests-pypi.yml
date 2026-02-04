@@ -23,24 +23,33 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-22.04]
-        pyver: ["3.9", "3.13"]
+        pyver: ["3.9", "3.14"]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version: '${{ matrix.pyver }}'
 
-      - name: install pip & setuptools
+      - name: install pip, setuptools, & pytest
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools
-          python -m pip install pytest pytest-skip-slow pytest-run-parallel
+          python -m pip install pytest pytest-run-parallel pytest-skip-slow
 
       - name: install bzip2 and other tools on linux
         if: contains(matrix.os, 'ubuntu')
