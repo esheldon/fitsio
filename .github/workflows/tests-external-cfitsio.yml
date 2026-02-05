@@ -74,6 +74,7 @@ jobs:
           create-args: >-
             python=${{ matrix.config.pyver }}
             numpy=${{ matrix.config.npver }}
+            python-gil
 
       - name: build external cfitsio
         run: |
