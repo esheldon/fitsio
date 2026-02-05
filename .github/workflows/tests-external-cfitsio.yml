@@ -30,17 +30,18 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         config:
           # 3.44 is the last version that did not support uint64
-          - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: "", ft: ""}
           # python 3 string writing fails on all 3.* builds
           # so test first 4.* release
-          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0", doslow: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0", doslow: "", ft: ""}
           # 4.1.0 is the first version for which tests pass for uint64
-          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0", doslow: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0", doslow: "", ft: ""}
           # 4.4.0 is first version for which tests pass for compressed
           # binary tables that exceed 2**32 bytes
-          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0", doslow: "--slow"}
-          - { pyver: "3.9", npver: "1", cftsver: "latest", doslow: "--slow"}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow"}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0", doslow: "--slow", ft: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "latest", doslow: "--slow", ft: ""}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -74,7 +75,7 @@ jobs:
           create-args: >-
             python=${{ matrix.config.pyver }}
             numpy=${{ matrix.config.npver }}
-            python-gil
+            ${{ matrix.config.ft }}
 
       - name: build external cfitsio
         run: |
@@ -94,6 +95,10 @@ jobs:
             config_flags=""
           else
             config_flags="--without-fortran --disable-shared"
+          fi
+
+          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
+            config_flags="${config_flags} --enable-reentrant"
           fi
 
           cfitsio_name=cfitsio${cftsver}
