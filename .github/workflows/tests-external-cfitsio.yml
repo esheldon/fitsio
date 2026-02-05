@@ -30,18 +30,19 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         config:
           # 3.44 is the last version that did not support uint64
-          - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: "", ft: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: "", ft: "", cf: ""}
           # python 3 string writing fails on all 3.* builds
           # so test first 4.* release
-          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0", doslow: "", ft: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.0.0", doslow: "", ft: "", cf: ""}
           # 4.1.0 is the first version for which tests pass for uint64
-          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0", doslow: "", ft: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.1.0", doslow: "", ft: "", cf: ""}
           # 4.4.0 is first version for which tests pass for compressed
           # binary tables that exceed 2**32 bytes
-          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0", doslow: "--slow", ft: ""}
-          - { pyver: "3.9", npver: "1", cftsver: "latest", doslow: "--slow", ft: ""}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-gil"}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading"}
+          - { pyver: "3.9", npver: "1", cftsver: "-4.4.0", doslow: "--slow", ft: "", cf: ""}
+          - { pyver: "3.9", npver: "1", cftsver: "latest", doslow: "--slow", ft: "", cf: ""}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-gil", cf: "--enable-reentrant"}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading", cf: ""}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading", cf: "--enable-reentrant"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -94,13 +95,9 @@ jobs:
           echo "CFITSIO_VER=${cftsver}" >> ${GITHUB_ENV}
 
           if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
-            config_flags=""
+            config_flags="${{ matrix.config.cf }}"
           else
-            config_flags="--without-fortran --disable-shared"
-          fi
-
-          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            config_flags="${config_flags} --enable-reentrant"
+            config_flags="--without-fortran --disable-shared ${{ matrix.config.cf }}"
           fi
 
           echo "CFITSIO_CONFIG_FLAGS=${config_flags}" >> ${GITHUB_ENV}
