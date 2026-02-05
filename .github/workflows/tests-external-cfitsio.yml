@@ -83,19 +83,15 @@ jobs:
             echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
           fi
 
-      - name: build external cfitsio
+      - name: set cfitsio config flags and version
         run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
-          mkdir -p cfitsio-external-build
-          cd cfitsio-external-build
-          rm -rf *
-
           if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
             cftsver=${LATEST_CFITSIO_VER}
           else
             cftsver="${{ matrix.config.cftsver }}"
           fi
+          
+          echo "CFITSIO_VER=${cftsver}" >> ${GITHUB_ENV}
 
           if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
             config_flags=""
@@ -106,13 +102,23 @@ jobs:
           if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
             config_flags="${config_flags} --enable-reentrant"
           fi
+          
+          echo "CFITSIO_CONFIG_FLAGS=${config_flags}" >> ${GITHUB_ENV}
 
-          cfitsio_name=cfitsio${cftsver}
+      - name: build external cfitsio
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS} -fPIC"
+
+          mkdir -p cfitsio-external-build
+          cd cfitsio-external-build
+          rm -rf *
+
+          cfitsio_name=cfitsio${CFITSIO_VER}
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
-          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
+          ./configure --prefix=$HOME/cfitsio-static-install ${CFITSIO_CONFIG_FLAGS}
           make install -j 4
           cd ..
           cd ..
@@ -142,34 +148,18 @@ jobs:
 
       - name: build external cfitsio w/ bzip2
         run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS} -fPIC"
 
           mkdir -p cfitsio-external-build
           cd cfitsio-external-build
           rm -rf *
 
-          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            cftsver=${LATEST_CFITSIO_VER}
-          else
-            cftsver="${{ matrix.config.cftsver }}"
-          fi
-
-          if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
-            config_flags="--with-bzip2"
-          else
-            config_flags="--without-fortran --disable-shared --with-bzip2"
-          fi
-
-          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
-            config_flags="${config_flags} --enable-reentrant"
-          fi
-
-          cfitsio_name=cfitsio${cftsver}
+          cfitsio_name=cfitsio${CFITSIO_VER}
           wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
-          CFLAGS="-fPIC" ./configure --prefix=$HOME/cfitsio-static-install ${config_flags}
+          ./configure --prefix=$HOME/cfitsio-static-install ${CFITSIO_CONFIG_FLAGS} --with-bzip2
           make install -j 4
           cd ..
           cd ..
