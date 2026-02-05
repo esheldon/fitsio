@@ -77,6 +77,12 @@ jobs:
             numpy=${{ matrix.config.npver }}
             ${{ matrix.config.ft }}
 
+      - name: set parallel testing flags
+        run: |
+          if [[ "${{ matrix.config.ft }}" == "python-freethreading" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
+          fi
+
       - name: build external cfitsio
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
@@ -127,7 +133,7 @@ jobs:
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
-          pytest -vv fitsio
+          pytest -vv ${PRP_FLAGS} fitsio
 
       - name: install bzip2 on linux
         if: matrix.os == 'ubuntu-latest'
@@ -148,10 +154,14 @@ jobs:
             cftsver="${{ matrix.config.cftsver }}"
           fi
 
-          if [[ "${{ matrix.config.cftsver }}" == *3440* ]]; then
+          if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
             config_flags="--with-bzip2"
           else
             config_flags="--without-fortran --disable-shared --with-bzip2"
+          fi
+
+          if [[ "${{ matrix.config.cftsver }}" == "latest" ]]; then
+            config_flags="${config_flags} --enable-reentrant"
           fi
 
           cfitsio_name=cfitsio${cftsver}
@@ -183,4 +193,4 @@ jobs:
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
 
-          pytest -vv ${{ matrix.config.doslow }} fitsio
+          pytest -vv ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
