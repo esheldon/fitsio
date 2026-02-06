@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-slim]
+        os: [macos-latest, ubuntu-latest]
         config:
           # 3.44 is the last version that did not support uint64
           - { pyver: "3.9", npver: "1", cftsver: "3440", doslow: "", ft: "", cf: ""}
