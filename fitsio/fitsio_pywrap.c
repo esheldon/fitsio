@@ -529,15 +529,18 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     int status = 0;
     if (self->fits != NULL) {
         NOGIL(fits_close_file(self->fits, &status));
+        self->fits = NULL;
     }
-    self->fits = NULL;
     Py_RETURN_NONE;
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     ALLOW_NOGIL;
     int status = 0;
-    NOGIL(fits_close_file(self->fits, &status));
+    if (self->fits != NULL) {
+        NOGIL(fits_close_file(self->fits, &status));
+        self->fits = NULL;
+    }
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
@@ -5315,8 +5318,7 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"where", (PyCFunction)PyFITSObject_where, METH_VARARGS,
      "where\n\nReturn an index array where the input expression evaluates "
-     "to "
-     "true."},
+     "to true."},
 
     {"movabs_hdu", (PyCFunction)PyFITSObject_movabs_hdu, METH_VARARGS,
      "movabs_hdu\n\nMove to the specified HDU."},
@@ -5330,12 +5332,10 @@ static PyMethodDef PyFITSObject_methods[] = {
      "get_hdu_info\n\nReturn a dict with info about the specified HDU."},
     {"read_raw", (PyCFunction)PyFITSObject_read_raw, METH_NOARGS,
      "read_raw\n\nRead the entire raw contents of the FITS file, returning "
-     "a "
-     "python string."},
+     "a python string."},
     {"read_image", (PyCFunction)PyFITSObject_read_image, METH_VARARGS,
      "read_image\n\nRead the entire n-dimensional image array.  No "
-     "checking of "
-     "array is done."},
+     "checking of array is done."},
     {"read_image_slice", (PyCFunction)PyFITSObject_read_image_slice,
      METH_VARARGS, "read_image_slice\n\nRead an image slice."},
     {"read_column", (PyCFunction)PyFITSObject_read_column, METH_VARARGS,
@@ -5344,12 +5344,11 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_var_column_as_list",
      (PyCFunction)PyFITSObject_read_var_column_as_list, METH_VARARGS,
      "read_var_column_as_list\n\nRead the variable length column as a list "
-     "of "
-     "arrays."},
+     "of arrays."},
     {"read_columns_as_rec", (PyCFunction)PyFITSObject_read_columns_as_rec,
      METH_VARARGS,
      "read_columns_as_rec\n\nRead the specified columns into the input rec "
-     "array.  No checking of array is done."},
+     "array. No checking of array is done."},
     {"read_columns_as_rec_byoffset",
      (PyCFunction)PyFITSObject_read_columns_as_rec_byoffset, METH_VARARGS,
      "read_columns_as_rec_byoffset\n\nRead the specified columns into the "
@@ -5358,8 +5357,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"read_rows_as_rec", (PyCFunction)PyFITSObject_read_rows_as_rec,
      METH_VARARGS,
      "read_rows_as_rec\n\nRead the subset of rows into the input rec "
-     "array.  "
-     "No checking of array is done."},
+     "array. No checking of array is done."},
     {"read_as_rec", (PyCFunction)PyFITSObject_read_as_rec, METH_VARARGS,
      "read_as_rec\n\nRead a set of rows into the input rec array.  No "
      "significant checking of array is done."},
@@ -5396,8 +5394,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_var_column", (PyCFunction)PyFITSObject_write_var_column,
      METH_VARARGS | METH_KEYWORDS,
      "write_var_column\n\nWrite a variable length column into the "
-     "specified "
-     "hdu from an object array."},
+     "specified hdu from an object array."},
     {"write_record", (PyCFunction)PyFITSObject_write_record, METH_VARARGS,
      "write_record\n\nWrite a header card."},
     {"write_string_key", (PyCFunction)PyFITSObject_write_string_key,
@@ -5428,8 +5425,7 @@ static PyMethodDef PyFITSObject_methods[] = {
     {"write_undefined_key", (PyCFunction)PyFITSObject_write_undefined_key,
      METH_VARARGS,
      "write_undefined_key\n\nWrite a key without a value field into the "
-     "header "
-     "of the specified HDU."},
+     "header of the specified HDU."},
 
     {"delete_key", (PyCFunction)PyFITSObject_delete_key, METH_VARARGS,
      "delete_key\n\nDeleta a key from the header of the specified HDU."},
@@ -5500,8 +5496,7 @@ static PyMethodDef fitstype_methods[] = {
      "cfitsio_version\n\nReturn the cfitsio version."},
     {"cfitsio_is_bundled", (PyCFunction)PyFITS_cfitsio_is_bundled, METH_NOARGS,
      "cfitsio_is_bundled\n\nReturn True if library was built with a "
-     "bundled "
-     "copy of cfitsio."},
+     "bundled copy of cfitsio."},
     {"cfitsio_has_bzip2_support", (PyCFunction)PyFITS_cfitsio_has_bzip2_support,
      METH_NOARGS,
      "cfitsio_has_bzip2_support\n\nReturn True if cfitsio has support for "
@@ -5516,8 +5511,7 @@ static PyMethodDef fitstype_methods[] = {
      "floats, which is INFINITY and/or np.inf"},
     {"parse_card", (PyCFunction)PyFITS_parse_card, METH_VARARGS,
      "parse_card\n\nparse the card to get the key name, value (as a "
-     "string), "
-     "data type and comment."},
+     "string), data type and comment."},
     {"get_keytype", (PyCFunction)PyFITS_get_keytype, METH_VARARGS,
      "get_keytype\n\nparse the card to get the key type."},
     {"get_key_meta", (PyCFunction)PyFITS_get_key_meta, METH_VARARGS,
