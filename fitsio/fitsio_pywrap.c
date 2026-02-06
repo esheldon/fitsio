@@ -5433,7 +5433,7 @@ init_fitsio_wrap(void)
 
 #if PY_MAJOR_VERSION >= 3
 #ifdef Py_GIL_DISABLED
-   if (fits_is_reentrant() != 0) {
+    if (fits_is_reentrant() != 0) {
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
     }
 #endif
