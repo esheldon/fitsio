@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-22.04]
+        os: [macos-latest, ubuntu-latest]
         pyver: ["3.9", "3.14"]
     runs-on: ${{ matrix.os }}
 
