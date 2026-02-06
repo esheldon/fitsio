@@ -15,7 +15,7 @@ Changes
     - Marked some tests as slow to speed up testing. Pass `--slow` to
       pytest to run them.
     - Added python 3.14 to the CI config.
-    - Added testing against free threaded builds of python.
+    - Added support and testing against free threaded builds of python.
 
 Bug Fixes
 
