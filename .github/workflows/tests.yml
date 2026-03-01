@@ -99,7 +99,7 @@ jobs:
       - name: install bzip2 and curl on linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install libbz2-dev curl libcurl4-openssl-dev
+          sudo apt-get install libbz2-dev curl libcurl-dev
 
       - name: test install sdist .gz with no unit tests
         run: |
