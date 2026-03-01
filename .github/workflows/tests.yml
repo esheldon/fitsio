@@ -51,12 +51,12 @@ jobs:
           remove_haskell: true
           rm_cmd: "rmz"
 
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: mamba-org/setup-micromamba@7f29b8b80078b1b601dfa018b0f7425c587c63bb  #v2.0.7
+      - uses: mamba-org/setup-micromamba@add3a49764cedee8ee24e82dfde87f5bc2914462  #v2.0.7
         with:
           environment-name: fitsio-dev
           environment-file: environment.yml
@@ -99,7 +99,8 @@ jobs:
       - name: install bzip2 and curl on linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install libbz2-dev curl libcurl4-openssl-dev
+          sudo apt-get update
+          sudo apt-get install libbz2-dev curl  libcurl4-openssl-dev
 
       - name: test install sdist .gz with no unit tests
         run: |
