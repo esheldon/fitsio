@@ -51,7 +51,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a  # v3.4.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:
           CIBW_BUILD: "*manylinux*"
           CIBW_ARCHS: auto64
@@ -96,7 +96,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a  # v3.4.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:
           CIBW_BUILD: "*musllinux*"
           CIBW_ARCHS: auto64
@@ -142,7 +142,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a  # v3.4.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: auto64
@@ -180,7 +180,7 @@ jobs:
           python-version: '${{ env.PYVER }}'
 
       - name: build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a  # v3.4.0
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:
           CIBW_BUILD: "*macosx*"
           CIBW_ARCHS: arm64
@@ -254,7 +254,7 @@ jobs:
           ls -l dist
 
       - name: publish to pypi
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         with:
           verbose: true
