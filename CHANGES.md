@@ -3,7 +3,7 @@ version 1.4.0 (unreleased)
 
 Changes
 
-    - Updated bundled cfitsio to version 4.6.4
+    - Updated bundled cfitsio to version 4.6.4.
 
 version 1.3.1
 -------------
