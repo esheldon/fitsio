@@ -79,7 +79,7 @@ def _print_msg(text):
 
 
 class build_ext_subclass(build_ext):
-    cfitsio_version = '4.6.3'
+    cfitsio_version = '4.6.4'
     cfitsio_dir = 'cfitsio-%s' % cfitsio_version
 
     def finalize_options(self):

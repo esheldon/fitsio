@@ -1,5 +1,5 @@
---- a/cfitsio-4.6.3/Makefile.am
-+++ b/cfitsio-4.6.3/Makefile.am
+--- a/cfitsio-4.6.4/Makefile.am
++++ b/cfitsio-4.6.4/Makefile.am
 @@ -82,7 +82,10 @@ libcfitsio_la_SOURCES =	\
  	fits_hdecompress.c \
  	simplerng.c \

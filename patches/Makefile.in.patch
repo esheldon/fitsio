@@ -1,5 +1,5 @@
---- a/cfitsio-4.6.3/Makefile.in
-+++ b/cfitsio-4.6.3/Makefile.in
+--- a/cfitsio-4.6.4/Makefile.in
++++ b/cfitsio-4.6.4/Makefile.in
 @@ -166,8 +166,9 @@ am__libcfitsio_la_SOURCES_DIST = buffers.c cfileio.c checksum.c \
  	putcoluj.c putkey.c region.c scalnull.c swapproc.c wcssub.c \
  	wcsutil.c imcompress.c quantize.c ricecomp.c pliocomp.c \
