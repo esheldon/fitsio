@@ -20,7 +20,7 @@ autoreconf -i
 popd
 
 for fname in configure Makefile.in; do
-    diff -u ${cfitsio_dir}-build/${fname} ${cfitsio_dir}/${fname} > patches/${fname}.patch
+    diff -u ${cfitsio_dir}/${fname} ${cfitsio_dir}-build//${fname} > patches/${fname}.patch
 done
 
 rm -rf ${cfitsio_dir}
