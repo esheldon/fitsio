@@ -823,7 +823,7 @@ def test_image_compression_read_chunks():
             fits.write(
                 data,
                 compress='RICE_1',
-                tile_dims=(3, ),
+                tile_dims=(3,),
                 dither_seed=10,
                 qlevel=2,
             )
