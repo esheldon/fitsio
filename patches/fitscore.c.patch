@@ -1,0 +1,67 @@
+--- fitscore.c	2026-05-11 13:06:50.012650202 -0400
++++ fitscore.c	2026-05-11 13:06:33.489600809 -0400
+@@ -4648,8 +4648,10 @@
+ 
+         /* free the tile-compressed image cache, if it exists */
+         if ((fptr->Fptr)->tilerow) {
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           // ntilebins = 
++	       //    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           // Cache only a single tile
++           ntilebins = 1;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -4702,8 +4704,10 @@
+         /* free the tile-compressed image cache, if it exists */
+         if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           /* ntilebins =  */
++           /*      (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1; */
++           // Cache only a single tile
++           ntilebins = 1;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -4814,8 +4818,10 @@
+      /* free the tile-compressed image cache, if it exists */
+      if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           /* ntilebins =  */
++           /*     (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1; */
++           // Cache only a single tile
++           ntilebins = 1;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -5023,8 +5029,10 @@
+      /* free the tile-compressed image cache, if it exists */
+      if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           /* ntilebins =  */
++           /*     (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1; */
++           // Cache only a single tile
++           ntilebins = 1;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -6713,8 +6721,10 @@
+           /* free the tile-compressed image cache, if it exists */
+           if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           /* ntilebins =  */
++           /*     (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1; */
++           // Cache only a single tile
++           ntilebins = 1;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
