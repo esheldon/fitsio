@@ -257,6 +257,8 @@ class build_ext_subclass(build_ext):
         patches = glob.glob('%s/*.patch' % self.cfitsio_patch_dir)
         for patch in patches:
             fname = os.path.basename(patch.replace('.patch', ''))
+            if fname == 'imcompress-cache.c':
+                fname = 'imcompress.c'
             try:
                 subprocess.check_call(
                     [

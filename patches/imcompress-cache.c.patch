@@ -1,0 +1,32 @@
+--- imcompress.c	2025-09-22 11:49:36.000000000 -0400
++++ imcompress.c	2026-05-08 14:51:48.824886391 -0400
+@@ -1825,7 +1825,8 @@
+     if ((outfptr->Fptr)->tilerow) {  /* has the tile cache been allocated? */
+ 
+       /* calculate the column bin of the compressed tile */
+-      tilecol = (row - 1) % ((long)(((outfptr->Fptr)->znaxis[0] - 1) / ((outfptr->Fptr)->tilesize[0])) + 1);
++      // tilecol = (row - 1) % ((long)(((outfptr->Fptr)->znaxis[0] - 1) / ((outfptr->Fptr)->tilesize[0])) + 1);
++      tilecol = 0;
+       
+       if ((outfptr->Fptr)->tilerow[tilecol] == row) {
+         if (((outfptr->Fptr)->tiledata)[tilecol]) {
+@@ -5917,7 +5918,8 @@
+     if ((infptr->Fptr)->tilerow == 0)  {
+ 
+       /* calculate number of column bins of compressed tile */
+-      ntilebins =  (((infptr->Fptr)->znaxis[0] - 1) / ((infptr->Fptr)->tilesize[0])) + 1;
++      // ntilebins =  (((infptr->Fptr)->znaxis[0] - 1) / ((infptr->Fptr)->tilesize[0])) + 1;
++      ntilebins = 1;
+ 
+      if ((infptr->Fptr)->znaxis[0]   != (infptr->Fptr)->tilesize[0] ||
+         (infptr->Fptr)->tilesize[1] != 1 ) {   /* don't cache the tile if only single row of the image */
+@@ -5935,7 +5937,8 @@
+     /* check if this tile was cached; if so, just copy it out */
+     if ((infptr->Fptr)->tilerow)  {
+       /* calculate the column bin of the compressed tile */
+-      tilecol = (nrow - 1) % ((long)(((infptr->Fptr)->znaxis[0] - 1) / ((infptr->Fptr)->tilesize[0])) + 1);
++      // tilecol = (nrow - 1) % ((long)(((infptr->Fptr)->znaxis[0] - 1) / ((infptr->Fptr)->tilesize[0])) + 1);
++      tilecol = 0;
+ 
+       if (nrow == (infptr->Fptr)->tilerow[tilecol] && datatype == (infptr->Fptr)->tiletype[tilecol] ) {
+ 
