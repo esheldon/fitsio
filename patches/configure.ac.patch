@@ -1,5 +1,5 @@
---- cfitsio-4.2.0/configure.ac	2022-10-31 14:40:23.000000000 -0400
-+++ cfitsio-4.2.0/configure.ac	2023-07-14 11:45:00.797390794 -0400
+--- cfitsio-4.6.4/configure.ac	2022-10-31 14:40:23.000000000 -0400
++++ cfitsio-4.6.4/configure.ac	2023-07-14 11:45:00.797390794 -0400
 @@ -170,11 +170,16 @@ AC_ARG_WITH(
    [AS_HELP_STRING([--with-bzip2[[=PATH]]],[Enable bzip2 support. Optional path to the location of include/bzlib.h and lib/libbz2])],
    [ if test "x$withval" != "xno"; then

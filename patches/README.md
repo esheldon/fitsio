@@ -4,7 +4,7 @@ This directory contains patches for the cfitsio build. These patches
 are applied before the library is compiled during the python package
 build step.
 
-The patches were generated with the script `build_cfitsio_patches.py` by
+The original patches were generated with the script `build_cfitsio_patches.py` by
 Matthew Becker in December of 2018.
 
 ## Adding New Patches
@@ -24,3 +24,9 @@ To add new patches, you need to
     file that is being patched.
 
 5. Commit the patch file in the patches directory with the name `<filename>.patch`.
+
+## Updating the Autotools Patches
+
+The script `rebuild_autotools_patches.sh` can be used to automatically update the
+autotools patches for `configure` and `Makefile.in`. You need `autoconf`, `automake`,
+and `libtool` installed to run this script.
