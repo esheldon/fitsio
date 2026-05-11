@@ -4,6 +4,9 @@ version 1.4.0 (unreleased)
 Changes
 
     - Updated bundled cfitsio to version 4.6.4.
+    - Limit to cacheing most recent compressed tile read.  The old
+      behavior would grow the cache to the size of the entire compressed
+      data.  This version gets most of the speed benefits.
 
 version 1.3.1
 -------------
