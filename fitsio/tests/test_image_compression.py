@@ -813,6 +813,34 @@ def test_image_compression_nulls_patches_with_subnormal(
             )
 
 
+def test_image_compression_read_chunks():
+    data = np.arange(127, dtype='i4')
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fpth = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(
+                data,
+                compress='RICE_1',
+                tile_dims=(3, ),
+                dither_seed=10,
+                qlevel=2,
+            )
+
+            chunksize = 2
+            nchunks = data.size // chunksize
+            if data.size % chunksize != 0:
+                nchunks += 1
+
+            for ichunk in range(nchunks):
+                start = ichunk * chunksize
+                end = (ichunk + 1) * chunksize
+
+                read_data = fits[1][start:end]
+                assert np.all(read_data == data[start:end])
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
