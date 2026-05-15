@@ -1,0 +1,11 @@
+--- fitsio.h	2026-05-14 13:14:24.306881941 -0400
++++ fitsio.h	2026-05-14 13:14:17.472862873 -0400
+@@ -339,6 +339,8 @@
+ #define OPT_CMT_MBR      1
+ #define OPT_CMT_MBR_DEL 11
+ 
++#define NTILEBINS 3  /* number of cached compressed tiles */
++
+ typedef struct        /* structure used to store table column information */
+ {
+     char ttype[70];   /* column name = FITS TTYPEn keyword; */
