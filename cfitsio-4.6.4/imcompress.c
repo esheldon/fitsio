@@ -1774,14 +1774,14 @@ int imcomp_compress_tile (fitsfile *outfptr,
   FITS image in some cases.
 */
 {
-    int *idata;		/* quantized integer data */
+    int *idata = 0;		/* quantized integer data */
     int cn_zblank, zbitpix, nullval;
     int flag = 1;  /* true by default; only = 0 if float data couldn't be quantized */
     int intlength;      /* size of integers to be compressed */
     double scale, zero, actual_bzero;
     long ii;
     size_t clen;		/* size of cbuf */
-    short *cbuf;	/* compressed data */
+    short *cbuf = 0;	/* compressed data */
     int  nelem = 0;		/* number of bytes */
     int tilecol;
     size_t gzip_nelem = 0;
@@ -1791,7 +1791,7 @@ int imcomp_compress_tile (fitsfile *outfptr,
     double noise2, noise3, noise5;
     double bscale[1] = {1.}, bzero[1] = {0.};	/* scaling parameters */
     long  hcomp_len;
-    LONGLONG *lldata;
+    LONGLONG *lldata = 0;
 
     if (*status > 0)
         return(*status);
@@ -2137,6 +2137,7 @@ int imcomp_compress_tile (fitsfile *outfptr,
         }
 
         free(cbuf);  /* finished with this buffer */
+        cbuf = 0;
 
     /* =========================================================================== */
     } else {    /* if flag == 0., floating point data couldn't be quantized */
@@ -2222,6 +2223,7 @@ int imcomp_compress_tile (fitsfile *outfptr,
         }
 
         free(cbuf);  /* finished with this buffer */
+        cbuf = 0;
     }
 
     return(*status);
@@ -5927,7 +5929,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
     int tiledatatype, pixlen = 0;          /* uncompressed integer data */
     size_t idatalen, tilebytesize;
     int ii, tnull;        /* value in the data which represents nulls */
-    unsigned char *cbuf; /* compressed data */
+    unsigned char *cbuf = 0; /* compressed data */
     unsigned char charnull = 0;
     short snull = 0;
     int blocksize, ntilebins, tilecol = 0;
@@ -5965,6 +5967,9 @@ int imcomp_decompress_tile (fitsfile *infptr,
       }
     }
 
+    printf("made mem cache\n");
+    fflush(stdout);
+
     /* **************************************************************** */
     /* check if this tile was cached; if so, just copy it out */
     if ((infptr->Fptr)->tilerow)  {
@@ -5983,6 +5988,9 @@ int imcomp_decompress_tile (fitsfile *infptr,
          return(*status);
        }
     }
+
+    printf("past mem cpy\n");
+    fflush(stdout);
 
     /* **************************************************************** */
     /* get length of the compressed byte stream */
@@ -6114,6 +6122,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
             }
 
             free(cbuf);
+            cbuf = 0;
 
             /* do byte swapping and null value substitution for the tile of pixels */
             if (tilebytesize == 4 * tilelen) {  /* float pixels */
@@ -6471,6 +6480,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
     }
 
     free(cbuf);
+    cbuf = 0;
     if (*status)  {  /* error uncompressing the tile */
             free(idata);
             return (*status);
@@ -6840,6 +6850,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
          *status = BAD_DATATYPE;
 
     free(idata);  /* don't need the uncompressed tile any more */
+    idata = 0;
 
     /* **************************************************************** */
     /* cache the tile, in case the application wants it again  */
