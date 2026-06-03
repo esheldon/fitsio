@@ -1522,6 +1522,10 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             npy_int64 *tptr = NULL, tmp = 0;
             ndims = PyArray_SIZE(dims_array);
             dims = calloc(ndims, sizeof(long));
+            if (dims == NULL) {
+                py_status = 1;
+                goto create_image_hdu_cleanup;
+            }
             for (i = 0; i < ndims; i++) {
                 tptr = (npy_int64 *)PyArray_GETPTR1(dims_array, i);
                 tmp = *tptr;
@@ -1533,6 +1537,10 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             // to write it as well
             ndims = pyarray_get_ndim(array);
             dims = calloc(ndims, sizeof(long));
+            if (dims == NULL) {
+                py_status = 1;
+                goto create_image_hdu_cleanup;
+            }
             for (i = 0; i < ndims; i++) {
                 dims[ndims - i - 1] = PyArray_DIM(array, i);
             }
