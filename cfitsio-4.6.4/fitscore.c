@@ -4651,6 +4651,9 @@ int ffpinit(fitsfile *fptr,      /* I - FITS file pointer */
         if ((fptr->Fptr)->tilerow) {
            ntilebins =
 	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
+            printf("ntilebins: %d\n", ntilebins);
+            fflush(stdout);
+
 
            for (ii = 0; ii < ntilebins; ii++) {
              if ((fptr->Fptr)->tiledata[ii]) {
@@ -4705,6 +4708,8 @@ int ffpinit(fitsfile *fptr,      /* I - FITS file pointer */
 
            ntilebins =
 	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
+            printf("ntilebins: %d\n", ntilebins);
+            fflush(stdout);
 
            for (ii = 0; ii < ntilebins; ii++) {
              if ((fptr->Fptr)->tiledata[ii]) {
@@ -4817,6 +4822,8 @@ int ffainit(fitsfile *fptr,      /* I - FITS file pointer */
 
            ntilebins =
 	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
+            printf("ntilebins: %d\n", ntilebins);
+            fflush(stdout);
 
            for (ii = 0; ii < ntilebins; ii++) {
              if ((fptr->Fptr)->tiledata[ii]) {
@@ -5023,14 +5030,11 @@ int ffbinit(fitsfile *fptr,     /* I - FITS file pointer */
 
      /* free the tile-compressed image cache, if it exists */
      if ((fptr->Fptr)->tilerow) {
-        printf("dealing with tilerow frees\n");
-        fflush(stdout);
 
            ntilebins =
 	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
-
-        printf("ntilebins: %d\n", ntilebins);
-        fflush(stdout);
+            printf("ntilebins: %d\n", ntilebins);
+            fflush(stdout);
 
            for (ii = 0; ii < ntilebins; ii++) {
              if ((fptr->Fptr)->tiledata[ii]) {
@@ -5041,8 +5045,6 @@ int ffbinit(fitsfile *fptr,     /* I - FITS file pointer */
 	       free((fptr->Fptr)->tilenullarray[ii]);
              }
             }
-        printf("did tiledata and tilenullarray frees\n");
-        fflush(stdout);
 
 	    free((fptr->Fptr)->tileanynull);
 	    free((fptr->Fptr)->tiletype);
@@ -5050,9 +5052,6 @@ int ffbinit(fitsfile *fptr,     /* I - FITS file pointer */
 	    free((fptr->Fptr)->tilenullarray);
 	    free((fptr->Fptr)->tiledata);
 	    free((fptr->Fptr)->tilerow);
-
-        printf("did rest of tilerow frees\n");
-        fflush(stdout);
 
 	    (fptr->Fptr)->tileanynull = 0;
 	    (fptr->Fptr)->tiletype = 0;
@@ -5064,9 +5063,6 @@ int ffbinit(fitsfile *fptr,     /* I - FITS file pointer */
 
     if ((fptr->Fptr)->tableptr)
        free((fptr->Fptr)->tableptr); /* free memory for the old CHDU */
-
-    printf("did tableptr free\n");
-    fflush(stdout);
 
     /* mem for column structures ; space is initialized = 0  */
     if (tfield > 0)
@@ -5200,9 +5196,6 @@ int ffbinit(fitsfile *fptr,     /* I - FITS file pointer */
 
     if ( (fptr->Fptr)->compressimg == 1) /*  Is this a compressed image */
         imcomp_get_compressed_image_par(fptr, status);
-
-    printf("did get compressed image par\n");
-    fflush(stdout);
 
     return(*status);
 }
@@ -6732,6 +6725,8 @@ int ffchdu(fitsfile *fptr,      /* I - FITS file pointer */
 
            ntilebins =
 	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
+            printf("ntilebins: %d\n", ntilebins);
+            fflush(stdout);
 
            for (ii = 0; ii < ntilebins; ii++) {
              if ((fptr->Fptr)->tiledata[ii]) {
