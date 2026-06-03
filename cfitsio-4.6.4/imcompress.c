@@ -2541,7 +2541,7 @@ int imcomp_convert_tile_tuint(
 
     int *idata = 0;
     unsigned int *uintbuff = 0;
-    unsigned int *uintflagval = 0;
+    unsigned int uintflagval;
     long ii;
 
        /* datatype of input array is unsigned int.  We only support writing this datatype
