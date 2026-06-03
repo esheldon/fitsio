@@ -2291,8 +2291,8 @@ int imcomp_convert_tile_tshort(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    short *sbuff;
-    int flagval, *idata;
+    short *sbuff = 0;
+    int flagval, *idata = 0;
     long ii;
 
        /* We only support writing this integer*2 tile data to a FITS image with
@@ -2404,9 +2404,9 @@ int imcomp_convert_tile_tushort(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    unsigned short *usbuff;
-    short *sbuff;
-    int flagval, *idata;
+    unsigned short *usbuff = 0;
+    short *sbuff = 0;
+    int flagval, *idata = 0;
     long ii;
 
        /* datatype of input array is unsigned short.  We only support writing this datatype
@@ -2491,7 +2491,7 @@ int imcomp_convert_tile_tint(
     /*  Convert input integer tile array in place to 4 or 8-byte ints for compression, */
     /*  If needed, do null value substitution. */
 
-    int flagval, *idata;
+    int flagval, *idata = 0;
     long ii;
 
 
@@ -2598,9 +2598,9 @@ int imcomp_convert_tile_tbyte(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    int flagval, *idata;
+    int flagval, *idata = 0;
     long ii;
-    unsigned char *usbbuff;
+    unsigned char *usbbuff = 0;
 
        /* datatype of input array is unsigned byte.  We only support writing this datatype
           to a FITS image with BITPIX = 8 and with BZERO = 0 and BSCALE = 1.  */
@@ -2671,9 +2671,9 @@ int imcomp_convert_tile_tsbyte(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    int flagval, *idata;
+    int flagval, *idata = 0;
     long ii;
-    signed char *sbbuff;
+    signed char *sbbuff = 0;
 
        /* datatype of input array is signed byte.  We only support writing this datatype
           to a FITS image with BITPIX = 8 and with BZERO = 0 and BSCALE = -128.  */
