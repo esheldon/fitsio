@@ -1492,7 +1492,7 @@ int imcomp_compress_image (fitsfile *infptr, fitsfile *outfptr, int *status)
 	- writes the compressed byte stream to the output FITS file
 */
 {
-    double *tiledata;
+    double *tiledata = 0;
     int anynul, gotnulls = 0, datatype;
     long ii, row;
     int naxis;
@@ -1730,6 +1730,7 @@ int imcomp_compress_image (fitsfile *infptr, fitsfile *outfptr, int *status)
     }
 
     free (tiledata);  /* finished with this buffer */
+    tiledata = 0;
 
     /* insert ZBLANK keyword if necessary; only for TFLOAT or TDOUBLE images */
     if (gotnulls)
@@ -8059,7 +8060,7 @@ int fits_compress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 {
     long maxchunksize = 10000000; /* default value for the size of each chunk of the table */
 
-    char *cm_buffer;  /* memory buffer for the transposed, Column-Major, chunk of the table */
+    char *cm_buffer = 0;  /* memory buffer for the transposed, Column-Major, chunk of the table */
     LONGLONG cm_colstart[1000];  /* starting offset of each column in the cm_buffer */
     LONGLONG rm_repeat[1000];    /* repeat count of each column in the input row-major table */
     LONGLONG rm_colwidth[999];   /* width in bytes of each column in the input row-major table */
@@ -8075,11 +8076,11 @@ int fits_compress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
     LONGLONG vlalen, vlamemlen, vlastart, bytepos;
     long repeat, width, nchunks, rowspertile, lastrows;
     int ii, ll, ncols, hdutype, ltrue = 1, print_report = 0, tstatus;
-    char *cptr, keyname[9], tform[40], *cdescript;
-    char comm[FLEN_COMMENT], keyvalue[FLEN_VALUE], *cvlamem, tempstring[FLEN_VALUE], card[FLEN_CARD];
+    char *cptr = 0, keyname[9], tform[40], *cdescript = 0;
+    char comm[FLEN_COMMENT], keyvalue[FLEN_VALUE], *cvlamem = 0, tempstring[FLEN_VALUE], card[FLEN_CARD];
 
-    LONGLONG *descriptors, *outdescript, *vlamem;
-    int *pdescriptors;
+    LONGLONG *descriptors = 0, *outdescript = 0, *vlamem = 0;
+    int *pdescriptors = 0;
     size_t dlen, datasize, compmemlen;
 
     /* ================================================================================== */
@@ -8541,6 +8542,8 @@ int fits_compress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 		    /* read back the descriptor and save it in the array of descriptors */
 		    fits_read_descriptll(outfptr, ii + 1, ll + 1, outdescript+(jj*2), outdescript+(jj*2)+1, status);
 		    free(cvlamem);  free(vlamem);
+            cvlamem = 0;
+            vlamem = 0;
 
 		  } /* end of vlalen > 0 */
 		}  /* end of loop over rows */
@@ -8577,12 +8580,14 @@ int fits_compress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 	    		&cvlamem,  &datasize, realloc, &dlen, status);
 
 		free(cdescript);
+        cdescript = 0;
 
 		/* write the compressed descriptors to the output column */
 		fits_set_tscale(outfptr, ii + 1, 1.0, 0.0, status);  /* turn off any data scaling, first */
 		fits_write_descript(outfptr, ii+1, ll+1, 0, 0, status); /* First, reset the descriptor */
 		fits_write_col(outfptr, TBYTE, ii + 1, ll+1, 1, dlen, cvlamem, status);
 		free(cvlamem);
+        cvlamem = 0;
 
 		if (ll == 0) {  /* only write the ZCTYPn keyword once, while processing the first column */
 			fits_make_keyn("ZCTYP", ii+1, keyname, status);
@@ -8670,6 +8675,7 @@ int fits_compress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 	    tot_compressed_size += dlen;
 
 	    free(cvlamem);   /* don't need the compressed data any more */
+        cvlamem = 0;
 
             /* create diagnostic messages */
 	    if (dlen != 0)
@@ -8717,17 +8723,17 @@ int fits_uncompress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 {
     char colcode[999];  /* column data type code character */
     int coltype[999];  /* column data type numeric code value */
-    char *cm_buffer;   /* memory buffer for the transposed, Column-Major, chunk of the table */
-    char *rm_buffer;   /* memory buffer for the original, Row-Major, chunk of the table */
+    char *cm_buffer = 0;   /* memory buffer for the transposed, Column-Major, chunk of the table */
+    char *rm_buffer = 0;   /* memory buffer for the original, Row-Major, chunk of the table */
     LONGLONG nrows, rmajor_colwidth[999], rmajor_colstart[1000], cmajor_colstart[1000];
     LONGLONG cmajor_repeat[999], rmajor_repeat[999], cmajor_bytespan[999], kk;
     LONGLONG headstart, datastart = 0, dataend, rowsremain, *descript, *qdescript = 0;
     LONGLONG rowstart, cvlalen, cvlastart, vlalen, vlastart;
     long repeat, width, vla_repeat, vla_address, rowspertile, ntile;
     int  ncols, hdutype, inttype, anynull, tstatus, zctype[999], addspace = 0, *pdescript = 0;
-    char *cptr, keyname[9], tform[40];
+    char *cptr = 0, keyname[9] = {0}, tform[40] = {0};
     long  pcount, zheapptr, naxis1, naxis2, ii, jj;
-    char *ptr, comm[FLEN_COMMENT], zvalue[FLEN_VALUE], *uncompressed_vla = 0, *compressed_vla;
+    char *ptr = 0, comm[FLEN_COMMENT] = {0}, zvalue[FLEN_VALUE] = {0}, *uncompressed_vla = 0, *compressed_vla = 0;
     char card[FLEN_CARD];
     size_t dlen, fullsize, cm_size, bytepos, vlamemlen;
 
@@ -9029,6 +9035,7 @@ int fits_uncompress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 	        } /* end of switch block */
 
 	        free(ptr);
+            ptr = 0;
 	  }  /* end of rmajor_repeat > 0 */
       }  /* end of loop over columns */
 
@@ -9333,9 +9340,11 @@ int fits_uncompress_table(fitsfile *infptr, fitsfile *outfptr, int *status)
 			    ffpbyt(outfptr, vlamemlen, uncompressed_vla, status);  /* write the bytes */
 
 			     free(uncompressed_vla);
+                 uncompressed_vla = 0;
 			}  /* end of uncompress VLA */
 
 		        free(compressed_vla);
+                compressed_vla = 0;
 
 		  } /* end of vlalen > 0 */
 		} /* end of loop over rowspertile */
