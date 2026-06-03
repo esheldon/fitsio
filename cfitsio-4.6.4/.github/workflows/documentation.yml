@@ -1,0 +1,116 @@
+name: Build Documentation
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+          - 'docs/**'
+    pull_request:
+        branches: [main, develop]
+        paths:
+          - 'docs/**'
+    release:
+        types: [published]
+    workflow_dispatch:
+
+
+jobs:
+
+    # Using the default ubuntu runner
+    Build-Documentation-Runner:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write     # Needed for release uploads
+
+        steps:
+                
+        - name: Set up Git repository
+          uses: actions/checkout@v4
+
+        # We need texlive and latex2html for the tex files
+        # pandoc for the markdown files
+        # gh CLI is needed to upload to a release. it's pre-installed on ubuntu-latest runners
+        - name: Install dependencies
+          run: |
+            sudo apt-get update -y
+            sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-fonts-recommended latex2html pandoc
+
+        # our latex files have \usepackage{html} because we create webpages on our systems
+        - name: Find and link html.sty for Ubuntu TeXLive
+          run: |
+            # Find where Ubuntu's TeXLive expects files
+            TEXMF_DIR=$(kpsewhich -var-value TEXMFLOCAL)
+            echo "TEXMF local directory: $TEXMF_DIR"
+            
+            # Create directory and link files
+            sudo mkdir -p "$TEXMF_DIR/tex/latex/html/"
+            sudo ln -sf /usr/share/texmf/tex/latex/html/html.sty "$TEXMF_DIR/tex/latex/html/html.sty"
+            sudo ln -sf /usr/share/texmf/tex/latex/html/hthtml.sty "$TEXMF_DIR/tex/latex/html/hthtml.sty"
+            
+            # Refresh TeX database
+            sudo mktexlsr
+            
+            # Verify it worked
+            kpsewhich html.sty || echo "html.sty still not found"
+
+        - name: Extract versions from TeX files
+          id: get_versions
+          run: |
+            CFITSIO_VERSION=$(grep -oP '{\\Large Version \K[^\\\\}]*' docs/cfitsio.tex | sed -e 's/[ \t]*//g')
+            echo "Found cfitsio version: $CFITSIO_VERSION"
+            echo "cfitsio_version=$CFITSIO_VERSION" >> $GITHUB_OUTPUT
+            
+            FITSIO_VERSION=$(grep -oP '{\\Large Version \K[^\\\\}]*' docs/fitsio.tex | sed -e 's/[ \t]*//g')
+            echo "Found fitsio version: $FITSIO_VERSION"
+            echo "fitsio_version=$FITSIO_VERSION" >> $GITHUB_OUTPUT
+
+        - name: Build all PDFs
+          run: |
+            cd docs
+            echo "Building cfitsio.tex..."
+            pdflatex cfitsio.tex
+            pdflatex cfitsio.tex    # Run twice for references
+            
+            echo "Building fitsio.tex..."
+            pdflatex fitsio.tex
+            pdflatex fitsio.tex    # Run twice for references
+            
+            echo "Building quick.tex..."
+            pdflatex quick.tex
+            pdflatex quick.tex    # Run twice for references
+            
+            echo "Building fpackguide.md..."
+            pandoc fpackguide.md -V linkcolor=blue -o fpackguide.pdf
+
+
+        # Rename with version numbers
+        - name: Rename PDFs with versions
+          run: |
+            cd docs
+            mv cfitsio.pdf cfitsio-v${{ steps.get_versions.outputs.cfitsio_version }}.pdf
+            mv fitsio.pdf fitsio-v${{ steps.get_versions.outputs.fitsio_version }}.pdf
+            echo "Created PDFs:"
+            ls -la *.pdf
+        
+        # save the artifacts to the Workflow output
+        - name: Upload Artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: documentation-output
+            path: |
+                docs/*.pdf
+
+        # add to any Release created
+        - name: Upload PDF to release
+          if: github.event_name == 'release'
+          run: |
+            gh release upload ${{ github.ref_name }} \
+              docs/cfitsio-v${{ steps.get_versions.outputs.cfitsio_version }}.pdf \
+              docs/fitsio-v${{ steps.get_versions.outputs.fitsio_version }}.pdf \
+              docs/quick.pdf \
+              docs/fpackguide.pdf
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+

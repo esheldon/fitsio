@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Test runner for cfitsio
+# Supports out-of-tree builds via srcdir environment variable
+
+srcdir=${srcdir:-.}
+
+# testprog expects testprog.tpt in the current directory
+test -f testprog.tpt || ln -s "$srcdir"/testprog.tpt . || exit
+
+./testprog > testprog.lis || exit
+diff testprog.lis "$srcdir"/testprog.out || exit
+cmp testprog.fit "$srcdir"/testprog.std

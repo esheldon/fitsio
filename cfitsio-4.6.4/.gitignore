@@ -1,0 +1,93 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Misc
+*~
+*.cache
+*.log
+*.pc
+*.status
+*.xcodeproj/project.xcworkspace
+*.xcodeproj/xcuserdata
+.deps/
+.libs/
+libtool
+utilities/.deps/
+utilities/.dirstamp
+.vscode/
+build/
+include/
+*.lis
+
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# CFITSIO misc
+Makefile
+config.log
+config.status
+cfitsio.pc
+cookbook
+fitscopy
+fitsverify
+fpack
+funpack
+imcopy
+smem
+speed
+testprog
+iter_a
+iter_b
+iter_c
+iter_image
+iter_var
+testf77
+testprog.fit
