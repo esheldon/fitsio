@@ -2539,8 +2539,9 @@ int imcomp_convert_tile_tuint(
     /*  If needed, do null value substitution. */
 
 
-    int *idata;
-    unsigned int *uintbuff, uintflagval;
+    int *idata = 0;
+    unsigned int *uintbuff = 0;
+    unsigned int *uintflagval = 0;
     long ii;
 
        /* datatype of input array is unsigned int.  We only support writing this datatype
@@ -2753,10 +2754,10 @@ int imcomp_convert_tile_tfloat(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    int *idata;
+    int *idata = 0;
     long irow, ii;
     float floatnull;
-    unsigned char *usbbuff;
+    unsigned char *usbbuff = 0;
     unsigned long dithersum;
     int iminval = 0, imaxval = 0;  /* min and max quantized integers */
 
@@ -2893,10 +2894,10 @@ int imcomp_convert_tile_tdouble(
     /*  Note that the calling routine must have allocated the input array big enough */
     /* to be able to do this.  */
 
-    int *idata;
+    int *idata = 0;
     long irow, ii;
     double doublenull;
-    unsigned char *usbbuff;
+    unsigned char *usbbuff = 0;
     unsigned long dithersum;
     int iminval = 0, imaxval = 0;  /* min and max quantized integers */
 
@@ -3532,8 +3533,8 @@ int fits_write_compressed_img(fitsfile *fptr,   /* I - FITS file pointer     */
     long i5, i4, i3, i2, i1, i0, irow, trowsize, ntrows;
     int ii, ndim, pixlen, tilenul;
     int  tstatus, buffpixsiz;
-    void *buffer;
-    char *bnullarray = 0, card[FLEN_CARD];
+    void *buffer = 0;
+    char *bnullarray = 0, card[FLEN_CARD] = { 0 };
 
     if (*status > 0)
         return(*status);
@@ -3751,6 +3752,7 @@ int fits_write_compressed_img(fitsfile *fptr,   /* I - FITS file pointer     */
      }
     }
     free(buffer);
+    buffer = 0;
 
 
     if ((fptr->Fptr)->zbitpix < 0 && nullcheck != 0) {
@@ -4439,7 +4441,7 @@ int fits_read_compressed_img(fitsfile *fptr,   /* I - FITS file pointer      */
     long inc[MAX_COMPRESS_DIM];
     long i5, i4, i3, i2, i1, i0, irow;
     int ii, ndim, pixlen, tilenul=0;
-    void *buffer;
+    void *buffer = 0;
     char *bnullarray = 0;
     double testnullval = 0.;
 
@@ -4716,8 +4718,8 @@ int fits_read_write_compressed_img(fitsfile *fptr,   /* I - FITS file pointer   
     long inc[MAX_COMPRESS_DIM];
     long i5, i4, i3, i2, i1, i0, irow;
     int ii, ndim, tilenul;
-    void *buffer;
-    char *bnullarray = 0, *cnull;
+    void *buffer = 0;
+    char *bnullarray = 0, *cnull = 0;
     LONGLONG firstelem;
 
     if (*status > 0)
@@ -6151,6 +6153,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
                    dnulval, bnullarray, anynul,
                     (double *) buffer, status);
                   free(tempfloat);
+                  tempfloat = 0;
 
                 } else {
                   ffpmsg("implicit data type conversion is not supported for gzipped image tiles");
@@ -6878,6 +6881,7 @@ int imcomp_decompress_tile (fitsfile *infptr,
             free(((infptr->Fptr)->tilenullarray)[tilecol]);
         }
 
+        ((infptr->Fptr)->tiledata)[tilecol] = 0;
         ((infptr->Fptr)->tilenullarray)[tilecol] = 0;
         ((infptr->Fptr)->tilerow)[tilecol] = 0;
         ((infptr->Fptr)->tiledatasize)[tilecol] = 0;
