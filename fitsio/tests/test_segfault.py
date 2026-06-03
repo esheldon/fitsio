@@ -69,6 +69,6 @@ def run_mixed(n):
 
 def test_segfault_osx():
     env_banner()
-    n = 10
+    n = 50
     run_mixed(n)
     # run_alone(n)
