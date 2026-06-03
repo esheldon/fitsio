@@ -20,6 +20,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <stdio.h>
 #include "fitsio.h"
 #include "fitsio2.h"
 #include <Python.h>
@@ -1676,6 +1677,8 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     }
 
     // this flushes all buffers
+    printf("about to flush file in Python C code\n");
+    fflush(stdout);
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
         goto create_image_hdu_cleanup;
