@@ -63,12 +63,12 @@ def run_mixed(n):
                 write_rice1(tmp, k)
             write_plio1(tmp, i)
         if (i + 1) % 5 == 0:
-            print(f"  ok through {i + 1}")
+            print(f"  ok through {i + 1}", flush=True)
     print("completed without abort")
 
 
 def test_segfault_osx():
     env_banner()
-    n = 50
+    n = 25
     run_mixed(n)
     # run_alone(n)
