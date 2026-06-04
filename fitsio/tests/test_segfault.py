@@ -53,7 +53,10 @@ def _run_mixed(n):
 
 @pytest.mark.skipif(
     not fitsio.util.cfitsio_is_bundled(),
-    reason="small images cause a memory corruption w/ PLIO compression",
+    reason=(
+        "small images cause a memory corruption w/ PLIO "
+        "compression (see https://github.com/heasarc/cfitsio/issues/136)"
+    ),
 )
 def test_segfault_osx():
     n = 50
