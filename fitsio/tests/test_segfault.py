@@ -5,6 +5,8 @@ import numpy as np
 
 import fitsio
 
+import pytest
+
 
 def _write_plio1(tmpdir, i):
     """The crashing call, isolated."""
@@ -49,6 +51,10 @@ def _run_mixed(n):
     print("completed without abort")
 
 
+@pytest.mark.skipif(
+    not fitsio.util.cfitsio_is_bundled(),
+    reason="small images cause a memory corruption w/ PLIO compression",
+)
 def test_segfault_osx():
     n = 50
     _run_mixed(n)
