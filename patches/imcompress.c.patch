@@ -1,5 +1,20 @@
 --- a/imcompress.c	2026-05-11 13:06:45.276636041 -0400
 +++ b/imcompress.c	2026-05-15 09:43:40.348543325 -0400
+@@ -1475,6 +1475,14 @@
+             return( (int) (nx * 2.2 + 26));   /* will be compressing 16-bit int array */
+         else
+             return( (int) (nx * 4.4 + 26));   /* will be compressing 32-bit int array */
++    }
++    else if (comptype == PLIO_1)
++    {
++        if (nx * sizeof(int) < 32) {
++            return 32;
++        } else {
++            return(nx * sizeof(int));
++        }
+     }
+     else
+         return(nx * sizeof(int));
 @@ -1818,7 +1818,8 @@
      if ((outfptr->Fptr)->tilerow) {  /* has the tile cache been allocated? */
  
@@ -29,19 +44,3 @@
 +      tilecol = (nrow - 1) % NTILEBINS;
  
        if (nrow == (infptr->Fptr)->tilerow[tilecol] && datatype == (infptr->Fptr)->tiletype[tilecol] ) {
- 
-@@ -1475,6 +1475,14 @@
-             return( (int) (nx * 2.2 + 26));   /* will be compressing 16-bit int array */
-         else
-             return( (int) (nx * 4.4 + 26));   /* will be compressing 32-bit int array */
-+    }
-+    else if (comptype == PLIO_1)
-+    {
-+        if (nx * sizeof(int) < 32) {
-+            return 32;
-+        } else {
-+            return(nx * sizeof(int));
-+        }
-     }
-     else
-         return(nx * sizeof(int));
