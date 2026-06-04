@@ -30,3 +30,20 @@
  
        if (nrow == (infptr->Fptr)->tilerow[tilecol] && datatype == (infptr->Fptr)->tiletype[tilecol] ) {
  
+--- a/imcompress.c	2026-06-04 03:57:51
++++ b/imcompress.c	2026-06-04 03:58:30
+@@ -1475,6 +1475,14 @@
+             return( (int) (nx * 2.2 + 26));   /* will be compressing 16-bit int array */
+         else
+             return( (int) (nx * 4.4 + 26));   /* will be compressing 32-bit int array */
++    }
++    else if (comptype == PLIO_1)
++    {
++        if (nx * sizeof(int) < 32) {
++            return 32;
++        } else {
++            return(nx * sizeof(int));
++        }
+     }
+     else
+         return(nx * sizeof(int));

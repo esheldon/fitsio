@@ -1381,7 +1381,6 @@ static int set_compression(struct PyFITSObject *self, fitsfile *fits,
     if (fits_set_compression_type(fits, comptype, status)) {
         set_ioerr_string_from_status(*status, self);
         goto _set_compression_bail;
-        return 1;
     }
 
     if (tile_dims_obj != Py_None) {
@@ -1393,6 +1392,7 @@ static int set_compression(struct PyFITSObject *self, fitsfile *fits,
         } else {
             tile_dims_fits = calloc(ndims, sizeof(long));
             if (!tile_dims_fits) {
+                *status = 1;
                 PyErr_Format(PyExc_MemoryError, "failed to allocate %ld longs",
                              ndims);
                 goto _set_compression_bail;
@@ -1521,6 +1521,10 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             npy_int64 *tptr = NULL, tmp = 0;
             ndims = PyArray_SIZE(dims_array);
             dims = calloc(ndims, sizeof(long));
+            if (dims == NULL) {
+                py_status = 1;
+                goto create_image_hdu_cleanup;
+            }
             for (i = 0; i < ndims; i++) {
                 tptr = (npy_int64 *)PyArray_GETPTR1(dims_array, i);
                 tmp = *tptr;
@@ -1532,6 +1536,10 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             // to write it as well
             ndims = pyarray_get_ndim(array);
             dims = calloc(ndims, sizeof(long));
+            if (dims == NULL) {
+                py_status = 1;
+                goto create_image_hdu_cleanup;
+            }
             for (i = 0; i < ndims; i++) {
                 dims[ndims - i - 1] = PyArray_DIM(array, i);
             }
@@ -2323,6 +2331,7 @@ NULL;
 static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
                                             PyObject *args, PyObject *kwds) {
     int status = 0;
+    int py_status = 0;
     int hdunum = 0;
     int hdutype = 0;
     int write_bitcols = 0;
@@ -2393,6 +2402,14 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
     array_ptrs = calloc(ncols, sizeof(void *));
     nperrow = calloc(ncols, sizeof(LONGLONG));
     fits_dtypes = calloc(ncols, sizeof(int));
+    if ((is_string == NULL) || (colnums == NULL) || (array_ptrs == NULL) ||
+        (nperrow == NULL) || (fits_dtypes == NULL)) {
+        py_status = 1;
+        PyErr_SetString(
+            PyExc_MemoryError,
+            "Could not allocate metadata arrays for writing columns!");
+        goto _fitsio_pywrap_write_columns_bail;
+    }
 
     for (icol = 0; icol < ncols; icol++) {
 
@@ -2517,7 +2534,7 @@ _fitsio_pywrap_write_columns_bail:
     nperrow = NULL;
     free(fits_dtypes);
     fits_dtypes = NULL;
-    if (status != 0) {
+    if ((status != 0) || (py_status != 0)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -4549,6 +4566,11 @@ static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,
     *fpix = calloc(fsize, sizeof(long));
     *lpix = calloc(fsize, sizeof(long));
     *step = calloc(fsize, sizeof(long));
+    if (((*fpix) == NULL) || ((*lpix) == NULL) || ((*step) == NULL)) {
+        PyErr_SetString(PyExc_MemoryError,
+                        "could not allocate memory for long slices!");
+        return 1;
+    }
 
     for (i = 0; i < fsize; i++) {
         ptr = PyArray_GETPTR1(fpix_arr, i);
