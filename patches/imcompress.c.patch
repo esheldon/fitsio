@@ -1,5 +1,5 @@
---- imcompress.c	2026-05-11 13:06:45.276636041 -0400
-+++ imcompress.c	2026-05-15 09:43:40.348543325 -0400
+--- a/imcompress.c	2026-05-11 13:06:45.276636041 -0400
++++ b/imcompress.c	2026-05-15 09:43:40.348543325 -0400
 @@ -1818,7 +1818,8 @@
      if ((outfptr->Fptr)->tilerow) {  /* has the tile cache been allocated? */
  
@@ -30,8 +30,6 @@
  
        if (nrow == (infptr->Fptr)->tilerow[tilecol] && datatype == (infptr->Fptr)->tiletype[tilecol] ) {
  
---- a/imcompress.c	2026-06-04 03:57:51
-+++ b/imcompress.c	2026-06-04 03:58:30
 @@ -1475,6 +1475,14 @@
              return( (int) (nx * 2.2 + 26));   /* will be compressing 16-bit int array */
          else
