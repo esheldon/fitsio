@@ -2407,7 +2407,7 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
         py_status = 1;
         PyErr_SetString(
             PyExc_MemoryError,
-            "Could not allocate metdata arrays for writing columns!");
+            "Could not allocate metadata arrays for writing columns!");
         goto _fitsio_pywrap_write_columns_bail;
     }
 
