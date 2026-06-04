@@ -91,7 +91,7 @@ jobs:
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vvsx ${PRP_FLAGS} fitsio -k test_segfault_osx
+            pytest -vv ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
