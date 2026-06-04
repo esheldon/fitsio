@@ -814,6 +814,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             names = stringlist_new();
             tforms = stringlist_new();
             if ((names == NULL) || (tforms == NULL)) {
+                names = stringlist_delete(names);
+                tforms = stringlist_delete(tforms);
                 Py_XDECREF(dict);
                 Py_XDECREF(colinfo);
                 PyErr_SetString(PyExc_MemoryError,
@@ -823,6 +825,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 
             for (i = 0; i < ncols; i++) {
                 if (stringlist_push_size(names, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
                     Py_XDECREF(dict);
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
@@ -830,6 +834,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     return NULL;
                 }
                 if (stringlist_push_size(tforms, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
                     Py_XDECREF(dict);
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
@@ -911,6 +917,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             names = stringlist_new();
             tforms = stringlist_new();
             if ((names == NULL) || (tforms == NULL)) {
+                names = stringlist_delete(names);
+                tforms = stringlist_delete(tforms);
                 Py_XDECREF(dict);
                 Py_XDECREF(colinfo);
                 PyErr_SetString(PyExc_MemoryError,
@@ -920,6 +928,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 
             for (i = 0; i < ncols; i++) {
                 if (stringlist_push_size(names, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
                     Py_XDECREF(dict);
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
@@ -927,6 +937,8 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     return NULL;
                 }
                 if (stringlist_push_size(tforms, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
                     Py_XDECREF(dict);
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
