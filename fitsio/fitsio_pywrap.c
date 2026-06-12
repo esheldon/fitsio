@@ -300,37 +300,52 @@ static struct stringlist *stringlist_new(void) {
     struct stringlist *slist = NULL;
 
     slist = malloc(sizeof(struct stringlist));
+    if (slist == NULL) {
+        return slist;
+    }
     slist->size = 0;
     slist->data = NULL;
     return slist;
 }
 // push a copy of the string onto the string list
-static void stringlist_push(struct stringlist *slist, const char *str) {
+static int stringlist_push(struct stringlist *slist, const char *str) {
     size_t newsize = 0;
     size_t i = 0;
+    char **realloc_data;
 
     newsize = slist->size + 1;
-    slist->data = realloc(slist->data, sizeof(char *) * newsize);
-    slist->size += 1;
-
-    i = slist->size - 1;
-
-    slist->data[i] = strdup(str);
+    realloc_data = realloc(slist->data, sizeof(char *) * newsize);
+    if (realloc_data == NULL) {
+        return 1;
+    } else {
+        slist->data = realloc_data;
+        slist->size += 1;
+        i = slist->size - 1;
+        slist->data[i] = strdup(str);
+        return 0;
+    }
 }
 
-static void stringlist_push_size(struct stringlist *slist, size_t slen) {
+static int stringlist_push_size(struct stringlist *slist, size_t slen) {
     size_t newsize = 0;
     size_t i = 0;
+    char **realloc_data;
 
     newsize = slist->size + 1;
-    slist->data = realloc(slist->data, sizeof(char *) * newsize);
-    slist->size += 1;
-
-    i = slist->size - 1;
-
-    slist->data[i] = calloc(slen + 1, sizeof(char));
-    // slist->data[i] = malloc(sizeof(char)*(slen+1));
-    // memset(slist->data[i], 0, slen+1);
+    realloc_data = realloc(slist->data, sizeof(char *) * newsize);
+    if (realloc_data == NULL) {
+        return 1;
+    } else {
+        slist->data = realloc_data;
+        slist->size += 1;
+        i = slist->size - 1;
+        slist->data[i] = calloc(slen + 1, sizeof(char));
+        if (slist->data[i] == NULL) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
 }
 static struct stringlist *stringlist_delete(struct stringlist *slist) {
     if (slist != NULL) {
@@ -362,6 +377,7 @@ static int stringlist_addfrom_listobj(struct stringlist *slist,
                                       PyObject *listObj, const char *listname) {
     size_t size = 0, i = 0;
     char *tmpstr = NULL;
+    int status;
 
     if (!PyList_Check(listObj)) {
         PyErr_Format(PyExc_ValueError, "Expected a list for %s.", listname);
@@ -377,8 +393,18 @@ static int stringlist_addfrom_listobj(struct stringlist *slist,
             return 1;
         }
         tmpstr = get_object_as_string(tmp);
-        stringlist_push(slist, tmpstr);
+        if (tmpstr == NULL) {
+            PyErr_SetString(PyExc_MemoryError,
+                            "Could not get string from Python list!");
+            return 1;
+        }
+        status = stringlist_push(slist, tmpstr);
         free(tmpstr);
+        if (status != 0) {
+            PyErr_SetString(PyExc_MemoryError,
+                            "Could not append string to string list!");
+            return 1;
+        }
     }
     return 0;
 }
@@ -841,10 +867,35 @@ get_hdu_info_cleanup:
             struct stringlist *tforms = NULL;
             names = stringlist_new();
             tforms = stringlist_new();
+            if ((names == NULL) || (tforms == NULL)) {
+                names = stringlist_delete(names);
+                tforms = stringlist_delete(tforms);
+                Py_XDECREF(dict);
+                Py_XDECREF(colinfo);
+                PyErr_SetString(PyExc_MemoryError,
+                                "Could not allocate memory for HDU info!");
+                return NULL;
+            }
 
             for (i = 0; i < ncols; i++) {
-                stringlist_push_size(names, 70);
-                stringlist_push_size(tforms, 70);
+                if (stringlist_push_size(names, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    PyErr_SetString(PyExc_MemoryError,
+                                    "Could not allocate memory for HDU info!");
+                    return NULL;
+                }
+                if (stringlist_push_size(tforms, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    PyErr_SetString(PyExc_MemoryError,
+                                    "Could not allocate memory for HDU info!");
+                    return NULL;
+                }
             }
             // just get the names: no other way to do it!
             tstatus = 0;
@@ -914,10 +965,35 @@ get_hdu_info_cleanup:
             struct stringlist *tforms = NULL;
             names = stringlist_new();
             tforms = stringlist_new();
+            if ((names == NULL) || (tforms == NULL)) {
+                names = stringlist_delete(names);
+                tforms = stringlist_delete(tforms);
+                Py_XDECREF(dict);
+                Py_XDECREF(colinfo);
+                PyErr_SetString(PyExc_MemoryError,
+                                "Could not allocate memory for HDU info!");
+                return NULL;
+            }
 
             for (i = 0; i < ncols; i++) {
-                stringlist_push_size(names, 70);
-                stringlist_push_size(tforms, 70);
+                if (stringlist_push_size(names, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    PyErr_SetString(PyExc_MemoryError,
+                                    "Could not allocate memory for HDU info!");
+                    return NULL;
+                }
+                if (stringlist_push_size(tforms, 70) != 0) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    PyErr_SetString(PyExc_MemoryError,
+                                    "Could not allocate memory for HDU info!");
+                    return NULL;
+                }
             }
             // just get the names: no other way to do it!
 
@@ -2094,6 +2170,11 @@ static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
     ttyp = stringlist_new();
     tform = stringlist_new();
     tunit = stringlist_new();
+    if ((ttyp == NULL) || (tform == NULL) || (tunit == NULL)) {
+        status = 99;
+        goto create_table_cleanup;
+    }
+
     if (stringlist_addfrom_listobj(ttyp, ttypObj, "names")) {
         status = 99;
         goto create_table_cleanup;
@@ -2386,6 +2467,7 @@ self); return NULL;
 static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
                                             PyObject *args, PyObject *kwds) {
     int status = 0;
+    int py_status = 0;
     int hdunum = 0;
     int hdutype = 0;
     int write_bitcols = 0;
@@ -2456,6 +2538,14 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
     array_ptrs = calloc(ncols, sizeof(void *));
     nperrow = calloc(ncols, sizeof(LONGLONG));
     fits_dtypes = calloc(ncols, sizeof(int));
+    if ((is_string == NULL) || (colnums == NULL) || (array_ptrs == NULL) ||
+        (nperrow == NULL) || (fits_dtypes == NULL)) {
+        py_status = 1;
+        PyErr_SetString(
+            PyExc_MemoryError,
+            "Could not allocate metadata arrays for writing columns!");
+        goto _fitsio_pywrap_write_columns_bail;
+    }
 
     for (icol = 0; icol < ncols; icol++) {
 
@@ -2580,7 +2670,7 @@ _fitsio_pywrap_write_columns_bail:
     nperrow = NULL;
     free(fits_dtypes);
     fits_dtypes = NULL;
-    if (status != 0) {
+    if ((status != 0) || (py_status != 0)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -4651,6 +4741,11 @@ static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,
     *fpix = calloc(fsize, sizeof(long));
     *lpix = calloc(fsize, sizeof(long));
     *step = calloc(fsize, sizeof(long));
+    if (((*fpix) == NULL) || ((*lpix) == NULL) || ((*step) == NULL)) {
+        PyErr_SetString(PyExc_MemoryError,
+                        "could not allocate memory for long slices!");
+        return 1;
+    }
 
     for (i = 0; i < fsize; i++) {
         ptr = PyArray_GETPTR1(fpix_arr, i);

@@ -37,9 +37,10 @@ def test_compression_diskfile_kwargs():
             ('ZTILE2', 10),
             ('ZQUANTIZ', 'SUBTRACTIVE_DITHER_2'),
             ('ZDITHER0', 42),
-            ('ZCMPTYPE', 'RICE_ONE'),
         ]:
             assert hdr[key] == val
+        # Starting with cfitsio 4.6.4, RICE_1 is returned instead of RICE_ONE
+        assert hdr['ZCMPTYPE'] in ('RICE_ONE', 'RICE_1')
 
 
 def test_compression_efns():
