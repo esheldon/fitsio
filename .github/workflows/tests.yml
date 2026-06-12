@@ -28,14 +28,14 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest]
         config:
-          - { pyver: "3.9", npver: "1", ft: ""}
-          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
-          - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
-          - { pyver: "3.11", npver: "2", ft: "python-gil"}
-          - { pyver: "3.12", npver: "2", ft: "python-gil"}
-          - { pyver: "3.13", npver: "2", ft: "python-gil"}
-          - { pyver: "3.14", npver: "2", ft: "python-gil"}
-          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
+          - { pyver: "3.10", npver: "1", ft: "", doslow: "--slow"}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil", doslow: ""}
+          - { pyver: "3.12", npver: "1.26", ft: "python-gil", doslow: ""}
+          - { pyver: "3.11", npver: "2", ft: "python-gil", doslow: ""}
+          - { pyver: "3.12", npver: "2", ft: "python-gil", doslow: ""}
+          - { pyver: "3.13", npver: "2", ft: "python-gil", doslow: ""}
+          - { pyver: "3.14", npver: "2", ft: "python-gil", doslow: "--slow"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading", doslow: "--slow"}
 
     runs-on: ${{ matrix.os }}
     env:
@@ -87,11 +87,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv ${PRP_FLAGS} fitsio
+            pytest -vv ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv ${PRP_FLAGS} fitsio
+            pytest -vv ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -139,7 +139,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv ${PRP_FLAGS} fitsio
+          pytest -vv ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 
