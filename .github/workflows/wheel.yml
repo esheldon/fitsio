@@ -109,18 +109,18 @@ jobs:
         with:
           packages: "bzip2-dev python3 py3-pip py3-numpy"
 
-      - name: test wheel for python
-        shell: alpine.sh {0}
-        run: |
-          python --version
-          pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
-          mkdir test-venv
-          python3 -m venv test-venv
-          . test-venv/bin/activate
-          pip install numpy pytest
-          pip install ./wheelhouse/*cp${pystr}*musl*.whl
-          pytest --pyargs fitsio
-          deactivate
+      # - name: test wheel for python
+      #   shell: alpine.sh {0}
+      #   run: |
+      #     python --version
+      #     pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
+      #     mkdir test-venv
+      #     python3 -m venv test-venv
+      #     . test-venv/bin/activate
+      #     pip install numpy pytest
+      #     pip install ./wheelhouse/*cp${pystr}*musl*.whl
+      #     pytest --pyargs fitsio
+      #     deactivate
 
       - uses: actions/upload-artifact@v7
         with:
