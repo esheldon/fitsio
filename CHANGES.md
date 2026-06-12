@@ -3,13 +3,6 @@ version 1.4.0 (unreleased)
 
 Changes
 
-    - Updated bundled cfitsio to version 4.6.4.
-
-version 1.3.1
--------------
-
-Changes
-
     - Removed patches that truncate subnormal floats (underflows)
       to zero when reading images with nulls. These patches were
       rejected by the upstream maintainers. The net effect of
@@ -23,12 +16,19 @@ Changes
       pytest to run them.
     - Added python 3.14 to the CI config.
     - Added support and testing against free threaded builds of python.
+    - Added support for releasing the GIL in the C wrapper when
+      opening FITS files, closing FITS files, moving HDUs, and
+      checksum operations.
+    - Updated bundled cfitsio to version 4.6.4.
 
 Bug Fixes
 
     - Added patch to skip building the cfitsio test programs.
       These are not used by fitsio, but they fail to build on
       some machines and cause installation failures.
+    - Added patch to fix memory buffer overrun in PLIO compression
+      of small images.
+    - Fixed untested memory allocation in the C wrapper.
 
 version 1.3.0
 -------------
