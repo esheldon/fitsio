@@ -111,7 +111,7 @@ jobs:
           rm -rf *
 
           cfitsio_name=cfitsio${CFITSIO_VER}
-          
+
           set +e
           worked="false"
           for itr in {1..5}; do
