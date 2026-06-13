@@ -4504,6 +4504,7 @@ static int fits_is_lossy_compressed_with_nulls(fitsfile *fits) {
 // Note numpy allows a maximum of 32 dimensions
 static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
                                          PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
@@ -4535,12 +4536,18 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
         return NULL;
     }
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        return NULL;
-    }
 
-    if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes,
-                             &status)) {
+    RELEASE_GIL;
+    if (status == 0) {
+        fits_movabs_hdu(self->fits, hdunum, &hdutype, &status);
+    }
+    if (status == 0) {
+        fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes,
+                             &status);
+    }
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4568,6 +4575,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     double dnullval = NAN;
     void *nullval_ptr = NULL;
 
+    RELEASE_GIL;
     // we only set null checking for compressed images of
     // floating point data
     // nans works fine for non-compressed images and we do
@@ -4583,8 +4591,11 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     for (i = 0; i < naxis; i++) {
         firstpixels[i] = 1;
     }
-    if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
-                        nullval_ptr, data, &anynul, &status)) {
+    fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size, nullval_ptr,
+                    data, &anynul, &status);
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         return NULL;
     }
@@ -4721,6 +4732,7 @@ static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,
 // of the input array is done.
 static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
                                                PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0;
     int hdutype = 0;
     int status = 0;
@@ -4743,12 +4755,17 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        return NULL;
+    RELEASE_GIL;
+    if (status == 0) {
+        fits_movabs_hdu(self->fits, hdunum, &hdutype, &status);
     }
+    if (ignore_scaling == TRUE && status == 0) {
+        fits_set_bscale(self->fits, 1.0, 0.0, &status);
+    }
+    CAPTURE_GIL;
 
-    if (ignore_scaling == TRUE &&
-        fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+    if (status != 0) {
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
@@ -4765,6 +4782,7 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
     double dnullval = NAN;
     void *nullval_ptr = NULL;
 
+    RELEASE_GIL;
     // we only set null checking for compressed images of
     // floating point data
     // nans works fine for non-compressed images and we do
@@ -4776,19 +4794,16 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
             nullval_ptr = (void *)(&dnullval);
         }
     }
+    fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step, nullval_ptr,
+                     data, &anynul, &status);
+    CAPTURE_GIL;
 
-    if (fits_read_subset(self->fits, fits_read_dtype, fpix, lpix, step,
-                         nullval_ptr, data, &anynul, &status)) {
-        set_ioerr_string_from_status(status, self);
-        goto read_image_slice_cleanup;
-    }
-
-read_image_slice_cleanup:
     free(fpix);
     free(lpix);
     free(step);
 
     if (status != 0) {
+        set_ioerr_string_from_status(status, self);
         return NULL;
     }
 
