@@ -53,9 +53,13 @@ def test_threading_works():
                 assert (fits[0].read() == i).all()
 
         with ThreadPoolExecutor(max_workers=nt) as pool:
-            for _ in pool.map(_create_file, range(nt)):
+            for _ in pool.map(_create_file, range(nt // 2)):
                 pass
-            for _ in pool.map(_read_file, range(nt)):
+            for _ in pool.map(_read_file, range(nt // 2)):
+                pass
+            for _ in pool.map(_create_file, range(nt // 2, nt)):
+                pass
+            for _ in pool.map(_read_file, range(nt // 2, nt)):
                 pass
 
 

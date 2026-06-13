@@ -4609,6 +4609,7 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
         return NULL;
     }
+    ALLOW_NOGIL;
     // fitsfile* fits = self->fits;
     FITSfile *FITS = self->fits->Fptr;
     int status = 0;
@@ -4616,9 +4617,10 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
     LONGLONG sz;
     LONGLONG io_pos;
     PyObject *stringobj;
+    int ioerr = 0;
 
     // Flush (close & reopen HDU) to make everything consistent
-    ffflus(self->fits, &status);
+    NOGIL(ffflus(self->fits, &status));
     if (status) {
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to flush FITS file data to disk; CFITSIO code %i",
@@ -4645,29 +4647,48 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
     }
     // Remember old file position
     io_pos = FITS->io_pos;
+
+    RELEASE_GIL;
+
     // Seek to beginning of file
     if (ffseek(FITS, 0)) {
-        Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to seek to beginning of FITS file");
-        return NULL;
+        ioerr = 1;
+        goto read_raw_cleanup;
     }
+
     // Read into filedata
     if (ffread(FITS, sz, filedata, &status)) {
-        Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to read file data into memory: CFITSIO code %i",
-                     status);
-        return NULL;
+        ioerr = 2;
+        goto read_raw_cleanup;
     }
+
     // Seek back to where we were
     if (ffseek(FITS, io_pos)) {
-        Py_DECREF(stringobj);
-        PyErr_Format(PyExc_RuntimeError,
-                     "Failed to seek back to original FITS file position");
-        return NULL;
+        ioerr = 3;
+        goto read_raw_cleanup;
     }
-    return stringobj;
+
+read_raw_cleanup:
+    CAPTURE_GIL;
+
+    if (ioerr != 0) {
+        Py_DECREF(stringobj);
+        if (ioerr == 1) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed to seek to beginning of FITS file");
+        } else if (ioerr == 2) {
+            PyErr_Format(
+                PyExc_RuntimeError,
+                "Failed to read file data into memory: CFITSIO code %i",
+                status);
+        } else if (ioerr == 3) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed to seek back to original FITS file position");
+        }
+        return NULL;
+    } else {
+        return stringobj;
+    }
 }
 
 static int get_long_slices(PyArrayObject *fpix_arr, PyArrayObject *lpix_arr,

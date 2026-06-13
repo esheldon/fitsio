@@ -111,7 +111,22 @@ jobs:
           rm -rf *
 
           cfitsio_name=cfitsio${CFITSIO_VER}
-          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz
+          
+          set +e
+          worked="false"
+          for itr in {1..5}; do
+            wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/${cfitsio_name}.tar.gz || false
+            if [[ "$?" == "0" ]]; then
+              worked="true"
+              break
+            fi
+          done
+          set -e
+
+          if [[ "${worked}" != "true" ]]; then
+            exit 1
+          fi
+
           cfitsio_dir=`tar -tzf ${cfitsio_name}.tar.gz | sed -n "1,1p" | cut -f1 -d"/"`
           tar -xzvf ${cfitsio_name}.tar.gz
           cd ${cfitsio_dir}
