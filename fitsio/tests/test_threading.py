@@ -211,3 +211,53 @@ def test_threading_read_one_file():
             "Threading should be faster than serial! ( %f < %f)"
             % (t0_threads, t0_serial)
         )
+
+
+@pytest.mark.xfail(reason="Threading performance might be flaky!")
+def test_threading_read_raw():
+    nt = 4
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, "fname.fits")
+        with fitsio.FITS(fname, 'rw', clobber=True) as fits:
+            fits.write_image(np.concatenate([DATA] * 10))
+            fits[0].write_checksum()
+
+        def _read_file(fname):
+            with fitsio.FITS(fname, 'r') as fits:
+                return fits.read_raw()
+            return True
+
+        t0 = time.time()
+        tval = _read_file(fname)
+        t0_one = time.time() - t0
+        print("\none file time:", t0_one, flush=True)
+
+        t0 = time.time()
+        with ThreadPoolExecutor(max_workers=nt) as pool:
+            futs = [pool.submit(_read_file, fname) for _ in range(nt)]
+
+            assert all([fut.result() == tval for fut in as_completed(futs)])
+        t0_threads = time.time() - t0
+        print(
+            "parallel time / one file time",
+            t0_threads / t0_one,
+            "(perfect is 1)",
+            flush=True,
+        )
+
+        t0 = time.time()
+        for _ in range(nt):
+            _read_file(fname)
+        t0_serial = time.time() - t0
+        print(
+            "serial time / one file time:",
+            t0_serial / t0_one,
+            f"(should be about {nt})",
+            flush=True,
+        )
+
+        assert t0_threads < t0_serial, (
+            "Threading should be faster than serial! ( %f < %f)"
+            % (t0_threads, t0_serial)
+        )
