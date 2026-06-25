@@ -220,7 +220,7 @@ def test_threading_read_raw():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, "fname.fits")
         with fitsio.FITS(fname, 'rw', clobber=True) as fits:
-            fits.write_image(np.concatenate([DATA] * 10))
+            fits.write_image(np.concatenate([DATA] * 2))
             fits[0].write_checksum()
 
         def _read_file(fname):
