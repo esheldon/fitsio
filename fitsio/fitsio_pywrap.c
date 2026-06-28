@@ -39,9 +39,11 @@
 
 // locking primitives for free-threading and/or NOGIL
 #if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
+#define PYFITS_HAS_LOCK
 #define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
 #define UNLOCK_FITS(x) PyMutex_Unlock(&(x->fits_lock))
 #else
+#undef PYFITS_HAS_LOCK
 #define LOCK_FITS(x)
 #define UNLOCK_FITS(x)
 #endif
@@ -52,7 +54,7 @@ struct PyFITSObject {
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
-#if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
+#ifdef PYFITS_HAS_LOCK
     // lock for cfitsio FITS data when free-threading
     PyMutex fits_lock;
 #endif
@@ -488,7 +490,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
 
-#if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
+#ifdef PYFITS_HAS_LOCK
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
@@ -496,30 +498,34 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
         return -1;
     }
 
+    LOCK_FITS(self);
     if (create) {
         // create and open
         if (fits_create_file(&self->fits, filename, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return -1;
         }
     } else {
         if (fits_open_file(&self->fits, filename, mode, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return -1;
         }
     }
 
+    UNLOCK_FITS(self);
     return 0;
 }
 
 static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
+    LOCK_FITS(self);
 
     if (self->fits != NULL) {
         int status = 0;
         char filename[FLEN_FILENAME];
         char repr[2056];
 
-        LOCK_FITS(self);
         if (fits_file_name(self->fits, filename, &status)) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
@@ -530,11 +536,13 @@ static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
         sprintf(repr, "fits file: %s", filename);
         return Py_BuildValue("s", repr);
     } else {
+        UNLOCK_FITS(self);
         return Py_BuildValue("s", "none");
     }
 }
 
 static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
+    LOCK_FITS(self);
 
     if (self->fits != NULL) {
         int status = 0;
@@ -542,12 +550,15 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
         PyObject *fnameObj = NULL;
         if (fits_file_name(self->fits, filename, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
+        UNLOCK_FITS(self);
 
         fnameObj = Py_BuildValue("s", filename);
         return fnameObj;
     } else {
+        UNLOCK_FITS(self);
         PyErr_SetString(PyExc_ValueError,
                         "file is not open, cannot determine name");
         return NULL;
@@ -556,6 +567,8 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     int status = 0;
+
+    LOCK_FITS(self);
     if (fits_close_file(self->fits, &status)) {
         self->fits = NULL;
         /*
@@ -564,12 +577,16 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
         */
     }
     self->fits = NULL;
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     int status = 0;
+    LOCK_FITS(self);
     fits_close_file(self->fits, &status);
+    UNLOCK_FITS(self);
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
@@ -634,21 +651,28 @@ static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
     int extver = 0; // zero means it is ignored
     int hdunum = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"isi", &hdutype, &extname, &extver)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movnam_hdu(self->fits, hdutype, extname, extver, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     fits_get_hdu_num(self->fits, &hdunum);
+    UNLOCK_FITS(self);
+
     return PyLong_FromLong((long)hdunum);
 }
 
@@ -658,19 +682,26 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
     int status = 0;
     PyObject *hdutypeObj = NULL;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+    UNLOCK_FITS(self);
+
     hdutypeObj = PyLong_FromLong((long)hdutype);
     return hdutypeObj;
 }
@@ -690,22 +721,28 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     long long data_start;
     long long data_end;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"ii", &hdunum, &ignore_scaling)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (ignore_scaling == TRUE &&
         fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -840,6 +877,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 Py_XDECREF(colinfo);
                 PyErr_SetString(PyExc_MemoryError,
                                 "Could not allocate memory for HDU info!");
+                UNLOCK_FITS(self);
                 return NULL;
             }
 
@@ -851,6 +889,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
                                     "Could not allocate memory for HDU info!");
+                    UNLOCK_FITS(self);
                     return NULL;
                 }
                 if (stringlist_push_size(tforms, 70) != 0) {
@@ -860,6 +899,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
                                     "Could not allocate memory for HDU info!");
+                    UNLOCK_FITS(self);
                     return NULL;
                 }
             }
@@ -943,6 +983,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 Py_XDECREF(colinfo);
                 PyErr_SetString(PyExc_MemoryError,
                                 "Could not allocate memory for HDU info!");
+                UNLOCK_FITS(self);
                 return NULL;
             }
 
@@ -954,6 +995,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
                                     "Could not allocate memory for HDU info!");
+                    UNLOCK_FITS(self);
                     return NULL;
                 }
                 if (stringlist_push_size(tforms, 70) != 0) {
@@ -963,6 +1005,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                     Py_XDECREF(colinfo);
                     PyErr_SetString(PyExc_MemoryError,
                                     "Could not allocate memory for HDU info!");
+                    UNLOCK_FITS(self);
                     return NULL;
                 }
             }
@@ -1027,6 +1070,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             Py_XDECREF(colinfo);
         }
     }
+    UNLOCK_FITS(self);
     return dict;
 }
 
@@ -1039,17 +1083,22 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
     char extname[FLEN_VALUE];
     int extver = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -1062,8 +1111,10 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
     status = 0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &status) ==
         0) {
+        UNLOCK_FITS(self);
         return Py_BuildValue("si", extname, extver);
     } else {
+        UNLOCK_FITS(self);
         return Py_BuildValue("si", "", extver);
     }
 }
@@ -1560,8 +1611,11 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     int got_dither_seed = 0;
     int any_nan = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -1592,7 +1646,7 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
     if (array_obj == Py_None) {
         if (create_empty_hdu(self)) {
             // error string is set in create_empty_hdu
-            return NULL;
+            goto create_image_hdu_cleanup;
         }
     } else {
         array = (PyArrayObject *)array_obj;
@@ -1803,12 +1857,16 @@ create_image_hdu_cleanup:
         }
     }
 
+    UNLOCK_FITS(self);
+
     if (status != 0 || py_status != 0) {
         return NULL;
     }
 
     Py_RETURN_NONE;
 }
+
+// FIXME - start HERE
 
 // reshape the image to specified dims
 // the input array must be of type int64
