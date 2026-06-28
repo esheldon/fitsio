@@ -37,10 +37,10 @@
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
 
-// locking primitives for free-threading
-#ifdef Py_GIL_DISABLED
-#define LOCK_FITS(x) PyMutex_Lock(&(x))
-#define UNLOCK_FITS(x) PyMutex_Unlock(&(x))
+// locking primitives for free-threading and/or NOGIL
+#if PY_VERSION_HEX >= 0x30d00b3
+#define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
+#define UNLOCK_FITS(x) PyMutex_Unlock(&(x->fits_lock))
 #else
 #define LOCK_FITS(x)
 #define UNLOCK_FITS(x)
@@ -52,7 +52,7 @@ struct PyFITSObject {
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
-#ifdef Py_GIL_DISABLED
+#if PY_VERSION_HEX >= 0x30d00b3
     // lock for cfitsio FITS data when free-threading
     PyMutex fits_lock;
 #endif
@@ -488,7 +488,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
 
-#ifdef Py_GIL_DISABLED
+#if PY_VERSION_HEX >= 0x30d00b3
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
@@ -519,10 +519,13 @@ static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
         char filename[FLEN_FILENAME];
         char repr[2056];
 
+        LOCK_FITS(self);
         if (fits_file_name(self->fits, filename, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
+        UNLOCK_FITS(self);
 
         sprintf(repr, "fits file: %s", filename);
         return Py_BuildValue("s", repr);
