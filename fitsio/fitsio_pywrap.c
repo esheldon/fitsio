@@ -37,12 +37,25 @@
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
 
+// locking primitives for free-threading
+#ifdef Py_GIL_DISABLED
+#define LOCK_FITS(x) PyMutex_Lock(&(x))
+#define UNLOCK_FITS(x) PyMutex_Unlock(&(x))
+#else
+#define LOCK_FITS(x)
+#define UNLOCK_FITS(x)
+#endif
+
 struct PyFITSObject {
     PyObject_HEAD fitsfile *fits;
     // we store the python error message here so that we record all error
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
+#ifdef Py_GIL_DISABLED
+    // lock for cfitsio FITS data when free-threading
+    PyMutex fits_lock;
+#endif
 };
 
 // check unicode for python3, string for python2
@@ -474,6 +487,10 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
 
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
+
+#ifdef Py_GIL_DISABLED
+    self->fits_lock = {0};
+#endif
 
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
         return -1;
