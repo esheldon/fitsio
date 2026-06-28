@@ -118,7 +118,7 @@ jobs:
           python3 -m venv test-venv
           . test-venv/bin/activate
           pip install numpy pytest
-          pip install ./wheelhouse/*cp${pystr}*musl*.whl
+          pip install ./wheelhouse/*cp${pystr}-musl*.whl
           pytest --pyargs fitsio
           deactivate
 
