@@ -1866,8 +1866,6 @@ create_image_hdu_cleanup:
     Py_RETURN_NONE;
 }
 
-// FIXME - start HERE
-
 // reshape the image to specified dims
 // the input array must be of type int64
 static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
@@ -1884,18 +1882,23 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
     npy_intp i = 0;
     int bitpix = 0, maxdim = CFITSIO_MAX_ARRAY_DIMS;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iO", &hdunum, &dims_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     dims_array = (PyArrayObject *)dims_obj;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -1903,6 +1906,7 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
     if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims_orig,
                              dims_orig, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -1914,8 +1918,11 @@ static PyObject *PyFITSObject_reshape_image(struct PyFITSObject *self,
 
     if (fits_resize_imgll(self->fits, bitpix, ndims, dims, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -1940,29 +1947,36 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     int npy_dtype = 0;
     int status = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iOLL", &hdunum, &array_obj,
                           &firstpixel_py, &any_nan_py)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     array = (PyArrayObject *)array_obj;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArray_Check(array)) {
         PyErr_SetString(PyExc_TypeError, "input must be an array.");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     npy_dtype = PyArray_TYPE(array);
     if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -1987,23 +2001,30 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
         if (fits_write_imgnull(self->fits, datatype, firstpixel, nelements,
                                data, nullval_ptr, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     } else {
         if (fits_write_img(self->fits, datatype, firstpixel, nelements, data,
                            &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     }
     // this is a full file close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
+
+// FIXME - start HERE
 
 // write a rectangular subset to the image in an existing HDU
 // created using create_image_hdu
