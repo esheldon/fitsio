@@ -2875,8 +2875,6 @@ static int write_var_num_column(
     return 0;
 }
 
-// FIXME - start here
-
 /*
  * write a variable length column, starting at firstrow.  On the python side,
  * the firstrow kwd should default to 1.  You can append rows using firstrow =
@@ -2902,25 +2900,31 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
 
     static char *kwlist[] = {"hdunum", "colnum", "array", "firstrow", NULL};
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOL", kwlist, &hdunum,
                                      &colnum, &array_obj, &firstrow_py)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     firstrow = (LONGLONG)firstrow_py;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArray_Check(array_obj)) {
         PyErr_SetString(PyExc_ValueError,
                         "only arrays can be written to columns");
+        UNLOCK_FITS(self);
         return NULL;
     }
     array = (PyArrayObject *)array_obj;
@@ -2930,6 +2934,7 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
         PyErr_SetString(
             PyExc_TypeError,
             "only object arrays can be written to variable length columns");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2938,6 +2943,7 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
     if (fits_get_eqcoltypell(self->fits, colnum, &fits_dtype, NULL, NULL,
                              &status) > 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2947,12 +2953,14 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
             if (status != 0) {
                 set_ioerr_string_from_status(status, self);
             }
+            UNLOCK_FITS(self);
             return NULL;
         }
     } else {
         if (write_var_num_column(self, self->fits, colnum, firstrow, fits_dtype,
                                  array, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     }
@@ -2960,8 +2968,11 @@ static PyObject *PyFITSObject_write_var_column(struct PyFITSObject *self,
     // this is a full file close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -2978,16 +2989,21 @@ static PyObject *PyFITSObject_write_record(struct PyFITSObject *self,
     char *cardin = NULL;
     char card[FLEN_CARD];
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &cardin)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
     // card not null terminated, so we copy everything.  GCC will
@@ -2996,14 +3012,18 @@ static PyObject *PyFITSObject_write_record(struct PyFITSObject *self,
 
     if (fits_write_record(self->fits, card, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3020,17 +3040,22 @@ static PyObject *PyFITSObject_write_string_key(struct PyFITSObject *self,
     char *comment = NULL;
     char *comment_in = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"isss", &hdunum, &keyname, &value,
                           &comment_in)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3040,14 +3065,18 @@ static PyObject *PyFITSObject_write_string_key(struct PyFITSObject *self,
 
     if (fits_update_key_longstr(self->fits, keyname, value, comment, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3065,17 +3094,22 @@ static PyObject *PyFITSObject_write_double_key(struct PyFITSObject *self,
     char *comment = NULL;
     char *comment_in = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"isds", &hdunum, &keyname, &value,
                           &comment_in)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3086,14 +3120,18 @@ static PyObject *PyFITSObject_write_double_key(struct PyFITSObject *self,
     if (fits_update_key_dbl(self->fits, keyname, value, decimals, comment,
                             &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3109,17 +3147,22 @@ static PyObject *PyFITSObject_write_long_long_key(struct PyFITSObject *self,
     char *comment = NULL;
     char *comment_in = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"isLs", &hdunum, &keyname, &value,
                           &comment_in)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3130,14 +3173,18 @@ static PyObject *PyFITSObject_write_long_long_key(struct PyFITSObject *self,
     if (fits_update_key_lng(self->fits, keyname, (LONGLONG)value, comment,
                             &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3153,17 +3200,22 @@ static PyObject *PyFITSObject_write_logical_key(struct PyFITSObject *self,
     char *comment = NULL;
     char *comment_in = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"isis", &hdunum, &keyname, &value,
                           &comment_in)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3173,14 +3225,18 @@ static PyObject *PyFITSObject_write_logical_key(struct PyFITSObject *self,
 
     if (fits_update_key_log(self->fits, keyname, value, comment, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3194,29 +3250,38 @@ static PyObject *PyFITSObject_write_comment(struct PyFITSObject *self,
 
     char *comment = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &comment)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_write_comment(self->fits, comment, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3230,29 +3295,38 @@ static PyObject *PyFITSObject_write_history(struct PyFITSObject *self,
 
     char *history = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &history)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_write_history(self->fits, history, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3295,29 +3369,38 @@ static PyObject *PyFITSObject_write_continue(struct PyFITSObject *self,
 
     char *value = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &value)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_write_continue(self->fits, value, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3332,17 +3415,22 @@ static PyObject *PyFITSObject_write_undefined_key(struct PyFITSObject *self,
     char *comment = NULL;
     char *comment_in = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iss", &hdunum, &keyname,
                           &comment_in)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3352,14 +3440,18 @@ static PyObject *PyFITSObject_write_undefined_key(struct PyFITSObject *self,
 
     if (fits_update_key_null(self->fits, keyname, comment, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3373,29 +3465,38 @@ static PyObject *PyFITSObject_delete_key(struct PyFITSObject *self,
 
     char *keyname = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"is", &hdunum, &keyname)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_delete_key(self->fits, keyname, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does not close and reopen
     if (fits_flush_buffer(self->fits, 0, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3413,13 +3514,17 @@ static PyObject *PyFITSObject_insert_rows(struct PyFITSObject *self,
     PY_LONG_LONG firstrow_py = 0, nrows_py = 0;
     LONGLONG firstrow = 0, nrows = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iLL", &hdunum, &firstrow_py,
                           &nrows_py)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3428,27 +3533,35 @@ static PyObject *PyFITSObject_insert_rows(struct PyFITSObject *self,
 
     if (nrows <= 0) {
         // nothing to do, just return
+        UNLOCK_FITS(self);
         Py_RETURN_NONE;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_insert_rows(self->fits, firstrow, nrows, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
+
+// FIXME - start here
 
 /*
 
