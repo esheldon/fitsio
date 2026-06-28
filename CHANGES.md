@@ -1,5 +1,5 @@
-version 1.4.0 (unreleased)
---------------------------
+version 1.4.0
+-------------
 
 Changes
 
@@ -7,12 +7,7 @@ Changes
     - Limit to compressed tile cacheing to the three most recently accessed tiles.
       The old behavior would grow the cache to the size of the entire
       compressed data.  This version gets most of the speed benefits.
-
-version 1.3.1
--------------
-
-Changes
-
+    - Added support for both `RICE_ONE` and `RICE_1` compression keywords.
     - Removed patches that truncate subnormal floats (underflows)
       to zero when reading images with nulls. These patches were
       rejected by the upstream maintainers. The net effect of
@@ -29,6 +24,10 @@ Changes
 
 Bug Fixes
 
+    - Fixed segfault with threads and NOGIL usage.
+    - Fixed segfault where too few elements were allocated for the PLIO
+      compression buffer.
+    - Fixed untested memory allocation in the C wrapper.
     - Added patch to skip building the cfitsio test programs.
       These are not used by fitsio, but they fail to build on
       some machines and cause installation failures.
