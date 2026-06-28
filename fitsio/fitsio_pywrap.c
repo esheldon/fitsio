@@ -489,7 +489,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     self->pyfits_errmsg[0] = '\0';
 
 #ifdef Py_GIL_DISABLED
-    self->fits_lock = {0};
+    memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
