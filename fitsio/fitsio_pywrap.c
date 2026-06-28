@@ -2024,8 +2024,6 @@ static PyObject *PyFITSObject_write_image(struct PyFITSObject *self,
     Py_RETURN_NONE;
 }
 
-// FIXME - start HERE
-
 // write a rectangular subset to the image in an existing HDU
 // created using create_image_hdu
 // dims are not checked
@@ -2051,40 +2049,49 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
     int npy_dtype = 0, ndims;
     int status = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iOOO", &hdunum, &array_obj,
                           &firstpixel_obj, &lastpixel_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     array = (PyArrayObject *)array_obj;
     if (!PyArray_Check(array)) {
         PyErr_SetString(PyExc_TypeError, "input data must be an array.");
+        UNLOCK_FITS(self);
         return NULL;
     }
     npy_dtype = PyArray_TYPE(array);
     if (npy_to_fits_image_types(npy_dtype, &image_datatype, &datatype)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     firstpixel = (PyArrayObject *)firstpixel_obj;
     if (!PyArray_Check(firstpixel)) {
         PyErr_SetString(PyExc_TypeError, "input firstpixel must be an array.");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     lastpixel = (PyArrayObject *)lastpixel_obj;
     if (!PyArray_Check(lastpixel)) {
         PyErr_SetString(PyExc_TypeError, "input lastpixel must be an array.");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2092,6 +2099,7 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
         PyErr_SetString(
             PyExc_TypeError,
             "input firstpixel and lastpixel must have the same size.");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2108,14 +2116,18 @@ static PyObject *PyFITSObject_write_subset(struct PyFITSObject *self,
     if (fits_write_subset(self->fits, datatype, fpixel, lpixel, data,
                           &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this is a full file close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -2166,6 +2178,11 @@ static int add_tdims_from_listobj(struct PyFITSObject *self, fitsfile *fits,
             sprintf(keyname, "TDIM%d", colnum);
 
             tdim = get_object_as_string(tmp);
+            if (tdim == NULL) {
+                PyErr_SetString(PyExc_MemoryError,
+                                "Could not get string from Python list!");
+                return 1;
+            }
             fits_write_key(fits, TSTRING, keyname, tdim, NULL, &status);
             free(tdim);
 
@@ -2205,9 +2222,12 @@ static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
     char *extname_use = NULL;
     int extver = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiOO|OOsi", kwlist,
                                      &table_type, &nkeys, &ttypObj, &tformObj,
                                      &tunitObj, &tdimObj, &extname, &extver)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2283,6 +2303,8 @@ create_table_cleanup:
     tunit = stringlist_delete(tunit);
     // tdim = stringlist_delete(tdim);
 
+    UNLOCK_FITS(self);
+
     if (status != 0) {
         return NULL;
     }
@@ -2304,18 +2326,23 @@ static PyObject *PyFITSObject_insert_col(struct PyFITSObject *self,
     char *tform = NULL;       // format
     PyObject *tdimObj = NULL; // optional, a list of len 1
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "iiss|O", kwlist, &hdunum,
                                      &colnum, &ttype, &tform, &tdimObj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_insert_col(self->fits, colnum, ttype, tform, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -2329,11 +2356,18 @@ static PyObject *PyFITSObject_insert_col(struct PyFITSObject *self,
         tmp = PyList_GetItem(tdimObj, 0);
 
         tdim = get_object_as_string(tmp);
+        if (tdim == NULL) {
+            PyErr_SetString(PyExc_MemoryError,
+                            "Could not get string from Python list!");
+            UNLOCK_FITS(self);
+            return NULL;
+        }
         fits_write_key(self->fits, TSTRING, keyname, tdim, NULL, &status);
         free(tdim);
 
         if (status) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     }
@@ -2341,8 +2375,11 @@ static PyObject *PyFITSObject_insert_col(struct PyFITSObject *self,
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -2536,34 +2573,40 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
 
     npy_intp ndim = 0, *dims = NULL;
     Py_ssize_t irow = 0, icol = 0, j = 0;
-    ;
 
     static char *kwlist[] = {"hdunum",   "colnums",       "arraylist",
                              "firstrow", "write_bitcols", NULL};
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "iOOLi", kwlist, &hdunum,
                                      &colnum_list, &array_list, &firstrow_py,
                                      &write_bitcols)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     firstrow = (LONGLONG)firstrow_py;
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyList_Check(colnum_list)) {
         PyErr_SetString(PyExc_ValueError, "colnums must be a list");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (!PyList_Check(array_list)) {
         PyErr_SetString(PyExc_ValueError, "colnums must be a list");
+        UNLOCK_FITS(self);
         return NULL;
     }
     ncols = PyList_Size(colnum_list);
@@ -2574,6 +2617,8 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
         PyErr_Format(PyExc_ValueError,
                      "colnum and array lists not same size: %ld/%ld", ncols,
                      PyList_Size(array_list));
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     // from here on we'll have some temporary arrays we have to free
@@ -2714,6 +2759,9 @@ _fitsio_pywrap_write_columns_bail:
     nperrow = NULL;
     free(fits_dtypes);
     fits_dtypes = NULL;
+
+    UNLOCK_FITS(self);
+
     if ((status != 0) || (py_status != 0)) {
         return NULL;
     }
@@ -2744,6 +2792,10 @@ static int write_var_string_column(
         el = PyArray_GETITEM(array, ptr);
 
         strdata = get_object_as_string(el);
+        if (strdata == NULL) {
+            *status = 99;
+            goto write_var_string_column_cleanup;
+        }
 
         // just a container
         strarr[0] = strdata;
@@ -2822,6 +2874,8 @@ static int write_var_num_column(
 
     return 0;
 }
+
+// FIXME - start here
 
 /*
  * write a variable length column, starting at firstrow.  On the python side,
