@@ -38,7 +38,7 @@
 #define PYFITS_ERRMSG_LEN 1024
 
 // locking primitives for free-threading and/or NOGIL
-#if PY_VERSION_HEX >= 0x30d00b3
+#if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
 #define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
 #define UNLOCK_FITS(x) PyMutex_Unlock(&(x->fits_lock))
 #else
@@ -52,7 +52,7 @@ struct PyFITSObject {
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
-#if PY_VERSION_HEX >= 0x30d00b3
+#if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
     // lock for cfitsio FITS data when free-threading
     PyMutex fits_lock;
 #endif
@@ -488,7 +488,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
 
-#if PY_VERSION_HEX >= 0x30d00b3
+#if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
