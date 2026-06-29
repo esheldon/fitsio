@@ -80,7 +80,7 @@ jobs:
 
       - name: set parallel testing flags
         run: |
-          if [[ "${{ matrix.config.ft }}" == "python-freethreading" ]]; then
+          if [[ "${{ matrix.config.pyver }}" == "3.14" ]]; then
             echo "PRP_FLAGS=--parallel-threads 4 --iterations 4 --ignore-gil-enabled" >> ${GITHUB_ENV}
           fi
 
