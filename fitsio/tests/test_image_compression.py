@@ -841,7 +841,7 @@ def test_image_compression_read_chunks():
                 assert np.all(read_data == data[start:end])
 
 
-def test_image_compression_read_from_osx_arm64():
+def test_image_compression_write_read_comp_to_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),
         "..",
@@ -850,7 +850,7 @@ def test_image_compression_read_from_osx_arm64():
     )
     seed = 42
     rng = np.random.RandomState(seed=seed)
-    data = rng.normal(size=(1000, 1000))
+    data = rng.normal(size=(100, 100))
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tpth = os.path.join(tmpdir, f"test_rice_dither2_seed{seed}.fits.fz")
@@ -865,6 +865,25 @@ def test_image_compression_read_from_osx_arm64():
     data = read(pth)
 
     np.testing.assert_array_equal(data, tdata)
+
+
+def test_image_compression_read_from_osx_arm64():
+    pth = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "test_images",
+        "test_rice_dither2_seed42.fits",
+    )
+    cpth = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "test_images",
+        "test_rice_dither2_seed42.fits.fz",
+    )
+    cdata = read(cpth)
+    data = read(pth)
+
+    np.testing.assert_array_equal(data, cdata)
 
 
 if __name__ == '__main__':
