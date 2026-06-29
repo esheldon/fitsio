@@ -43,4 +43,8 @@ def test_locking_read():
                     np.testing.assert_array_equal(res, data)
             t0 = time.time() - t0
             assert len(fp) == nt + 1
-            assert t0 > 1.0
+            if sys.version_info.major < 3 or sys.version_info.minor < 13:
+                assert t0 > 1.0
+            else:
+                # locking in the C layer is much more efficient
+                assert t0 > 0.1
