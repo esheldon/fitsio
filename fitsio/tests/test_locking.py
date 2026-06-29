@@ -1,8 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import os
+from random import SystemRandom
 import tempfile
-import threading
 import time
 
 import fitsio
@@ -12,12 +12,11 @@ def test_locking_read():
     nt = 10
     rng = np.random.RandomState(seed=10)
     data = rng.normal(size=(100, 100))
-    lock = threading.RLock()
 
     def _read_file(fp):
-        with lock:
-            time.sleep(0.1)
-            return fp[0].read()
+        rng = SystemRandom()
+        time.sleep(rng.uniform(0, 0.1))
+        return fp[0].read()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, "fname.fits")
