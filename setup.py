@@ -371,7 +371,7 @@ class build_ext_subclass(build_ext):
             '--disable-shared',
             '--enable-reentrant',
         ]
-        our_cflags = "-fPIC -fvisibility=hidden -O0"
+        our_cflags = "-fPIC -fvisibility=hidden"
 
         if "FITSIO_BZIP2_DIR" in os.environ:
             if not os.environ["FITSIO_BZIP2_DIR"]:
