@@ -21,6 +21,9 @@ Changes
       pytest to run them.
     - Added python 3.14 to the CI config.
     - Added support and testing against free threaded builds of python.
+    - Added a lock around the underlying cfitsio data for Python versions
+      3.13 or later. This lock is more efficient than using a Python lock
+      from the `threading` module.
 
 Bug Fixes
 
