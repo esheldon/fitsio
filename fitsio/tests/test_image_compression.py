@@ -861,8 +861,7 @@ def test_image_compression_read():
             qmethod="SUBTRACTIVE_DITHER_2",
             dither_seed=seed,
         )
-
-    tdata = read(tpth)
+        tdata = read(tpth)
     data = read(pth)
 
     np.testing.assert_array_equal(data, tdata)
