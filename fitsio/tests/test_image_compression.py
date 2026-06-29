@@ -841,7 +841,7 @@ def test_image_compression_read_chunks():
                 assert np.all(read_data == data[start:end])
 
 
-def test_image_compression_read():
+def test_image_compression_read_from_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),
         "..",
