@@ -3561,8 +3561,6 @@ static PyObject *PyFITSObject_insert_rows(struct PyFITSObject *self,
     Py_RETURN_NONE;
 }
 
-// FIXME - start here
-
 /*
 
    delete a range of rows
@@ -3580,13 +3578,17 @@ static PyObject *PyFITSObject_delete_row_range(struct PyFITSObject *self,
     PY_LONG_LONG slice_start_py = 0, slice_stop_py = 0;
     LONGLONG slice_start = 0, slice_stop = 0, nrows = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iLL", &hdunum, &slice_start_py,
                           &slice_stop_py)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3596,24 +3598,30 @@ static PyObject *PyFITSObject_delete_row_range(struct PyFITSObject *self,
 
     if (nrows <= 0) {
         // nothing to do, just return
+        UNLOCK_FITS(self);
         Py_RETURN_NONE;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_delete_rows(self->fits, slice_start, nrows, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3635,12 +3643,16 @@ static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
     PyArrayObject *rows_array = NULL;
     LONGLONG *rows = NULL, nrows = 0;
 
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (!PyArg_ParseTuple(args, (char *)"iO", &hdunum, &rows_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     rows_array = (PyArrayObject *)rows_obj;
@@ -3648,24 +3660,30 @@ static PyObject *PyFITSObject_delete_rows(struct PyFITSObject *self,
     rows = (LONGLONG *)PyArray_DATA(rows_array);
     nrows = PyArray_SIZE(rows_array);
     if (nrows <= 0) {
+        UNLOCK_FITS(self);
         Py_RETURN_NONE;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_delete_rowlistll(self->fits, rows, nrows, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -3894,8 +3912,11 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
     PyObject *array_obj = NULL, *rows_obj = NULL, *sortind_obj = NULL;
     PyArrayObject *array = NULL, *rows_array = NULL, *sortind_array = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iiOOO", &hdunum, &colnum, &array_obj,
                           &rows_obj, &sortind_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3905,10 +3926,12 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3917,11 +3940,13 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot yet read columns from an IMAGE_HDU");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (colnum < 1 || colnum > hdu->tfield) {
         PyErr_SetString(PyExc_RuntimeError,
                         "requested column is out of bounds");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -3929,6 +3954,7 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
         if (read_ascii_column(self->fits, colnum, array, rows_array,
                               sortind_array, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     } else {
@@ -3946,9 +3972,13 @@ static PyObject *PyFITSObject_read_column(struct PyFITSObject *self,
         if (read_binary_column(self->fits, colnum, nrows, rows, sortind, data,
                                stride, &status)) {
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
     }
+
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
@@ -4063,8 +4093,11 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
     PyObject *listObj = NULL;
     PyObject *tempObj = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iiOO", &hdunum, &colnum, &rows_obj,
                           &sortind_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     rows_array = (PyArrayObject *)rows_obj;
@@ -4072,16 +4105,19 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot yet read columns from an IMAGE_HDU");
+        UNLOCK_FITS(self);
         return NULL;
     }
     // using struct defs here, could cause problems
@@ -4089,22 +4125,26 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
     if (colnum < 1 || colnum > ncols) {
         PyErr_SetString(PyExc_RuntimeError,
                         "requested column is out of bounds");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_get_coltypell(self->fits, colnum, &fits_dtype, &repeat, &width,
                            &status) > 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     npy_dtype = fits_to_npy_table_type(fits_dtype, &isvariable);
     if (npy_dtype < 0) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (!isvariable) {
         PyErr_Format(PyExc_TypeError, "Column %d not a variable length %d",
                      colnum, fits_dtype);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4160,8 +4200,11 @@ read_var_column_cleanup:
         if (status != 0) {
             set_ioerr_string_from_status(status, self);
         }
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     return listObj;
 }
@@ -4246,13 +4289,17 @@ static PyObject *PyFITSObject_read_columns_as_rec(struct PyFITSObject *self,
     npy_intp nrows, nsortind;
     npy_int64 *rows = NULL, *sortind = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iOOOO", &hdunum, &columns_obj,
                           &array_obj, &rows_obj, &sortind_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
@@ -4262,11 +4309,13 @@ static PyObject *PyFITSObject_read_columns_as_rec(struct PyFITSObject *self,
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot read IMAGE_HDU into a recarray");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     colnums = get_int64_from_array((PyArrayObject *)columns_obj, &ncols);
     if (colnums == NULL) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4277,10 +4326,12 @@ static PyObject *PyFITSObject_read_columns_as_rec(struct PyFITSObject *self,
     } else {
         rows = get_int64_from_array((PyArrayObject *)rows_obj, &nrows);
         if (rows == NULL) {
+            UNLOCK_FITS(self);
             return NULL;
         }
         sortind = get_int64_from_array((PyArrayObject *)sortind_obj, &nsortind);
         if (sortind == NULL) {
+            UNLOCK_FITS(self);
             return NULL;
         }
     }
@@ -4293,8 +4344,12 @@ recread_columns_cleanup:
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
@@ -4400,8 +4455,11 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
     void *data = NULL;
     npy_intp recsize = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iOOOOO", &hdunum, &columns_obj,
                           &offsets_obj, &array_obj, &rows_obj, &sortind_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4409,6 +4467,7 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
@@ -4418,23 +4477,27 @@ PyFITSObject_read_columns_as_rec_byoffset(struct PyFITSObject *self,
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot read IMAGE_HDU into a recarray");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     colnums = (const npy_int64 *)get_int64_from_array(
         (PyArrayObject *)columns_obj, &ncols);
     if (colnums == NULL) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     offsets = (const npy_int64 *)get_int64_from_array(
         (PyArrayObject *)offsets_obj, &noffsets);
     if (offsets == NULL) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (noffsets != ncols) {
         PyErr_Format(PyExc_ValueError,
                      "%ld columns requested but got %ld offsets", ncols,
                      noffsets);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4459,8 +4522,12 @@ recread_columns_byoffset_cleanup:
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
@@ -4556,13 +4623,17 @@ static PyObject *PyFITSObject_read_rows_as_rec(struct PyFITSObject *self,
     npy_int64 *rows = NULL;
     npy_int64 *sortind = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iOOO", &hdunum, &array_obj, &rows_obj,
                           &sortind_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
@@ -4572,6 +4643,7 @@ static PyObject *PyFITSObject_read_rows_as_rec(struct PyFITSObject *self,
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot read IMAGE_HDU into a recarray");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4579,10 +4651,12 @@ static PyObject *PyFITSObject_read_rows_as_rec(struct PyFITSObject *self,
 
     rows = get_int64_from_array((PyArrayObject *)rows_obj, &nrows);
     if (rows == NULL) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     sortind = get_int64_from_array((PyArrayObject *)sortind_obj, &nsortind);
     if (sortind == NULL) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4594,8 +4668,12 @@ recread_byrow_cleanup:
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
@@ -4633,13 +4711,17 @@ static PyObject *PyFITSObject_read_as_rec(struct PyFITSObject *self,
     PY_LONG_LONG lastrow = 0;
     PY_LONG_LONG nrows = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iLLO", &hdunum, &firstrow, &lastrow,
                           &array_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
@@ -4649,6 +4731,7 @@ static PyObject *PyFITSObject_read_as_rec(struct PyFITSObject *self,
     if (hdutype == IMAGE_HDU) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Cannot read IMAGE_HDU into a recarray");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4664,8 +4747,12 @@ recread_asrec_cleanup:
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
+
     Py_RETURN_NONE;
 }
 
@@ -4759,7 +4846,10 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
 
     int anynul = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iO", &hdunum, &array_obj)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4767,15 +4857,18 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_get_img_paramll(self->fits, maxdim, &datatype, &naxis, naxes,
                              &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4792,6 +4885,7 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
         PyErr_Format(PyExc_RuntimeError,
                      "Input array size is %ld but on disk array size is %lld",
                      arrsize, size);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -4820,16 +4914,22 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
     if (fits_read_pixll(self->fits, fits_read_dtype, firstpixels, size,
                         nullval_ptr, data, &anynul, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
 
 static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
                                        PyObject *args) {
+    LOCK_FITS(self);
+
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     // fitsfile* fits = self->fits;
@@ -4846,6 +4946,7 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to flush FITS file data to disk; CFITSIO code %i",
                      status);
+        UNLOCK_FITS(self);
         return NULL;
     }
     // Allocate buffer for string
@@ -4858,12 +4959,14 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
             "Failed to allocate python string object to hold FITS file "
             "data: %i bytes",
             (int)sz);
+        UNLOCK_FITS(self);
         return NULL;
     }
     // Grab pointer to the memory buffer of the python string object
     filedata = PyBytes_AsString(stringobj);
     if (!filedata) {
         Py_DECREF(stringobj);
+        UNLOCK_FITS(self);
         return NULL;
     }
     // Remember old file position
@@ -4873,6 +4976,7 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         Py_DECREF(stringobj);
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to seek to beginning of FITS file");
+        UNLOCK_FITS(self);
         return NULL;
     }
     // Read into filedata
@@ -4881,6 +4985,7 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to read file data into memory: CFITSIO code %i",
                      status);
+        UNLOCK_FITS(self);
         return NULL;
     }
     // Seek back to where we were
@@ -4888,8 +4993,12 @@ static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
         Py_DECREF(stringobj);
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to seek back to original FITS file position");
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
+
     return stringobj;
 }
 
@@ -4951,22 +5060,28 @@ static PyObject *PyFITSObject_read_image_slice(struct PyFITSObject *self,
 
     int anynul = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"iOOOiO", &hdunum, &fpix_obj, &lpix_obj,
                           &step_obj, &ignore_scaling, &array)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (ignore_scaling == TRUE &&
         fits_set_bscale(self->fits, 1.0, 0.0, &status)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (get_long_slices((PyArrayObject *)fpix_obj, (PyArrayObject *)lpix_obj,
                         (PyArrayObject *)step_obj, &fpix, &lpix, &step)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
     data = PyArray_DATA((PyArrayObject *)array);
@@ -5002,8 +5117,11 @@ read_image_slice_cleanup:
     free(step);
 
     if (status != 0) {
+        UNLOCK_FITS(self);
         return NULL;
     }
+
+    UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
@@ -5056,21 +5174,27 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
     lcont = strlen("CONTINUE");
     lcomm = strlen("COMMENT");
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_get_hdrspace(self->fits, &nkeys, &morekeys, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -5081,6 +5205,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
         if (fits_read_record(self->fits, i + 1, card, &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
 
@@ -5090,6 +5215,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                            &status)) {
             Py_XDECREF(list);
             set_ioerr_string_from_status(status, self);
+            UNLOCK_FITS(self);
             return NULL;
         }
 
@@ -5118,6 +5244,7 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                                           comment, &status)) {
                     Py_XDECREF(list);
                     set_ioerr_string_from_status(status, self);
+                    UNLOCK_FITS(self);
                     return NULL;
                 }
 
@@ -5257,6 +5384,8 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
         Py_XDECREF(dict);
     }
 
+    UNLOCK_FITS(self);
+
     return list;
 }
 
@@ -5271,21 +5400,27 @@ static PyObject *PyFITSObject_write_checksum(struct PyFITSObject *self,
 
     PyObject *dict = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_write_chksum(self->fits, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
     if (fits_get_chksum(self->fits, &datasum, &hdusum, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -5293,8 +5428,11 @@ static PyObject *PyFITSObject_write_checksum(struct PyFITSObject *self,
     add_long_long_to_dict(dict, "datasum", (long long)datasum);
     add_long_long_to_dict(dict, "hdusum", (long long)hdusum);
 
+    UNLOCK_FITS(self);
+
     return dict;
 }
+
 static PyObject *PyFITSObject_verify_checksum(struct PyFITSObject *self,
                                               PyObject *args) {
     int status = 0;
@@ -5305,23 +5443,30 @@ static PyObject *PyFITSObject_verify_checksum(struct PyFITSObject *self,
 
     PyObject *dict = NULL;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_verify_chksum(self->fits, &dataok, &hduok, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     dict = PyDict_New();
     add_long_to_dict(dict, "dataok", (long)dataok);
     add_long_to_dict(dict, "hduok", (long)hduok);
+
+    UNLOCK_FITS(self);
 
     return dict;
 }
@@ -5344,19 +5489,24 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     npy_intp *data = NULL;
     long i = 0;
 
+    LOCK_FITS(self);
+
     if (!PyArg_ParseTuple(args, (char *)"isll", &hdunum, &expression, &firstrow,
                           &nrows)) {
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (firstrow < 1 || nrows < 1) {
         PyErr_SetString(PyExc_ValueError,
                         "firstrow and nrows must be positive integers");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -5364,6 +5514,7 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     if (row_status == NULL) {
         PyErr_SetString(PyExc_MemoryError,
                         "Could not allocate row_status array");
+        UNLOCK_FITS(self);
         return NULL;
     }
 
@@ -5392,6 +5543,9 @@ static PyObject *PyFITSObject_where(struct PyFITSObject *self, PyObject *args) {
     }
 where_function_cleanup:
     free(row_status);
+
+    UNLOCK_FITS(self);
+
     return indices_obj;
 }
 
