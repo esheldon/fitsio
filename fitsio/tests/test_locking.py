@@ -10,7 +10,7 @@ import uuid
 import fitsio
 
 
-def test_locking_read(thread_index, iteration_index):
+def test_locking_io(thread_index, iteration_index):
     nt = 10
     rng = np.random.RandomState(seed=10)
     data = rng.normal(size=(100, 100))
@@ -50,9 +50,21 @@ def test_locking_read(thread_index, iteration_index):
                     res = fut.result()
                     np.testing.assert_array_equal(res, data)
             t0 = time.time() - t0
-            assert len(fp) == nt + 1
-            if sys.version_info.major < 3 or sys.version_info.minor < 13:
-                assert t0 > 1.0
-            else:
-                # locking in the C layer is much more efficient
-                assert t0 > 0.1
+
+        with fitsio.FITS(fname) as fp:
+            n_ext = len(fp)
+
+        print(
+            "thread|iter|n_ext:",
+            thread_index,
+            iteration_index,
+            n_ext,
+            flush=True,
+        )
+
+        assert n_ext == nt + 1
+        if sys.version_info.major < 3 or sys.version_info.minor < 13:
+            assert t0 > 1.0
+        else:
+            # locking in the C layer is much more efficient
+            assert t0 > 0.1
