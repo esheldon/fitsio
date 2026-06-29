@@ -11,7 +11,7 @@ on:
         type: string
       cibw_skip:
         description: 'Python versions to skip when building wheels.'
-        default: 'cp36* cp37* pp* cp38*'
+        default: 'cp36* cp37* pp* cp38* cp39*'
         required: false
         type: string
   pull_request: null
@@ -25,7 +25,7 @@ concurrency:
 
 env:
   PYVER: '3.11'
-  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38*' }}
+  CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38* cp39*' }}
 
 jobs:
   linux-manylinux:
@@ -64,9 +64,9 @@ jobs:
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
           python -m pip install pip
-          pip install numpy pytest
+          pip install numpy pytest pytest-run-parallel
           pip install ./wheelhouse/*cp${pystr}*.whl
-          pytest --pyargs fitsio
+          pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
         with:
@@ -117,9 +117,9 @@ jobs:
           mkdir test-venv
           python3 -m venv test-venv
           . test-venv/bin/activate
-          pip install numpy pytest
+          pip install numpy pytest pytest-run-parallel
           pip install ./wheelhouse/*cp${pystr}-musl*.whl
-          pytest --pyargs fitsio
+          pytest --pyargs fitsio --parallel-threads 4 --iterations 4
           deactivate
 
       - uses: actions/upload-artifact@v7
@@ -156,9 +156,9 @@ jobs:
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
           python -m pip install pip
-          pip install numpy pytest
+          pip install numpy pytest pytest-run-parallel
           pip install ./wheelhouse/*cp${pystr}*.whl
-          pytest --pyargs fitsio
+          pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
         with:
@@ -194,9 +194,9 @@ jobs:
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
           python -m pip install pip
-          pip install numpy pytest
+          pip install numpy pytest pytest-run-parallel
           pip install ./wheelhouse/*cp${pystr}*.whl
-          pytest --pyargs fitsio
+          pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
         with:
