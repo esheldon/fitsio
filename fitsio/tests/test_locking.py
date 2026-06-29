@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import os
-from random import SystemRandom
 import tempfile
 import time
 
@@ -13,9 +12,19 @@ def test_locking_read():
     rng = np.random.RandomState(seed=10)
     data = rng.normal(size=(100, 100))
 
+    # lock = threading.RLock()
+
     def _read_file(fp):
-        rng = SystemRandom()
-        time.sleep(rng.uniform(0, 0.1))
+        time.sleep(0.1)
+
+        # older pythons need a lock
+        # if sys.version_info.major < 3 or sys.version_info.minor < 13:
+        #     with lock:
+        #         fp.write_image(data)
+        #         return fp[0].read()
+        # else:
+
+        fp.write_image(data)
         return fp[0].read()
 
     with tempfile.TemporaryDirectory() as tmpdir:
