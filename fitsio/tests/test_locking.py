@@ -5,6 +5,7 @@ import sys
 import threading
 import tempfile
 import time
+import uuid
 
 import fitsio
 
@@ -29,7 +30,7 @@ def test_locking_read():
             return fp[0].read()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        fname = os.path.join(tmpdir, "fname.fits")
+        fname = os.path.join(tmpdir, "fname" + str(uuid.uuid4().hex) + ".fits")
 
         with fitsio.FITS(fname, "rw", clobber=True) as fp:
             fp.write_image(data)
