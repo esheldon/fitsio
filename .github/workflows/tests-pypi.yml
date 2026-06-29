@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
-        pyver: ["3.9", "3.14"]
+        pyver: ["3.10", "3.14"]
     runs-on: ${{ matrix.os }}
 
     steps:
