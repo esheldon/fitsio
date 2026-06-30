@@ -569,7 +569,7 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
         int status = 0;
         char filename[FLEN_FILENAME];
         PyObject *fnameObj = NULL;
-        if (NOGL(fits_file_name(self->fits, filename, &status))) {
+        if (NOGIL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return NULL;
