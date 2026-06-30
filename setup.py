@@ -427,7 +427,7 @@ class build_ext_subclass(build_ext):
             # make does not like the space in C:/Program Files
             # see http://blog.johannesmp.com/2016/01/23/fixing-make-exeptions-on-windows/
             res = subprocess.run(
-                "SHELL=C:/Windows/System32/cmd.exe make",
+                "make SHELL=C:/Windows/System32/cmd.exe ",
                 cwd=self.cfitsio_build_dir,
                 shell=True,
             )
