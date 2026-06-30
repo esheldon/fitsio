@@ -1134,11 +1134,13 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
         goto get_hdu_name_version_cleanup;
     }
 
+    ignored_status = 0;
     if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL,
                       &ignored_status)) {
         extver = 0;
     }
 
+    ignored_status = 0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
                       &ignored_status)) {
         extname[0] = '\0';
