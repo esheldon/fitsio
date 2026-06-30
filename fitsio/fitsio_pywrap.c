@@ -1115,7 +1115,7 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
     int status = 0;
     int ignored_status = 0;
 
-    char extname[FLEN_VALUE] = "";
+    char extname[FLEN_VALUE];
     int extver = 0;
 
     LOCK_FITS(self);
@@ -1133,7 +1133,7 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
 
     RELEASE_GIL;
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
-        goto get_hdu_name_version;
+        goto get_hdu_name_version_cleanup;
     }
 
     if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL,
