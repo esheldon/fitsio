@@ -425,8 +425,7 @@ class build_ext_subclass(build_ext):
         _print_msg("building cfitsio")
         if os.name == "nt":
             env = {}
-            env.update(os.environ)
-            for k, v in env:
+            for k, v in os.environ.items():
                 env[k] = v.replace("Program Files (x86)", "PROGRA~2").replace(
                     "Program Files", "PROGRA~2"
                 )
