@@ -725,9 +725,7 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
         return NULL;
     }
 
-    RELEASE_GIL;
-    fits_movabs_hdu(self->fits, hdunum, &hdutype, &status);
-    CAPTURE_GIL;
+    NOGIL(fits_movabs_hdu(self->fits, hdunum, &hdutype, &status));
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
