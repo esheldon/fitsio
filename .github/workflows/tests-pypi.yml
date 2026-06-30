@@ -10,7 +10,7 @@ env:
   PY_COLORS: "1"
   # These compiler flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
-  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment -ffp-contract=off"
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, ubuntu-26.04-arm, macos-26-intel]
+        os: [macos-latest, ubuntu-latest, ubuntu-26.04-arm, macos-26-intel, windows-latest]
         pyver: ["3.10", "3.14"]
     runs-on: ${{ matrix.os }}
 
@@ -57,10 +57,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install libbz2-dev wget make curl libcurl4-openssl-dev
 
+      - name: set cflags
+        if: ${{ ! contains(matrix.os, 'windows') }}
+        run: |
+          echo "CFLAGS=${CFLAGS} ${TEST_CFLAGS}" >> $GITHUB_ENV
+
       - name: build fitsio
         run: |
-          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
-
           pip install -v -e .
 
       - name: test fitsio
