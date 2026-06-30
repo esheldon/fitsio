@@ -423,9 +423,19 @@ class build_ext_subclass(build_ext):
 
     def compile_cfitsio(self):
         _print_msg("building cfitsio")
+        if os.name == "nt":
+            # make does not like the space in C:/Program Files
+            # see http://blog.johannesmp.com/2016/01/23/fixing-make-exeptions-on-windows/
+            env = {}
+            env.update(os.environ)
+            env["SHELL"] = "C:/Windows/System32/cmd.exe"
+        else:
+            env = None
+
         res = subprocess.run(
             "make",
             cwd=self.cfitsio_build_dir,
+            env=env,
         )
         if res.returncode != 0:
             raise ValueError(
