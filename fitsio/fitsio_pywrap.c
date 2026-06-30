@@ -42,10 +42,27 @@
 #define PYFITS_HAS_LOCK
 #define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
 #define UNLOCK_FITS(x) PyMutex_Unlock(&(x->fits_lock))
+#define ALLOW_NOGIL                                                            \
+    PyThreadState *_save1_ = NULL;                                             \
+    int _evaltmp123_
+#define RELEASE_GIL                                                            \
+    ((void)(_save1_ = (fits_is_reentrant() == 0 ? NULL : PyEval_SaveThread())))
+#define CAPTURE_GIL                                                            \
+    ((void)(_save1_ != NULL ? PyEval_RestoreThread(_save1_) : NULL),           \
+     (void)(_save1_ = NULL))
+#define _NOGIL(x)                                                              \
+    ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
+     (void)(PyEval_RestoreThread(_save1_)), (void)(_save1_ = NULL),            \
+     _evaltmp123_)
+#define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
 #else
 #undef PYFITS_HAS_LOCK
 #define LOCK_FITS(x)
 #define UNLOCK_FITS(x)
+#define ALLOW_NOGIL
+#define RELEASE_GIL
+#define CAPTURE_GIL
+#define NOGIL(x) (x)
 #endif
 
 struct PyFITSObject {
@@ -482,6 +499,7 @@ void append_string_to_list(PyObject* list, const char* str) {
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
+    ALLOW_NOGIL;
     char *filename;
     int mode;
     int status = 0;
@@ -489,6 +507,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
 
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
+    self->fits = NULL;
 
 #ifdef PYFITS_HAS_LOCK
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
@@ -501,13 +520,13 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     LOCK_FITS(self);
     if (create) {
         // create and open
-        if (fits_create_file(&self->fits, filename, &status)) {
+        if (NOGIL(fits_create_file(&self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return -1;
         }
     } else {
-        if (fits_open_file(&self->fits, filename, mode, &status)) {
+        if (NOGIL(fits_open_file(&self->fits, filename, mode, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return -1;
@@ -519,6 +538,7 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
 }
 
 static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
+    ALLOW_NOGIL;
     LOCK_FITS(self);
 
     if (self->fits != NULL) {
@@ -526,7 +546,7 @@ static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
         char filename[FLEN_FILENAME];
         char repr[2056];
 
-        if (fits_file_name(self->fits, filename, &status)) {
+        if (NOGIL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return NULL;
@@ -542,13 +562,14 @@ static PyObject *PyFITSObject_repr(struct PyFITSObject *self) {
 }
 
 static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
+    ALLOW_NOGIL;
     LOCK_FITS(self);
 
     if (self->fits != NULL) {
         int status = 0;
         char filename[FLEN_FILENAME];
         PyObject *fnameObj = NULL;
-        if (fits_file_name(self->fits, filename, &status)) {
+        if (NOGL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return NULL;
@@ -566,26 +587,26 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 }
 
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
+    ALLOW_NOGIL;
     int status = 0;
-
     LOCK_FITS(self);
-    if (fits_close_file(self->fits, &status)) {
+    if (self->fits != NULL) {
+        NOGIL(fits_close_file(self->fits, &status));
         self->fits = NULL;
-        /*
-        set_ioerr_string_from_status(status, self);
-        return NULL;
-        */
     }
-    self->fits = NULL;
     UNLOCK_FITS(self);
 
     Py_RETURN_NONE;
 }
 
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
+    ALLOW_NOGIL;
     int status = 0;
     LOCK_FITS(self);
-    fits_close_file(self->fits, &status);
+    if (self->fits != NULL) {
+        NOGIL(fits_close_file(self->fits, &status));
+        self->fits = NULL;
+    }
     UNLOCK_FITS(self);
 #if PY_MAJOR_VERSION >= 3
     // introduced in python 2.6
@@ -645,6 +666,7 @@ static npy_int64 *get_int64_from_array(PyArrayObject *arr, npy_intp *ncols) {
 // move hdu by name and possibly version, return the hdu number
 static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
                                          PyObject *args) {
+    ALLOW_NOGIL;
     int status = 0;
     int hdutype = ANY_HDU; // means we don't care if its image or table
     char *extname = NULL;
@@ -664,23 +686,31 @@ static PyObject *PyFITSObject_movnam_hdu(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
+
     if (fits_movnam_hdu(self->fits, hdutype, extname, extver, &status)) {
+        goto movnam_hdu_cleanup;
+    }
+    fits_get_hdu_num(self->fits, &hdunum);
+
+movnam_hdu_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         UNLOCK_FITS(self);
         return NULL;
+    } else {
+        UNLOCK_FITS(self);
+        return PyLong_FromLong((long)hdunum);
     }
-
-    fits_get_hdu_num(self->fits, &hdunum);
-    UNLOCK_FITS(self);
-
-    return PyLong_FromLong((long)hdunum);
 }
 
 static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
                                          PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
     int status = 0;
-    PyObject *hdutypeObj = NULL;
 
     LOCK_FITS(self);
 
@@ -695,15 +725,18 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
         return NULL;
     }
 
-    if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+    RELEASE_GIL;
+    fits_movabs_hdu(self->fits, hdunum, &hdutype, &status);
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         UNLOCK_FITS(self);
         return NULL;
+    } else {
+        UNLOCK_FITS(self);
+        return PyLong_FromLong((long)hdutype);
     }
-    UNLOCK_FITS(self);
-
-    hdutypeObj = PyLong_FromLong((long)hdutype);
-    return hdutypeObj;
 }
 
 // get info for the specified HDU
@@ -1077,10 +1110,12 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
 // get info for the specified HDU
 static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
                                                    PyObject *args) {
+    ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
     int status = 0;
+    int ignored_status = 0;
 
-    char extname[FLEN_VALUE];
+    char extname[FLEN_VALUE] = "";
     int extver = 0;
 
     LOCK_FITS(self);
@@ -1096,27 +1131,32 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
         return NULL;
     }
 
+    RELEASE_GIL;
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
+        goto get_hdu_name_version;
+    }
+
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL,
+                      &ignored_status)) {
+        extver = 0;
+    }
+
+    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
+                      &ignored_status)) {
+        extname[0] = '\0';
+    }
+
+get_hdu_name_version_cleanup:
+    CAPTURE_GIL;
+
+    if (status != 0) {
         set_ioerr_string_from_status(status, self);
         UNLOCK_FITS(self);
         return NULL;
     }
+    UNLOCK_FITS(self);
 
-    status = 0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &status) !=
-        0) {
-        extver = 0;
-    }
-
-    status = 0;
-    if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL, &status) ==
-        0) {
-        UNLOCK_FITS(self);
-        return Py_BuildValue("si", extname, extver);
-    } else {
-        UNLOCK_FITS(self);
-        return Py_BuildValue("si", "", extver);
-    }
+    return Py_BuildValue("si", extname, extver);
 }
 
 // this is the parameter that goes in the type for fits_write_col
