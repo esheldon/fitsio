@@ -424,11 +424,19 @@ class build_ext_subclass(build_ext):
     def compile_cfitsio(self):
         _print_msg("building cfitsio")
         if os.name == "nt":
-            print(os.environ, flush=True)
-            assert False
+            env = {}
+            env.update(os.environ)
+            for k, v in env:
+                env[k] = v.replace("Program Files (x86)", "PROGRA~2").replace(
+                    "Program Files", "PROGRA~2"
+                )
+        else:
+            env = None
+
         res = subprocess.run(
             "make",
             cwd=self.cfitsio_build_dir,
+            env=env,
         )
         if res.returncode != 0:
             raise ValueError(
