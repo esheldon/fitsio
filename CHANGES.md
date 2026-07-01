@@ -34,9 +34,6 @@ Bug Fixes
     - Added patch to skip building the cfitsio test programs.
       These are not used by fitsio, but they fail to build on
       some machines and cause installation failures.
-    - Added the compilation flag `-ffp-contract=off` to turn off FMA
-      instructions in order to maintain reproducible lossy image
-      compression.
 
 version 1.3.0
 -------------
