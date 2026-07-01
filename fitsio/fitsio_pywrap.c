@@ -2317,12 +2317,12 @@ static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
                               ttyp->data, tform->data, tunit->data, extname_use,
                               &status))) {
         set_ioerr_string_from_status(status, self);
-        goto create_table_cleanup;
+        goto create_table_hdu_cleanup;
     }
 
     if (add_tdims_from_listobj(self, self->fits, tdimObj, nfields)) {
         status = 99;
-        goto create_table_cleanup;
+        goto create_table_hdu_cleanup;
     }
 
     RELEASE_GIL;
@@ -2332,25 +2332,26 @@ static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
 
             if (fits_update_key_lng(self->fits, "EXTVER", (LONGLONG)extver,
                                     NULL, &status)) {
-                goto create_table_cleanup;
+                goto create_table_hdu_gil_cleanup;
             }
         }
     }
 
     if (nkeys > 0) {
         if (fits_set_hdrsize(self->fits, nkeys, &status)) {
-            goto create_table_cleanup;
+            goto create_table_hdu_gil_cleanup;
         }
     }
 
     // this does a full close and reopen
     if (fits_flush_file(self->fits, &status)) {
-        goto create_table_cleanup;
+        goto create_table_hdu_gil_cleanup;
     }
 
-create_table_cleanup:
+create_table_hdu_gil_cleanup:
     CAPTURE_GIL;
 
+create_table_hdu_cleanup:
     ttyp = stringlist_delete(ttyp);
     tform = stringlist_delete(tform);
     tunit = stringlist_delete(tunit);
