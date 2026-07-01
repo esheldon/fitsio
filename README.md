@@ -416,7 +416,7 @@ pip install .
 
 ## Requirements
 
-- python >=3.9
+- python >=3.10
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
@@ -492,8 +492,9 @@ on multithreaded programs from `cfitsio`. Specifically this means that
   on its own, getting a unique `fitsio.FITS` object.
 - Concurrent writing to FITS files is NOT thread-safe.
 - `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
-  can use the file object at a time and so use needs to be controlled via a lock or some
-  other mechanism. See the example below.
+  can use the file object at a time. On Python 3.13 or newer, `fitsio` employs a lock on the
+  underlying `cfitsio` data structure to enforce this condition and prevent race conditions.
+  On older Python versions, you will need to employ your own locking mechanism. See the example below.
 
 `fitsio` is compatible with Python free threading, and will not reenable the GIL
 when imported. However, the constraints above must be respected even when using Python

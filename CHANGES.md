@@ -16,11 +16,14 @@ Changes
       should be relatively harmless given that it only applies
       to very small values which are lossily compressed anyways.
     - Moved to `pyproject.toml` for packaging.
-    - Bumped minimum python to 3.9.
+    - Bumped minimum python to 3.10.
     - Marked some tests as slow to speed up testing. Pass `--slow` to
       pytest to run them.
     - Added python 3.14 to the CI config.
     - Added support and testing against free threaded builds of python.
+    - Added a lock around the underlying cfitsio data for Python versions
+      3.13 or later. This lock is more efficient than using a Python lock
+      from the `threading` module.
 
 Bug Fixes
 
