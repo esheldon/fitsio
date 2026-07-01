@@ -513,10 +513,6 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
-#ifdef PYFITS_HAS_LOCK
-    memset(&(self->fits_lock), 0, sizeof(PyMutex));
-#endif
-
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
         return -1;
     }
