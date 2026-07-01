@@ -45,9 +45,9 @@ jobs:
           # binary tables that exceed 2**32 bytes
           - { pyver: "3.10", npver: "1", cftsver: "-4.4.0", doslow: "--slow", ft: "", cf: ""}
           - { pyver: "3.10", npver: "1", cftsver: "latest", doslow: "--slow", ft: "", cf: ""}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-gil", cf: "--enable-reentrant"}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading", cf: ""}
-          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "--slow", ft: "python-freethreading", cf: "--enable-reentrant"}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "", ft: "python-gil", cf: "--enable-reentrant"}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "", ft: "python-freethreading", cf: ""}
+          - { pyver: "3.14", npver: "2", cftsver: "latest", doslow: "", ft: "python-freethreading", cf: "--enable-reentrant"}
 
     runs-on: ${{ matrix.os }}
     env:
