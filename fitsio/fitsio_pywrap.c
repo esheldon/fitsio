@@ -568,7 +568,6 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
     if (self->fits != NULL) {
         int status = 0;
         char filename[FLEN_FILENAME];
-        PyObject *fnameObj = NULL;
         if (NOGIL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
@@ -576,8 +575,7 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
         }
         UNLOCK_FITS(self);
 
-        fnameObj = Py_BuildValue("s", filename);
-        return fnameObj;
+        return Py_BuildValue("s", filename);
     } else {
         UNLOCK_FITS(self);
         PyErr_SetString(PyExc_ValueError,
@@ -4301,6 +4299,10 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
     }
 
     listObj = PyList_New(0);
+    if (listObj == NULL) {
+        UNLOCK_FITS(self);
+        return NULL;
+    }
 
     for (i = 0; i < nrows; i++) {
         tempObj = NULL;
