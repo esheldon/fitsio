@@ -26,6 +26,8 @@ def read_file(fname):
         fits[0].read()
 
 
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 def test_threading_works():
     """
     Test a basic image write, data and a header, then reading back in to
@@ -60,6 +62,8 @@ def test_threading_works():
 
 
 @pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 @pytest.mark.parametrize(
     "write_only,read_only",
     [
@@ -158,6 +162,8 @@ def test_threading_timing(klass, write_only, read_only):
 
 
 @pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 def test_threading_read_one_file():
     nt = 4
 
