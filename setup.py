@@ -371,6 +371,10 @@ class build_ext_subclass(build_ext):
             '--disable-shared',
             '--enable-reentrant',
         ]
+        # we use -fPIC and -fvisibility=hidden to ensure we build a linkable
+        # static library with the symbols hidden
+        # the -ffp-contract=off flag ensures we do not use FMA instructions on
+        # ARM systems so that lossy floating point compression is reproducible
         our_cflags = "-fPIC -fvisibility=hidden -ffp-contract=off"
 
         if "FITSIO_BZIP2_DIR" in os.environ:
