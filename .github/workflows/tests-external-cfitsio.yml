@@ -8,9 +8,12 @@ on:
 
 env:
   PY_COLORS: "1"
-  # These compiler flags force the tests to fail if arrays are
+  # The -fsanitize=alignment -fno-sanitize-recover=alignment compiler
+  # flags force the tests to fail if arrays are
   # accessed at the C level from an unaligned location.
-  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+  # The -ffp-contract=off flag ensures we do not use FMA instructions on
+  # ARM systems so that lossy floating point compression is reproducible.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment -ffp-contract=off"
   LATEST_CFITSIO_VER: "-4.6.4"
 
 defaults:
