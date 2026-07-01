@@ -5083,8 +5083,8 @@ static PyObject *PyFITSObject_read_image(struct PyFITSObject *self,
 
 static PyObject *PyFITSObject_read_raw(struct PyFITSObject *self,
                                        PyObject *args) {
-    LOCK_FITS(self);
     ALLOW_NOGIL;
+    LOCK_FITS(self);
 
     if (self->fits == NULL) {
         PyErr_SetString(PyExc_RuntimeError, "FITS file is NULL");
