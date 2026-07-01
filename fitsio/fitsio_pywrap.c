@@ -568,13 +568,14 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
     if (self->fits != NULL) {
         int status = 0;
         char filename[FLEN_FILENAME];
+
         if (NOGIL(fits_file_name(self->fits, filename, &status))) {
             set_ioerr_string_from_status(status, self);
             UNLOCK_FITS(self);
             return NULL;
         }
-        UNLOCK_FITS(self);
 
+        UNLOCK_FITS(self);
         return Py_BuildValue("s", filename);
     } else {
         UNLOCK_FITS(self);
@@ -587,6 +588,7 @@ static PyObject *PyFITSObject_filename(struct PyFITSObject *self) {
 static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     ALLOW_NOGIL;
     int status = 0;
+
     LOCK_FITS(self);
     if (self->fits != NULL) {
         NOGIL(fits_close_file(self->fits, &status));
@@ -600,6 +602,7 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     ALLOW_NOGIL;
     int status = 0;
+
     LOCK_FITS(self);
     if (self->fits != NULL) {
         NOGIL(fits_close_file(self->fits, &status));
@@ -709,8 +712,6 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
     ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
     int status = 0;
-
-    LOCK_FITS(self);
 
     LOCK_FITS(self);
 
@@ -1131,6 +1132,7 @@ static PyObject *PyFITSObject_get_hdu_name_version(struct PyFITSObject *self,
     }
 
     RELEASE_GIL;
+
     if (fits_movabs_hdu(self->fits, hdunum, &hdutype, &status)) {
         goto get_hdu_name_version_cleanup;
     }
@@ -1540,8 +1542,7 @@ static int create_empty_hdu(struct PyFITSObject *self, int *status) {
     int bitpix = SHORT_IMG;
     int naxis = 0;
     long *naxes = NULL;
-    fits_create_img(self->fits, bitpix, naxis, naxes, status);
-    return (*status);
+    return fits_create_img(self->fits, bitpix, naxis, naxes, status);
 }
 
 // follows fits convention that return value is true
