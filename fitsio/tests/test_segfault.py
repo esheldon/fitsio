@@ -51,6 +51,7 @@ def _run_mixed(n):
     print("completed without abort")
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     not fitsio.util.cfitsio_is_bundled(),
     reason=(
