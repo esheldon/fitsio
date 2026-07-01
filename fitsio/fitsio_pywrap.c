@@ -513,6 +513,10 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     memset(&(self->fits_lock), 0, sizeof(PyMutex));
 #endif
 
+#ifdef PYFITS_HAS_LOCK
+    memset(&(self->fits_lock), 0, sizeof(PyMutex));
+#endif
+
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
         return -1;
     }
@@ -709,6 +713,8 @@ static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
     ALLOW_NOGIL;
     int hdunum = 0, hdutype = 0;
     int status = 0;
+
+    LOCK_FITS(self);
 
     LOCK_FITS(self);
 
@@ -2349,6 +2355,8 @@ create_table_cleanup:
     tform = stringlist_delete(tform);
     tunit = stringlist_delete(tunit);
     // tdim = stringlist_delete(tdim);
+
+    UNLOCK_FITS(self);
 
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
