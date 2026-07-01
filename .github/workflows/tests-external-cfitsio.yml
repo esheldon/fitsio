@@ -35,7 +35,7 @@ jobs:
           - macos-latest
         config:
           # 3.44 is the last version that did not support uint64
-          - { pyver: "3.10", npver: "1", cftsver: "3440", doslow: "", ft: "", cf: ""}
+          - { pyver: "3.10", npver: "1", cftsver: "3440", doslow: "--slow", ft: "", cf: ""}
           # python 3 string writing fails on all 3.* builds
           # so test first 4.* release
           - { pyver: "3.10", npver: "1", cftsver: "-4.0.0", doslow: "", ft: "", cf: ""}
