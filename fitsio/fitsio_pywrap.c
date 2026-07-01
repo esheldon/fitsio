@@ -2283,23 +2283,23 @@ static PyObject *PyFITSObject_create_table_hdu(struct PyFITSObject *self,
     tunit = stringlist_new();
     if ((ttyp == NULL) || (tform == NULL) || (tunit == NULL)) {
         status = 99;
-        goto create_table_cleanup;
+        goto create_table_hdu_cleanup;
     }
 
     if (stringlist_addfrom_listobj(ttyp, ttypObj, "names")) {
         status = 99;
-        goto create_table_cleanup;
+        goto create_table_hdu_cleanup;
     }
 
     if (stringlist_addfrom_listobj(tform, tformObj, "formats")) {
         status = 99;
-        goto create_table_cleanup;
+        goto create_table_hdu_cleanup;
     }
 
     if (tunitObj != NULL && tunitObj != Py_None) {
         if (stringlist_addfrom_listobj(tunit, tunitObj, "units")) {
             status = 99;
-            goto create_table_cleanup;
+            goto create_table_hdu_cleanup;
         }
     }
 
