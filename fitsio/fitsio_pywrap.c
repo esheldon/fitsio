@@ -2354,8 +2354,6 @@ create_table_hdu_cleanup:
     tunit = stringlist_delete(tunit);
     // tdim = stringlist_delete(tdim);
 
-    UNLOCK_FITS(self);
-
     if (status != 0) {
         set_ioerr_string_from_status(status, self);
         UNLOCK_FITS(self);
