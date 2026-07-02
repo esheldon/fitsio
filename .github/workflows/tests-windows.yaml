@@ -79,8 +79,8 @@ jobs:
           pip install --no-deps -e .
         env:
           FITSIO_USE_SYSTEM_FITSIO: "True"
-          FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include
-          FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib
+          FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include;C:\Program Files (x86)\zlib\include
+          FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib;C:\Program Files (x86)\zlib\lib
 
       - name: test
         run: |

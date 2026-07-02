@@ -93,9 +93,11 @@ class build_ext_subclass(build_ext):
 
         if USE_SYSTEM_FITSIO:
             if SYSTEM_FITSIO_INCLUDEDIR is not None:
-                self.include_dirs.insert(0, SYSTEM_FITSIO_INCLUDEDIR)
+                for pth in SYSTEM_FITSIO_INCLUDEDIR.split(os.pathsep):
+                    self.include_dirs.insert(0, pth)
             if SYSTEM_FITSIO_LIBDIR is not None:
-                self.library_dirs.insert(0, SYSTEM_FITSIO_LIBDIR)
+                for pth in SYSTEM_FITSIO_LIBDIR.split(os.pathsep):
+                    self.library_dirs.insert(0, pth)
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.
