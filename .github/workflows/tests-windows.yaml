@@ -18,6 +18,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
@@ -69,11 +72,11 @@ jobs:
             cd ..
 
       - name: install python dependencies
-        run: pip install numpy pytest pytest-run-parallel pytest-skip-slow setuptools setuptools-scm
+        run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
 
       - name: Install code
         run: |
-          pip install --no-deps --no-build-isolation -e .
+          pip install --no-deps -e .
 
       - name: test
         run: |
