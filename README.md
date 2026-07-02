@@ -493,8 +493,9 @@ on multithreaded programs from `cfitsio`. Specifically this means that
 - Concurrent writing to FITS files is NOT thread-safe.
 - `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
   can use the file object at a time. On Python 3.13 or newer, `fitsio` employs a lock on the
-  underlying `cfitsio` data structure to enforce this condition and prevent race conditions.
-  On older Python versions, you will need to employ your own locking mechanism. See the example below.
+  underlying `cfitsio` data structure to enforce this condition and help prevent race conditions.
+  Even with this lock, you will likely need to employ your own locks from the `threading` module in order
+  to prevent race conditions arising from how the `fitsio` library is being used. See the example below.
 
 `fitsio` is compatible with Python free threading, and will not reenable the GIL
 when imported. However, the constraints above must be respected even when using Python
