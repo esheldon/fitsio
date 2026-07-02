@@ -53,12 +53,12 @@ jobs:
             mkdir build
             cd build
 
-            cmake -G "NMake Makefiles" ^
-              -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" ^
-              -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" ^
-              -D CMAKE_BUILD_TYPE=Release ^
-              -D TESTS=On ^
-              -D UTILS=On ^
+            cmake -G "NMake Makefiles" `
+              -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" `
+              -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" `
+              -D CMAKE_BUILD_TYPE=Release `
+              -D TESTS=On `
+              -D UTILS=On `
               ..
 
             nmake
@@ -73,13 +73,13 @@ jobs:
 
       - name: Install code
         run: |
-          pip install ^
-            --no-deps ^
-            --no-build-isolation ^
-            --use-system-fitsio ^
-            --system-fitsio-includedir="C:\Program Files (x86)\include" ^
-            --system-fitsio-libdir="C:\Program Files (x86)\lib" ^
-            ^ -e .
+          pip install `
+            --no-deps `
+            --no-build-isolation `
+            --use-system-fitsio `
+            --system-fitsio-includedir="C:\Program Files (x86)\include" `
+            --system-fitsio-libdir="C:\Program Files (x86)\lib" `
+            -e .
 
       - name: test
         run: |
