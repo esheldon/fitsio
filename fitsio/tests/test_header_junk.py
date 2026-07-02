@@ -5,6 +5,9 @@ from ..fitslib import read_header, FITS
 from ..fits_exceptions import FITSFormatError
 
 
+@pytest.mark.skipif(
+    os.name == "nt", reason="cfitsio cannot read this header junk on windows"
+)
 def test_header_junk():
     """
     test lenient treatment of garbage written by IDL mwrfits
