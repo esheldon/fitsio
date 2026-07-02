@@ -1,0 +1,14 @@
+name: fitsio-dev
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pip
+  - setuptools
+  - setuptools-scm >=8
+  - wget
+  - make
+  - pytest
+  - pytest-run-parallel
+  - pytest-skip-slow

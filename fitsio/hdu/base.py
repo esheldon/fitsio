@@ -18,7 +18,8 @@ _hdu_type_map = {
     BINARY_TBL: 'BINARY_TBL',
     'IMAGE_HDU': IMAGE_HDU,
     'ASCII_TBL': ASCII_TBL,
-    'BINARY_TBL': BINARY_TBL}
+    'BINARY_TBL': BINARY_TBL,
+}
 
 
 class HDUBase(object):
@@ -33,21 +34,44 @@ class HDUBase(object):
     ext: integer
         The extension number.
     """
-    def __init__(self, fits, ext, **keys):
 
+    def __init__(self, fits, ext, **keys):
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self._FITS = fits
         self._ext = ext
         self._ignore_scaling = False
 
-        self._update_info()
+        # init info cache to none
+        self._cached_info = None
         self._filename = self._FITS.filename()
+
+    @property
+    def _info(self):
+        if self._cached_info is None:
+            self._update_info()
+        return self._cached_info
+
+    def _update_info(self):
+        """
+        Update metadata for this HDU
+        """
+        try:
+            self._FITS.movabs_hdu(self._ext + 1)
+        except IOError:
+            raise RuntimeError("no such hdu")
+
+        self._cached_info = self._FITS.get_hdu_info(
+            self._ext + 1, self._ignore_scaling
+        )
 
     @property
     def ignore_scaling(self):
@@ -65,10 +89,10 @@ class HDUBase(object):
         old_val = self._ignore_scaling
         self._ignore_scaling = ignore_scaling_flag
 
-        # Only endure the overhead of updating the info if the new value is
-        # actually different.
+        # if needed invalidate the info cache so it gets
+        # updated the next time we access it
         if old_val != self._ignore_scaling:
-            self._update_info()
+            self._cached_info = None
 
     def get_extnum(self):
         """
@@ -168,13 +192,15 @@ class HDUBase(object):
         -------
         A dict with keys 'datasum' and 'hdusum'
         """
-        return self._FITS.write_checksum(self._ext+1)
+        ret = self._FITS.write_checksum(self._ext + 1)
+        self._cached_info = None  # invalidate info cache
+        return ret
 
     def verify_checksum(self):
         """
         Verify the checksum in the header for this HDU.
         """
-        res = self._FITS.verify_checksum(self._ext+1)
+        res = self._FITS.verify_checksum(self._ext + 1)
         if res['dataok'] != 1:
             raise ValueError("data checksum failed")
         if res['hduok'] != 1:
@@ -184,19 +210,22 @@ class HDUBase(object):
         """
         Write a comment into the header
         """
-        self._FITS.write_comment(self._ext+1, str(comment))
+        self._FITS.write_comment(self._ext + 1, str(comment))
+        self._cached_info = None  # invalidate info cache
 
     def write_history(self, history):
         """
         Write history text into the header
         """
-        self._FITS.write_history(self._ext+1, str(history))
+        self._FITS.write_history(self._ext + 1, str(history))
+        self._cached_info = None  # invalidate info cache
 
     def _write_continue(self, value):
         """
         Write history text into the header
         """
-        self._FITS.write_continue(self._ext+1, str(value))
+        self._FITS.write_continue(self._ext + 1, str(value))
+        self._cached_info = None  # invalidate info cache
 
     def write_key(self, name, value, comment=""):
         """
@@ -219,70 +248,67 @@ class HDUBase(object):
         """
 
         if name is None:
-
             # we write a blank keyword and the rest is a comment
             # string
 
             if not isinstance(comment, _stypes):
-                raise ValueError('when writing blank key the value '
-                                 'must be a string')
+                raise ValueError(
+                    'when writing blank key the value must be a string'
+                )
 
             # this might be longer than 80 but that's ok, the routine
             # will take care of it
             # card = '         ' + str(comment)
             card = '        ' + str(comment)
             self._FITS.write_record(
-                self._ext+1,
+                self._ext + 1,
                 card,
             )
 
         elif value is None:
-            self._FITS.write_undefined_key(self._ext+1,
-                                           str(name),
-                                           str(comment))
+            self._FITS.write_undefined_key(
+                self._ext + 1, str(name), str(comment)
+            )
 
         elif isinstance(value, bool):
             if value:
                 v = 1
             else:
                 v = 0
-            self._FITS.write_logical_key(self._ext+1,
-                                         str(name),
-                                         v,
-                                         str(comment))
+            self._FITS.write_logical_key(
+                self._ext + 1, str(name), v, str(comment)
+            )
         elif isinstance(value, _stypes):
-            self._FITS.write_string_key(self._ext+1,
-                                        str(name),
-                                        str(value),
-                                        str(comment))
+            self._FITS.write_string_key(
+                self._ext + 1, str(name), str(value), str(comment)
+            )
         elif isinstance(value, _ftypes):
-            self._FITS.write_double_key(self._ext+1,
-                                        str(name),
-                                        float(value),
-                                        str(comment))
+            self._FITS.write_double_key(
+                self._ext + 1, str(name), float(value), str(comment)
+            )
         elif isinstance(value, _itypes):
-            self._FITS.write_long_long_key(self._ext+1,
-                                           str(name),
-                                           int(value),
-                                           str(comment))
+            self._FITS.write_long_long_key(
+                self._ext + 1, str(name), int(value), str(comment)
+            )
         elif isinstance(value, (tuple, list)):
             vl = [str(el) for el in value]
             sval = ','.join(vl)
-            self._FITS.write_string_key(self._ext+1,
-                                        str(name),
-                                        sval,
-                                        str(comment))
+            self._FITS.write_string_key(
+                self._ext + 1, str(name), sval, str(comment)
+            )
         else:
             sval = str(value)
             mess = (
                 "warning, keyword '%s' has non-standard "
                 "value type %s, "
-                "Converting to string: '%s'")
+                "Converting to string: '%s'"
+            )
             warnings.warn(mess % (name, type(value), sval), FITSRuntimeWarning)
-            self._FITS.write_string_key(self._ext+1,
-                                        str(name),
-                                        sval,
-                                        str(comment))
+            self._FITS.write_string_key(
+                self._ext + 1, str(name), sval, str(comment)
+            )
+
+        self._cached_info = None  # invalidate info cache
 
     def write_keys(self, records_in, clean=True):
         """
@@ -299,8 +325,9 @@ class HDUBase(object):
                   in this case, and the order is arbitrary.
         clean: boolean
             If True, trim out the standard fits header keywords that are
-            created on HDU creation, such as EXTEND, SIMPLE, STTYPE, TFORM,
-            TDIM, XTENSION, BITPIX, NAXIS, etc.
+            created on HDU creation (e.g., EXTEND, SIMPLE, STTYPE, TFORM,
+            TDIM, XTENSION, BITPIX, NAXIS, etc.) from the input records
+            before they are written to the current fits file.
 
         Notes
         -----
@@ -326,9 +353,8 @@ class HDUBase(object):
                 if INVALID_HDR_CHARS_RE.search(name):
                     raise RuntimeError(
                         "header key '%s' has invalid characters! "
-                        "Characters in %s are not allowed!" % (
-                            name, INVALID_HDR_CHARS
-                        )
+                        "Characters in %s are not allowed!"
+                        % (name, INVALID_HDR_CHARS)
                     )
 
             value = r['value']
@@ -342,6 +368,8 @@ class HDUBase(object):
             else:
                 comment = r.get('comment', '')
                 self.write_key(name, value, comment=comment)
+
+        self._cached_info = None  # invalidate info cache
 
     def read_header(self):
         """
@@ -366,29 +394,43 @@ class HDUBase(object):
             'value': the value field as a string
             'comment': the comment field as a string.
         """
-        return self._FITS.read_header(self._ext+1)
+        return self._FITS.read_header(self._ext + 1)
 
-    def _update_info(self):
+    def delete_key(self, name):
         """
-        Update metadata for this HDU
-        """
-        try:
-            self._FITS.movabs_hdu(self._ext+1)
-        except IOError:
-            raise RuntimeError("no such hdu")
+        Delete the key from the header.
 
-        self._info = self._FITS.get_hdu_info(self._ext+1, self._ignore_scaling)
+        parameters
+        ----------
+        name: string
+            Name of keyword to delete.
+        """
+        self.delete_keys([name])
+
+    def delete_keys(self, names):
+        """
+        Delete the keys from the header.
+
+        parameters
+        ----------
+        names: iterable of keys
+            Names of keywords to delete.
+        """
+        for name in names:
+            self._FITS.delete_key(self._ext + 1, str(name))
+        self._cached_info = None  # invalidate info cache
 
     def _get_repr_list(self):
         """
         Get some representation data common to all HDU types
         """
-        spacing = ' '*2
+        spacing = ' ' * 2
         text = ['']
         text.append("%sfile: %s" % (spacing, self._filename))
-        text.append("%sextension: %d" % (spacing, self._info['hdunum']-1))
+        text.append("%sextension: %d" % (spacing, self._info['hdunum'] - 1))
         text.append(
-            "%stype: %s" % (spacing, _hdu_type_map[self._info['hdutype']]))
+            "%stype: %s" % (spacing, _hdu_type_map[self._info['hdutype']])
+        )
 
         extname = self.get_extname()
         if extname != "":

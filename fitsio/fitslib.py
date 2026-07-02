@@ -20,17 +20,33 @@ See the main docs at https://github.com/esheldon/fitsio
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
+
 from __future__ import with_statement, print_function
 import os
 import numpy
 
 from . import _fitsio_wrap
-from .util import IS_PY3, mks, array_to_native, isstring, copy_if_needed
+from .util import (
+    IS_PY3,
+    mks,
+    array_to_native,
+    isstring,
+    copy_if_needed,
+    _nonfinite_as_cfitsio_floating_null_value,
+)
 from .header import FITSHDR
 from .hdu import (
-    ANY_HDU, IMAGE_HDU, BINARY_TBL, ASCII_TBL,
-    ImageHDU, AsciiTableHDU, TableHDU,
-    _table_npy2fits_form, _npy2fits, _hdu_type_map)
+    ANY_HDU,
+    IMAGE_HDU,
+    BINARY_TBL,
+    ASCII_TBL,
+    ImageHDU,
+    AsciiTableHDU,
+    TableHDU,
+    _table_npy2fits_form,
+    _npy2fits,
+    _hdu_type_map,
+)
 
 from .fits_exceptions import FITSFormatError
 
@@ -41,6 +57,12 @@ if IS_PY3:
 
 READONLY = 0
 READWRITE = 1
+
+# this constant is used to indicate
+# that an option is not set in Python
+# and instead the setting for that option
+# is delegated to the C code in cfitsio
+NOT_SET = "NOT_SET"
 
 NOCOMPRESS = 0
 RICE_1 = 11
@@ -53,15 +75,22 @@ NO_DITHER = -1
 SUBTRACTIVE_DITHER_1 = 1
 SUBTRACTIVE_DITHER_2 = 2
 
-# defaults follow fpack
-DEFAULT_QLEVEL = 4.0
-DEFAULT_QMETHOD = 'SUBTRACTIVE_DITHER_1'
-DEFAULT_HCOMP_SCALE = 0.0
 
-
-def read(filename, ext=None, extver=None, columns=None, rows=None,
-         header=False, case_sensitive=False, upper=False, lower=False,
-         vstorage='fixed', verbose=False, trim_strings=False, **keys):
+def read(
+    filename,
+    ext=None,
+    extver=None,
+    columns=None,
+    rows=None,
+    header=False,
+    case_sensitive=False,
+    upper=False,
+    lower=False,
+    vstorage='fixed',
+    verbose=False,
+    trim_strings=False,
+    **keys,
+):
     """
     Convenience function to read data from the specified FITS HDU
 
@@ -118,10 +147,13 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
 
     if keys:
         import warnings
+
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!" % keys,
-            DeprecationWarning, stacklevel=2)
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     kwargs = {
         'lower': lower,
@@ -129,7 +161,7 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         'vstorage': vstorage,
         'case_sensitive': case_sensitive,
         'verbose': verbose,
-        'trim_strings': trim_strings
+        'trim_strings': trim_strings,
     }
 
     read_kwargs = {}
@@ -139,7 +171,6 @@ def read(filename, ext=None, extver=None, columns=None, rows=None,
         read_kwargs['rows'] = rows
 
     with FITS(filename, **kwargs) as fits:
-
         if ext is None:
             for i in xrange(len(fits)):
                 if fits[i].has_data():
@@ -184,16 +215,19 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
 
     if keys:
         import warnings
+
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!" % keys,
-            DeprecationWarning, stacklevel=2)
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     filename = extract_filename(filename)
 
     dont_create = 0
     try:
-        hdunum = ext+1
+        hdunum = ext + 1
     except TypeError:
         hdunum = None
 
@@ -215,7 +249,7 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
             found = False
             current_ext = 0
             while True:
-                hdunum = current_ext+1
+                hdunum = current_ext + 1
                 try:
                     hdu_type = _fits.movabs_hdu(hdunum)  # noqa - not used
                     name, vers = _fits.get_hdu_name_version(hdunum)
@@ -235,7 +269,8 @@ def read_header(filename, ext=0, extver=None, case_sensitive=False, **keys):
 
             if not found:
                 raise IOError(
-                    'hdu not found: %s (extver %s)' % (extname, extver))
+                    'hdu not found: %s (extver %s)' % (extname, extver)
+                )
 
     return FITSHDR(_fits.read_header(hdunum))
 
@@ -283,14 +318,123 @@ def _make_item(ext, extver=None):
     return item
 
 
-def write(filename, data, extname=None, extver=None, header=None,
-          clobber=False, ignore_empty=False, units=None, table_type='binary',
-          names=None, write_bitcols=False, compress=None, tile_dims=None,
-          qlevel=DEFAULT_QLEVEL,
-          qmethod=DEFAULT_QMETHOD,
-          hcomp_scale=DEFAULT_HCOMP_SCALE,
-          hcomp_smooth=False,
-          **keys):
+class _DocStringFormatter(dict):
+    """A class to manager docstring snippets.
+
+    This is a simpler version of the _SnippetManager
+    from proplot/ultraplot
+    """
+
+    def __call__(self, func_or_meth):
+        import inspect
+
+        func_or_meth.__doc__ = inspect.getdoc(func_or_meth)
+        if func_or_meth.__doc__:
+            func_or_meth.__doc__ %= self
+
+        return func_or_meth
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value.strip("\n"))
+
+
+_doc_string_formatter = _DocStringFormatter()
+_doc_string_formatter["compression_docs"] = """\
+compress: string, optional
+    A string representing the compression algorithm for images.
+    Default of fitsio.NOT_SET defers the setting to the default
+    of the cfitsio library (no compression) or to the value set
+    in the FITS file extended filename syntax (e.g.,
+    `myfile.fits[compress G]`).
+    For no compression, pass None, fitsio.NOCOMPRESS, or 0.
+    For compression, can be one of
+        'RICE'
+        'GZIP'
+        'GZIP_2'
+        'PLIO' (no unsigned or negative integers)
+        'HCOMPRESS'
+    (case-insensitive). See the cfitsio manual for details.
+tile_dims: tuple of ints, optional
+    The size of the tiles used to compress images, specified in
+    Fortran/column-major order (e.g., `(Y_SIZE, X_SIZE)`). Default of
+    fitsio.NOT_SET defers the setting to the cfitsio/fpack (row-by-row)
+    or to the value set in the FITS file extended filename syntax (e.g.,
+    `myfile.fits[compress G 100,100]`). The value None behaves the same as
+    fitsio.NOT_SET
+qlevel: float, optional
+    Quantization level for floating point data. Lower generally result in
+    more compression, we recommend one reads the FITS standard or cfitsio
+    manual to fully understand the effects of quantization. None or 0
+    means no quantization, and for gzip also implies lossless. Default of
+    fitsio.NOT_SET defers to the cfitsio/fpack default (usually 4.0) or
+    to the value set in the FITS file extended filename syntax (e.g.,
+    `myfile.fits[compress G; q 10.0]`).
+qmethod: string or int
+    The quantization method as string or integer.
+        'NO_DITHER' or fitsio.NO_DITHER (-1)
+            No dithering is performed
+        'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
+            Standard dithering
+        'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
+            Preserves zeros
+    Default of fitsio.NOT_SET defers to the cfitsio/fpack default (
+    'SUBTRACTIVE_DITHER_1') or to the value set in the FITS file
+    extended filename syntax (e.g.,. `myfile.fits[compress R; qz]`).
+dither_seed: int or None, optional
+    Seed for the subtractive dither. Seeding makes the lossy compression
+    reproducible. Allowed values are
+        fitsio.NOT_SET
+            defer the setting to the cfitsio/fpack library default
+            (system clock)
+        None or 0 or 'clock':
+            do not set the seed explicitly, use the system clock
+        negative or 'checksum':
+            set the seed based on the data checksum
+        1-10_000:
+            use the input seed
+hcomp_scale: float, optional
+    Scale value for HCOMPRESS, 0.0 means lossless compression. Default
+    of fitsio.NOT_SET defers to the cfitsio/fpack default (1.0) or
+    to the value set in the FITS file extended filename syntax (e.g.,
+    `myfile.fits[compress H 10,10; s 10]`).
+hcomp_smooth: bool, optional
+    If True, apply smoothing when decompressing, otherwise if False do not.
+    Default of fitsio.NOT_SET defers to the cfitsio/fpack default (False) or
+    to the value set in the FITS file extended filename syntax (e.g.,
+    `myfile.fits[compress HS 10,10; s 10]`).
+
+**If the FITS file uses the extended filename syntax to set any compression
+paraneters (e.g. `myfile.fits[compress R]`), then the those parameters
+are treated as immutable defaults. If you set any of the Python keyword
+compression parameters (i.e., compress, tile_dims, qlevel, qmethod,
+hcomp_scale, hcomp_smooth), then the code will raise a ValueError. However,
+the dither_seed can be set since it is not possible to set it via the
+extended filename syntax.**
+"""
+
+
+@_doc_string_formatter
+def write(
+    filename,
+    data,
+    extname=None,
+    extver=None,
+    header=None,
+    clobber=False,
+    ignore_empty=False,
+    units=None,
+    table_type='binary',
+    names=None,
+    write_bitcols=False,
+    compress=NOT_SET,
+    tile_dims=NOT_SET,
+    qlevel=NOT_SET,
+    qmethod=NOT_SET,
+    dither_seed=NOT_SET,
+    hcomp_scale=NOT_SET,
+    hcomp_smooth=NOT_SET,
+    **keys,
+):
     """
     Convenience function to create a new HDU and write the data.
 
@@ -348,52 +492,19 @@ def write(filename, data, extname=None, extver=None, header=None,
 
     image-only keywords
     -------------------
-    compress: string, optional
-        A string representing the compression algorithm for images,
-        default None.
-        Can be one of
-           'RICE'
-           'GZIP'
-           'GZIP_2'
-           'PLIO' (no unsigned or negative integers)
-           'HCOMPRESS'
-        (case-insensitive) See the cfitsio manual for details.
-    tile_dims: tuple of ints, optional
-        The size of the tiles used to compress images.
-    qlevel: float, optional
-        Quantization level for floating point data.  Lower generally result in
-        more compression, we recommend one reads the FITS standard or cfitsio
-        manual to fully understand the effects of quantization.  None or 0
-        means no quantization, and for gzip also implies lossless.  Default is
-        4.0 which follows the fpack defaults
-    qmethod: string or int
-        The quantization method as string or integer.
-            'NO_DITHER' or fitsio.NO_DITHER (-1)
-               No dithering is performed
-            'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
-                Standard dithering
-            'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
-                Preserves zeros
-
-        Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
-    hcomp_scale: float
-        Scale value for HCOMPRESS, 0.0 means lossless compression. Default is
-        0.0 following the fpack defaults.
-    hcomp_smooth: bool
-        If True, apply smoothing when decompressing.  Default False
+    %(compression_docs)s
     """
     if keys:
         import warnings
+
         warnings.warn(
             "The keyword arguments '%s' are being ignored! This warning "
             "will be an error in a future version of `fitsio`!" % keys,
-            DeprecationWarning, stacklevel=2)
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-    kwargs = {
-        'clobber': clobber,
-        'ignore_empty': ignore_empty
-    }
+    kwargs = {'clobber': clobber, 'ignore_empty': ignore_empty}
     with FITS(filename, 'rw', **kwargs) as fits:
         fits.write(
             data,
@@ -404,11 +515,11 @@ def write(filename, data, extname=None, extver=None, header=None,
             header=header,
             names=names,
             write_bitcols=write_bitcols,
-
             compress=compress,
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            dither_seed=dither_seed,
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcomp_smooth,
         )
@@ -468,17 +579,32 @@ class FITS(object):
 
     See the docs at https://github.com/esheldon/fitsio
     """
-    def __init__(self, filename, mode='r', lower=False, upper=False,
-                 trim_strings=False, vstorage='fixed', case_sensitive=False,
-                 iter_row_buffer=1, write_bitcols=False, ignore_empty=False,
-                 verbose=False, clobber=False, **keys):
 
+    def __init__(
+        self,
+        filename,
+        mode='r',
+        lower=False,
+        upper=False,
+        trim_strings=False,
+        vstorage='fixed',
+        case_sensitive=False,
+        iter_row_buffer=1,
+        write_bitcols=False,
+        ignore_empty=False,
+        verbose=False,
+        clobber=False,
+        **keys,
+    ):
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self.lower = lower
         self.upper = upper
@@ -497,8 +623,9 @@ class FITS(object):
         self.verbose = verbose
 
         if self.mode not in _int_modemap:
-            raise IOError("mode should be one of 'r', 'rw', "
-                          "READONLY,READWRITE")
+            raise IOError(
+                "mode should be one of 'r', 'rw', READONLY,READWRITE"
+            )
 
         self.charmode = _char_modemap[self.mode]
         self.intmode = _int_modemap[self.mode]
@@ -518,7 +645,7 @@ class FITS(object):
                 else:
                     create = 1
 
-        self._did_create = (create == 1)
+        self._did_create = create == 1
         self._FITS = _fitsio_wrap.FITS(filename, self.intmode, create)
 
     def close(self):
@@ -542,7 +669,7 @@ class FITS(object):
 
         In general, it is not necessary to use this method explicitly.
         """
-        return self.movabs_hdu(ext+1)
+        return self.movabs_hdu(ext + 1)
 
     def movabs_hdu(self, hdunum):
         """
@@ -580,7 +707,7 @@ class FITS(object):
         """
         extname = mks(extname)
         hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
-        return hdu-1
+        return hdu - 1
 
     def movnam_hdu(self, extname, hdutype=ANY_HDU, extver=0):
         """
@@ -614,20 +741,38 @@ class FITS(object):
         """
         close and reopen the fits file with the same mode
         """
-        self._FITS.close()
-        del self._FITS
-        self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
+        # We cannot open mem:// memory files as existing files
+        # (i.e., last argument of _fitsio_wrap.FITS equal to 0).
+        # If we open in mode 1, we will delete all of the existing data
+        # in the mem:// file. So we skip the close+reopen cycle for
+        # mem:// files. We always update the hdu list and this appears
+        # to be important.
+        if not self._filename.startswith("mem://"):
+            self._FITS.close()
+            del self._FITS
+            self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
         self.update_hdu_list()
 
-    def write(self, data, units=None, extname=None, extver=None,
-              compress=None,
-              tile_dims=None,
-              qlevel=DEFAULT_QLEVEL,
-              qmethod=DEFAULT_QMETHOD,
-              hcomp_scale=DEFAULT_HCOMP_SCALE,
-              hcomp_smooth=False,
-              header=None, names=None,
-              table_type='binary', write_bitcols=False, **keys):
+    @_doc_string_formatter
+    def write(
+        self,
+        data,
+        units=None,
+        extname=None,
+        extver=None,
+        compress=NOT_SET,
+        tile_dims=NOT_SET,
+        qlevel=NOT_SET,
+        qmethod=NOT_SET,
+        dither_seed=NOT_SET,
+        hcomp_scale=NOT_SET,
+        hcomp_smooth=NOT_SET,
+        header=None,
+        names=None,
+        table_type='binary',
+        write_bitcols=False,
+        **keys,
+    ):
         """
         Write the data to a new HDU.
 
@@ -658,40 +803,7 @@ class FITS(object):
 
         image-only keywords
         -------------------
-        compress: string, optional
-            A string representing the compression algorithm for images,
-            default None.
-            Can be one of
-                'RICE'
-                'GZIP'
-                'GZIP_2'
-                'PLIO' (no unsigned or negative integers)
-                'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
-        tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
-        qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result
-            in more compression, we recommend one reads the FITS standard or
-            cfitsio manual to fully understand the effects of quantization.
-            None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults
-        qmethod: string or int
-            The quantization method as string or integer.
-                'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
-                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
-                    Standard dithering
-                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
-                    Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
+        %(compression_docs)s
 
         table-only keywords
         -------------------
@@ -713,10 +825,13 @@ class FITS(object):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         isimage = False
         if data is None:
@@ -726,28 +841,46 @@ class FITS(object):
                 isimage = True
 
         if isimage:
-            self.write_image(data, extname=extname, extver=extver,
-                             compress=compress,
-                             tile_dims=tile_dims,
-                             qlevel=qlevel,
-                             qmethod=qmethod,
-                             hcomp_scale=hcomp_scale,
-                             hcomp_smooth=hcomp_smooth,
-                             header=header)
+            self.write_image(
+                data,
+                extname=extname,
+                extver=extver,
+                compress=compress,
+                tile_dims=tile_dims,
+                qlevel=qlevel,
+                qmethod=qmethod,
+                dither_seed=dither_seed,
+                hcomp_scale=hcomp_scale,
+                hcomp_smooth=hcomp_smooth,
+                header=header,
+            )
         else:
-            self.write_table(data, units=units,
-                             extname=extname, extver=extver, header=header,
-                             names=names,
-                             table_type=table_type,
-                             write_bitcols=write_bitcols)
+            self.write_table(
+                data,
+                units=units,
+                extname=extname,
+                extver=extver,
+                header=header,
+                names=names,
+                table_type=table_type,
+                write_bitcols=write_bitcols,
+            )
 
-    def write_image(self, img, extname=None, extver=None,
-                    compress=None, tile_dims=None,
-                    qlevel=DEFAULT_QLEVEL,
-                    qmethod=DEFAULT_QMETHOD,
-                    hcomp_scale=DEFAULT_HCOMP_SCALE,
-                    hcomp_smooth=False,
-                    header=None):
+    @_doc_string_formatter
+    def write_image(
+        self,
+        img,
+        extname=None,
+        extver=None,
+        compress=NOT_SET,
+        tile_dims=NOT_SET,
+        qlevel=NOT_SET,
+        qmethod=NOT_SET,
+        dither_seed=NOT_SET,
+        hcomp_scale=NOT_SET,
+        hcomp_smooth=NOT_SET,
+        header=None,
+    ):
         """
         Create a new image extension and write the data.
 
@@ -764,41 +897,6 @@ class FITS(object):
             be represented in the header with keyname EXTVER.  The extver must
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
-        compress: string, optional
-            A string representing the compression algorithm for images,
-            default None.
-            Can be one of
-                'RICE'
-                'GZIP'
-                'GZIP_2'
-                'PLIO' (no unsigned or negative integers)
-                'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
-        tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
-        qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result
-            in more compression, we recommend one reads the FITS standard or
-            cfitsio manual to fully understand the effects of quantization.
-            None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults
-        qmethod: string or int
-            The quantization method as string or integer.
-                'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
-                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
-                    Standard dithering
-                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
-                    Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
-
         header: FITSHDR, list, dict, optional
             A set of header keys to write. Can be one of these:
                 - FITSHDR object
@@ -807,7 +905,7 @@ class FITS(object):
                 - a dictionary of keyword-value pairs; no comments are written
                   in this case, and the order is arbitrary.
             Note required keywords such as NAXIS, XTENSION, etc are cleaed out.
-
+        %(compression_docs)s
 
         restrictions
         ------------
@@ -823,30 +921,34 @@ class FITS(object):
             tile_dims=tile_dims,
             qlevel=qlevel,
             qmethod=qmethod,
+            dither_seed=dither_seed,
             hcomp_scale=hcomp_scale,
             hcomp_smooth=hcomp_smooth,
         )
 
         if header is not None:
             self[-1].write_keys(header)
-            self[-1]._update_info()
 
         # if img is not None:
         #    self[-1].write(img)
 
-    def create_image_hdu(self,
-                         img=None,
-                         dims=None,
-                         dtype=None,
-                         extname=None,
-                         extver=None,
-                         compress=None,
-                         tile_dims=None,
-                         qlevel=DEFAULT_QLEVEL,
-                         qmethod=DEFAULT_QMETHOD,
-                         hcomp_scale=DEFAULT_HCOMP_SCALE,
-                         hcomp_smooth=False,
-                         header=None):
+    @_doc_string_formatter
+    def create_image_hdu(
+        self,
+        img=None,
+        dims=None,
+        dtype=None,
+        extname=None,
+        extver=None,
+        compress=NOT_SET,
+        tile_dims=NOT_SET,
+        qlevel=NOT_SET,
+        qmethod=NOT_SET,
+        dither_seed=NOT_SET,
+        hcomp_scale=NOT_SET,
+        hcomp_smooth=NOT_SET,
+        header=None,
+    ):
         """
         Create a new, empty image HDU and reload the hdu list.  Either
         create from an input image or from input dims and dtype
@@ -889,44 +991,10 @@ class FITS(object):
             be represented in the header with keyname EXTVER.  The extver must
             be an integer > 0.  If extver is not sent, the first one will be
             selected.  If ext is an integer, the extver is ignored.
-        compress: string, optional
-            A string representing the compression algorithm for images,
-            default None.
-            Can be one of
-                'RICE'
-                'GZIP'
-                'GZIP_2'
-                'PLIO' (no unsigned or negative integers)
-                'HCOMPRESS'
-            (case-insensitive) See the cfitsio manual for details.
-        tile_dims: tuple of ints, optional
-            The size of the tiles used to compress images.
-        qlevel: float, optional
-            Quantization level for floating point data.  Lower generally result
-            in more compression, we recommend one reads the FITS standard or
-            cfitsio manual to fully understand the effects of quantization.
-            None or 0 means no quantization, and for gzip also implies
-            lossless.  Default is 4.0 which follows the fpack defaults.
-        qmethod: string or int
-            The quantization method as string or integer.
-                'NO_DITHER' or fitsio.NO_DITHER (-1)
-                   No dithering is performed
-                'SUBTRACTIVE_DITHER_1' or fitsio.SUBTRACTIVE_DITHER_1 (1)
-                    Standard dithering
-                'SUBTRACTIVE_DITHER_2' or fitsio.SUBTRACTIVE_DITHER_2 (2)
-                    Preserves zeros
-
-            Defaults to 'SUBTRACTIVE_DITHER_1' which follows the fpack defaults
-
-        hcomp_scale: float
-            Scale value for HCOMPRESS, 0.0 means lossless compression. Default
-            is 0.0 following the fpack defaults.
-        hcomp_smooth: bool
-            If True, apply smoothing when decompressing.  Default False
-
         header: FITSHDR, list, dict, optional
             This is only used to determine how many slots to reserve for
             header keywords
+        %(compression_docs)s
 
         restrictions
         ------------
@@ -950,7 +1018,7 @@ class FITS(object):
                 if not img.flags['C_CONTIGUOUS']:
                     # this always makes a copy
                     img2send = numpy.ascontiguousarray(img)
-                    array_to_native(img2send, inplace=True)
+                    img2send = array_to_native(img2send, inplace=True)
                 else:
                     img2send = array_to_native(img, inplace=False)
 
@@ -983,7 +1051,8 @@ class FITS(object):
         if img2send is not None:
             if img2send.dtype.fields is not None:
                 raise ValueError(
-                    "got record data type, expected regular ndarray")
+                    "got record data type, expected regular ndarray"
+                )
 
         if extname is None:
             # will be ignored
@@ -1000,53 +1069,102 @@ class FITS(object):
             # will be ignored
             extver = 0
 
-        comptype = get_compress_type(compress)
-        qmethod = get_qmethod(qmethod)
+        # if the file is using the extended filename syntax for
+        # compression, then we ignore any input compression params
+        # and raise if they are not fitsio.NOT_SET
+        # we do allow the dither_seed since there is no way to set
+        # this via the extended filename syntax
+        if "[compress" in self._filename.lower():
+            if (
+                compress != NOT_SET
+                or (not (isinstance(tile_dims, str) and tile_dims == NOT_SET))
+                or qlevel != NOT_SET
+                or qmethod != NOT_SET
+                or hcomp_scale != NOT_SET
+                or hcomp_smooth != NOT_SET
+            ):
+                raise ValueError(
+                    "You cannot override the compression parameters "
+                    "from Python for "
+                    "FITS files that use the extend filename syntax "
+                    "(e.g., `myfile.fits[compress]`) for compression."
+                )
 
-        tile_dims = get_tile_dims(tile_dims, dims)
-        if qlevel is None:
-            # 0.0 is the sentinel value for "no quantization" in cfitsio
-            qlevel = 0.0
+            # For FITS file using the extend filename syntax for
+            # compression, we do not allow overrides from Python.
+            # The value None is equivalent to "not set" at the
+            # C level and will ensure no overrides are done.
+            comptype = None
+            qmethod = None
+            tile_dims = None
+            qlevel = None
+            hcs = None
+            hcomp_scale = None
         else:
-            qlevel = float(qlevel)
+            comptype = get_compress_type(compress)
+            if img2send is not None:
+                check_comptype_img(comptype, dtstr)
 
-        if img2send is not None:
-            check_comptype_img(comptype, dtstr)
+            qmethod = get_qmethod(qmethod)
+            tile_dims = get_tile_dims(tile_dims, dims)
+
+            if qlevel == NOT_SET:
+                # in this case, we pass None since in the C layer,
+                # the value None means not set.
+                qlevel = None
+            elif qlevel is None:
+                # in the Python layer qlevel being None means no quantization.
+                # thus we pass 0.0 since
+                # it is the sentinel value for "no quantization" in cfitsio
+                qlevel = 0.0
+            else:
+                qlevel = float(qlevel)
+
+            if hcomp_smooth == NOT_SET:
+                hcs = None
+            else:
+                if hcomp_smooth:
+                    hcs = 1
+                else:
+                    hcs = 0
+
+            if hcomp_scale == NOT_SET:
+                hcomp_scale = None
+
+        # we always allow dither seed to be set
+        dither_seed = get_dither_seed(dither_seed)
 
         if header is not None:
             nkeys = len(header)
         else:
             nkeys = 0
 
-        if hcomp_smooth:
-            hcomp_smooth = 1
+        if comptype != NOT_SET or "[compress" in self._filename.lower():
+            hdu_is_compressed = True
         else:
-            hcomp_smooth = 0
+            hdu_is_compressed = False
 
-        self._FITS.create_image_hdu(
-            img2send,
-            nkeys,
-            dims=dims2send,
-            comptype=comptype,
-            tile_dims=tile_dims,
+        with _nonfinite_as_cfitsio_floating_null_value(
+            img2send, hdu_is_compressed
+        ) as img2send_any_nan:
+            img2send, any_nan = img2send_any_nan
+            self._FITS.create_image_hdu(
+                img2send,
+                nkeys,
+                dims=dims2send,
+                comptype=comptype,
+                tile_dims=tile_dims,
+                qlevel=qlevel,
+                qmethod=qmethod,
+                dither_seed=dither_seed,
+                hcomp_scale=hcomp_scale,
+                hcomp_smooth=hcs,
+                extname=extname,
+                extver=extver,
+                any_nan=1 if any_nan else 0,
+            )
 
-            qlevel=qlevel,
-            qmethod=qmethod,
-
-            hcomp_scale=hcomp_scale,
-            hcomp_smooth=hcomp_smooth,
-
-            extname=extname,
-            extver=extver,
-        )
-
-        if compress is not None and qlevel is None or qlevel == 0.0:
-            # work around bug in cfitso
-            self.reopen()
-        else:
-            # don't rebuild the whole list unless this is the first hdu
-            # to be created
-            self.update_hdu_list(rebuild=False)
+        self.update_hdu_list(rebuild=False)
 
     def _ensure_empty_image_ok(self):
         """
@@ -1058,15 +1176,26 @@ class FITS(object):
 
         if len(self) > 1:
             raise RuntimeError(
-                "Cannot write None image at extension %d" % len(self))
+                "Cannot write None image at extension %d" % len(self)
+            )
         if 'ndims' in self[0]._info:
-            raise RuntimeError("Can only write None images to extension zero, "
-                               "which already exists")
+            raise RuntimeError(
+                "Can only write None images to extension zero, "
+                "which already exists"
+            )
 
-    def write_table(self, data, table_type='binary',
-                    names=None, formats=None, units=None,
-                    extname=None, extver=None, header=None,
-                    write_bitcols=False):
+    def write_table(
+        self,
+        data,
+        table_type='binary',
+        names=None,
+        formats=None,
+        units=None,
+        extname=None,
+        extver=None,
+        header=None,
+        write_bitcols=False,
+    ):
         """
         Create a new table extension and write the data.
 
@@ -1121,18 +1250,19 @@ class FITS(object):
             raise ValueError("data must have at least 1 row")
         """
 
-        self.create_table_hdu(data=data,
-                              header=header,
-                              names=names,
-                              units=units,
-                              extname=extname,
-                              extver=extver,
-                              table_type=table_type,
-                              write_bitcols=write_bitcols)
+        self.create_table_hdu(
+            data=data,
+            header=header,
+            names=names,
+            units=units,
+            extname=extname,
+            extver=extver,
+            table_type=table_type,
+            write_bitcols=write_bitcols,
+        )
 
         if header is not None:
             self[-1].write_keys(header)
-            self[-1]._update_info()
 
         self[-1].write(data, names=names)
 
@@ -1142,11 +1272,20 @@ class FITS(object):
         """
         return self._FITS.read_raw()
 
-    def create_table_hdu(self, data=None, dtype=None,
-                         header=None,
-                         names=None, formats=None,
-                         units=None, dims=None, extname=None, extver=None,
-                         table_type='binary', write_bitcols=False):
+    def create_table_hdu(
+        self,
+        data=None,
+        dtype=None,
+        header=None,
+        names=None,
+        formats=None,
+        units=None,
+        dims=None,
+        extname=None,
+        extver=None,
+        table_type='binary',
+        write_bitcols=False,
+    ):
         """
         Create a new, empty table extension and reload the hdu list.
 
@@ -1231,26 +1370,31 @@ class FITS(object):
         if data is not None:
             if isinstance(data, numpy.ndarray):
                 names, formats, dims = array2tabledef(
-                    data, table_type=table_type, write_bitcols=write_bitcols)
+                    data, table_type=table_type, write_bitcols=write_bitcols
+                )
             elif isinstance(data, (list, dict)):
                 names, formats, dims = collection2tabledef(
-                    data, names=names, table_type=table_type,
-                    write_bitcols=write_bitcols)
+                    data,
+                    names=names,
+                    table_type=table_type,
+                    write_bitcols=write_bitcols,
+                )
             else:
                 raise ValueError(
-                    "data must be an ndarray with fields or a dict")
+                    "data must be an ndarray with fields or a dict"
+                )
         elif dtype is not None:
             dtype = numpy.dtype(dtype)
             names, formats, dims = descr2tabledef(
-                dtype.
-                descr,
+                dtype.descr,
                 write_bitcols=write_bitcols,
                 table_type=table_type,
             )
         else:
             if names is None or formats is None:
                 raise ValueError(
-                    "send either dtype=, data=, or names= and formats=")
+                    "send either dtype=, data=, or names= and formats="
+                )
 
             if not isinstance(names, list) or not isinstance(formats, list):
                 raise ValueError("names and formats should be lists")
@@ -1292,9 +1436,16 @@ class FITS(object):
             nkeys = 0
 
         # note we can create extname in the c code for tables, but not images
-        self._FITS.create_table_hdu(table_type_int, nkeys,
-                                    names, formats, tunit=units, tdim=dims,
-                                    extname=extname, extver=extver)
+        self._FITS.create_table_hdu(
+            table_type_int,
+            nkeys,
+            names,
+            formats,
+            tunit=units,
+            tdim=dims,
+            extname=extname,
+            extver=extver,
+        )
 
         # don't rebuild the whole list unless this is the first hdu
         # to be created
@@ -1348,23 +1499,30 @@ class FITS(object):
             hdu = ImageHDU(self._FITS, ext)
         elif hdu_type == BINARY_TBL:
             hdu = TableHDU(
-                self._FITS, ext,
-                lower=self.lower, upper=self.upper,
+                self._FITS,
+                ext,
+                lower=self.lower,
+                upper=self.upper,
                 trim_strings=self.trim_strings,
-                vstorage=self.vstorage, case_sensitive=self.case_sensitive,
+                vstorage=self.vstorage,
+                case_sensitive=self.case_sensitive,
                 iter_row_buffer=self.iter_row_buffer,
-                write_bitcols=self.write_bitcols)
+                write_bitcols=self.write_bitcols,
+            )
         elif hdu_type == ASCII_TBL:
             hdu = AsciiTableHDU(
-                self._FITS, ext,
-                lower=self.lower, upper=self.upper,
+                self._FITS,
+                ext,
+                lower=self.lower,
+                upper=self.upper,
                 trim_strings=self.trim_strings,
-                vstorage=self.vstorage, case_sensitive=self.case_sensitive,
+                vstorage=self.vstorage,
+                case_sensitive=self.case_sensitive,
                 iter_row_buffer=self.iter_row_buffer,
-                write_bitcols=self.write_bitcols)
+                write_bitcols=self.write_bitcols,
+            )
         else:
-            mess = ("extension %s is of unknown type %s "
-                    "this is probably a bug")
+            mess = "extension %s is of unknown type %s this is probably a bug"
             mess = mess % (ext, hdu_type)
             raise IOError(mess)
 
@@ -1463,8 +1621,10 @@ class FITS(object):
             if ver > 0:
                 key = '%s-%s' % (ext, ver)
                 if key not in self.hdu_map:
-                    raise IOError("extension not found: %s, "
-                                  "version %s %s" % (ext, ver, mess))
+                    raise IOError(
+                        "extension not found: %s, "
+                        "version %s %s" % (ext, ver, mess)
+                    )
                 hdu = self.hdu_map[key]
             else:
                 if ext not in self.hdu_map:
@@ -1488,7 +1648,7 @@ class FITS(object):
         """
         Text representation of some fits file metadata
         """
-        spacing = ' '*2
+        spacing = ' ' * 2
         rep = ['']
         rep.append("%sfile: %s" % (spacing, self._filename))
         rep.append("%smode: %s" % (spacing, _modeprint_map[self.intmode]))
@@ -1509,9 +1669,7 @@ class FITS(object):
                     name = '%s[%s]' % (name, ver)
 
             rep.append(
-                "%s%-6d %-15s %s" % (
-                    spacing, i, _hdu_type_map[t], name
-                )
+                "%s%-6d %-15s %s" % (spacing, i, _hdu_type_map[t], name)
             )
 
         rep = '\n'.join(rep)
@@ -1548,7 +1706,7 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
     Similar to descr2tabledef but if there are object columns a type
     and max length will be extracted and used for the tabledef
     """
-    is_ascii = (table_type == 'ascii')
+    is_ascii = table_type == 'ascii'
 
     if data.dtype.fields is None:
         raise ValueError("data must have fields")
@@ -1565,11 +1723,13 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
             if npy_dtype in ['u1', 'i1']:
                 raise ValueError(
                     "1-byte integers are not supported for "
-                    "ascii tables: '%s'" % npy_dtype)
+                    "ascii tables: '%s'" % npy_dtype
+                )
             if npy_dtype in ['u2']:
                 raise ValueError(
                     "unsigned 2-byte integers are not supported for "
-                    "ascii tables: '%s'" % npy_dtype)
+                    "ascii tables: '%s'" % npy_dtype
+                )
 
         if npy_dtype[0] == 'O':
             # this will be a variable length column 1Pt(len) where t is the
@@ -1581,7 +1741,8 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
             continue
         else:
             name, form, dim = _npy2fits(
-                d, table_type=table_type, write_bitcols=write_bitcols)
+                d, table_type=table_type, write_bitcols=write_bitcols
+            )
 
         if name == '':
             raise ValueError("field name is an empty string")
@@ -1596,7 +1757,8 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
         if name_nocase in names_nocase:
             raise ValueError(
                 "duplicate column name found: '%s'.  Note "
-                "FITS column names are not case sensitive" % name_nocase)
+                "FITS column names are not case sensitive" % name_nocase
+            )
 
         names.append(name)
         names_nocase[name_nocase] = name_nocase
@@ -1608,7 +1770,8 @@ def array2tabledef(data, table_type='binary', write_bitcols=False):
 
 
 def collection2tabledef(
-        data, names=None, table_type='binary', write_bitcols=False):
+    data, names=None, table_type='binary', write_bitcols=False
+):
     if isinstance(data, dict):
         if names is None:
             names = list(data.keys())
@@ -1620,12 +1783,11 @@ def collection2tabledef(
     else:
         raise ValueError("expected a dict")
 
-    is_ascii = (table_type == 'ascii')
+    is_ascii = table_type == 'ascii'
     formats = []
     dims = []
 
     for i, name in enumerate(names):
-
         if isdict:
             this_data = data[name]
         else:
@@ -1638,11 +1800,13 @@ def collection2tabledef(
             if dname in ['u1', 'i1']:
                 raise ValueError(
                     "1-byte integers are not supported for "
-                    "ascii tables: '%s'" % dname)
+                    "ascii tables: '%s'" % dname
+                )
             if dname in ['u2']:
                 raise ValueError(
                     "unsigned 2-byte integers are not supported for "
-                    "ascii tables: '%s'" % dname)
+                    "ascii tables: '%s'" % dname
+                )
 
         if dname[0] == 'O':
             # this will be a variable length column 1Pt(len) where t is the
@@ -1654,7 +1818,8 @@ def collection2tabledef(
             if len(this_data.shape) > 1:
                 send_dt = list(dt) + [this_data.shape[1:]]
             _, form, dim = _npy2fits(
-                send_dt, table_type=table_type, write_bitcols=write_bitcols)
+                send_dt, table_type=table_type, write_bitcols=write_bitcols
+            )
 
         formats.append(form)
         dims.append(dim)
@@ -1682,7 +1847,6 @@ def descr2tabledef(descr, table_type='binary', write_bitcols=False):
     dims = []
 
     for d in descr:
-
         """
         npy_dtype = d[1][1:]
         if is_ascii and npy_dtype in ['u1','i1']:
@@ -1693,10 +1857,12 @@ def descr2tabledef(descr, table_type='binary', write_bitcols=False):
         if d[1][1] == 'O':
             raise ValueError(
                 'cannot automatically declare a var column without '
-                'some data to determine max len')
+                'some data to determine max len'
+            )
 
         name, form, dim = _npy2fits(
-            d, table_type=table_type, write_bitcols=write_bitcols)
+            d, table_type=table_type, write_bitcols=write_bitcols
+        )
 
         if name == '':
             raise ValueError("field name is an empty string")
@@ -1742,11 +1908,14 @@ def npy_obj2fits(data, name=None):
         dtype0 = arr0.dtype
         npy_dtype = dtype0.descr[0][1][1:]
         if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
-            raise ValueError("Field '%s' is an arrays of strings, this is "
-                             "not allowed in variable length columns" % name)
+            raise ValueError(
+                "Field '%s' is an arrays of strings, this is "
+                "not allowed in variable length columns" % name
+            )
         if npy_dtype not in _table_npy2fits_form:
             raise ValueError(
-                "Field '%s' has unsupported type '%s'" % (name, npy_dtype))
+                "Field '%s' has unsupported type '%s'" % (name, npy_dtype)
+            )
         fits_dtype = _table_npy2fits_form[npy_dtype]
 
     # Q uses 64-bit addressing, should try at some point but the cfitsio manual
@@ -1762,8 +1931,9 @@ def get_tile_dims(tile_dims, imshape):
     """
     Just make sure the tile dims has the appropriate number of dimensions
     """
-
-    if tile_dims is None:
+    if tile_dims is None or (
+        isinstance(tile_dims, str) and tile_dims == NOT_SET
+    ):
         td = None
     else:
         td = numpy.array(tile_dims, dtype='i8')
@@ -1776,15 +1946,22 @@ def get_tile_dims(tile_dims, imshape):
 
 
 def get_compress_type(compress):
+    if compress == NOT_SET:
+        return None
+
     if compress is not None:
         compress = str(compress).upper()
     if compress not in _compress_map:
         raise ValueError(
-            "compress must be one of %s" % list(_compress_map.keys()))
+            "compress must be one of %s" % list(_compress_map.keys())
+        )
     return _compress_map[compress]
 
 
 def get_qmethod(qmethod):
+    if qmethod == NOT_SET:
+        return None
+
     if qmethod not in _qmethod_map:
         if isinstance(qmethod, str):
             qmethod = qmethod.upper()
@@ -1795,27 +1972,74 @@ def get_qmethod(qmethod):
 
     if qmethod not in _qmethod_map:
         raise ValueError(
-            "qmethod must be one of %s" % list(_qmethod_map.keys()))
+            "qmethod must be one of %s" % list(_qmethod_map.keys())
+        )
 
     return _qmethod_map[qmethod]
 
 
-def check_comptype_img(comptype, dtype_str):
+def get_dither_seed(dither_seed):
+    """
+    Convert a seed value or indicator to the approprate integer value for
+    cfitsio
 
+    Parameters
+    ----------
+    dither_seed: number or string
+        Seed for the subtractive dither.  Seeding makes the lossy compression
+        reproducible.  Allowed values are
+            None or 0 or 'clock':
+                Return 0, do not set the seed explicitly, use the system clock
+            negative or 'checksum':
+                Return -1, means Set the seed based on the data checksum
+            1-10_000:
+                use the input seed
+    """
+    if dither_seed == NOT_SET:
+        return None
+
+    if isinstance(dither_seed, bytes):
+        dither_seed = str(dither_seed, 'utf-8')
+
+    if isinstance(dither_seed, str):
+        dlow = dither_seed.lower()
+        if dlow == 'clock':
+            seed_out = 0
+        elif dlow == 'checksum':
+            seed_out = -1
+        else:
+            raise ValueError(f'Bad dither_seed {dither_seed}')
+    elif dither_seed is None:
+        seed_out = 0
+    else:
+        # must fit in an int
+        seed_out = numpy.int32(dither_seed)
+
+    if seed_out > 10_000:
+        raise ValueError(
+            f'Got dither_seed {seed_out}, expected avalue <= 10_000'
+        )
+
+    return seed_out
+
+
+def check_comptype_img(comptype, dtype_str):
     if comptype == NOCOMPRESS:
         return
 
     # if dtype_str == 'i8':
-        # no i8 allowed for tile-compressed images
+    # no i8 allowed for tile-compressed images
     #    raise ValueError("8-byte integers not supported when "
     #                     "using tile compression")
 
     if comptype == PLIO_1:
         # no unsigned u4/u8 for plio
         if dtype_str == 'u4' or dtype_str == 'u8':
-            raise ValueError("Unsigned 4/8-byte integers currently not "
-                             "allowed when writing using PLIO "
-                             "tile compression")
+            raise ValueError(
+                "Unsigned 4/8-byte integers currently not "
+                "allowed when writing using PLIO "
+                "tile compression"
+            )
 
 
 def _extract_table_type(type):
@@ -1831,18 +2055,24 @@ def _extract_table_type(type):
         else:
             raise ValueError(
                 "table type string should begin with 'binary' or 'ascii' "
-                "(case insensitive)")
+                "(case insensitive)"
+            )
     else:
         type = int(type)
         if type not in [BINARY_TBL, ASCII_TBL]:
             raise ValueError(
                 "table type num should be BINARY_TBL (%d) or "
-                "ASCII_TBL (%d)" % (BINARY_TBL, ASCII_TBL))
+                "ASCII_TBL (%d)" % (BINARY_TBL, ASCII_TBL)
+            )
         table_type = type
 
     return table_type
 
 
+# The _compress_map and _qmethod_map only handle
+# python-level translations of things like None to their
+# C-level meanings. At the C level, we use None to indicate
+# not set, as opposed to the values here.
 _compress_map = {
     None: NOCOMPRESS,
     'RICE': RICE_1,
@@ -1854,12 +2084,14 @@ _compress_map = {
     'PLIO_1': PLIO_1,
     'HCOMPRESS': HCOMPRESS_1,
     'HCOMPRESS_1': HCOMPRESS_1,
-    NOCOMPRESS: None,
-    RICE_1: 'RICE_1',
-    GZIP_1: 'GZIP_1',
-    GZIP_2: 'GZIP_2',
-    PLIO_1: 'PLIO_1',
-    HCOMPRESS_1: 'HCOMPRESS_1',
+    # In get_compress_type(), we convert the key to str before searching -
+    # so the keys here must be strings also!
+    str(NOCOMPRESS): NOCOMPRESS,
+    str(RICE_1): RICE_1,
+    str(GZIP_1): GZIP_1,
+    str(GZIP_2): GZIP_2,
+    str(PLIO_1): PLIO_1,
+    str(HCOMPRESS_1): HCOMPRESS_1,
 }
 
 _qmethod_map = {
@@ -1873,9 +2105,15 @@ _qmethod_map = {
 }
 
 _modeprint_map = {
-    'r': 'READONLY', 'rw': 'READWRITE', 0: 'READONLY', 1: 'READWRITE'}
-_char_modemap = {
-    'r': 'r', 'rw': 'rw',
-    READONLY: 'r', READWRITE: 'rw'}
+    'r': 'READONLY',
+    'rw': 'READWRITE',
+    0: 'READONLY',
+    1: 'READWRITE',
+}
+_char_modemap = {'r': 'r', 'rw': 'rw', READONLY: 'r', READWRITE: 'rw'}
 _int_modemap = {
-    'r': READONLY, 'rw': READWRITE, READONLY: READONLY, READWRITE: READWRITE}
+    'r': READONLY,
+    'rw': READWRITE,
+    READONLY: READONLY,
+    READWRITE: READWRITE,
+}

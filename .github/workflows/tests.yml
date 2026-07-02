@@ -8,6 +8,17 @@ on:
 
 env:
   PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
@@ -16,100 +27,86 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest]
-        pyver: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        npver: ["1.20", "1.21", "1.23", "1.26", "2.0"]
-        exclude:
-          - pyver: "3.11"
-            npver: "1.20"
-          - pyver: "3.11"
-            npver: "1.21"
-          - pyver: "3.10"
-            npver: "1.20"
-          - pyver: "3.12"
-            npver: "1.20"
-          - pyver: "3.12"
-            npver: "1.21"
-          - pyver: "3.12"
-            npver: "1.23"
-          - pyver: "3.8"
-            npver: "2.0"
-          - pyver: "3.8"
-            npver: "1.26"
+        config:
+          - { pyver: "3.10", npver: "1", ft: ""}
+          - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
+          # - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
+          # - { pyver: "3.11", npver: "2", ft: "python-gil"}
+          # - { pyver: "3.12", npver: "2", ft: "python-gil"}
+          # - { pyver: "3.13", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
 
     runs-on: ${{ matrix.os }}
+    env:
+      PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
 
     steps:
-      - name: cancel previous runs
-        uses: styfle/cancel-workflow-action@0.6.0
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@v3
         with:
-          access_token: ${{ github.token }}
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
 
-      - uses: actions/checkout@v2
-
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
-          python-version: ${{ matrix.pyver }}
-          channels: conda-forge/label/numpy_rc,conda-forge,defaults
-          channel-priority: strict
-          show-channel-urls: true
-          miniforge-version: latest
-          miniforge-variant: Mambaforge
+          fetch-depth: 0
+          fetch-tags: true
 
-      - name: install conda deps
-        shell: bash -l {0}
+      - uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476  #v3.0.0
+        with:
+          environment-name: fitsio-dev
+          environment-file: environment.yml
+          condarc: |
+            channels:
+            - conda-forge
+            show_channel_urls: true
+            channel_priority: strict
+            always_yes: true
+          create-args: >-
+            python=${{ matrix.config.pyver }}
+            numpy=${{ matrix.config.npver }}
+            ${{ matrix.config.ft }}
+
+      - name: set parallel testing flags
         run: |
-          conda list
-          mamba install numpy=${{ matrix.npver }} nose cython wget make pytest flake8
-          if [ "${{ matrix.pyver }}" == "3.8" ] || [ "${{ matrix.pyver }}" == "3.9" ] || [ "${{ matrix.pyver }}" == "3.10" ]; then
-            mamba install importlib_resources
+          if [[ "${{ matrix.config.pyver }}" == "3.14" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
           fi
 
-      - name: build external cfitsio
-        shell: bash -l {0}
-        run: |
-          mkdir cfitsio-external-build
-          cd cfitsio-external-build
-          wget https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.4.0.tar.gz
-          tar -xzvf cfitsio-4.4.0.tar.gz
-          cd cfitsio-4.4.0
-          ./configure --disable-shared --prefix=$HOME/cfitsio-static-install
-          make install -j 4
-          cd ..
-          cd ..
-
-      - name: test non-bundled build
-        shell: bash -l {0}
-        run: |
-          pip install -vv -e . \
-            --global-option="build_ext" \
-            --global-option="--use-system-fitsio" \
-            --global-option="--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
-            --global-option="--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
-          SKIP_BZIP_TEST=true pytest -vv fitsio
-
-      - name: test non-bundled build w/ env vars
-        shell: bash -l {0}
-        run: |
-          rm -rf build*
-          find . -name "*.so" -type f -delete
-          export FITSIO_USE_SYSTEM_FITSIO=1
-          export FITSIO_SYSTEM_FITSIO_INCLUDEDIR=$HOME/cfitsio-static-install/include
-          export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
-          pip install -vv -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
-
       - name: test bundled build
-        shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
-          pip install -vv -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pip install ${PIP_OPTIONS} -e .
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            pytest -vv --durations=20 ${PRP_FLAGS} fitsio
+            python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
+            python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
+          else
+            pytest -vv --durations=20 ${PRP_FLAGS} fitsio
+            python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+            python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
+          fi
+
+      - name: install bzip2 and curl on linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libbz2-dev curl  libcurl4-openssl-dev
 
       - name: test install sdist .gz with no unit tests
-        shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -117,15 +114,17 @@ jobs:
 
           python setup.py sdist
 
-          pip install -vv --no-deps --no-build-isolation dist/*.tar.gz
+          pip install ${PIP_OPTIONS} dist/*.tar.gz
           cd ..
-          python -c "import fitsio; assert fitsio.__version__ != '0.0.0'"
+          python -c "import fitsio; assert not fitsio.__version__.startswith('0')"
           cd -
           pip uninstall fitsio --yes
 
       - name: test sdist
-        shell: bash -l {0}
         run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip cache purge
           rm -rf build*
           rm -rf $HOME/cfitsio-static-install
           find . -name "*.so" -type f -delete
@@ -139,13 +138,10 @@ jobs:
           dname=$(echo "$fname" | sed 's/\.tar\.gz//')
           pushd $dname
 
-          pip install -vv -e .
-          SKIP_BZIP_TEST=true pytest -vv fitsio
+          pip install ${PIP_OPTIONS} -e .
+          pytest -vv --durations=20 ${PRP_FLAGS} fitsio
+          python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 
           popd
           popd
-
-      - name: flake8
-        shell: bash -l {0}
-        run: |
-          flake8 fitsio

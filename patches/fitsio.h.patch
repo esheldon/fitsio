@@ -1,13 +1,11 @@
---- cfitsio-4.2.0/fitsio.h	2022-10-31 14:40:23.000000000 -0400
-+++ cfitsio-4.2.0/fitsio.h	2023-07-14 11:48:10.102506229 -0400
-@@ -811,6 +810,10 @@
- /*---------------- utility routines -------------*/
-
- float CFITS_API ffvers(float *version);
-+#ifndef _FITSIO_H_FITS_USE_STANDARD_STRINGS
-+#define _FITSIO_H_FITS_USE_STANDARD_STRINGS
-+int CFITS_API fits_use_standard_strings(void);
-+#endif
- void CFITS_API ffupch(char *string);
- void CFITS_API ffgerr(int status, char *errtext);
- void CFITS_API ffpmsg(const char *err_message);
+--- fitsio.h	2026-05-14 13:14:24.306881941 -0400
++++ fitsio.h	2026-05-14 13:14:17.472862873 -0400
+@@ -339,6 +339,8 @@
+ #define OPT_CMT_MBR      1
+ #define OPT_CMT_MBR_DEL 11
+ 
++#define NTILEBINS 3  /* number of cached compressed tiles */
++
+ typedef struct        /* structure used to store table column information */
+ {
+     char ttype[70];   /* column name = FITS TTYPEn keyword; */

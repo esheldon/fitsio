@@ -20,6 +20,7 @@ See the main docs at https://github.com/esheldon/fitsio
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """
+
 from __future__ import with_statement, print_function
 import copy
 import warnings
@@ -75,17 +76,29 @@ class TableHDU(HDUBase):
     write_bitcols: bool, optional
         If True, write logicals a a bit column. Default is False.
     """
-    def __init__(self, fits, ext,
-                 lower=False, upper=False, trim_strings=False,
-                 vstorage='fixed', case_sensitive=False, iter_row_buffer=1,
-                 write_bitcols=False, **keys):
 
+    def __init__(
+        self,
+        fits,
+        ext,
+        lower=False,
+        upper=False,
+        trim_strings=False,
+        vstorage='fixed',
+        case_sensitive=False,
+        iter_row_buffer=1,
+        write_bitcols=False,
+        **keys,
+    ):
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         # NOTE: The defaults of False above cannot be changed since they
         # are or'ed with the method defaults below.
@@ -118,7 +131,7 @@ class TableHDU(HDUBase):
         """
         Get a copy of the column names for a table HDU
         """
-        return copy.copy(self._colnames)
+        return copy.copy(self._info["colnames"])
 
     def get_colname(self, colnum):
         """
@@ -129,11 +142,11 @@ class TableHDU(HDUBase):
         colnum: integer
             The number for the column, zero offset
         """
-        if colnum < 0 or colnum > (len(self._colnames)-1):
+        if colnum < 0 or colnum > (self._info["ncol"] - 1):
             raise ValueError(
-                "colnum out of range [0,%s-1]" % len(self._colnames)
+                "colnum out of range [0,%s-1]" % self._info["ncol"]
             )
-        return self._colnames[colnum]
+        return self._info["colnames"][colnum]
 
     def get_vstorage(self):
         """
@@ -177,10 +190,11 @@ class TableHDU(HDUBase):
         elif lastrow > self._info['nrows']:
             raise ValueError('lastrow cannot be greater than nrows')
         nrows = lastrow - firstrow
-        return self._FITS.where(self._ext+1, expression, firstrow+1, nrows)
+        return self._FITS.where(self._ext + 1, expression, firstrow + 1, nrows)
 
-    def write(self, data, firstrow=0, columns=None, names=None, slow=False,
-              **keys):
+    def write(
+        self, data, firstrow=0, columns=None, names=None, slow=False, **keys
+    ):
         """
         Write data into this HDU
 
@@ -211,10 +225,13 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         isrec = False
         if isinstance(data, (list, dict)):
@@ -227,7 +244,8 @@ class TableHDU(HDUBase):
                 else:
                     raise ValueError(
                         "you must send `columns` or `names` "
-                        "with a list of arrays")
+                        "with a list of arrays"
+                    )
             else:
                 columns_all = list(data.keys())
                 data_list = [data[n] for n in columns_all]
@@ -241,11 +259,13 @@ class TableHDU(HDUBase):
 
         else:
             if data.dtype.fields is None:
-                raise ValueError("You are writing to a table, so I expected "
-                                 "an array with fields as input. If you want "
-                                 "to write a simple array, you should use "
-                                 "write_column to write to a single column, "
-                                 "or instead write to an image hdu")
+                raise ValueError(
+                    "You are writing to a table, so I expected "
+                    "an array with fields as input. If you want "
+                    "to write a simple array, you should use "
+                    "write_column to write to a single column, "
+                    "or instead write to an image hdu"
+                )
 
             if data.shape == ():
                 raise ValueError("cannot write data with shape ()")
@@ -268,7 +288,6 @@ class TableHDU(HDUBase):
                 if not isobj[i]:
                     self.write_column(name, data_list[i], firstrow=firstrow)
         else:
-
             nonobj_colnums = []
             nonobj_arrays = []
             for i in xrange(len(data_list)):
@@ -292,8 +311,12 @@ class TableHDU(HDUBase):
 
             if len(nonobj_arrays) > 0:
                 self._FITS.write_columns(
-                    self._ext+1, nonobj_colnums, nonobj_arrays,
-                    firstrow=firstrow+1, write_bitcols=self.write_bitcols)
+                    self._ext + 1,
+                    nonobj_colnums,
+                    nonobj_arrays,
+                    firstrow=firstrow + 1,
+                    write_bitcols=self.write_bitcols,
+                )
 
         # writing the object arrays always occurs the same way
         # need to make sure this works for array fields
@@ -301,7 +324,7 @@ class TableHDU(HDUBase):
             if isobj[i]:
                 self.write_var_column(name, data_list[i], firstrow=firstrow)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def write_column(self, column, data, firstrow=0, **keys):
         """
@@ -324,10 +347,13 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         colnum = self._extract_colnum(column)
 
@@ -339,7 +365,7 @@ class TableHDU(HDUBase):
             data_send = np.ascontiguousarray(data)
             # this is a copy, we can make sure it is native
             # and modify in place if needed
-            array_to_native(data_send, inplace=True)
+            data_send = array_to_native(data_send, inplace=True)
         else:
             # we can avoid the copy with a try-finally block and
             # some logic
@@ -353,15 +379,15 @@ class TableHDU(HDUBase):
         self._verify_column_data(colnum, data_send)
 
         self._FITS.write_columns(
-            self._ext+1,
+            self._ext + 1,
             [colnum],
             [data_send],
-            firstrow=firstrow+1,
+            firstrow=firstrow + 1,
             write_bitcols=self.write_bitcols,
         )
 
         del data_send
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def _verify_column_data(self, colnum, data):
         """
@@ -387,7 +413,8 @@ class TableHDU(HDUBase):
         col_name = info['name']
         col_tdim = info['tdim']
         col_shape = _tdim2shape(
-            col_tdim, col_name, is_string=(npy_type[0] == 'S'))
+            col_tdim, col_name, is_string=(npy_type[0] == 'S')
+        )
 
         if col_shape is None:
             if this_shape == ():
@@ -410,13 +437,14 @@ class TableHDU(HDUBase):
         if this_npy_type != npy_type:
             raise ValueError(
                 "bad input data for column '%s': "
-                "expected '%s', got '%s'" % (
-                    col_name, npy_type, this_npy_type))
+                "expected '%s', got '%s'" % (col_name, npy_type, this_npy_type)
+            )
 
         if this_shape != col_shape:
             raise ValueError(
                 "bad input shape for column '%s': "
-                "expected '%s', got '%s'" % (col_name, col_shape, this_shape))
+                "expected '%s', got '%s'" % (col_name, col_shape, this_shape)
+            )
 
     def write_var_column(self, column, data, firstrow=0, **keys):
         """
@@ -437,22 +465,28 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if not is_object(data):
-            raise ValueError("Only object fields can be written to "
-                             "variable-length arrays")
+            raise ValueError(
+                "Only object fields can be written to variable-length arrays"
+            )
         colnum = self._extract_colnum(column)
 
-        self._FITS.write_var_column(self._ext+1, colnum+1, data,
-                                    firstrow=firstrow+1)
-        self._update_info()
+        self._FITS.write_var_column(
+            self._ext + 1, colnum + 1, data, firstrow=firstrow + 1
+        )
+        self._cached_info = None  # invalidate info cache
 
-    def insert_column(self, name, data, colnum=None, write_bitcols=None,
-                      **keys):
+    def insert_column(
+        self, name, data, colnum=None, write_bitcols=None, **keys
+    ):
         """
         Insert a new column.
 
@@ -477,15 +511,18 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if write_bitcols is None:
             write_bitcols = self.write_bitcols
 
-        if name in self._colnames:
+        if name in self._info["colnames"]:
             raise ValueError("column '%s' already exists" % name)
 
         if IS_PY3 and data.dtype.char == 'U':
@@ -499,8 +536,9 @@ class TableHDU(HDUBase):
             descr = data.dtype.descr
 
         if len(descr) > 1:
-            raise ValueError("you can only insert a single column, "
-                             "requested: %s" % descr)
+            raise ValueError(
+                "you can only insert a single column, requested: %s" % descr
+            )
 
         this_descr = descr[0]
         this_descr = [name, this_descr[1]]
@@ -519,11 +557,11 @@ class TableHDU(HDUBase):
         if colnum is None:
             new_colnum = len(self._info['colinfo']) + 1
         else:
-            new_colnum = colnum+1
+            new_colnum = colnum + 1
 
-        self._FITS.insert_col(self._ext+1, new_colnum, name, fmt, tdim=dims)
+        self._FITS.insert_col(self._ext + 1, new_colnum, name, fmt, tdim=dims)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
         self.write_column(name, data)
 
@@ -549,10 +587,13 @@ class TableHDU(HDUBase):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         firstrow = self._info['nrows']
         self.write(data, firstrow=firstrow, columns=columns, names=names)
@@ -586,27 +627,27 @@ class TableHDU(HDUBase):
             rows = self._process_slice(rows)
             if rows.step is not None and rows.step != 1:
                 rows = np.arange(
-                    rows.start+1,
-                    rows.stop+1,
+                    rows.start + 1,
+                    rows.stop + 1,
                     rows.step,
                 )
             else:
                 # rows must be 1-offset
-                rows = slice(rows.start+1, rows.stop+1)
+                rows = slice(rows.start + 1, rows.stop + 1)
         else:
             rows, sortind = self._extract_rows(rows, sort=True)
             # rows must be 1-offset
             rows += 1
 
         if isinstance(rows, slice):
-            self._FITS.delete_row_range(self._ext+1, rows.start, rows.stop)
+            self._FITS.delete_row_range(self._ext + 1, rows.start, rows.stop)
         else:
             if rows.size == 0:
                 return
 
-            self._FITS.delete_rows(self._ext+1, rows)
+            self._FITS.delete_rows(self._ext + 1, rows)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
     def resize(self, nrows, front=False):
         """
@@ -650,12 +691,20 @@ class TableHDU(HDUBase):
                 firstrow = 0
             else:
                 firstrow = nrows_current
-            self._FITS.insert_rows(self._ext+1, firstrow, rowdiff)
+            self._FITS.insert_rows(self._ext + 1, firstrow, rowdiff)
 
-        self._update_info()
+        self._cached_info = None  # invalidate info cache
 
-    def read(self, columns=None, rows=None, vstorage=None,
-             upper=False, lower=False, trim_strings=False, **keys):
+    def read(
+        self,
+        columns=None,
+        rows=None,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         Read data from this HDU
 
@@ -699,31 +748,52 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if columns is not None:
             data = self.read_columns(
-                columns, rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                columns,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
         elif rows is not None:
             # combinations of row and column subsets are covered by
             # read_columns so we pass colnums=None here to get all columns
             data = self.read_rows(
-                rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
         else:
             data = self._read_all(
                 vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
 
         return data
 
-    def _read_all(self, vstorage=None,
-                  upper=False, lower=False, trim_strings=False, colnums=None,
-                  **keys):
+    def _read_all(
+        self,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        colnums=None,
+        **keys,
+    ):
         """
         Read all data in the HDU.
 
@@ -747,15 +817,19 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         dtype, offsets, isvar = self.get_rec_dtype(
-            colnums=colnums, vstorage=vstorage)
+            colnums=colnums, vstorage=vstorage
+        )
 
-        w, = np.where(isvar == True)  # noqa
+        (w,) = np.where(isvar == True)  # noqa
         has_tbit = self._check_tbit()
 
         if w.size > 0:
@@ -767,8 +841,13 @@ class TableHDU(HDUBase):
             rows = None
             sortind = None
             array = self._read_rec_with_var(
-                colnums, rows, sortind, dtype,
-                offsets, isvar, _vstorage,
+                colnums,
+                rows,
+                sortind,
+                dtype,
+                offsets,
+                isvar,
+                _vstorage,
             )
         elif has_tbit:
             # drop down to read_columns since we can't stuff into a
@@ -776,14 +855,18 @@ class TableHDU(HDUBase):
             colnums = self._extract_colnums()
             array = self.read_columns(
                 colnums,
-                rows=None, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                rows=None,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
         else:
             firstrow = 1  # noqa - not used?
             nrows = self._info['nrows']
             array = np.zeros(nrows, dtype=dtype)
 
-            self._FITS.read_as_rec(self._ext+1, 1, nrows, array)
+            self._FITS.read_as_rec(self._ext + 1, 1, nrows, array)
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
@@ -792,7 +875,8 @@ class TableHDU(HDUBase):
                     array,
                     name,
                     self._info['colinfo'][colnum]['tscale'],
-                    self._info['colinfo'][colnum]['tzero'])
+                    self._info['colinfo'][colnum]['tzero'],
+                )
 
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
@@ -802,8 +886,16 @@ class TableHDU(HDUBase):
         self._maybe_trim_strings(array, trim_strings=trim_strings)
         return array
 
-    def read_column(self, col, rows=None, vstorage=None,
-                    upper=False, lower=False, trim_strings=False, **keys):
+    def read_column(
+        self,
+        col,
+        rows=None,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         Read the specified column
 
@@ -840,22 +932,37 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         res = self.read_columns(
-            [col], rows=rows, vstorage=vstorage,
-            upper=upper, lower=lower, trim_strings=trim_strings)
+            [col],
+            rows=rows,
+            vstorage=vstorage,
+            upper=upper,
+            lower=lower,
+            trim_strings=trim_strings,
+        )
         colname = res.dtype.names[0]
         data = res[colname]
 
         self._maybe_trim_strings(data, trim_strings=trim_strings)
         return data
 
-    def read_rows(self, rows, vstorage=None,
-                  upper=False, lower=False, trim_strings=False, **keys):
+    def read_rows(
+        self,
+        rows,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         Read the specified rows.
 
@@ -878,10 +985,13 @@ class TableHDU(HDUBase):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if rows is None:
             # we actually want all rows!
@@ -889,13 +999,19 @@ class TableHDU(HDUBase):
 
         if self._info['hdutype'] == ASCII_TBL:
             return self.read(
-                rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
 
         rows, sortind = self._extract_rows(rows)
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
-        w, = np.where(isvar == True)  # noqa
+        (w,) = np.where(isvar == True)  # noqa
+        has_tbit = self._check_tbit()
+
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -903,11 +1019,29 @@ class TableHDU(HDUBase):
                 _vstorage = vstorage
             colnums = self._extract_colnums()
             return self._read_rec_with_var(
-                colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
+                colnums,
+                rows,
+                sortind,
+                dtype,
+                offsets,
+                isvar,
+                _vstorage,
+            )
+        elif has_tbit:
+            # drop down to read_columns since we can't stuff into a
+            # contiguous array
+            colnums = self._extract_colnums()
+            array = self.read_columns(
+                colnums,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
             )
         else:
             array = np.zeros(rows.size, dtype=dtype)
-            self._FITS.read_rows_as_rec(self._ext+1, array, rows, sortind)
+            self._FITS.read_rows_as_rec(self._ext + 1, array, rows, sortind)
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
@@ -916,7 +1050,8 @@ class TableHDU(HDUBase):
                     array,
                     name,
                     self._info['colinfo'][colnum]['tscale'],
-                    self._info['colinfo'][colnum]['tzero'])
+                    self._info['colinfo'][colnum]['tzero'],
+                )
 
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
@@ -927,8 +1062,16 @@ class TableHDU(HDUBase):
 
         return array
 
-    def read_columns(self, columns, rows=None, vstorage=None,
-                     upper=False, lower=False, trim_strings=False, **keys):
+    def read_columns(
+        self,
+        columns,
+        rows=None,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         read a subset of columns from this binary table HDU
 
@@ -961,15 +1104,23 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if self._info['hdutype'] == ASCII_TBL:
             return self.read(
-                columns=columns, rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                columns=columns,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
@@ -977,8 +1128,11 @@ class TableHDU(HDUBase):
             # scalar sent, don't read as a recarray
             return self.read_column(
                 columns,
-                rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
             )
 
         # if rows is None still returns None, and is correctly interpreted
@@ -987,19 +1141,25 @@ class TableHDU(HDUBase):
 
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(
-            colnums=colnums, vstorage=vstorage)
+            colnums=colnums, vstorage=vstorage
+        )
 
-        w, = np.where(isvar == True)  # noqa
+        (w,) = np.where(isvar == True)  # noqa
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
             else:
                 _vstorage = vstorage
             array = self._read_rec_with_var(
-                colnums, rows, sortind, dtype, offsets, isvar, _vstorage,
+                colnums,
+                rows,
+                sortind,
+                dtype,
+                offsets,
+                isvar,
+                _vstorage,
             )
         else:
-
             if rows is None:
                 nrows = self._info['nrows']
             else:
@@ -1010,7 +1170,7 @@ class TableHDU(HDUBase):
             colnumsp = colnums[:].copy()
             colnumsp[:] += 1
             self._FITS.read_columns_as_rec(
-                self._ext+1, colnumsp, array, rows, sortind
+                self._ext + 1, colnumsp, array, rows, sortind
             )
 
             array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
@@ -1022,9 +1182,10 @@ class TableHDU(HDUBase):
                     array,
                     name,
                     self._info['colinfo'][colnum]['tscale'],
-                    self._info['colinfo'][colnum]['tzero'])
+                    self._info['colinfo'][colnum]['tzero'],
+                )
 
-        if (self._check_tbit(colnums=colnums)):
+        if self._check_tbit(colnums=colnums):
             array = self._fix_tbit_dtype(array, colnums)
 
         if self.lower or lower:
@@ -1036,9 +1197,17 @@ class TableHDU(HDUBase):
 
         return array
 
-    def read_slice(self, firstrow, lastrow, step=1,
-                   vstorage=None, lower=False, upper=False,
-                   trim_strings=False, **keys):
+    def read_slice(
+        self,
+        firstrow,
+        lastrow,
+        step=1,
+        vstorage=None,
+        lower=False,
+        upper=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         Read the specified row slice from a table.
 
@@ -1072,16 +1241,23 @@ class TableHDU(HDUBase):
 
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if self._info['hdutype'] == ASCII_TBL:
             rows = np.arange(firstrow, lastrow, step, dtype='i8')
             return self.read_ascii(
-                rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
 
         if self._info['hdutype'] == IMAGE_HDU:
             raise ValueError("slices currently only supported for tables")
@@ -1089,11 +1265,14 @@ class TableHDU(HDUBase):
         maxrow = self._info['nrows']
         if firstrow < 0 or lastrow > maxrow:
             raise ValueError(
-                "slice must specify a sub-range of [%d,%d]" % (0, maxrow))
+                "slice must specify a sub-range of [%d,%d]" % (0, maxrow)
+            )
 
         dtype, offsets, isvar = self.get_rec_dtype(vstorage=vstorage)
 
-        w, = np.where(isvar == True)  # noqa
+        (w,) = np.where(isvar == True)  # noqa
+        has_tbit = self._check_tbit()
+
         if w.size > 0:
             if vstorage is None:
                 _vstorage = self._vstorage
@@ -1103,7 +1282,21 @@ class TableHDU(HDUBase):
             sortind = np.arange(rows.size, dtype='i8')
             colnums = self._extract_colnums()
             array = self._read_rec_with_var(
-                colnums, rows, sortind, dtype, offsets, isvar, _vstorage)
+                colnums, rows, sortind, dtype, offsets, isvar, _vstorage
+            )
+        elif has_tbit:
+            # drop down to read_columns since we can't stuff into a
+            # contiguous array
+            colnums = self._extract_colnums()
+            rows = np.arange(firstrow, lastrow, step, dtype='i8')
+            array = self.read_columns(
+                colnums,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
         else:
             if step != 1:
                 rows = np.arange(firstrow, lastrow, step, dtype='i8')
@@ -1115,17 +1308,21 @@ class TableHDU(HDUBase):
 
                 # only first needs to be +1.  This is becuase the c code is
                 # inclusive
-                self._FITS.read_as_rec(self._ext+1, firstrow+1, lastrow, array)
+                self._FITS.read_as_rec(
+                    self._ext + 1, firstrow + 1, lastrow, array
+                )
 
                 array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(
-                    array)
+                    array
+                )
 
                 for colnum, name in enumerate(array.dtype.names):
                     self._rescale_and_convert_field_inplace(
                         array,
                         name,
                         self._info['colinfo'][colnum]['tscale'],
-                        self._info['colinfo'][colnum]['tzero'])
+                        self._info['colinfo'][colnum]['tzero'],
+                    )
 
         if self.lower or lower:
             _names_to_lower_if_recarray(array)
@@ -1149,10 +1346,13 @@ class TableHDU(HDUBase):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if vstorage is None:
             _vstorage = self._vstorage
@@ -1185,10 +1385,13 @@ class TableHDU(HDUBase):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if colnums is None:
             colnums = self._extract_colnums()
@@ -1196,7 +1399,7 @@ class TableHDU(HDUBase):
         has_tbit = False
         for i, colnum in enumerate(colnums):
             npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
-            if (istbit):
+            if istbit:
                 has_tbit = True
                 break
 
@@ -1214,7 +1417,7 @@ class TableHDU(HDUBase):
         descr = array.dtype.descr
         for i, colnum in enumerate(colnums):
             npy_type, isvar, istbit = self._get_tbl_numpy_dtype(colnum)
-            if (istbit):
+            if istbit:
                 coldescr = list(descr[i])
                 coldescr[1] = '?'
                 descr[i] = tuple(coldescr)
@@ -1311,8 +1514,10 @@ class TableHDU(HDUBase):
         else:
             tdim = self._info['colinfo'][colnum]['tdim']
             shape = _tdim2shape(
-                tdim, name,
-                is_string=(npy_type[0] == 'S' or npy_type[0] == 'U'))
+                tdim,
+                name,
+                is_string=(npy_type[0] == 'S' or npy_type[0] == 'U'),
+            )
             if shape is not None:
                 descr = (name, npy_type, shape)
             else:
@@ -1320,7 +1525,8 @@ class TableHDU(HDUBase):
         return descr, isvar
 
     def _read_rec_with_var(
-            self, colnums, rows, sortind, dtype, offsets, isvar, vstorage):
+        self, colnums, rows, sortind, dtype, offsets, isvar, vstorage
+    ):
         """
         Read columns from a table into a rec array, including variable length
         columns.  This is special because, for efficiency, it involves reading
@@ -1331,7 +1537,7 @@ class TableHDU(HDUBase):
         row and column numbers should be checked before calling this function
         """
 
-        colnumsp = colnums+1
+        colnumsp = colnums + 1
         if rows is None:
             nrows = self._info['nrows']
         else:
@@ -1339,13 +1545,13 @@ class TableHDU(HDUBase):
         array = np.zeros(nrows, dtype=dtype)
 
         # read from the main table first
-        wnotvar, = np.where(isvar == False)  # noqa
+        (wnotvar,) = np.where(isvar == False)  # noqa
         if wnotvar.size > 0:
             # this will be contiguous (not true for slices)
             thesecol = colnumsp[wnotvar]
             theseoff = offsets[wnotvar]
             self._FITS.read_columns_as_rec_byoffset(
-                self._ext+1,
+                self._ext + 1,
                 thesecol,
                 theseoff,
                 array,
@@ -1353,9 +1559,8 @@ class TableHDU(HDUBase):
                 sortind,
             )
             for i in xrange(thesecol.size):
-
                 name = array.dtype.names[wnotvar[i]]
-                colnum = thesecol[i]-1
+                colnum = thesecol[i] - 1
                 self._rescale_and_convert_field_inplace(
                     array,
                     name,
@@ -1367,7 +1572,7 @@ class TableHDU(HDUBase):
 
         # now read the variable length arrays we may be able to speed this up
         # by storing directly instead of reading first into a list
-        wvar, = np.where(isvar == True)  # noqa
+        (wvar,) = np.where(isvar == True)  # noqa
         if wvar.size > 0:
             # this will be contiguous (not true for slices)
             thesecol = colnumsp[wvar]
@@ -1375,11 +1580,15 @@ class TableHDU(HDUBase):
                 colnump = thesecol[i]
                 name = array.dtype.names[wvar[i]]
                 dlist = self._FITS.read_var_column_as_list(
-                    self._ext+1, colnump, rows, sortind,
+                    self._ext + 1,
+                    colnump,
+                    rows,
+                    sortind,
                 )
 
-                if (isinstance(dlist[0], str) or
-                        (IS_PY3 and isinstance(dlist[0], bytes))):
+                if isinstance(dlist[0], str) or (
+                    IS_PY3 and isinstance(dlist[0], bytes)
+                ):
                     is_string = True
                 else:
                     is_string = False
@@ -1429,7 +1638,7 @@ class TableHDU(HDUBase):
             # returns unique, sorted.  Force i8 for 32-bit systems
             sortind = np.array(rows.argsort(), dtype='i8', copy=copy_if_needed)
 
-            maxrow = self._info['nrows']-1
+            maxrow = self._info['nrows'] - 1
             if rows.size > 0:
                 firstrow = rows[sortind[0]]
                 lastrow = rows[sortind[-1]]
@@ -1506,15 +1715,15 @@ class TableHDU(HDUBase):
         if isslice:
             # include the end
             if num < 0:
-                num = nrows + (1+num)
+                num = nrows + (1 + num)
             elif num > nrows:
                 num = nrows
         else:
             # single element
             if num < 0:
                 num = nrows + num
-            elif num > (nrows-1):
-                num = nrows-1
+            elif num > (nrows - 1):
+                num = nrows - 1
 
         return num
 
@@ -1557,10 +1766,13 @@ class TableHDU(HDUBase):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if self.trim_strings or trim_strings:
             _trim_strings(array)
@@ -1573,14 +1785,17 @@ class TableHDU(HDUBase):
                 if 'S' in _dt[1]:
                     do_conversion = True
                     if len(_dt) == 3:
-                        new_dt.append((
-                            _dt[0],
-                            _dt[1].replace('S', 'U').replace('|', ''),
-                            _dt[2]))
+                        new_dt.append(
+                            (
+                                _dt[0],
+                                _dt[1].replace('S', 'U').replace('|', ''),
+                                _dt[2],
+                            )
+                        )
                     else:
-                        new_dt.append((
-                            _dt[0],
-                            _dt[1].replace('S', 'U').replace('|', '')))
+                        new_dt.append(
+                            (_dt[0], _dt[1].replace('S', 'U').replace('|', ''))
+                        )
                 else:
                     new_dt.append(_dt)
             if do_conversion:
@@ -1609,11 +1824,13 @@ class TableHDU(HDUBase):
             else:
                 npy_type = _table_fits2npy[abs(ftype)]
         except KeyError:
-            raise KeyError("unsupported %s fits data "
-                           "type: %d" % (table_type_string, ftype))
+            raise KeyError(
+                "unsupported %s fits data "
+                "type: %d" % (table_type_string, ftype)
+            )
 
         istbit = False
-        if (ftype == 1):
+        if ftype == 1:
             istbit = True
 
         isvar = False
@@ -1627,7 +1844,7 @@ class TableHDU(HDUBase):
             else:
                 addstr = '>'
             if npy_type not in ['u1', 'i1', 'S', 'U']:
-                npy_type = addstr+npy_type
+                npy_type = addstr + npy_type
 
         if npy_type == 'S':
             width = self._info['colinfo'][colnum]['width']
@@ -1696,7 +1913,10 @@ class TableHDU(HDUBase):
             stype = str
 
         dlist = self._FITS.read_var_column_as_list(
-            self._ext+1, colnum+1, rows, sortind,
+            self._ext + 1,
+            colnum + 1,
+            rows,
+            sortind,
         )
 
         if vstorage == 'fixed':
@@ -1749,7 +1969,7 @@ class TableHDU(HDUBase):
         Extract an array of columns from the input
         """
         if columns is None:
-            return np.arange(self._ncol, dtype='i8')
+            return np.arange(self._info["ncol"], dtype='i8')
 
         if not isinstance(columns, (tuple, list, np.ndarray)):
             # is a scalar
@@ -1770,20 +1990,22 @@ class TableHDU(HDUBase):
         if isinteger(col):
             colnum = col
 
-            if (colnum < 0) or (colnum > (self._ncol-1)):
+            if (colnum < 0) or (colnum > (self._info["ncol"] - 1)):
                 raise ValueError(
-                    "column number should be in [0,%d]" % (self._ncol-1)
+                    "column number should be in [0,%d]"
+                    % (self._info["ncol"] - 1)
                 )
         else:
             colstr = mks(col)
             try:
                 if self.case_sensitive:
                     mess = "column name '%s' not found (case sensitive)" % col
-                    colnum = self._colnames.index(colstr)
+                    colnum = self._info["colnames"].index(colstr)
                 else:
-                    mess \
-                        = "column name '%s' not found (case insensitive)" % col
-                    colnum = self._colnames_lower.index(colstr.lower())
+                    mess = (
+                        "column name '%s' not found (case insensitive)" % col
+                    )
+                    colnum = self._info["colnames_lower"].index(colstr.lower())
             except ValueError:
                 raise ValueError(mess)
         return int(colnum)
@@ -1798,10 +2020,11 @@ class TableHDU(HDUBase):
             mess = "Extension %s is not a Table HDU" % self.ext
             raise ValueError(mess)
         if 'colinfo' in self._info:
-            self._colnames = [i['name'] for i in self._info['colinfo']]
-            self._colnames_lower = [
-                i['name'].lower() for i in self._info['colinfo']]
-            self._ncol = len(self._colnames)
+            self._info["colnames"] = [i['name'] for i in self._info['colinfo']]
+            self._info["colnames_lower"] = [
+                i['name'].lower() for i in self._info['colinfo']
+            ]
+            self._info["ncol"] = len(self._info["colnames"])
 
     def __getitem__(self, arg):
         """
@@ -1828,8 +2051,7 @@ class TableHDU(HDUBase):
         This function is used for ascii tables as well
         """
 
-        res, flags = \
-            self._process_args_as_rows_or_columns(arg)
+        res, flags = self._process_args_as_rows_or_columns(arg)
 
         if 'isrows' in flags:
             # rows were entered: read all columns
@@ -1910,7 +2132,7 @@ class TableHDU(HDUBase):
         """
         Read in the buffer for iteration
         """
-        self._row_buffer = self[start:start+self._iter_row_buffer]
+        self._row_buffer = self[start : start + self._iter_row_buffer]
 
         # start back at the front of the buffer
         self._row_buffer_index = 0
@@ -1924,15 +2146,19 @@ class TableHDU(HDUBase):
         text.append('%srows: %d' % (spacing, self._info['nrows']))
         text.append('%scolumn info:' % spacing)
 
-        cspacing = ' '*4
+        cspacing = ' ' * 4
         nspace = 4
         nname = 15
         ntype = 6
         format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
         pformat = (
-            cspacing + "%-" +
-            str(nname) + "s\n %" +
-            str(nspace+nname+ntype) + "s  %s")
+            cspacing
+            + "%-"
+            + str(nname)
+            + "s\n %"
+            + str(nspace + nname + ntype)
+            + "s  %s"
+        )
 
         for colnum, c in enumerate(self._info['colinfo']):
             if len(c['name']) > nname:
@@ -1941,7 +2167,8 @@ class TableHDU(HDUBase):
                 f = format
 
             dt, isvar, istbit = self._get_tbl_numpy_dtype(
-                colnum, include_endianness=False)
+                colnum, include_endianness=False
+            )
             if isvar:
                 tform = self._info['colinfo'][colnum]['tform']
                 if dt[0] == 'S':
@@ -1964,8 +2191,16 @@ class TableHDU(HDUBase):
 
 
 class AsciiTableHDU(TableHDU):
-    def read(self, rows=None, columns=None, vstorage=None,
-             upper=False, lower=False, trim_strings=False, **keys):
+    def read(
+        self,
+        rows=None,
+        columns=None,
+        vstorage=None,
+        upper=False,
+        lower=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         read a data from an ascii table HDU
 
@@ -1997,18 +2232,26 @@ class AsciiTableHDU(TableHDU):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
         if isinstance(colnums, int):
             # scalar sent, don't read as a recarray
             return self.read_column(
-                columns, rows=rows, vstorage=vstorage,
-                upper=upper, lower=lower, trim_strings=trim_strings)
+                columns,
+                rows=rows,
+                vstorage=vstorage,
+                upper=upper,
+                lower=lower,
+                trim_strings=trim_strings,
+            )
 
         rows, sortind = self._extract_rows(rows)
         if rows is None:
@@ -2022,32 +2265,39 @@ class AsciiTableHDU(TableHDU):
 
         # this is the full dtype for all columns
         dtype, offsets, isvar = self.get_rec_dtype(
-            colnums=colnums, vstorage=vstorage)
+            colnums=colnums, vstorage=vstorage
+        )
         array = np.zeros(nrows, dtype=dtype)
 
         # note reading into existing data
-        wnotvar, = np.where(isvar == False)  # noqa
+        (wnotvar,) = np.where(isvar == False)  # noqa
         if wnotvar.size > 0:
             for i in wnotvar:
                 colnum = colnums[i]
                 name = array.dtype.names[i]
                 a = array[name].copy()
-                self._FITS.read_column(self._ext+1, colnum+1, a, rows, sortind)
+                self._FITS.read_column(
+                    self._ext + 1, colnum + 1, a, rows, sortind
+                )
                 array[name] = a
                 del a
 
         array = self._maybe_decode_fits_ascii_strings_to_unicode_py3(array)
 
-        wvar, = np.where(isvar == True)  # noqa
+        (wvar,) = np.where(isvar == True)  # noqa
         if wvar.size > 0:
             for i in wvar:
                 colnum = colnums[i]
                 name = array.dtype.names[i]
                 dlist = self._FITS.read_var_column_as_list(
-                    self._ext+1, colnum+1, rows, sortind,
+                    self._ext + 1,
+                    colnum + 1,
+                    rows,
+                    sortind,
                 )
-                if (isinstance(dlist[0], str) or
-                        (IS_PY3 and isinstance(dlist[0], bytes))):
+                if isinstance(dlist[0], str) or (
+                    IS_PY3 and isinstance(dlist[0], bytes)
+                ):
                     is_string = True
                 else:
                     is_string = False
@@ -2132,8 +2382,16 @@ class TableColumnSubset(object):
 
         self.fitshdu = fitshdu
 
-    def read(self, columns=None, rows=None, vstorage=None, lower=False,
-             upper=False, trim_strings=False, **keys):
+    def read(
+        self,
+        columns=None,
+        rows=None,
+        vstorage=None,
+        lower=False,
+        upper=False,
+        trim_strings=False,
+        **keys,
+    ):
         """
         Read the data from disk and return as a numpy array
 
@@ -2161,16 +2419,23 @@ class TableColumnSubset(object):
         """
         if keys:
             import warnings
+
             warnings.warn(
                 "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if self.is_scalar:
             data = self.fitshdu.read_column(
                 self.columns,
-                rows=rows, vstorage=vstorage, lower=lower, upper=upper,
-                trim_strings=trim_strings)
+                rows=rows,
+                vstorage=vstorage,
+                lower=lower,
+                upper=upper,
+                trim_strings=trim_strings,
+            )
         else:
             if columns is None:
                 c = self.columns
@@ -2178,8 +2443,12 @@ class TableColumnSubset(object):
                 c = columns
             data = self.fitshdu.read(
                 columns=c,
-                rows=rows, vstorage=vstorage, lower=lower, upper=upper,
-                trim_strings=trim_strings)
+                rows=rows,
+                vstorage=vstorage,
+                lower=lower,
+                upper=upper,
+                trim_strings=trim_strings,
+            )
 
         return data
 
@@ -2196,8 +2465,9 @@ class TableColumnSubset(object):
         # on whole rows.  We could allow rows= keyword to
         # be a slice...
 
-        res, flags = \
-            self.fitshdu._process_args_as_rows_or_columns(arg, unpack=True)
+        res, flags = self.fitshdu._process_args_as_rows_or_columns(
+            arg, unpack=True
+        )
         if 'isrows' in flags:
             # rows was entered: read all current column subset
             array = self.read(rows=res)
@@ -2213,8 +2483,8 @@ class TableColumnSubset(object):
         """
         Representation for TableColumnSubset
         """
-        spacing = ' '*2
-        cspacing = ' '*4
+        spacing = ' ' * 2
+        cspacing = ' ' * 4
 
         hdu = self.fitshdu
         info = self.fitshdu._info
@@ -2222,19 +2492,24 @@ class TableColumnSubset(object):
 
         text = []
         text.append("%sfile: %s" % (spacing, hdu._filename))
-        text.append("%sextension: %d" % (spacing, info['hdunum']-1))
+        text.append("%sextension: %d" % (spacing, info['hdunum'] - 1))
         text.append("%stype: %s" % (spacing, _hdu_type_map[info['hdutype']]))
         text.append('%srows: %d' % (spacing, info['nrows']))
         text.append("%scolumn subset:" % spacing)
 
-        cspacing = ' '*4
+        cspacing = ' ' * 4
         nspace = 4
         nname = 15
         ntype = 6
         format = cspacing + "%-" + str(nname) + "s %" + str(ntype) + "s  %s"
         pformat = (
-            cspacing + "%-" + str(nname) + "s\n %" +
-            str(nspace+nname+ntype) + "s  %s")
+            cspacing
+            + "%-"
+            + str(nname)
+            + "s\n %"
+            + str(nspace + nname + ntype)
+            + "s  %s"
+        )
 
         for colnum in self.colnums:
             cinfo = colinfo[colnum]
@@ -2245,7 +2520,8 @@ class TableColumnSubset(object):
                 f = format
 
             dt, isvar, istbit = hdu._get_tbl_numpy_dtype(
-                colnum, include_endianness=False)
+                colnum, include_endianness=False
+            )
             if isvar:
                 tform = cinfo['tform']
                 if dt[0] == 'S':
@@ -2315,7 +2591,7 @@ def _extract_vararray_max(tform):
         # no max length specified
         return -1
 
-    maxnum = int(tform[first+1:last])
+    maxnum = int(tform[first + 1 : last])
     return maxnum
 
 
@@ -2342,68 +2618,78 @@ def _get_col_dimstr(tdim, is_string=False):
 
 # no support yet for complex
 # all strings are read as bytes for python3 and then decoded to unicode
-_table_fits2npy = {1: 'i1',
-                   11: 'u1',
-                   12: 'i1',
-                   # logical. Note pyfits uses this for i1,
-                   # cfitsio casts to char*
-                   14: 'b1',
-                   16: 'S',
-                   20: 'u2',
-                   21: 'i2',
-                   30: 'u4',  # 30=TUINT
-                   31: 'i4',  # 31=TINT
-                   40: 'u4',  # 40=TULONG
-                   41: 'i4',  # 41=TLONG
-                   42: 'f4',
-                   81: 'i8',
-                   82: 'f8',
-                   83: 'c8',   # TCOMPLEX
-                   163: 'c16'}  # TDBLCOMPLEX
+_table_fits2npy = {
+    1: 'i1',
+    11: 'u1',
+    12: 'i1',
+    # logical. Note pyfits uses this for i1,
+    # cfitsio casts to char*
+    14: 'b1',
+    16: 'S',
+    20: 'u2',
+    21: 'i2',
+    30: 'u4',  # 30=TUINT
+    31: 'i4',  # 31=TINT
+    40: 'u4',  # 40=TULONG
+    41: 'i4',  # 41=TLONG
+    42: 'f4',
+    80: 'u8',  # 80=TULONGLON
+    81: 'i8',
+    82: 'f8',
+    83: 'c8',  # TCOMPLEX
+    163: 'c16',
+}  # TDBLCOMPLEX
 
 # cfitsio returns only types f8, i4 and strings for column types. in order to
 # avoid data loss, we always use i8 for integer types
 # all strings are read as bytes for python3 and then decoded to unicode
-_table_fits2npy_ascii = {16: 'S',
-                         31: 'i8',  # listed as TINT, reading as i8
-                         41: 'i8',  # listed as TLONG, reading as i8
-                         81: 'i8',
-                         21: 'i4',  # listed as TSHORT, reading as i4
-                         42: 'f8',  # listed as TFLOAT, reading as f8
-                         82: 'f8'}
+_table_fits2npy_ascii = {
+    16: 'S',
+    31: 'i8',  # listed as TINT, reading as i8
+    41: 'i8',  # listed as TLONG, reading as i8
+    81: 'i8',
+    21: 'i4',  # listed as TSHORT, reading as i4
+    42: 'f8',  # listed as TFLOAT, reading as f8
+    82: 'f8',
+}
 
 # for TFORM
-_table_npy2fits_form = {'b1': 'L',
-                        'u1': 'B',
-                        'i1': 'S',  # gets converted to unsigned
-                        'S': 'A',
-                        'U': 'A',
-                        'u2': 'U',  # gets converted to signed
-                        'i2': 'I',
-                        'u4': 'V',  # gets converted to signed
-                        'i4': 'J',
-                        'i8': 'K',
-                        'f4': 'E',
-                        'f8': 'D',
-                        'c8': 'C',
-                        'c16': 'M'}
+_table_npy2fits_form = {
+    'b1': 'L',
+    'u1': 'B',
+    'i1': 'S',  # gets converted to unsigned
+    'S': 'A',
+    'U': 'A',
+    'u2': 'U',  # gets converted to signed
+    'i2': 'I',
+    'u4': 'V',  # gets converted to signed
+    'i4': 'J',
+    'i8': 'K',
+    'u8': 'W',
+    'f4': 'E',
+    'f8': 'D',
+    'c8': 'C',
+    'c16': 'M',
+}
 
 # from mrdfits; note G gets turned into E
 # types=  ['A',   'I',   'L',   'B',   'F',    'D',      'C',     'M',     'K']
 # formats=['A1',  'I6',  'I10', 'I4',  'G15.9','G23.17', 'G15.9', 'G23.17',
 #          'I20']
 
-_table_npy2fits_form_ascii = {'S': 'A1',       # Need to add max here
-                              'U': 'A1',       # Need to add max here
-                              'i2': 'I7',      # I
-                              'i4': 'I12',     # ??
-                              # 'i8':'I21',     # K # i8 aren't supported
-                              # 'f4':'E15.7',   # F
-                              # F We must write as f8 since we can only
-                              # read as f8
-                              'f4': 'E26.17',
-                              # D 25.16 looks right, but this is recommended
-                              'f8': 'E26.17'}
+_table_npy2fits_form_ascii = {
+    'S': 'A1',  # Need to add max here
+    'U': 'A1',  # Need to add max here
+    'i2': 'I7',  # I
+    'i4': 'I12',  # ??
+    # 'i8':'I21',     # K # i8 aren't supported
+    # 'f4':'E15.7',   # F
+    # F We must write as f8 since we can only
+    # read as f8
+    'f4': 'E26.17',
+    # D 25.16 looks right, but this is recommended
+    'f8': 'E26.17',
+}
 
 
 def _npy2fits(d, table_type='binary', write_bitcols=False):
@@ -2415,7 +2701,8 @@ def _npy2fits(d, table_type='binary', write_bitcols=False):
         name, form, dim = _npy_string2fits(d, table_type=table_type)
     else:
         name, form, dim = _npy_num2fits(
-            d, table_type=table_type, write_bitcols=write_bitcols)
+            d, table_type=table_type, write_bitcols=write_bitcols
+        )
 
     return name, form, dim
 
@@ -2441,8 +2728,16 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
     if npy_dtype[0] == 'S' or npy_dtype[0] == 'U':
         raise ValueError("got S or U type: use _npy_string2fits")
 
-    if npy_dtype not in _table_npy2fits_form:
-        raise ValueError("unsupported type '%s'" % npy_dtype)
+    if table_type == 'binary':
+        if npy_dtype not in _table_npy2fits_form:
+            raise ValueError(
+                "unsupported type '%s' for binary tables" % npy_dtype
+            )
+    else:
+        if npy_dtype not in _table_npy2fits_form_ascii:
+            raise ValueError(
+                "unsupported type '%s' for ascii tables" % npy_dtype
+            )
 
     if table_type == 'binary':
         form = _table_npy2fits_form[npy_dtype]
@@ -2453,7 +2748,8 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
     if len(d) > 2:
         if table_type == 'ascii':
             raise ValueError(
-                "Ascii table columns must be scalar, got %s" % str(d))
+                "Ascii table columns must be scalar, got %s" % str(d)
+            )
 
         if write_bitcols and npy_dtype == 'b1':
             # multi-dimensional boolean
@@ -2461,7 +2757,7 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
 
         # Note, depending on numpy version, even 1-d can be a tuple
         if isinstance(d[2], tuple):
-            count = reduce(lambda x, y: x*y, d[2])
+            count = reduce(lambda x, y: x * y, d[2])
             form = '%d%s' % (count, form)
 
             if len(d[2]) > 1:
@@ -2469,7 +2765,7 @@ def _npy_num2fits(d, table_type='binary', write_bitcols=False):
                 # should be total elements followed by A
                 dim = list(reversed(d[2]))
                 dim = [str(e) for e in dim]
-                dim = '(' + ','.join(dim)+')'
+                dim = '(' + ','.join(dim) + ')'
         else:
             # this is a vector (1d array) column
             count = d[2]
@@ -2505,40 +2801,45 @@ def _npy_string2fits(d, table_type='binary'):
     string_size = int(string_size_str)
 
     if string_size <= 0:
-        raise ValueError('string sizes must be > 0, '
-                         'got %s for field %s' % (npy_dtype, name))
+        raise ValueError(
+            'string sizes must be > 0, got %s for field %s' % (npy_dtype, name)
+        )
 
     # now the dimensions
     if len(d) == 2:
         if table_type == 'ascii':
-            form = 'A'+string_size_str
+            form = 'A' + string_size_str
         else:
-            form = string_size_str+'A'
+            form = string_size_str + 'A'
     else:
         if table_type == 'ascii':
             raise ValueError(
-                "Ascii table columns must be scalar, got %s" % str(d))
+                "Ascii table columns must be scalar, got %s" % str(d)
+            )
         if isinstance(d[2], tuple):
             # this is an array column.  the form
             # should be total elements followed by A
             # count = 1
             # count = [count*el for el in d[2]]
-            count = reduce(lambda x, y: x*y, d[2])
-            count = string_size*count
+            count = reduce(lambda x, y: x * y, d[2])
+            count = string_size * count
             form = '%dA' % count
 
-            # will have to do tests to see if this is the right order
-            dim = list(reversed(d[2]))
-            # dim = d[2]
-            dim = [string_size_str] + [str(e) for e in dim]
-            dim = '(' + ','.join(dim)+')'
+            if len(d[2]) == 1 and d[2][0] == 1:
+                # string vec length 1 are written as scalars
+                pass
+            else:
+                dim = list(reversed(d[2]))
+                # dim = d[2]
+                dim = [string_size_str] + [str(e) for e in dim]
+                dim = '(' + ','.join(dim) + ')'
         else:
             # this is a vector (1d array) column
-            count = string_size*d[2]
+            count = string_size * d[2]
             form = '%dA' % count
 
             # will have to do tests to see if this is the right order
             dim = [string_size_str, str(d[2])]
-            dim = '(' + ','.join(dim)+')'
+            dim = '(' + ','.join(dim) + ')'
 
     return name, form, dim

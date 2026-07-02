@@ -1,0 +1,45 @@
+name: lint
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+env:
+  PY_COLORS: "1"
+
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476  #v3.0.0
+        with:
+          environment-name: fitsio-dev
+          condarc: |
+            channels:
+            - conda-forge
+            show_channel_urls: true
+            channel_priority: strict
+            always_yes: true
+          create-args: >-
+            pre-commit
+            identify>2.6
+
+      - name: pre-commit
+        run: |
+          pre-commit run -a

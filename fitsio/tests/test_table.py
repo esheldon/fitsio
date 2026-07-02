@@ -15,12 +15,15 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
+from .. import cfitsio_has_bzip2_support
 
+CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
+if CFITSIO_VERSION > 4:
+    DTYPES += ["u8"]
 
 
 def test_table_read_write():
-
     adata = make_data()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -49,7 +52,6 @@ def test_table_read_write():
 
         # now test read_column
         with FITS(fname) as fits:
-
             for f in adata['data'].dtype.names:
                 d = fits[1].read_column(f)
                 compare_array(
@@ -63,8 +65,10 @@ def test_table_read_write():
                 )
 
             # now list of columns
-            for cols in [['u2scalar', 'f4vec', 'Sarr'],
-                         ['f8scalar', 'u2arr', 'Sscalar']]:
+            for cols in [
+                ['u2scalar', 'f4vec', 'Sarr'],
+                ['f8scalar', 'u2arr', 'Sscalar'],
+            ]:
                 d = fits[1].read(columns=cols)
                 for f in d.dtype.names:
                     compare_array(
@@ -75,15 +79,125 @@ def test_table_read_write():
                     d = fits[1].read(columns=cols, rows=rows)
                     for col in d.dtype.names:
                         compare_array(
-                            adata['data'][col][rows], d[col],
-                            "test column list %s row subset" % col
+                            adata['data'][col][rows],
+                            d[col],
+                            "test column list %s row subset" % col,
                         )
                     for col in cols:
                         d = fits[1].read_column(col, rows=rows)
                         compare_array(
-                            adata['data'][col][rows], d,
-                            "test column list %s row subset" % col
+                            adata['data'][col][rows],
+                            d,
+                            "test column list %s row subset" % col,
                         )
+
+
+@pytest.mark.parametrize('nvec', [2, 1])
+def test_table_read_write_vec1(nvec):
+    """
+    ensure the data for vec length 1 gets round-tripped, even though
+    the shape is not preserved
+    """
+    dtype = [('x', 'f4', (nvec,))]
+    num = 10
+    data = np.zeros(num, dtype=dtype)
+    data['x'] = np.arange(num * nvec).reshape(num, nvec)
+    assert data['x'].shape == (num, nvec)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(data)
+
+            d = fits[1].read()
+            if nvec == 1:
+                assert d['x'].shape == (num,)
+            compare_array(
+                data['x'].ravel(),
+                d['x'].ravel(),
+                "table single field read 'x'",
+            )
+
+        # see if our convenience functions are working
+        write(
+            fname,
+            data,
+            extname="newext",
+        )
+        d = read(fname, ext='newext')
+        if nvec == 1:
+            assert d['x'].shape == (num,)
+        compare_array(data['x'].ravel(), d['x'].ravel(), "table data2")
+
+        # now test read_column
+        with FITS(fname) as fits:
+            d = fits[1].read_column('x')
+            if nvec == 1:
+                assert d.shape == (num,)
+            compare_array(
+                data['x'].ravel(), d.ravel(), "table single field read 'x'"
+            )
+
+
+@pytest.mark.parametrize('nvec', [2, 1])
+def test_table_read_write_uvec1(nvec):
+    """
+    ensure the data for U string vec length 1 gets round-tripped, even though
+    the shape is not preserved.  Also test 2 for consistency
+    """
+
+    dtype = [('string', 'U10', (nvec,))]
+    num = 10
+    data = np.zeros(num, dtype=dtype)
+    sravel = data['string'].ravel()
+    sravel[:] = ['%-10s' % i for i in range(num * nvec)]
+    assert data['string'].shape == (num, nvec)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.write_table(data)
+
+            d = fits[1].read()
+
+            if nvec == 1:
+                assert d['string'].shape == (num,)
+
+            compare_array(
+                data['string'].ravel(),
+                d['string'].ravel(),
+                "table single field read 'string'",
+            )
+
+        # see if our convenience functions are working
+        write(
+            fname,
+            data,
+            extname="newext",
+        )
+        d = read(fname, ext='newext')
+
+        if nvec == 1:
+            assert d['string'].shape == (num,)
+        compare_array(
+            data['string'].ravel(),
+            d['string'].ravel(),
+            "table data2",
+        )
+
+        # now test read_column
+        with FITS(fname) as fits:
+            d = fits[1].read_column('string')
+
+            if nvec == 1:
+                assert d.shape == (num,)
+            compare_array(
+                data['string'].ravel(),
+                d.ravel(),
+                "table single field read 'string'",
+            )
 
 
 def test_table_column_index_scalar():
@@ -151,7 +265,6 @@ def test_table_format_column_subset():
 
 
 def test_table_write_dict_of_arrays_scratch():
-
     adata = make_data()
     data = adata['data']
 
@@ -170,7 +283,6 @@ def test_table_write_dict_of_arrays_scratch():
 
 
 def test_table_write_dict_of_arrays():
-
     adata = make_data()
     data = adata['data']
 
@@ -178,7 +290,6 @@ def test_table_write_dict_of_arrays():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.create_table_hdu(data, extname='mytable')
 
             d = {}
@@ -204,7 +315,6 @@ def test_table_write_dict_of_arrays_var():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             d = {}
             for n in vardata.dtype.names:
                 d[n] = vardata[n]
@@ -228,7 +338,6 @@ def test_table_write_list_of_arrays_scratch():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             names = [n for n in data.dtype.names]
             dlist = [data[n] for n in data.dtype.names]
             fits.write(dlist, names=names)
@@ -238,7 +347,6 @@ def test_table_write_list_of_arrays_scratch():
 
 
 def test_table_write_list_of_arrays():
-
     adata = make_data()
     data = adata['data']
 
@@ -246,7 +354,6 @@ def test_table_write_list_of_arrays():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.create_table_hdu(data, extname='mytable')
 
             columns = [n for n in data.dtype.names]
@@ -269,7 +376,6 @@ def test_table_write_list_of_arrays_var():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             names = [n for n in vardata.dtype.names]
             dlist = [vardata[n] for n in vardata.dtype.names]
             fits.write(dlist, names=names)
@@ -279,7 +385,6 @@ def test_table_write_list_of_arrays_var():
 
 
 def test_table_write_bad_string():
-
     for d in ['S0', 'U0']:
         dt = [('s', d)]
 
@@ -300,7 +405,6 @@ def test_table_write_bad_string():
 
 
 def test_variable_length_columns():
-
     adata = make_data()
     vardata = adata['vardata']
 
@@ -328,8 +432,7 @@ def test_variable_length_columns():
                     d = fits[1].read_column(f)
                     if util.is_object(vardata[f]):
                         compare_object_array(
-                            vardata[f], d,
-                            "read all field '%s'" % f
+                            vardata[f], d, "read all field '%s'" % f
                         )
 
                 # same as above with slices
@@ -349,8 +452,7 @@ def test_variable_length_columns():
                     d = fits[1][f][:]
                     if util.is_object(vardata[f]):
                         compare_object_array(
-                            vardata[f], d,
-                            "read all field '%s'" % f
+                            vardata[f], d, "read all field '%s'" % f
                         )
 
                 #
@@ -361,7 +463,9 @@ def test_variable_length_columns():
                 for rows in [[0, 2], [2, 0]]:
                     d = fits[1].read(rows=rows)
                     compare_rec_with_var(
-                        vardata, d, "read subrows test '%s'" % vstorage,
+                        vardata,
+                        d,
+                        "read subrows test '%s'" % vstorage,
                         rows=rows,
                     )
 
@@ -378,7 +482,8 @@ def test_variable_length_columns():
                         d = fits[1].read_column(f, rows=rows)
                         if util.is_object(vardata[f]):
                             compare_object_array(
-                                vardata[f], d,
+                                vardata[f],
+                                d,
                                 "read subrows field '%s'" % f,
                                 rows=rows,
                             )
@@ -387,7 +492,9 @@ def test_variable_length_columns():
                     # reading multiple columns
                     d = fits[1][rows]
                     compare_rec_with_var(
-                        vardata, d, "read subrows slice test '%s'" % vstorage,
+                        vardata,
+                        d,
+                        "read subrows slice test '%s'" % vstorage,
                         rows=rows,
                     )
                     d = fits[1][2:4]
@@ -420,14 +527,16 @@ def test_variable_length_columns():
                         d = fits[1][f][rows]
                         if util.is_object(vardata[f]):
                             compare_object_array(
-                                vardata[f], d,
+                                vardata[f],
+                                d,
                                 "read subrows field '%s'" % f,
                                 rows=rows,
                             )
                         d = fits[1][f][2:4]
                         if util.is_object(vardata[f]):
                             compare_object_array(
-                                vardata[f], d,
+                                vardata[f],
+                                d,
                                 "read slice field '%s'" % f,
                                 rows=[2, 3],
                             )
@@ -445,11 +554,7 @@ def test_table_iter():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            fits.write_table(
-                data,
-                header=adata['keys'],
-                extname='mytable'
-            )
+            fits.write_table(data, header=adata['keys'], extname='mytable')
 
         # one row at a time
         with FITS(fname) as fits:
@@ -472,7 +577,6 @@ def test_ascii_table_write_read():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.write_table(
                 ascii_data,
                 table_type='ascii',
@@ -499,22 +603,36 @@ def test_ascii_table_write_read():
                 for f in ascii_data.dtype.names:
                     d = fits[1].read_column(f, rows=rows)
                     if d.dtype == np.float64:
-                        compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
-                                          "table field read subrows '%s'" % f)
+                        compare_array_tol(
+                            ascii_data[f][rows],
+                            d,
+                            2.15e-16,
+                            "table field read subrows '%s'" % f,
+                        )
                     else:
-                        compare_array(ascii_data[f][rows], d,
-                                      "table field read subrows '%s'" % f)
+                        compare_array(
+                            ascii_data[f][rows],
+                            d,
+                            "table field read subrows '%s'" % f,
+                        )
 
             beg = 1
             end = 3
             for f in ascii_data.dtype.names:
                 d = fits[1][f][beg:end]
                 if d.dtype == np.float64:
-                    compare_array_tol(ascii_data[f][beg:end], d, 2.15e-16,
-                                      "table field read slice '%s'" % f)
+                    compare_array_tol(
+                        ascii_data[f][beg:end],
+                        d,
+                        2.15e-16,
+                        "table field read slice '%s'" % f,
+                    )
                 else:
-                    compare_array(ascii_data[f][beg:end], d,
-                                  "table field read slice '%s'" % f)
+                    compare_array(
+                        ascii_data[f][beg:end],
+                        d,
+                        "table field read slice '%s'" % f,
+                    )
 
             cols = ['i2scalar', 'f4scalar']
             for f in ascii_data.dtype.names:
@@ -526,7 +644,7 @@ def test_ascii_table_write_read():
                             ascii_data[f],
                             d,
                             2.15e-16,
-                            "table subcol, '%s'" % f
+                            "table subcol, '%s'" % f,
                         )
                     else:
                         compare_array(
@@ -541,7 +659,7 @@ def test_ascii_table_write_read():
                             ascii_data[f],
                             d,
                             2.15e-16,
-                            "table subcol, '%s'" % f
+                            "table subcol, '%s'" % f,
                         )
                     else:
                         compare_array(
@@ -554,33 +672,53 @@ def test_ascii_table_write_read():
                     for f in data.dtype.names:
                         d = data[f]
                         if d.dtype == np.float64:
-                            compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
-                                              "table subcol, '%s'" % f)
+                            compare_array_tol(
+                                ascii_data[f][rows],
+                                d,
+                                2.15e-16,
+                                "table subcol, '%s'" % f,
+                            )
                         else:
-                            compare_array(ascii_data[f][rows], d,
-                                          "table subcol, '%s'" % f)
+                            compare_array(
+                                ascii_data[f][rows],
+                                d,
+                                "table subcol, '%s'" % f,
+                            )
 
                     data = fits[1][cols][rows]
                     for f in data.dtype.names:
                         d = data[f]
                         if d.dtype == np.float64:
-                            compare_array_tol(ascii_data[f][rows], d, 2.15e-16,
-                                              "table subcol/row, '%s'" % f)
+                            compare_array_tol(
+                                ascii_data[f][rows],
+                                d,
+                                2.15e-16,
+                                "table subcol/row, '%s'" % f,
+                            )
                         else:
-                            compare_array(ascii_data[f][rows], d,
-                                          "table subcol/row, '%s'" % f)
+                            compare_array(
+                                ascii_data[f][rows],
+                                d,
+                                "table subcol/row, '%s'" % f,
+                            )
 
             for f in ascii_data.dtype.names:
-
                 data = fits[1][cols][beg:end]
                 for f in data.dtype.names:
                     d = data[f]
                     if d.dtype == np.float64:
-                        compare_array_tol(ascii_data[f][beg:end], d, 2.15e-16,
-                                          "table subcol/slice, '%s'" % f)
+                        compare_array_tol(
+                            ascii_data[f][beg:end],
+                            d,
+                            2.15e-16,
+                            "table subcol/slice, '%s'" % f,
+                        )
                     else:
-                        compare_array(ascii_data[f][beg:end], d,
-                                      "table subcol/slice, '%s'" % f)
+                        compare_array(
+                            ascii_data[f][beg:end],
+                            d,
+                            "table subcol/slice, '%s'" % f,
+                        )
 
 
 def test_table_insert_column():
@@ -594,13 +732,12 @@ def test_table_insert_column():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.write_table(data, header=adata['keys'], extname='mytable')
 
             d = fits[1].read()
 
             for n in d.dtype.names:
-                newname = n+'_insert'
+                newname = n + '_insert'
 
                 fits[1].insert_column(newname, d[n])
 
@@ -609,7 +746,7 @@ def test_table_insert_column():
                 compare_array(
                     d[n],
                     newdata,
-                    "table single field insert and read '%s'" % n
+                    "table single field insert and read '%s'" % n,
                 )
 
 
@@ -734,22 +871,27 @@ def test_table_resize():
         with FITS(fname) as fits:
             d = fits[1].read()
 
-        compare_data = data[nrows-data.size:]
+        compare_data = data[nrows - data.size :]
         compare_rec(compare_data, d, "shrink from front")
 
         # These don't get zerod
-
+        # the defaults below come out of cfitsio
+        # IDK where they are defined
         nrows = 10
-        add_data = np.zeros(nrows-data.size, dtype=data.dtype)
-        add_data['i1scalar'] = -128
-        add_data['i1vec'] = -128
-        add_data['i1arr'] = -128
-        add_data['u2scalar'] = 32768
-        add_data['u2vec'] = 32768
-        add_data['u2arr'] = 32768
-        add_data['u4scalar'] = 2147483648
-        add_data['u4vec'] = 2147483648
-        add_data['u4arr'] = 2147483648
+        add_data = np.zeros(nrows - data.size, dtype=data.dtype)
+        add_data['i1scalar'] = -(2**7)
+        add_data['i1vec'] = -(2**7)
+        add_data['i1arr'] = -(2**7)
+        add_data['u2scalar'] = 2**15
+        add_data['u2vec'] = 2**15
+        add_data['u2arr'] = 2**15
+        add_data['u4scalar'] = 2**31
+        add_data['u4vec'] = 2**31
+        add_data['u4arr'] = 2**31
+        if CFITSIO_VERSION > 4:
+            add_data['u8scalar'] = 2**63
+            add_data['u8vec'] = 2**63
+            add_data['u8arr'] = 2**63
 
         #
         # expand at the back
@@ -792,7 +934,6 @@ def test_slice():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             # initial write
             fits.write_table(data)
 
@@ -854,7 +995,6 @@ def test_table_append():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             # initial write
             fits.write_table(data, header=adata['keys'], extname='mytable')
             # now append
@@ -863,10 +1003,10 @@ def test_table_append():
             fits[1].append(data2)
 
             d = fits[1].read()
-            assert d.size == data.size*2
+            assert d.size == data.size * 2
 
-            compare_rec(data, d[0:data.size], "Comparing initial write")
-            compare_rec(data2, d[data.size:], "Comparing appended data")
+            compare_rec(data, d[0 : data.size], "Comparing initial write")
+            compare_rec(data2, d[data.size :], "Comparing appended data")
 
             h = fits[1].read_header()
             compare_headerlist_header(adata['keys'], h)
@@ -877,15 +1017,15 @@ def test_table_append():
             fits[1].append(data3, names=names)
 
             d = fits[1].read()
-            assert d.size == data.size*3
-            compare_rec(data, d[2*data.size:], "Comparing appended data")
+            assert d.size == data.size * 3
+            compare_rec(data, d[2 * data.size :], "Comparing appended data")
 
             # append with list of arrays and columns
             fits[1].append(data3, columns=names)
 
             d = fits[1].read()
-            assert d.size == data.size*4
-            compare_rec(data, d[3*data.size:], "Comparing appended data")
+            assert d.size == data.size * 4
+            compare_rec(data, d[3 * data.size :], "Comparing appended data")
 
 
 def test_table_subsets():
@@ -899,7 +1039,6 @@ def test_table_subsets():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.write_table(data, header=adata['keys'], extname='mytable')
 
             for rows in [[1, 3], [3, 1]]:
@@ -934,7 +1073,6 @@ def test_gz_write_read():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.write_table(data, header=adata['keys'], extname='mytable')
 
             d = fits[1].read()
@@ -951,18 +1089,17 @@ def test_gz_write_read():
 
                 if 'comment' in entry:
                     assert (
-                        entry['comment'].strip()
-                        == h.get_comment(name).strip()
-                    ), (
-                        "testing comment for header key '%s'" % name
-                    )
+                        entry['comment'].strip() == h.get_comment(name).strip()
+                    ), "testing comment for header key '%s'" % name
 
         stat = os.stat(fname)
         assert stat.st_size != 0, "Making sure the data was flushed to disk"
 
 
-@pytest.mark.skipif('SKIP_BZIP_TEST' in os.environ or os.name == 'nt',
-                    reason='SKIP_BZIP_TEST set')
+@pytest.mark.skipif(
+    not cfitsio_has_bzip2_support(),
+    reason='cfitsio was not built with bzip2 support',
+)
 def test_bz2_read():
     '''
     Write a normal .fits file, run bzip2 on it, then read the bz2
@@ -1000,13 +1137,11 @@ def test_bz2_read():
 
                 if 'comment' in entry:
                     assert (
-                        entry['comment'].strip()
-                        == h.get_comment(name).strip()
-                    ), (
-                        "testing comment for header key '%s'" % name
-                    )
+                        entry['comment'].strip() == h.get_comment(name).strip()
+                    ), "testing comment for header key '%s'" % name
         except Exception:
             import traceback
+
             traceback.print_exc()
 
             assert False, 'Exception in testing bzip2 reading'
@@ -1023,7 +1158,6 @@ def test_checksum():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             fits.write_table(data, header=adata['keys'], extname='mytable')
             fits[1].write_checksum()
             fits[1].verify_checksum()
@@ -1038,7 +1172,7 @@ def test_trim_strings():
     n = 3
     data = np.zeros(n, dtype=dt)
     data['fval'] = np.random.random(n)
-    data['vec'] = np.random.random(n*2).reshape(n, 2)
+    data['vec'] = np.random.random(n * 2).reshape(n, 2)
 
     data['name'] = ['mike', 'really_long_name_to_fill', 'jan']
 
@@ -1057,7 +1191,6 @@ def test_trim_strings():
                 otrim = True
 
             with FITS(fname, 'rw', trim_strings=ctrim) as fits:
-
                 if ctrim:
                     dread = fits[1][:]
                     compare_rec(
@@ -1148,61 +1281,99 @@ def test_lower_upper():
 
             with FITS(fname, 'rw', lower=lower, upper=upper) as fits:
                 for rows in [None, [1, 2]]:
-
                     d = fits[1].read(rows=rows)
-                    compare_names(d.dtype.names, data.dtype.names,
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names,
+                        lower=lower,
+                        upper=upper,
+                    )
 
                     d = fits[1].read(
                         rows=rows, columns=['MyName', 'stuffthings']
                     )
-                    compare_names(d.dtype.names, data.dtype.names[0:2],
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names[0:2],
+                        lower=lower,
+                        upper=upper,
+                    )
 
                     d = fits[1][1:2]
-                    compare_names(d.dtype.names, data.dtype.names,
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names,
+                        lower=lower,
+                        upper=upper,
+                    )
 
                     if rows is not None:
                         d = fits[1][rows]
                     else:
                         d = fits[1][:]
 
-                    compare_names(d.dtype.names, data.dtype.names,
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names,
+                        lower=lower,
+                        upper=upper,
+                    )
 
                     if rows is not None:
                         d = fits[1][['myname', 'stuffthings']][rows]
                     else:
                         d = fits[1][['myname', 'stuffthings']][:]
 
-                    compare_names(d.dtype.names, data.dtype.names[0:2],
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names[0:2],
+                        lower=lower,
+                        upper=upper,
+                    )
 
             # using overrides
             with FITS(fname, 'rw') as fits:
                 for rows in [None, [1, 2]]:
-
                     d = fits[1].read(rows=rows, lower=lower, upper=upper)
-                    compare_names(d.dtype.names, data.dtype.names,
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names,
+                        lower=lower,
+                        upper=upper,
+                    )
 
                     d = fits[1].read(
-                        rows=rows, columns=['MyName', 'stuffthings'],
-                        lower=lower, upper=upper
+                        rows=rows,
+                        columns=['MyName', 'stuffthings'],
+                        lower=lower,
+                        upper=upper,
                     )
-                    compare_names(d.dtype.names, data.dtype.names[0:2],
-                                  lower=lower, upper=upper)
+                    compare_names(
+                        d.dtype.names,
+                        data.dtype.names[0:2],
+                        lower=lower,
+                        upper=upper,
+                    )
 
             for rows in [None, [1, 2]]:
                 d = read(fname, rows=rows, lower=lower, upper=upper)
-                compare_names(d.dtype.names, data.dtype.names,
-                              lower=lower, upper=upper)
+                compare_names(
+                    d.dtype.names, data.dtype.names, lower=lower, upper=upper
+                )
 
-                d = read(fname, rows=rows, columns=['MyName', 'stuffthings'],
-                         lower=lower, upper=upper)
-                compare_names(d.dtype.names, data.dtype.names[0:2],
-                              lower=lower, upper=upper)
+                d = read(
+                    fname,
+                    rows=rows,
+                    columns=['MyName', 'stuffthings'],
+                    lower=lower,
+                    upper=upper,
+                )
+                compare_names(
+                    d.dtype.names,
+                    data.dtype.names[0:2],
+                    lower=lower,
+                    upper=upper,
+                )
 
 
 def test_read_raw():
@@ -1236,6 +1407,7 @@ def test_read_raw():
             assert raw1 == raw3
         except Exception:
             import traceback
+
             traceback.print_exc()
             assert False, 'Exception in testing read_raw'
 
@@ -1257,9 +1429,15 @@ def test_table_bitcol_read_write():
             d = fits[1].read()
             compare_rec(bdata, d, "table read/write")
 
+            rows = [0, 2]
+            d = fits[1].read(rows=rows)
+            compare_rec(bdata[rows], d, "table read/write rows")
+
+            d = fits[1][:2]
+            compare_rec(bdata[:2], d, "table read/write slice")
+
         # now test read_column
         with FITS(fname) as fits:
-
             for f in bdata.dtype.names:
                 d = fits[1].read_column(f)
                 compare_array(
@@ -1278,7 +1456,7 @@ def test_table_bitcol_read_write():
                         compare_array(
                             bdata[f][rows],
                             d[f],
-                            "test column list %s row subset" % f
+                            "test column list %s row subset" % f,
                         )
 
 
@@ -1293,7 +1471,6 @@ def test_table_bitcol_append():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             # initial write
             fits.write_table(bdata, extname='mytable', write_bitcols=True)
 
@@ -1303,10 +1480,10 @@ def test_table_bitcol_append():
             fits[1].append(bdata2)
 
             d = fits[1].read()
-            assert d.size == bdata.size*2
+            assert d.size == bdata.size * 2
 
-            compare_rec(bdata, d[0:bdata.size], "Comparing initial write")
-            compare_rec(bdata2, d[bdata.size:], "Comparing appended data")
+            compare_rec(bdata, d[0 : bdata.size], "Comparing initial write")
+            compare_rec(bdata2, d[bdata.size :], "Comparing appended data")
 
 
 def test_table_bitcol_insert():
@@ -1318,7 +1495,6 @@ def test_table_bitcol_insert():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-
             # initial write
             nrows = 3
             d = np.zeros(nrows, dtype=[('ra', 'f8')])
@@ -1337,11 +1513,7 @@ def test_table_bitcol_insert():
             assert d.size == nrows, 'read size equals'
             compare_array(bcol, d['bscalar_inserted'], "inserted bitcol")
 
-            bvec = np.array(
-                [[True, False],
-                 [False, True],
-                 [True, True]]
-            )
+            bvec = np.array([[True, False], [False, True], [True, True]])
 
             # now append
             fits[-1].insert_column('bvec_inserted', bvec, write_bitcols=True)
@@ -1349,3 +1521,137 @@ def test_table_bitcol_insert():
             d = fits[-1].read()
             assert d.size == nrows, 'read size equals'
             compare_array(bvec, d['bvec_inserted'], "inserted bitcol")
+
+
+def test_table_write_dict_of_arrays_unaligned():
+    data = {}
+    for dtype in DTYPES:
+        _data = np.arange(20, dtype=dtype)
+        # The code to make the unaligned view was generated
+        # by Google's AI and then modified by hand to fix a bug.
+        unaligned_data = np.ndarray(
+            shape=(19,),
+            dtype=_data.dtype,
+            buffer=_data.data,
+            offset=1,  # Offset by 1 byte
+            strides=_data.strides,
+        )
+        if not dtype.endswith("1"):
+            assert not unaligned_data.flags["ALIGNED"]
+
+        data[dtype.replace("<", "l")] = unaligned_data
+
+    dtype = np.dtype(
+        {
+            "names": list(data.keys()),
+            "formats": [v.dtype for v in data.values()],
+        }
+    )
+    data_stra = np.zeros(data[dtype.names[0]].shape, dtype=dtype)
+    for k, v in data.items():
+        data_stra[k] = v
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            fits.create_table_hdu(data, extname='mytable')
+            fits[-1].write(data)
+
+        d = read(fname)
+        compare_rec(data_stra, d, "list of dicts")
+
+
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_big_col(table_type):
+    d = np.ones(1, dtype=[("blah", "U70000")])
+    d["blah"] = "".join(["a"] * 60000)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        # v3 cfitsio that is not bundled fails for big
+        # columns
+        if table_type == "ascii" or CFITSIO_VERSION < 4:
+            with pytest.raises(OSError) as e:
+                write(pth, d, table_type=table_type)
+            assert "FITSIO status = 236: column exceeds width of table" in str(
+                e.value
+            ) or (
+                "string column is too wide: 70000; "
+                "max supported width is" in str(e.value)
+            )
+        else:
+            write(pth, d, table_type=table_type)
+            data = read(pth)
+            np.testing.assert_array_equal(d, data)
+
+
+@pytest.mark.xfail(
+    condition=CFITSIO_VERSION < 4,
+    reason=(
+        "cfitsio versions < 4 do not easily support null-terminated strings"
+    ),
+)
+@pytest.mark.parametrize("table_type", ["binary", "ascii"])
+def test_table_null_end_strings(table_type):
+    d = np.ones(2, dtype=[("blah", "U70")])
+    d["blah"][0] = "".join(["a"] * 60)
+    d["blah"][1] = ""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pth = os.path.join(tmpdir, "test.fits")
+        write(pth, d, table_type=table_type)
+        data = read(pth)
+        assert len(data["blah"][0]) == 60
+        assert "U70" in data["blah"].dtype.descr[0][1]
+
+        if table_type == "ascii":
+            # null strings in ascii tables are a single blank
+            d["blah"][1] = " "
+        np.testing.assert_array_equal(d, data)
+
+
+def test_table_read_write_ulonglong():
+    adata = np.zeros(5, dtype=[("u8scalar", "u8")])
+    adata["u8scalar"] = (2**64 - 1) - np.arange(5, dtype="u8")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            if CFITSIO_VERSION < 3.45:
+                with pytest.raises(IOError) as e:
+                    fits.write_table(
+                        adata,
+                        extname='mytable',
+                    )
+                assert "'W'" in str(e.value)
+            else:
+                fits.write_table(
+                    adata,
+                    extname='mytable',
+                )
+                d = fits[1].read()
+                compare_rec(adata, d, "table read/write")
+
+
+@pytest.mark.parametrize("typ", ["u8", "u4", "i8"])
+def test_table_read_write_ulonglong_ascii_raises(typ):
+    adata = np.zeros(5, dtype=[("scalar", typ)])
+    if typ == "u8":
+        val = 2**64 - 1
+    elif typ == "u4":
+        val = 2**32 - 1
+    elif typ == "i8":
+        val = 2**31 - 1
+    adata["scalar"] = (val) - np.arange(5, dtype=typ)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            with pytest.raises(ValueError) as e:
+                fits.write_table(
+                    adata,
+                    extname='mytable',
+                    table_type='ascii',
+                )
+            assert f"unsupported type '{typ}' for ascii tables" in str(e.value)

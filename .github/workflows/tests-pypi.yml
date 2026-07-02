@@ -1,0 +1,70 @@
+name: tests-pypi
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+env:
+  PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-pypi:
+    name: tests-pypi
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, ubuntu-26.04-arm, macos-26-intel]
+        pyver: ["3.10", "3.14"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: '${{ matrix.pyver }}'
+
+      - name: install pip, setuptools, & pytest
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools
+          python -m pip install pytest pytest-run-parallel pytest-skip-slow
+
+      - name: install bzip2 and other tools on linux
+        if: contains(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install libbz2-dev wget make curl libcurl4-openssl-dev
+
+      - name: build fitsio
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+
+          pip install -v -e .
+
+      - name: test fitsio
+        run: |
+          pytest -vv --durations=20 --slow fitsio
+          python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"

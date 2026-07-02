@@ -1,41 +1,42 @@
-A python library to read from and write to FITS files.
+# fitsio
 
-[![Build Status (master)](https://travis-ci.com/esheldon/fitsio.svg?branch=master)](https://travis-ci.com/esheldon/fitsio)
-[![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
+[![build wheels/sdist](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml/badge.svg)](https://github.com/esheldon/fitsio/actions/workflows/wheel.yml) [![tests](https://github.com/esheldon/fitsio/workflows/tests/badge.svg)](https://github.com/esheldon/fitsio/actions?query=workflow%3Atests)
+
+A Python library to read from and write to `FITS` files.
 
 ## Description
 
-This is a python extension written in c and python.  Data are read into
-numerical python arrays.
+This is a Python extension written in C and Python.  Data are read into
+numerical Python arrays.
 
-A version of cfitsio is bundled with this package, there is no need to install
+A version of `cfitsio` is bundled with this package, there is no need to install
 your own, nor will this conflict with a version you have installed.
-
 
 ## Some Features
 
-- Read from and write to image, binary, and ascii table extensions.
+- Read from and write to image, binary, and ASCII table extensions.
 - Read arbitrary subsets of table columns and rows without loading all the data
   to memory.
-- Read image subsets without reading the whole image.  Write subsets to existing images.
+- Read image subsets without reading the whole image.
+- Write subsets to existing images.
 - Write and read variable length table columns.
-- Read images and tables using slice notation similar to numpy arrays.  This is like a more
-  powerful memmap, since it is column-aware for tables.
-- Append rows to an existing table.  Delete row sets and row ranges. Resize tables,
-    or insert rows.
+- Read images and tables using slice notation similar to `numpy` arrays. (This is like a more
+  powerful `memmap`, since it is column-aware for tables.)
+- Append rows to an existing table.
+- Delete row sets and row ranges, resize tables, or insert rows.
 - Query the columns and rows in a table.
 - Read and write header keywords.
-- Read and write images in tile-compressed format (RICE,GZIP,PLIO,HCOMPRESS).
-- Read/write gzip files directly.  Read unix compress (.Z,.zip) and bzip2 (.bz2) files.
-- TDIM information is used to return array columns in the correct shape.
+- Read and write images in tile-compressed format (`RICE`, `GZIP`, `PLIO` ,`HCOMPRESS`).
+- Read/write `GZIP` files directly.
+- Read unix compress (`.Z`, `.zip`) and bzip2 (`.bz2`) files.
+- `TDIM` information is used to return array columns in the correct shape.
 - Write and read string table columns, including array columns of arbitrary
   shape.
 - Read and write complex, bool (logical), unsigned integer, signed bytes types.
 - Write checksums into the header and verify them.
 - Insert new columns into tables in-place.
-- Iterate over rows in a table.  Data are buffered for efficiency.
-- python 3 support, including python 3 strings
-
+- Iterate over rows in a table. Data are buffered for efficiency.
+- Python 3 support, including Python 3 strings.
 
 ## Examples
 
@@ -367,61 +368,65 @@ f[1].upper           # If True, upper case colnames on output
 f[1].case_sensitive  # if True, names are matched case sensitive
 ```
 
-
 ## Installation
 
-The easiest way is using pip or conda. To get the latest release
+The easiest way is using `pip` or `conda`. To get the latest release
 
-    pip install fitsio
+```bash
+pip install fitsio
 
-    # update fitsio (and everything else)
-    pip install fitsio --upgrade
+# update fitsio (and everything else)
+pip install fitsio --upgrade
 
-    # if pip refuses to update to a newer version
-    pip install fitsio --upgrade --ignore-installed
+# if pip refuses to update to a newer version
+pip install fitsio --upgrade --ignore-installed
 
-    # if you only want to upgrade fitsio
-    pip install fitsio --no-deps --upgrade --ignore-installed
+# if you only want to upgrade fitsio
+pip install fitsio --no-deps --upgrade --ignore-installed
 
-    # for conda, use conda-forge
-    conda install -c conda-forge fitsio
+# for conda, use conda-forge
+conda install -c conda-forge fitsio
+```
 
 You can also get the latest source tarball release from
 
-    https://pypi.python.org/pypi/fitsio
+```url
+https://pypi.python.org/pypi/fitsio
+```
 
-or the bleeding edge source from github or use git. To check out
+or the bleeding edge source from GitHub or use git. To check out
 the code for the first time
 
-    git clone https://github.com/esheldon/fitsio.git
+```bash
+git clone https://github.com/esheldon/fitsio.git
+```
 
 Or at a later time to update to the latest
 
-    cd fitsio
-    git update
+```bash
+cd fitsio
+git update
+```
 
-Use tar xvfz to untar the file, enter the fitsio directory and type
+Use `tar xvfz` to unpack the file, enter the `fitsio` directory and type
 
-    python setup.py install
-
-optionally with a prefix
-
-    python setup.py install --prefix=/some/path
+```bash
+pip install .
+```
 
 ## Requirements
 
-- python 2 or python 3
+- python >=3.10
 - a C compiler and build tools like `make`, `patch`, etc.
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
+### Do not use `numpy` 1.10.0 or 1.10.1
 
-### Do not use numpy 1.10.0 or 1.10.1
-
-There is a serious performance regression in numpy 1.10 that results
-in fitsio running tens to hundreds of times slower.  A fix may be
-forthcoming in a later release.  Please comment here if this
-has already impacted your work https://github.com/numpy/numpy/issues/6467
-
+There is a serious performance regression in `numpy` 1.10 that results
+in `fitsio` running tens to hundreds of times slower.  A fix may be
+forthcoming in a later release. Please comment on GitHub issue
+[numpy/issues/6467](https://github.com/numpy/numpy/issues/6467)
+here if this has already impacted your work
 
 ## Tests
 
@@ -435,15 +440,24 @@ Some tests may fail if certain libraries are not available, such
 as bzip2.  This failure only implies that bzipped files cannot
 be read, without affecting other functionality.
 
+## Linting and Code Formatting
+
+We use the `pre-commit` framework for linting and code formatting. To
+run the linting and code formatting, use the following command
+
+```bash
+pre-commit run -a
+```
+
 ## Notes on Usage and Features
 
-### cfitsio bundling
+### `cfitsio` bundling
 
 We bundle cfitsio partly because many deployed versions of cfitsio in the
 wild do not have support for interesting features like tiled image compression.
 Bundling a version that meets our needs is a safe alternative.
 
-### array ordering
+### Array Ordering
 
 Since numpy uses C order, FITS uses fortran order, we have to write the TDIM
 and image dimensions in reverse order, but write the data as is.  Then we need
@@ -459,7 +473,7 @@ older versions with `pip` via `pip uninstall fitsio`. If you do, the best thing 
 to manually remove the files manually. See this [stackoverflow question](https://stackoverflow.com/questions/402359/how-do-you-uninstall-a-python-package-that-was-installed-using-distutils)
 for example.
 
-### python 3 strings
+### Python 3 Strings
 
 As of version `1.0.0`, fitsio now supports Python 3 strings natively. This support
 means that for Python 3, native strings are read from and written correctly to
@@ -468,6 +482,109 @@ as well. For FITS files written with a previous version of fitsio, the data
 in Python 3 will now come back as a string and not a byte string. Note that this
 support is not the same as full unicode support. Internally, fitsio only supports
 the ASCII character set.
+
+## Thread Safety and Python Free Threading
+
+`fitsio` is a Python wrapper for the `cfitsio` library and so inherits the constraints
+on multithreaded programs from `cfitsio`. Specifically this means that
+
+- Concurrent reading from FITS files is thread-safe, but every thread must open the FITS file
+  on its own, getting a unique `fitsio.FITS` object.
+- Concurrent writing to FITS files is NOT thread-safe.
+- `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
+  can use the file object at a time. On Python 3.13 or newer, `fitsio` employs a lock on the
+  underlying `cfitsio` data structure to enforce this condition and help prevent race conditions.
+  Even with this lock, you will likely need to employ your own locks from the `threading` module in order
+  to prevent race conditions arising from how the `fitsio` library is being used. See the example below.
+
+`fitsio` is compatible with Python free threading, and will not reenable the GIL
+when imported. However, the constraints above must be respected even when using Python
+free threading.
+
+Here is an example of using a lock to share a `fitsio.FITS` file pointer across threads:
+
+```python
+import concurrent.futures
+import threading
+import fitsio
+
+
+lock = threading.RLock()
+
+def _read_file(fp):
+    with lock:
+        # do something with fp here
+        pass
+
+with fitsio.FITS(fname) as fp:
+    with ThreadPoolExecutor(max_workers=10) as exc:
+        futs = [
+            exc.submit(_read_file, fp) for _ in range(10)
+        ]
+        for fut in futs:
+            res = fut.result()
+```
+
+## Free-threading Macros and Locks in the C Wrapper
+
+On Python 3.13 and above, we release the GIL (for
+GIL-enabled Python builds) or detach the thread state (for
+free-threading Python builds). Some background information is
+helpful in understanding how this works.
+
+- In the Python C API, the GIL and the thread state (i.e., attached
+  or detached) are two separate concepts. A thread that is attached
+  to the Python C runtime can make calls into it, use data from it, etc.
+  In GIL-enabled builds of Python, only one thread can be attached
+  at a time, and the GIL is the lock that enforces this constraint.
+  In free-threading builds of Python, the interpreter must sometimes
+  "stop the world" in order to do key tasks (e.g., garbage collection).
+  Thus threads still must either attach to the runtime or not (but there
+  is no constraint on how many threads can be attached, and thus no GIL).
+  For performance reasons, if a thread is doing I/O or some other long-running
+  computation where it does not need the Python runtime, it is good to detach
+  it so that any "stop the world" tasks are not blocked.
+- The Python C API uses the same functions for these handling both the GIL
+  and the thread state (wrapped in the`*_NOGIL` macros in the C code.)
+- The `cfitsio` library can be compiled in such a way that it is "reentrant."
+  Versions of the library that are reentrant allow library functions to be
+  called concurrently by different threads, but only on different FITS file
+  handles. Even in reentrant builds of the `cfitsio` library, it is not safe
+  to call library functions concurrently on the same FITS file handle. The
+  typical way to manage access to reentrant libraries is via a lock
+  on the data structure returned by the library (i.e., the FITS file handle).
+- When dealing with both the GIL and a lock for reentrant libraries, it is
+  very easy to create deadlocks (i.e., two threads that are each waiting on one
+  another). To help with this, on Python 3.13 or newer, the Python C API provides
+  a lock that is hooked into the Python runtime in such a way that it will not
+  deadlock with the GIL.
+
+The [Python Free-Threading Guide](https://py-free-threading.github.io/) is a very
+useful resource for learning more about the concepts above.
+
+To enforce the threading constraints, we use the following macros in the C layer:
+
+- `LOCK_FITS(x)` & `UNLOCK_FITS(x)`: These macros take a pointer to the `PyFITSObject`
+  object, and lock/unlock the underlying FITS file pointer for use by a single thread.
+  This lock is not reentrant (i.e., every `LOCK_FITS` call must be paired with an
+  `UNLOCK_FITS` call). The implementation of this lock uses the one from the Python C
+  API so it will not deadlock with the GIL-related macros below.
+- `ALLOW_NOGIL`: This macro defines variables needed for handling the GIL/thread state,
+   and it must be used in any C function where the other GIL-related macros below are used.
+- `RELEASE_GIL` & `CAPTURE_GIL`: These macros are used to actually release/capture the GIL
+  and/or attach/detach the thread state. Like the locks, these macros are not reentrant and
+  so every `RELEASE_GIL` call must be paired with a `CAPTURE_GIL` call.
+- `NOGIL(x)`: This macro wraps a single function call with the release and capture
+  operations, returning the value of the function call. It can be used to make code more
+  concise. You cannot use this macro in between calls to `RELEASE_GIL` and `CAPTURE_GIL`.
+
+All of these macros (except `NOGIL`) must be followed by a semicolon when used in C code
+(e.g., `ALLOW_NOGIL;`). You must also take care to properly unlock the FITS file pointer
+and/or release the GIL for all possible execution paths through your function (including
+branches for error handling). C `goto` statements can be very helpful for this task.
+
+In the C wrapper of `cfitsio` on Python 3.13 and above, we always lock the underlying FITS
+file pointer, and we do our best to release the GIL during I/O and/or long-running operations.
 
 ## TODO
 

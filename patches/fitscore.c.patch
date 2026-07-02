@@ -1,24 +1,52 @@
---- cfitsio-4.2.0/fitscore.c	2022-10-31 14:40:23.000000000 -0400
-+++ cfitsio-4.2.0/fitscore.c	2023-07-14 11:47:54.870417064 -0400
-@@ -194,6 +194,21 @@
+--- fitscore.c	2026-05-11 13:06:50.012650202 -0400
++++ fitscore.c	2026-05-15 09:46:07.006358505 -0400
+@@ -4648,8 +4648,7 @@
  
-     return(*version);
- }
-+
-+
-+/*
-+   Return 1 if we are to treat strings per the FITS standard (not
-+   replacing nulls with spaces, and not padding with spaces)
-+*/
-+int fits_use_standard_strings(void) {
-+#ifdef FITS_USE_STANDARD_STRINGS
-+    return 1;
-+#else
-+    return 0;
-+#endif
-+}
-+
-+
- /*--------------------------------------------------------------------------*/
- int ffflnm(fitsfile *fptr,    /* I - FITS file pointer  */
-            char *filename,    /* O - name of the file   */
+         /* free the tile-compressed image cache, if it exists */
+         if ((fptr->Fptr)->tilerow) {
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           ntilebins = NTILEBINS;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -4702,8 +4701,7 @@
+         /* free the tile-compressed image cache, if it exists */
+         if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           ntilebins = NTILEBINS;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -4814,8 +4812,7 @@
+      /* free the tile-compressed image cache, if it exists */
+      if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           ntilebins = NTILEBINS;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -5023,8 +5020,7 @@
+      /* free the tile-compressed image cache, if it exists */
+      if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           ntilebins = NTILEBINS;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {
+@@ -6713,8 +6709,7 @@
+           /* free the tile-compressed image cache, if it exists */
+           if ((fptr->Fptr)->tilerow) {
+ 
+-           ntilebins = 
+-	    (((fptr->Fptr)->znaxis[0] - 1) / ((fptr->Fptr)->tilesize[0])) + 1;
++           ntilebins = NTILEBINS;
+ 
+            for (ii = 0; ii < ntilebins; ii++) {
+              if ((fptr->Fptr)->tiledata[ii]) {

@@ -1,6 +1,156 @@
-version 1.2.5 (not yet released)
+version 1.4.0
 -------------
 
+Changes
+
+    - Updated bundled cfitsio to version 4.6.4.
+    - Limited compressed tile caching to the three most recently accessed tiles.
+      The old behavior would grow the cache to the size of the entire
+      compressed data.  This version gets most of the speed benefits.
+    - Added support for both `RICE_ONE` and `RICE_1` compression keywords.
+    - Removed patches that truncate subnormal floats (underflows)
+      to zero when reading images with nulls. These patches were
+      rejected by the upstream maintainers. The net effect of
+      this change is that for lossily compressed images w/ NaNs
+      subnormal values may be truncated to zero. This change
+      should be relatively harmless given that it only applies
+      to very small values which are lossily compressed anyways.
+    - Moved to `pyproject.toml` for packaging.
+    - Bumped minimum python to 3.10.
+    - Marked some tests as slow to speed up testing. Pass `--slow` to
+      pytest to run them.
+    - Added python 3.14 to the CI config.
+    - Added support and testing against free-threaded builds of python.
+    - Added a lock around the underlying cfitsio data for Python versions
+      3.13 or later. This lock is more efficient than using a Python lock
+      from the `threading` module.
+    - Added code sections that release the GIL for better multi-threaded
+      performance. The GIL is only released for Python 3.13 or newer.
+
+Bug Fixes
+
+    - Fixed segfault with threads and NOGIL usage.
+    - Fixed segfault where too few elements were allocated for the PLIO
+      compression buffer.
+    - Fixed untested memory allocation in the C wrapper.
+    - Added patch to skip building the cfitsio test programs.
+      These are not used by fitsio, but they fail to build on
+      some machines and cause installation failures.
+    - Added the compilation flag `-ffp-contract=off` to turn off FMA
+      instructions in order to maintain reproducible lossy image
+      compression.
+
+version 1.3.0
+-------------
+
+Changes
+
+    - Introduced a `fitsio.NOT_SET` singleton for some
+      parameters whose defaults are deferred at the Python
+      level and instead set at the C level by cfitsio. The
+      image compression parameters now use this singleton.
+      However, the actual underlying defaults used have not
+      changed.
+    - Added a new function `fitsio.cfitsio_is_bundled()`
+      that detects if the cfitsio library is bundled with
+      the Python code.
+    - Enabled the code to track all cfitsio error messages,
+      including those put onto the internal stack and then
+      later removed. This feature should help with debugging.
+    - Added support for uint64 / ULONLONG data for binary tables
+      and images. You need cfitsio version at least 4.1.0 (or
+      to use the bundled cfitsio) for this feature to work.
+    - Installation of fitsio will fail if the `patch` command
+      line utility is missing. To prevent this, set the environment
+      variable `FITSIO_FAIL_ON_BAD_PATCHES=false`.
+    - The C code is now styled uniformly with clang-format.
+    - Updated bundled cfitsio to 4.6.3.
+    - Added utilities `cfitsio_has_bzip2_support` and
+      `cfitsio_has_curl_support` to detect at run-time if cfitsio
+      was built with these options.
+    - Added methods `delete_key` and `delete_keys` to HDUs to allow
+      deleting header keys.
+    - HDU info loading is now done lazily.
+    - Changed string handling in python 3 to allow for correct
+      null-terminated behavior when linking to external builds
+      of cfitsio at version 4 or larger.
+
+Bug Fixes
+
+    - Fixed incorrect/unspecified minimum python version,
+      setting it to `>=3.8`.
+    - Fixed bug where we attempted to open `mem://` files
+      as existing files when calling `fitsio.FITS.reopen`.
+    - Fixed a bug where compression parameters set in filenames
+      were inconsistently applied, especially when compression
+      parameters were specified in Python too. Now the code will
+      raise an exception if a user sets Python keyword compression
+      parameters while also using filename compression parameters.
+      However, the `dither_seed` can be set from Python even if other
+      compression parameters are specified in the filename.
+    - Fixed bugs in lossless GZIP compression of integer types. See the
+      new patch `patches/imcompress.c.patch`. See https://github.com/HEASARC/cfitsio/pull/97
+      and https://github.com/HEASARC/cfitsio/pull/98 for the upstream PR for the patch.
+    - Fixed a bug where compression parameters were cached across different HDUs.
+    - Fixed a bug where writing unsupported image types either did not raise an error
+      or did not raise the correct error.
+    - Fixed a bug where rectangular subsets of images were not written properly.
+    - Fixed automatic detection of bzip2 and curl libraries.
+    - Fixed handling nan values when reading and writing compressed images.
+    - Fixed bug in cfitsio where underflows were cast to zero when handling
+      nan values. See https://github.com/HEASARC/cfitsio/pull/102.
+    - Fixed bug in cfitsio where overwriting a tile-compressed image fails
+      when the new values are not lossily compressed but the old values were.
+      See https://github.com/HEASARC/cfitsio/pull/101.
+    - Fixed a bug where the FITS HDU properties could go out of sync as header
+      keys were added, modified, etc.
+
+version 1.2.8
+-------------
+
+Changes
+
+    - Arrays passed to cfitsio are now forced to be
+      aligned via `numpy.require`. This change prevents
+      failures due to rare instances of unaligned memory
+      access on certain platforms. No additional copies
+      of arrays are made unless they are unaligned. As
+      unaligned arrays are rare, this change should have
+      minimal performance implications.
+
+Bug Fixes
+
+    - Fixed error in PyPI uploads.
+
+version 1.2.7
+-------------
+
+Changes
+
+    - Replace deprecated `NPY_*` constants (Michał Górny)
+
+version 1.2.6
+-------------
+
+Bug Fixes
+
+    - Fix bug parsing header cards with free-form strings
+    - Fix writing and reading of string columns with length
+      1 vectors in numpy 2.
+    - Fix building against NumPy 2.3.0.
+
+version 1.2.5
+-------------
+
+New Features
+
+    - writing images supports the dither_seed keyword, to seed
+      the random number generator for subtractive dithering
+    - PyPI now has wheels in addition to sdists
+
+Bug Fixes
+
+    - Fix bug slicing tables that have TBIT columns
 
 version 1.2.4
 -------------
@@ -228,7 +378,6 @@ Bug Fixes
     - Fix bug when reading slice with step, but no start/stop (Mike Jarvis)
     - Fix bug with clobber when compression is sent in filename
 
-
 Deprecations
 
     - Removed the use of `**kwargs` in various read/write routines. This
@@ -361,7 +510,6 @@ Bug Fixes
       to upper case
     - link against libm explicitly for compatibility on some systems
 
-
 version 0.9.11
 ---------------------------------
 
@@ -416,7 +564,6 @@ Workarounds
       the -O3 optimization flag when compiling cfitsio.  For replacing -O3 with
       -O2 fixes the issue.  This was an issue on linux in both anaconda python2
       and python3.
-
 
 version 0.9.9.1
 ----------------------------------
@@ -515,7 +662,6 @@ New Features
     - IOError is now used to indicate a number of errors that
         were previously ValueError
 
-
 version 0.9.6
 --------------
 
@@ -579,6 +725,7 @@ All changes E. Sheldon except where noted.
 
 version 0.9.3
 --------------------------
+
 New Features
 
     - Can write lists of arrays and dictionaries of arrays
@@ -692,7 +839,6 @@ On OS X, we now link properly with universal binaries on intel. Thanks to Eli
 Rykoff for help with OS X testing and bug fixes.
 
 New features
-
 
     - Write and read variable length columns.  When writing a table, any fields
       declared "object" ("O" type char) in the input array will be written to a

@@ -27,21 +27,18 @@ def compare_headerlist_header(header_list, header):
         if isinstance(hvalue, str):
             hvalue = hvalue.strip()
 
-        assert value == hvalue, (
-            "testing header key '%s'" % name
-        )
+        assert value == hvalue, "testing header key '%s'" % name
 
         if 'comment' in entry:
             assert (
-                entry['comment'].strip() ==
-                header.get_comment(name).strip()
+                entry['comment'].strip() == header.get_comment(name).strip()
             ), "testing comment for header key '%s'" % name
 
 
 def cast_shape(shape):
     if len(shape) == 2 and shape[1] == 1:
-        return (shape[0], )
-    elif shape == (1, ):
+        return (shape[0],)
+    elif shape == (1,):
         return tuple()
     else:
         return shape
@@ -72,7 +69,7 @@ def compare_array_tol(arr1, arr2, tol, name):
         "input %s, read: %s" % (name, arr1.shape, arr2.shape)
     )
 
-    adiff = np.abs((arr1 - arr2)/arr1)
+    adiff = np.abs((arr1 - arr2) / arr1)
     maxdiff = adiff.max()
     res = np.where(adiff > tol)
     for i, w in enumerate(res):
@@ -89,7 +86,7 @@ def compare_array_abstol(arr1, arr2, tol, name):
         "input %s, read: %s" % (name, arr1.shape, arr2.shape)
     )
 
-    adiff = np.abs(arr1-arr2)
+    adiff = np.abs(arr1 - arr2)
     maxdiff = adiff.max()
     res = np.where(adiff > tol)
     for i, w in enumerate(res):
@@ -108,17 +105,15 @@ def compare_object_array(arr1, arr2, name, rows=None):
         rows = np.arange(arr1.size)
 
     for i, row in enumerate(rows):
-        if ((sys.version_info >= (3, 0, 0) and isinstance(arr2[i], bytes))
-                or isinstance(arr2[i], str)):
-
+        if (
+            sys.version_info >= (3, 0, 0) and isinstance(arr2[i], bytes)
+        ) or isinstance(arr2[i], str):
             if sys.version_info >= (3, 0, 0) and isinstance(arr1[row], bytes):
                 _arr1row = arr1[row].decode('ascii')
             else:
                 _arr1row = arr1[row]
 
-            assert _arr1row == arr2[i], (
-                "%s str el %d equal" % (name, i)
-            )
+            assert _arr1row == arr2[i], "%s str el %d equal" % (name, i)
         else:
             delement = arr2[i]
             orig = arr1[row]
@@ -135,8 +130,7 @@ def compare_rec(rec1, rec2, name):
 
         assert rec1_shape == rec2_shape, (
             "testing '%s' field '%s' shapes are equal: "
-            "input %s, read: %s" % (
-                name, f, rec1_shape, rec2_shape)
+            "input %s, read: %s" % (name, f, rec1_shape, rec2_shape)
         )
 
         if sys.version_info >= (3, 0, 0) and rec1[f].dtype.char == 'S':
@@ -158,8 +152,7 @@ def compare_rec_subrows(rec1, rec2, rows, name):
 
         assert rec1_shape == rec2_shape, (
             "testing '%s' field '%s' shapes are equal: "
-            "input %s, read: %s" % (
-                name, f, rec1_shape, rec2_shape)
+            "input %s, read: %s" % (name, f, rec1_shape, rec2_shape)
         )
 
         if sys.version_info >= (3, 0, 0) and rec1[f].dtype.char == 'S':
@@ -192,18 +185,19 @@ def compare_rec_with_var(rec1, rec2, name, rows=None):
 
     # rec2 may have fewer fields
     for f in rec2.dtype.names:
-
         # f1 will have the objects
         if util.is_object(rec1[f]):
             compare_object_array(
-                rec1[f], rec2[f],
+                rec1[f],
+                rec2[f],
                 "testing '%s' field '%s'" % (name, f),
-                rows=rows
+                rows=rows,
             )
         else:
             compare_array(
-                rec1[f][rows], rec2[f],
-                "testing '%s' num field '%s' equal" % (name, f)
+                rec1[f][rows],
+                rec2[f],
+                "testing '%s' num field '%s' equal" % (name, f),
             )
 
 

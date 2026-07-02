@@ -2,23 +2,45 @@ import os
 import tempfile
 import warnings
 import numpy as np
+
+import pytest
+
 from .makedata import make_data, lorem_ipsum
 from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
+from ..util import cfitsio_version
+
+CFITSIO_VERSION = cfitsio_version(asfloat=True)
+
+
+def test_free_form_string():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+        with open(fname, 'w') as f:
+            s = (
+                "SIMPLE  =                    T / Standard FITS                                  "  # noqa
+                + "BITPIX  =                   16 / number of bits per data pixel                  "  # noqa
+                + "NAXIS   =                    0 / number of data axes                            "  # noqa
+                + "EXTEND  =                    T / File contains extensions                       "  # noqa
+                + "PHOTREF =   'previous MegaCam' / Source: cum.photcat                            "  # noqa
+                + "EXTRA   =                    7 / need another line following PHOTREF            "  # noqa
+                + "END                                                                             "  # noqa
+            )
+            f.write(s + ' ' * (2880 - len(s)))
+        hdr = read_header(fname)
+        assert hdr['PHOTREF'] == 'previous MegaCam'
 
 
 def test_add_delete_and_update_records():
     # Build a FITSHDR from a few records (no need to write on disk)
     # Record names have to be in upper case to match with FITSHDR.add_record
     recs = [
-        {'name': "First_record".upper(), 'value': 1,
-         'comment': "number 1"},
+        {'name': "First_record".upper(), 'value': 1, 'comment': "number 1"},
         {'name': "Second_record".upper(), 'value': "2"},
         {'name': "Third_record".upper(), 'value': "3"},
-        {'name': "Last_record".upper(), 'value': 4,
-         'comment': "number 4"}
+        {'name': "Last_record".upper(), 'value': 4, 'comment': "number 4"},
     ]
     hdr = FITSHDR(recs)
 
@@ -54,9 +76,7 @@ def testHeaderCommentPreserved():
     hdr.add_record(l2)
 
     hdr['key1'] = 99
-    assert hdr.get_comment('key1') == 'My comment1', (
-        'comment not preserved'
-    )
+    assert hdr.get_comment('key1') == 'My comment1', 'comment not preserved'
 
 
 def test_header_write_read():
@@ -75,19 +95,21 @@ def test_header_write_read():
             header = {
                 'x': 35,
                 'y': 88.215,
-                'eval': 1.384123233e+43,
+                'eval': 1.384123233e43,
                 'empty': '',
                 'funky': '35-8',  # test old bug when strings look
-                                  # like expressions
+                # like expressions
                 'name': 'J. Smith',
                 'what': '89113e6',  # test bug where converted to float
                 'und': None,
                 'binop': '25-3',  # test string with binary operation in it
                 'unders': '1_000_000',  # test string with underscore
                 'longs': lorem_ipsum,
-                # force hierarch + continue
-                "long_keyword_name": lorem_ipsum,
             }
+            if CFITSIO_VERSION > 4.02:
+                # force hierarch + continue
+                header["long_keyword_name"] = lorem_ipsum
+
             fits.write_image(data, header=header)
 
             rh = fits[0].read_header()
@@ -98,28 +120,49 @@ def test_header_write_read():
             check_header(header, rh)
 
 
+def test_header_delete():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = os.path.join(tmpdir, 'test.fits')
+
+        with FITS(fname, 'rw') as fits:
+            data = np.zeros(10)
+            header1 = {'SCARD': 'one', 'ICARD': 1, 'FCARD': 1.0, 'LCARD': True}
+            fits.write_image(data, header=header1)
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_key("SCARD")
+            del header1["SCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+            fits[0].delete_keys(["ICARD", "FCARD"])
+            del header1["ICARD"]
+            del header1["FCARD"]
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+        with FITS(fname) as fits:
+            rh = fits[0].read_header()
+            check_header(header1, rh)
+
+
 def test_header_update():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
             data = np.zeros(10)
-            header1 = {
-                'SCARD': 'one',
-                'ICARD': 1,
-                'FCARD': 1.0,
-                'LCARD': True
-            }
+            header1 = {'SCARD': 'one', 'ICARD': 1, 'FCARD': 1.0, 'LCARD': True}
             header2 = {
                 'SCARD': 'two',
                 'ICARD': 2,
                 'FCARD': 2.0,
                 'LCARD': False,
-
                 'SNEW': 'two',
                 'INEW': 2,
                 'FNEW': 2.0,
-                'LNEW': False
+                'LNEW': False,
             }
             fits.write_image(data, header=header1)
             rh = fits[0].read_header()
@@ -193,18 +236,14 @@ def test_blank_key_comments():
                 rec = records[i]
                 rrec = rrecords[ri]
 
-                assert rec['name'] is None, (
-                    'checking name is None'
-                )
+                assert rec['name'] is None, 'checking name is None'
 
                 comment = rec['comment']
                 rcomment = rrec['comment']
                 if '' == comment.strip():
                     comment = ''
 
-                assert comment == rcomment, (
-                    "check empty key comment"
-                )
+                assert comment == rcomment, "check empty key comment"
 
 
 def test_blank_key_comments_from_cards():
@@ -230,30 +269,18 @@ def test_blank_key_comments_from_cards():
 
             rrecords = rh.records()
 
-            assert rrecords[6]['name'] is None, (
-                'checking name is None'
-            )
-            assert rrecords[6]['comment'] == '', (
-                'check empty key comment'
-            )
-            assert rrecords[7]['name'] is None, (
-                'checking name is None'
-            )
+            assert rrecords[6]['name'] is None, 'checking name is None'
+            assert rrecords[6]['comment'] == '', 'check empty key comment'
+            assert rrecords[7]['name'] is None, 'checking name is None'
             assert rrecords[7]['comment'] == ' --- testing comment ---', (
                 "check empty key comment"
             )
-            assert rrecords[8]['name'] is None, (
-                'checking name is None'
-            )
+            assert rrecords[8]['name'] is None, 'checking name is None'
             assert rrecords[8]['comment'] == '--- testing comment ---', (
                 "check empty key comment"
             )
-            assert rrecords[9]['name'] == 'COMMENT', (
-                'checking name is COMMENT'
-            )
-            assert rrecords[9]['comment'] == 'testing', (
-                "check comment"
-            )
+            assert rrecords[9]['name'] == 'COMMENT', 'checking name is COMMENT'
+            assert rrecords[9]['comment'] == 'testing', "check comment"
 
 
 def test_header_from_cards():
@@ -261,14 +288,16 @@ def test_header_from_cards():
     test generating a header from cards, writing it out and getting
     back what we put in
     """
-    hdr_from_cards = FITSHDR([
-        "IVAL    =                   35 / integer value                                  ",  # noqa
-        "SHORTS  = 'hello world'                                                         ",  # noqa
-        "UND     =                                                                       ",  # noqa
-        "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",  # noqa
-        "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",  # noqa
-        "DBL     =                 1.25                                                  ",  # noqa
-    ])
+    hdr_from_cards = FITSHDR(
+        [
+            "IVAL    =                   35 / integer value                                  ",  # noqa
+            "SHORTS  = 'hello world'                                                         ",  # noqa
+            "UND     =                                                                       ",  # noqa
+            "LONGS   = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiu&'",  # noqa
+            "CONTINUE  'smod tempor incididunt ut labore et dolore magna aliqua'             ",  # noqa
+            "DBL     =                 1.25                                                  ",  # noqa
+        ]
+    )
     header = [
         {'name': 'ival', 'value': 35, 'comment': 'integer value'},
         {'name': 'shorts', 'value': 'hello world'},
@@ -414,6 +443,7 @@ DATASUM =                      / checksum of the data records\n"""
         hdr.add_record(line)
 
 
+@pytest.mark.thread_unsafe
 def test_corrupt_continue():
     """
     test with corrupt continue, just make sure it doesn't crash
@@ -421,14 +451,15 @@ def test_corrupt_continue():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with warnings.catch_warnings(record=True) as _:
-
-            hdr_from_cards = FITSHDR([
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ])
+            hdr_from_cards = FITSHDR(
+                [
+                    "IVAL    =                   35 / integer value                                  ",  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "CONTINUE= '        '           /   '&' / Current observing orogram              ",  # noqa
+                    "UND     =                                                                       ",  # noqa
+                    "DBL     =                 1.25                                                  ",  # noqa
+                ]
+            )
 
             with FITS(fname, 'rw') as fits:
                 fits.write(None, header=hdr_from_cards)
@@ -438,16 +469,17 @@ def test_corrupt_continue():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with warnings.catch_warnings(record=True) as _:
-
-            hdr_from_cards = FITSHDR([
-                "IVAL    =                   35 / integer value                                  ",  # noqa
-                "SHORTS  = 'hello world'                                                         ",  # noqa
-                "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
-                "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
-                "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
-                "UND     =                                                                       ",  # noqa
-                "DBL     =                 1.25                                                  ",  # noqa
-            ])
+            hdr_from_cards = FITSHDR(
+                [
+                    "IVAL    =                   35 / integer value                                  ",  # noqa
+                    "SHORTS  = 'hello world'                                                         ",  # noqa
+                    "PROGRAM = 'Setting the Scale: Determining the Absolute Mass Normalization and &'",  # noqa
+                    "CONTINUE  'Scaling Relations for Clusters at z~0.1&'                            ",  # noqa
+                    "CONTINUE  '&' / Current observing orogram                                       ",  # noqa
+                    "UND     =                                                                       ",  # noqa
+                    "DBL     =                 1.25                                                  ",  # noqa
+                ]
+            )
 
             with FITS(fname, 'rw') as fits:
                 fits.write(None, header=hdr_from_cards)
@@ -495,7 +527,6 @@ def test_write_key_dict():
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(tmpdir, 'test.fits')
         with FITS(fname, 'rw') as fits:
-
             im = np.zeros((10, 10), dtype='i2')
             fits.write(im)
 
@@ -510,6 +541,36 @@ def test_write_key_dict():
 
             assert h['test'] == keydict['value']
             assert h.get_comment('test') == keydict['comment']
+
+
+@pytest.mark.parametrize("fname", ["test.fits", "mem://"])
+def test_header_update_compressed_image_to_table(fname):
+    data = np.arange(10).reshape(5, 2).astype(np.float32)
+
+    fname = "test.fits"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(data, compress="RICE", qlevel=1, dither_seed=10)
+            hdr = fits[1].read_header()
+
+            info_before = fits[1].get_info()
+            for key in hdr.keys():
+                if key.startswith("Z"):
+                    fits[1].delete_key(key)
+            for i in range(1000):
+                fits[1].write_key("test" + str(i), "blah")
+            fits[1].delete_key("test0")
+
+            fits.update_hdu_list()
+            info_after = fits[1].get_info()
+
+            assert info_after != info_before
+            assert fits[1].get_exttype() == "BINARY_TBL"
 
 
 if __name__ == '__main__':
