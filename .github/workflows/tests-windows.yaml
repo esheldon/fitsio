@@ -79,7 +79,7 @@ jobs:
 
       - name: Install code
         run: |
-          pip install -v --no-deps .
+          pip install -v --no-deps -e .
           python -c "import fitsio"
         env:
           FITSIO_USE_SYSTEM_FITSIO: "True"
