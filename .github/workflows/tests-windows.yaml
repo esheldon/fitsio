@@ -6,6 +6,9 @@ on:
       - master
   pull_request: null
 
+env:
+  PY_COLORS: "1"
+
 jobs:
   tests-windows:
     name: tests-windows
