@@ -50,9 +50,9 @@ for details on how to use these macros.
     PyThreadState *_save1_ = NULL;                                             \
     int _evaltmp123_
 #define RELEASE_GIL                                                            \
-    ((void)(_save1_ = (fits_is_reentrant() == 0 ? NULL : PyEval_SaveThread())))
+    ((void*)(_save1_ = (fits_is_reentrant() == 0 ? NULL : PyEval_SaveThread())))
 #define CAPTURE_GIL                                                            \
-    ((void)(_save1_ != NULL ? PyEval_RestoreThread(_save1_) : NULL),           \
+    ((void*)(_save1_ != NULL ? PyEval_RestoreThread(_save1_) : NULL),           \
      (void)(_save1_ = NULL))
 #define _NOGIL(x)                                                              \
     ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),        \
