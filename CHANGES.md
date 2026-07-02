@@ -25,7 +25,7 @@ Changes
       3.13 or later. This lock is more efficient than using a Python lock
       from the `threading` module.
     - Added code sections that release the GIL for better multi-threaded
-      performance. The GIL is only release for Python 3.13 or newer.
+      performance. The GIL is only released for Python 3.13 or newer.
 
 Bug Fixes
 
