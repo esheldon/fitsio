@@ -87,11 +87,11 @@ jobs:
           find . -name "*.so" -type f -delete
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pytest -vv ${PRP_FLAGS} fitsio
+            pytest -vv --durations=20 ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
           else
-            pytest -vv ${PRP_FLAGS} fitsio
+            pytest -vv --durations=20 ${PRP_FLAGS} fitsio
             python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
@@ -139,7 +139,7 @@ jobs:
           pushd $dname
 
           pip install ${PIP_OPTIONS} -e .
-          pytest -vv ${PRP_FLAGS} fitsio
+          pytest -vv --durations=20 ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
 

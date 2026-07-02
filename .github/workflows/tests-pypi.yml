@@ -65,6 +65,6 @@ jobs:
 
       - name: test fitsio
         run: |
-          pytest --slow -vv fitsio
+          pytest -vv --durations=20 --slow fitsio
           python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"

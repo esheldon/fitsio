@@ -493,8 +493,9 @@ on multithreaded programs from `cfitsio`. Specifically this means that
 - Concurrent writing to FITS files is NOT thread-safe.
 - `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
   can use the file object at a time. On Python 3.13 or newer, `fitsio` employs a lock on the
-  underlying `cfitsio` data structure to enforce this condition and prevent race conditions.
-  On older Python versions, you will need to employ your own locking mechanism. See the example below.
+  underlying `cfitsio` data structure to enforce this condition and help prevent race conditions.
+  Even with this lock, you will likely need to employ your own locks from the `threading` module in order
+  to prevent race conditions arising from how the `fitsio` library is being used. See the example below.
 
 `fitsio` is compatible with Python free threading, and will not reenable the GIL
 when imported. However, the constraints above must be respected even when using Python
@@ -523,6 +524,67 @@ with fitsio.FITS(fname) as fp:
         for fut in futs:
             res = fut.result()
 ```
+
+## Free-threading Macros and Locks in the C Wrapper
+
+On Python 3.13 and above, we release the GIL (for
+GIL-enabled Python builds) or detach the thread state (for
+free-threading Python builds). Some background information is
+helpful in understanding how this works.
+
+- In the Python C API, the GIL and the thread state (i.e., attached
+  or detached) are two separate concepts. A thread that is attached
+  to the Python C runtime can make calls into it, use data from it, etc.
+  In GIL-enabled builds of Python, only one thread can be attached
+  at a time, and the GIL is the lock that enforces this constraint.
+  In free-threading builds of Python, the interpreter must sometimes
+  "stop the world" in order to do key tasks (e.g., garbage collection).
+  Thus threads still must either attach to the runtime or not (but there
+  is no constraint on how many threads can be attached, and thus no GIL).
+  For performance reasons, if a thread is doing I/O or some other long-running
+  computation where it does not need the Python runtime, it is good to detach
+  it so that any "stop the world" tasks are not blocked.
+- The Python C API uses the same functions for these handling both the GIL
+  and the thread state (wrapped in the`*_NOGIL` macros in the C code.)
+- The `cfitsio` library can be compiled in such a way that it is "reentrant."
+  Versions of the library that are reentrant allow library functions to be
+  called concurrently by different threads, but only on different FITS file
+  handles. Even in reentrant builds of the `cfitsio` library, it is not safe
+  to call library functions concurrently on the same FITS file handle. The
+  typical way to manage access to reentrant libraries is via a lock
+  on the data structure returned by the library (i.e., the FITS file handle).
+- When dealing with both the GIL and a lock for reentrant libraries, it is
+  very easy to create deadlocks (i.e., two threads that are each waiting on one
+  another). To help with this, on Python 3.13 or newer, the Python C API provides
+  a lock that is hooked into the Python runtime in such a way that it will not
+  deadlock with the GIL.
+
+The [Python Free-Threading Guide](https://py-free-threading.github.io/) is a very
+useful resource for learning more about the concepts above.
+
+To enforce the threading constraints, we use the following macros in the C layer:
+
+- `LOCK_FITS(x)` & `UNLOCK_FITS(x)`: These macros take a pointer to the `PyFITSObject`
+  object, and lock/unlock the underlying FITS file pointer for use by a single thread.
+  This lock is not reentrant (i.e., every `LOCK_FITS` call must be paired with an
+  `UNLOCK_FITS` call). The implementation of this lock uses the one from the Python C
+  API so it will not deadlock with the GIL-related macros below.
+- `ALLOW_NOGIL`: This macro defines variables needed for handling the GIL/thread state,
+   and it must be used in any C function where the other GIL-related macros below are used.
+- `RELEASE_GIL` & `CAPTURE_GIL`: These macros are used to actually release/capture the GIL
+  and/or attach/detach the thread state. Like the locks, these macros are not reentrant and
+  so every `RELEASE_GIL` call must be paired with a `CAPTURE_GIL` call.
+- `NOGIL(x)`: This macro wraps a single function call with the release and capture
+  operations, returning the value of the function call. It can be used to make code more
+  concise. You cannot use this macro in between calls to `RELEASE_GIL` and `CAPTURE_GIL`.
+
+All of these macros (except `NOGIL`) must be followed by a semicolon when used in C code
+(e.g., `ALLOW_NOGIL;`). You must also take care to properly unlock the FITS file pointer
+and/or release the GIL for all possible execution paths through your function (including
+branches for error handling). C `goto` statements can be very helpful for this task.
+
+In the C wrapper of `cfitsio` on Python 3.13 and above, we always lock the underlying FITS
+file pointer, and we do our best to release the GIL during I/O and/or long-running operations.
 
 ## TODO
 

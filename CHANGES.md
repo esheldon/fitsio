@@ -4,7 +4,7 @@ version 1.4.0
 Changes
 
     - Updated bundled cfitsio to version 4.6.4.
-    - Limit to compressed tile cacheing to the three most recently accessed tiles.
+    - Limited compressed tile caching to the three most recently accessed tiles.
       The old behavior would grow the cache to the size of the entire
       compressed data.  This version gets most of the speed benefits.
     - Added support for both `RICE_ONE` and `RICE_1` compression keywords.
@@ -20,10 +20,12 @@ Changes
     - Marked some tests as slow to speed up testing. Pass `--slow` to
       pytest to run them.
     - Added python 3.14 to the CI config.
-    - Added support and testing against free threaded builds of python.
+    - Added support and testing against free-threaded builds of python.
     - Added a lock around the underlying cfitsio data for Python versions
       3.13 or later. This lock is more efficient than using a Python lock
       from the `threading` module.
+    - Added code sections that release the GIL for better multi-threaded
+      performance. The GIL is only released for Python 3.13 or newer.
 
 Bug Fixes
 

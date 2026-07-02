@@ -26,6 +26,8 @@ def read_file(fname):
         fits[0].read()
 
 
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 def test_threading_works():
     """
     Test a basic image write, data and a header, then reading back in to
@@ -59,8 +61,9 @@ def test_threading_works():
                 pass
 
 
-@pytest.mark.slow
 @pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 @pytest.mark.parametrize(
     "write_only,read_only",
     [
@@ -152,15 +155,15 @@ def test_threading_timing(klass, write_only, read_only):
             flush=True,
         )
 
-        if read_only:
-            assert t0_threads < t0_serial, (
-                "Threading should be faster than serial! ( %f < %f)"
-                % (t0_threads, t0_serial)
-            )
+        assert t0_threads < t0_serial / 1.5, (
+            "Threading should be faster than serial! (%f < %f)"
+            % (t0_threads, t0_serial)
+        )
 
 
-@pytest.mark.slow
 @pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.parallel_threads_limit(1)
+@pytest.mark.iterations(1)
 def test_threading_read_one_file():
     nt = 4
 
@@ -205,7 +208,7 @@ def test_threading_read_one_file():
             flush=True,
         )
 
-        assert t0_threads < t0_serial, (
-            "Threading should be faster than serial! ( %f < %f)"
+        assert t0_threads < t0_serial / 2, (
+            "Threading should be faster than serial! (%f < %f)"
             % (t0_threads, t0_serial)
         )
