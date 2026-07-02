@@ -81,7 +81,8 @@ jobs:
 
       - name: Install code
         run: |
-          pip install -v --no-deps -e .
+          pip install -v --no-deps .
+          python -c "import fitsio"
         env:
           FITSIO_USE_SYSTEM_FITSIO: "True"
           FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include;C:\Program Files (x86)\zlib\include
