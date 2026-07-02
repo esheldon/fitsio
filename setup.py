@@ -235,8 +235,10 @@ class build_ext_subclass(build_ext):
 
             self.compiler.add_library('z')
 
-        # fitsio requires libm as well.
-        self.compiler.add_library('m')
+        # fitsio requires libm as well, but do not need to link it
+        # explicitly on windows
+        if os.name != "nt":
+            self.compiler.add_library('m')
 
         # call the original build_extensions
         build_ext.build_extensions(self)
