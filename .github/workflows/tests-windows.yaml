@@ -80,7 +80,7 @@ jobs:
       - name: install python dependencies
         run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
 
-      - name: Install code
+      - name: install code
         run: |
           pip install -v --no-deps -e .
           python -c "import fitsio"
