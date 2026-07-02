@@ -77,11 +77,11 @@ jobs:
       - name: Install code
         run: |
           pip install --no-deps -e .
-
-      - name: test
-        run: |
-          pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio
         env:
           FITSIO_USE_SYSTEM_FITSIO: "True"
           FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include
           FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib
+
+      - name: test
+        run: |
+          pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio
