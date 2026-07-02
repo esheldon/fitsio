@@ -57,7 +57,7 @@ for details on how to use these macros.
     ((void)(_save1_ != NULL ? PyEval_RestoreThread(_save1_) : (void)NULL),     \
      (void)(_save1_ = NULL))
 #define _NOGIL(x)                                                              \
-    ((void)(_save1_ = PyEval_SaveThread()), (int)(_evaltmp123_ = (x)),         \
+    ((void)(_save1_ = PyEval_SaveThread()), (void)(_evaltmp123_ = (x)),         \
      (void)(PyEval_RestoreThread(_save1_)), (void)(_save1_ = NULL),            \
      _evaltmp123_)
 #define NOGIL(x) (fits_is_reentrant() == 0 ? (x) : _NOGIL(x))
