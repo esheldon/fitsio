@@ -4,7 +4,7 @@ version 1.4.0
 Changes
 
     - Updated bundled cfitsio to version 4.6.4.
-    - Limit to compressed tile caching to the three most recently accessed tiles.
+    - Limited compressed tile caching to the three most recently accessed tiles.
       The old behavior would grow the cache to the size of the entire
       compressed data.  This version gets most of the speed benefits.
     - Added support for both `RICE_ONE` and `RICE_1` compression keywords.

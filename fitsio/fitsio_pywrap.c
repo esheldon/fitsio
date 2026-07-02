@@ -37,7 +37,11 @@
 // max len of python error message
 #define PYFITS_ERRMSG_LEN 1024
 
-// locking primitives for free-threading and/or NOGIL
+/* locking primitives for free-threading and NOGIL
+
+See `Free-threading Macros and Locks in the C Wrapper` in the README
+for details on how to use these macros.
+*/
 #if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
 #define PYFITS_HAS_LOCK
 #define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
@@ -1708,9 +1712,6 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
 
             npy_int64 *tptr = NULL, tmp = 0;
             ndims = PyArray_SIZE(dims_array);
-            for (i = 0; i < CFITSIO_MAX_ARRAY_DIMS; i++) {
-                dims[i] = 0;
-            }
             for (i = 0; i < ndims; i++) {
                 tptr = (npy_int64 *)PyArray_GETPTR1(dims_array, i);
                 tmp = *tptr;
@@ -1721,9 +1722,6 @@ static PyObject *PyFITSObject_create_image_hdu(struct PyFITSObject *self,
             // we get the dimensions from the array, which means we are going
             // to write it as well
             ndims = pyarray_get_ndim(array);
-            for (i = 0; i < CFITSIO_MAX_ARRAY_DIMS; i++) {
-                dims[i] = 0;
-            }
             for (i = 0; i < ndims; i++) {
                 dims[ndims - i - 1] = PyArray_DIM(array, i);
             }
