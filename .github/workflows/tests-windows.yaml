@@ -44,6 +44,8 @@ jobs:
           cd ..
           cd ..
 
+          echo "PATH=C:/Program Files (x86)/zlib/bin;$env:PATH" >> $env:GITHUB_ENV
+
       - name: install cfitsio
         run: |
             mkdir cfitsio-build
@@ -72,13 +74,14 @@ jobs:
             cd ..
             cd ..
 
+            echo "PATH=C:/Program Files (x86)/bin;$env:PATH" >> $env:GITHUB_ENV
+
       - name: install python dependencies
         run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
 
       - name: Install code
         run: |
-          pip install --no-deps -e .
-          ls -Force -Recurse .
+          pip install -vv --no-deps -e .
         env:
           FITSIO_USE_SYSTEM_FITSIO: "True"
           FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include;C:\Program Files (x86)\zlib\include
