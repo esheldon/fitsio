@@ -2,28 +2,28 @@ name: tests-windows
 
 on:
   push:
+    branches:
+      - master
   pull_request: null
 
 jobs:
-  tests:
-    name: tests
+  tests-windows:
+    name: tests-windows
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        pyver: ["3.11"]
+        pyver: ["3.10", "3.14"]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Set up Python ${{ matrix.pyver }}
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ matrix.pyver }}
 
-      - name: Make nmake available
+      - name: make nmake available
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: install zlib
@@ -53,21 +53,33 @@ jobs:
             mkdir build
             cd build
 
-            cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" -D CMAKE_BUILD_TYPE=Release -D TESTS=On -D UTILS=On ..
+            cmake -G "NMake Makefiles" ^
+              -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" ^
+              -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" ^
+              -D CMAKE_BUILD_TYPE=Release ^
+              -D TESTS=On ^
+              -D UTILS=On ^
+              ..
 
             nmake
-
             nmake install
 
             cd ..
             cd ..
             cd ..
 
-      - name: install numpy
-        run: pip install numpy
+      - name: install python dependencies
+        run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
 
       - name: Install code
-        run: pip install --no-deps -e .
+        run: |
+          pip install ^
+            --no-deps ^
+            --no-build-isolation ^
+            --use-system-fitsio ^
+            --system-fitsio-includedir="C:\Program Files (x86)\include" ^
+            --system-fitsio-libdir="C:\Program Files (x86)\lib" ^
+            ^ -e .
 
       - name: test
         run: |
