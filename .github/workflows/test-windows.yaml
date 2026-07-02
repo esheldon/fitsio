@@ -46,9 +46,9 @@ jobs:
             mkdir cfitsio-build
             cd cfitsio-build
 
-            curl.exe --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.4.1.zip
+            curl.exe --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.6.4.zip
             unzip cfitsio.zip
-            cd cfitsio-4.4.1
+            cd cfitsio-4.6.4
 
             mkdir build
             cd build
@@ -71,5 +71,5 @@ jobs:
 
       - name: test
         run: |
-          pip install pytest
+          pip install pytest pytest-run-parallel pytest-skip-slow
           pytest -vv fitsio
