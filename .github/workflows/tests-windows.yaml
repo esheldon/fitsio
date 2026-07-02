@@ -76,9 +76,9 @@ jobs:
           pip install `
             --no-deps `
             --no-build-isolation `
-            --use-system-fitsio `
-            --system-fitsio-includedir="C:\Program Files (x86)\include" `
-            --system-fitsio-libdir="C:\Program Files (x86)\lib" `
+            --config-settings="--global-option=--use-system-fitsio" `
+            --config-settings="--global-option='--system-fitsio-includedir="C:\Program Files (x86)\include"' `
+            --config-settings="--global-option='--system-fitsio-libdir="C:\Program Files (x86)\lib"' `
             -e .
 
       - name: test
