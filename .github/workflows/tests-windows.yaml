@@ -69,19 +69,16 @@ jobs:
             cd ..
 
       - name: install python dependencies
-        run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
+        run: pip install numpy pytest pytest-run-parallel pytest-skip-slow setuptools setuptools-scm
 
       - name: Install code
         run: |
-          pip install `
-            --no-deps `
-            --no-build-isolation `
-            --config-settings="--global-option=--use-system-fitsio" `
-            --config-settings="--global-option='--system-fitsio-includedir="C:\Program Files (x86)\include"' `
-            --config-settings="--global-option='--system-fitsio-libdir="C:\Program Files (x86)\lib"' `
-            -e .
+          pip install --no-deps --no-build-isolation -e .
 
       - name: test
         run: |
-          pip install pytest pytest-run-parallel pytest-skip-slow
-          pytest -vv fitsio
+          pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio
+        env:
+          FITSIO_USE_SYSTEM_FITSIO: "True"
+          FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include
+          FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib
