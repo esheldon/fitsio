@@ -63,7 +63,6 @@ jobs:
               -D TESTS=On `
               -D UTILS=On `
               -D BUILD_SHARED_LIBS=Off `
-              -D USE_PTHREADS=On `
               ..
 
             nmake
