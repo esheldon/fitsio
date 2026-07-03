@@ -235,8 +235,9 @@ class build_ext_subclass(build_ext):
 
         env = {}
         env.update(os.environ)
-        _print_msg("compiler is " + repr(self.compiler.EXECUTABLE))
-        env["CC"] = self.compiler.EXECUTABLE
+        import sysconfig
+        _print_msg("compiler is " + repr(sysconfig.get_config_var("CC")))
+        # env["CC"] = self.compiler.EXECUTABLE
         subprocess.run(
             [
                 "cmake",
