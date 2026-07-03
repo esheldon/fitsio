@@ -229,13 +229,13 @@ class build_ext_subclass(build_ext):
                 'bzip2'
             ):
                 _print_msg("linking Python extension to bzip2")
-                self.compiler.add_library('bz2')
+                if os.name == "nt":
+                    self.compiler.add_library('libbz2')
+                else:
+                    self.compiler.add_library('bz2')
                 self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
             else:
-                _print_msg(
-                    "did not find bz2 symbol in system cfitsio library\n"
-                    "bzip2 support is disabled"
-                )
+                _print_msg("bzip2 support is disabled")
 
             if SYSTEM_FITSIO_HAS_CURL or self.check_system_cfitsio_objects(
                 'curl_'
@@ -247,10 +247,7 @@ class build_ext_subclass(build_ext):
                     self.compiler.add_library('curl')
                 self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
             else:
-                _print_msg(
-                    "did not find curl_ symbol in system cfitsio library\n"
-                    "curl support is disabled"
-                )
+                _print_msg("curl support is disabled")
 
             self.compiler.define_macro('FITSIO_USING_SYSTEM_FITSIO')
 
