@@ -94,9 +94,11 @@ class build_ext_subclass(build_ext):
         if USE_SYSTEM_FITSIO:
             if SYSTEM_FITSIO_INCLUDEDIR is not None:
                 for pth in SYSTEM_FITSIO_INCLUDEDIR.split(os.pathsep):
+                    _print_msg(f"Adding include directory '{pth}'")
                     self.include_dirs.insert(0, pth)
             if SYSTEM_FITSIO_LIBDIR is not None:
                 for pth in SYSTEM_FITSIO_LIBDIR.split(os.pathsep):
+                    _print_msg(f"Adding lib directory '{pth}'")
                     self.library_dirs.insert(0, pth)
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
