@@ -231,7 +231,10 @@ class build_ext_subclass(build_ext):
                     "found curl_ symbol in system cfitsio library\n"
                     "linking Python extension to curl"
                 )
-                self.compiler.add_library('curl')
+                if os.name == "nt":
+                    self.compiler.add_library('libcurl')
+                else:
+                    self.compiler.add_library('curl')
                 self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
             else:
                 _print_msg(
