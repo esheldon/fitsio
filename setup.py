@@ -128,6 +128,12 @@ class build_ext_subclass(build_ext):
         )
         self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir, 'zlib')
         self.cfitsio_patch_dir = os.path.join(self.build_temp, 'patches')
+        self.cfitsio_cmake_build_dir = os.path.join(
+            self.cfitsio_build_dir, "build"
+        )
+        self.cfitsio_cmake_prefix_dir = os.path.join(
+            self.cfitsio_build_dir, "prefix"
+        )
 
         if USE_SYSTEM_FITSIO:
             if SYSTEM_FITSIO_INCLUDEDIR is not None:
@@ -141,7 +147,7 @@ class build_ext_subclass(build_ext):
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.
-            self.include_dirs.insert(0, self.cfitsio_build_dir)
+            pass
 
     def run(self):
         # For extensions that require 'numpy' in their include dirs,
@@ -207,51 +213,60 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def build_cfitsio_win(self):
+        self.include_dirs.insert(
+            0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
+        )
+        # turns out we need to set the include dirs here too
+        # directly for the compiler
+        self.compiler.include_dirs.insert(
+            0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
+        )
+        self.library_dirs.insert(
+            0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
+        )
+
         self.extract_cfitsio()
 
         # we patch the source in the build dir to avoid mucking with the repo
         self.patch_cfitsio()
 
-        # now build w/ cmake
-        build_dir = os.path.join(self.cfitsio_build_dir, "build")
-        prefix_dir = build_dir = os.path.join(self.cfitsio_build_dir, "prefix")
+        os.makedirs(self.cfitsio_cmake_build_dir, exist_ok=True)
+        os.makedirs(self.cfitsio_cmake_prefix_dir, exist_ok=True)
 
-        os.makedirs(build_dir, exist_ok=True)
-
+        env = {}
+        env.update(os.environ)
+        _print_msg("compiler is " + repr(self.compiler))
+        env["CC"] = self.compiler
         subprocess.run(
             [
                 "cmake",
                 "-G",
                 "NMake Makefiles",
-                f"-DCMAKE_INSTALL_PREFIX={prefix_dir}",
+                f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
                 r'-DCMAKE_PREFIX_PATH="C:\Program Files (x86)"',
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_SHARED_LIBS=Off",
                 "..",
             ],
             check=True,
-            cwd=build_dir,
+            cwd=self.cfitsio_cmake_build_dir,
+            env=env,
         )
         subprocess.run(
             ["nmake"],
             check=True,
-            cwd=build_dir,
+            cwd=self.cfitsio_cmake_build_dir,
         )
         subprocess.run(
             ["nmake", "install"],
             check=True,
-            cwd=build_dir,
+            cwd=self.cfitsio_cmake_build_dir,
         )
 
-        self.include_dirs.insert(0, os.path.join(prefix_dir, "include"))
-        # turns out we need to set the include dirs here too
-        # directly for the compiler
-        self.compiler.include_dirs.insert(
-            0, os.path.join(prefix_dir, "include")
-        )
-        self.library_dirs.insert(0, os.path.join(prefix_dir, "lib"))
+        self.compiler.add_library('z')
 
     def build_cfitsio_unix(self):
+        self.include_dirs.insert(0, self.cfitsio_build_dir)
         # turns out we need to set the include dirs here too
         # directly for the compiler
         self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
