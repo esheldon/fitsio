@@ -207,7 +207,10 @@ class build_ext_subclass(build_ext):
             self.compiler.add_library('cfitsio')
 
             # Check if system cfitsio was compiled with bzip2 and/or curl
-            if self.check_system_cfitsio_objects('bzip2'):
+            if (
+                self.check_system_cfitsio_objects('bzip2')
+                or "FITSIO_SYSTEM_FITSIO_HAS_BZIP2" in os.environ
+            ):
                 _print_msg(
                     "found bz2 symbol in system cfitsio library\n"
                     "linking Python extension to bzip2"
@@ -220,7 +223,10 @@ class build_ext_subclass(build_ext):
                     "bzip2 support is disabled"
                 )
 
-            if self.check_system_cfitsio_objects('curl_'):
+            if (
+                self.check_system_cfitsio_objects('curl_')
+                or "FITSIO_SYSTEM_FITSIO_HAS_CURL" in os.environ
+            ):
                 _print_msg(
                     "found curl_ symbol in system cfitsio library\n"
                     "linking Python extension to curl"
