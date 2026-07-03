@@ -235,16 +235,13 @@ class build_ext_subclass(build_ext):
 
         env = {}
         env.update(os.environ)
-        import sysconfig
-        _print_msg("compiler is " + repr(sysconfig.get_config_var("CC")))
-        # env["CC"] = self.compiler.EXECUTABLE
+        env["CC"] = self.compiler.cc
         subprocess.run(
             [
                 "cmake",
                 "-G",
                 "NMake Makefiles",
                 f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
-                r'-DCMAKE_PREFIX_PATH="C:\Program Files (x86)"',
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_SHARED_LIBS=Off",
                 "..",
@@ -264,7 +261,7 @@ class build_ext_subclass(build_ext):
             cwd=self.cfitsio_cmake_build_dir,
         )
 
-        self.compiler.add_library('z')
+        # self.compiler.add_library('z')
 
     def build_cfitsio_unix(self):
         self.include_dirs.insert(0, self.cfitsio_build_dir)
