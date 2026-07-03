@@ -1,3 +1,17 @@
+version 1.4.1
+-------------
+
+Changes
+
+    - Added CI for windows.
+
+Bug Fixes
+
+    - Fixed compilation bugs for GIL/free-threading macros in C code on windows.
+    - Marked test for reproducible lossy float compression as xfail for external
+      cfitsio libraries.
+    - Fixed bug in setup.py for windows.
+
 version 1.4.0
 -------------
 
