@@ -1,0 +1,12 @@
+--- a/CMakeLists.txt	2026-04-27 14:00:54
++++ b/CMakeLists.txt	2026-07-03 18:54:52
+@@ -238,6 +238,9 @@
+     putcoll.c putcols.c putcolsb.c putcolu.c putcolui.c putcoluj.c putcoluk.c
+     putkey.c quantize.c region.c ricecomp.c scalnull.c simplerng.c swapproc.c
+     wcssub.c wcsutil.c zcompress.c zuncompress.c
++    adler32.c crc32.c deflate.c infback.c
++    inffast.c inflate.c inftrees.c trees.c
++    uncompr.c zutil.c
+ )
+ 
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
