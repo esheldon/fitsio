@@ -49,33 +49,33 @@ jobs:
 
           Rename-Item -Path "C:/Program Files (x86)/zlib/lib/zs.lib" -NewName "z.lib"
 
-      - name: install cfitsio
-        run: |
-            mkdir cfitsio-build
-            cd cfitsio-build
+      # - name: install cfitsio
+      #   run: |
+      #       mkdir cfitsio-build
+      #       cd cfitsio-build
 
-            curl.exe --retry 20 --connect-timeout 10 --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.6.4.zip
-            unzip cfitsio.zip
-            cd cfitsio-4.6.4
+      #       curl.exe --retry 20 --connect-timeout 10 --output cfitsio.zip --url https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfit-4.6.4.zip
+      #       unzip cfitsio.zip
+      #       cd cfitsio-4.6.4
 
-            mkdir build
-            cd build
+      #       mkdir build
+      #       cd build
 
-            cmake -G "NMake Makefiles" `
-              -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" `
-              -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" `
-              -D CMAKE_BUILD_TYPE=Release `
-              -D TESTS=On `
-              -D UTILS=On `
-              -D BUILD_SHARED_LIBS=Off `
-              ..
+      #       cmake -G "NMake Makefiles" `
+      #         -D CMAKE_INSTALL_PREFIX="C:\Program Files (x86)" `
+      #         -D CMAKE_PREFIX_PATH="C:\Program Files (x86)" `
+      #         -D CMAKE_BUILD_TYPE=Release `
+      #         -D TESTS=On `
+      #         -D UTILS=On `
+      #         -D BUILD_SHARED_LIBS=Off `
+      #         ..
 
-            nmake
-            nmake install
+      #       nmake
+      #       nmake install
 
-            cd ..
-            cd ..
-            cd ..
+      #       cd ..
+      #       cd ..
+      #       cd ..
 
       - name: install python dependencies
         run: pip install numpy pytest pytest-run-parallel pytest-skip-slow
@@ -84,10 +84,10 @@ jobs:
         run: |
           pip install -v --no-deps -e .
           python -c "import fitsio"
-        env:
-          FITSIO_USE_SYSTEM_FITSIO: "True"
-          FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include;C:\Program Files (x86)\zlib\include
-          FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib;C:\Program Files (x86)\zlib\lib
+        # env:
+        #   FITSIO_USE_SYSTEM_FITSIO: "True"
+        #   FITSIO_SYSTEM_FITSIO_INCLUDEDIR: C:\Program Files (x86)\include;C:\Program Files (x86)\zlib\include
+        #   FITSIO_SYSTEM_FITSIO_LIBDIR: C:\Program Files (x86)\lib;C:\Program Files (x86)\zlib\lib
 
       - name: test
         run: |
