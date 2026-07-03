@@ -222,7 +222,7 @@ class build_ext_subclass(build_ext):
             [
                 "cmake",
                 "-G",
-                '"NMake Makefiles"',
+                "NMake Makefiles",
                 f"-DCMAKE_INSTALL_PREFIX={prefix_dir}",
                 r'-DCMAKE_PREFIX_PATH="C:\Program Files (x86)"',
                 "-DCMAKE_BUILD_TYPE=Release",
