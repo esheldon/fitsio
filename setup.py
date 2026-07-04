@@ -243,6 +243,7 @@ class build_ext_subclass(build_ext):
         env.update(os.environ)
         self.compiler.initialize()
         env["CC"] = self.compiler.cc
+        _print_msg("setting windows compiler: " + env["CC"])
         subprocess.run(
             [
                 "cmake",
