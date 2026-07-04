@@ -282,10 +282,13 @@ class build_ext_subclass(build_ext):
             capture_output=True,
             text=True,
         )
-        _print_msg("stdout: " + r.stdout)
-        _print_msg("stderr: " + r.stderr)
+        found_curl = False
+        for line in (r.stdout + r.stderr).splitlines():
+            if "External" in line.split() and "_curl_" in line:
+                _print_msg("found curl symbol: " + line.strip())
+                found_curl = True
 
-        if "_curl_" in r.stdout + r.stderr:
+        if found_curl:
             _print_msg(
                 "found curl in symbols\nlinking Python extension to curl"
             )
