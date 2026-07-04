@@ -34,6 +34,6 @@ dev = ["pytest", "pytest-run-parallel", "pytest-skip-slow"]
 include-package-data = true
 packages = {find = {exclude=["patches*", "zlib*"]}}
 
-[tool.setuptools-scm]
-write_to = "fitsio/_version.py"
-write_to_template = "__version__ = '{version}'\n"
+[tool.setuptools_scm]
+version_file = "fitsio/_version.py"
+version_file_template = "__version__ = '{version}'\n"
