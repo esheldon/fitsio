@@ -11,6 +11,7 @@ Bug Fixes
 
     - Marked test for reproducible lossy float compression as xfail for external
       cfitsio libraries.
+    - Added global lock on `cfitsio` calls for non-reentrant builds.
 
 version 1.4.0
 -------------

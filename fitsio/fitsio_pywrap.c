@@ -44,8 +44,12 @@ for details on how to use these macros.
 */
 #if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
 #define PYFITS_HAS_LOCK
-#define LOCK_FITS(x) PyMutex_Lock(&(x->fits_lock))
-#define UNLOCK_FITS(x) PyMutex_Unlock(&(x->fits_lock))
+#define LOCK_FITS(x)                                                           \
+    (fits_is_reentrant() == 0 ? PyMutex_Lock(&GLOBAL_FITS_LOCK)                \
+                              : PyMutex_Lock(&(x->fits_lock)))
+#define UNLOCK_FITS(x)                                                         \
+    (fits_is_reentrant() == 0 ? PyMutex_Unlock(&GLOBAL_FITS_LOCK)              \
+                              : PyMutex_Unlock(&(x->fits_lock)))
 #define ALLOW_NOGIL                                                            \
     PyThreadState *_save1_ = NULL;                                             \
     int _evaltmp123_
@@ -67,6 +71,11 @@ for details on how to use these macros.
 #define RELEASE_GIL
 #define CAPTURE_GIL
 #define NOGIL(x) (x)
+#endif
+
+#ifdef PYFITS_HAS_LOCK
+// global lock for cfitsio when library is not reentrant
+static PyMutex GLOBAL_FITS_LOCK = {0};
 #endif
 
 struct PyFITSObject {
