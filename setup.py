@@ -245,6 +245,7 @@ class build_ext_subclass(build_ext):
         subprocess.run(
             [
                 "cmake",
+                os.environ.get("CMAKE_ARGS", ""),
                 "-G",
                 "NMake Makefiles",
                 f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
