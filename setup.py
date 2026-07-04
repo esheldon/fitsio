@@ -127,11 +127,12 @@ class build_ext_subclass(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
 
-        self.cfitsio_build_dir = os.path.join(
+        self.cfitsio_build_dir = os.path.abspath(os.path.join(
             self.build_temp, self.cfitsio_dir
+        ))
+        self.cfitsio_patch_dir = os.path.abspath(
+            os.path.join(self.build_temp, 'patches')
         )
-        self.cfitsio_zlib_dir = os.path.join(self.cfitsio_build_dir, 'zlib')
-        self.cfitsio_patch_dir = os.path.join(self.build_temp, 'patches')
         self.cfitsio_cmake_build_dir = os.path.join(
             self.cfitsio_build_dir, "build"
         )
