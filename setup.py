@@ -243,17 +243,19 @@ class build_ext_subclass(build_ext):
         tmp_cc.initialize(self.plat_name)
         env["CC"] = tmp_cc.cc
         _print_msg("setting windows compiler to " + env["CC"])
+        cmake_cmd = [
+            "cmake",
+            os.environ.get("CMAKE_ARGS", ""),
+            "-G",
+            "NMake Makefiles",
+            f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_SHARED_LIBS=Off",
+            "..",
+        ]
+        _print_msg("windows cmake command: " + repr(cmake_cmd))
         subprocess.run(
-            [
-                "cmake",
-                os.environ.get("CMAKE_ARGS", ""),
-                "-G",
-                "NMake Makefiles",
-                f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DBUILD_SHARED_LIBS=Off",
-                "..",
-            ],
+            cmake_cmd,
             check=True,
             cwd=self.cfitsio_cmake_build_dir,
             env=env,
