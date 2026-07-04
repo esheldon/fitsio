@@ -27,10 +27,17 @@ requires-python = ">=3.10"
 [project.urls]
 home = "https://github.com/esheldon/fitsio"
 
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-run-parallel",
+    "pytest-skip-slow",
+]
+
 [tool.setuptools]
 include-package-data = true
 packages = {find = {exclude=["patches*", "zlib*"]}}
 
-[tool.setuptools_scm]
+[tool.setuptools-scm]
 write_to = "fitsio/_version.py"
 write_to_template = "__version__ = '{version}'\n"
