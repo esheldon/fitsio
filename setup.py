@@ -226,21 +226,6 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def build_cfitsio_win(self):
-        # self.include_dirs.insert(
-        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
-        # )
-        # self.library_dirs.insert(
-        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
-        # )
-        # # turns out we need to set the include/lib dirs here too
-        # # directly for the compiler
-        # self.compiler.include_dirs.insert(
-        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
-        # )
-        # self.compiler.library_dirs.insert(
-        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
-        # )
-
         self.extract_cfitsio()
 
         # we patch the source in the build dir to avoid mucking with the repo
@@ -283,11 +268,6 @@ class build_ext_subclass(build_ext):
         )
 
     def build_cfitsio_unix(self):
-        # self.include_dirs.insert(0, self.cfitsio_build_dir)
-        # # turns out we need to set the include dirs here too
-        # # directly for the compiler
-        # self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
-
         CCold = self.compiler.compiler
         if 'ccache' in CCold:
             CC = []
