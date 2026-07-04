@@ -1460,7 +1460,7 @@ class FITS(object):
         if rebuild is false or the hdu_list is not yet set, the list is
         rebuilt from scratch
         """
-        if not hasattr(self, 'hdu_list'):
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
             rebuild = True
 
         if rebuild:
@@ -1547,7 +1547,7 @@ class FITS(object):
         """
         begin iteration over HDUs
         """
-        if not hasattr(self, 'hdu_list'):
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
             self.update_hdu_list()
         self._iter_index = 0
         return self
@@ -1568,7 +1568,7 @@ class FITS(object):
         """
         get the number of extensions
         """
-        if not hasattr(self, 'hdu_list'):
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
             self.update_hdu_list()
         return len(self.hdu_list)
 
@@ -1594,7 +1594,7 @@ class FITS(object):
         """
         Get an hdu by number, name, and possibly version
         """
-        if not hasattr(self, 'hdu_list'):
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
             if self._did_create:
                 # we created the file and haven't written anything yet
                 raise ValueError("Requested hdu '%s' not present" % item)
@@ -1655,7 +1655,7 @@ class FITS(object):
 
         rep.append('%sextnum %-15s %s' % (spacing, "hdutype", "hduname[v]"))
 
-        if not hasattr(self, 'hdu_list'):
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
             if not self._did_create:
                 # we expect some stuff
                 self.update_hdu_list()
