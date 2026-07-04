@@ -228,12 +228,14 @@ jobs:
           CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
 
       - name: test wheel for python ${{ env.PYVER }}
+        shell: cmd
         run: |
           set pystr=${{ env.PYVER }}
           set pystr=%pystr:.=%
+          echo python version string is %pystr%
           python -m pip install pip
           pip install numpy pytest pytest-run-parallel
-          pip install (Get-ChildItem .\wheelhouse\*cp%pystr%*.whl).FullName
+          for %%f in (.\wheelhouse\*cp%pystr%*.whl) do pip install %%f
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
