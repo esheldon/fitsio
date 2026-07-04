@@ -1,5 +1,14 @@
 --- a/CMakeLists.txt	2026-04-27 14:00:54
-+++ b/CMakeLists.txt	2026-07-03 18:54:52
++++ b/CMakeLists.txt	2026-07-03 19:28:58
+@@ -68,7 +68,7 @@
+ 
+ #==============================================================================
+ 
+-FIND_PACKAGE(ZLIB REQUIRED)
++# FIND_PACKAGE(ZLIB REQUIRED)
+ 
+ IF(BUILD_SHARED_LIBS)
+   SET (LIB_TYPE SHARED)
 @@ -238,6 +238,9 @@
      putcoll.c putcols.c putcolsb.c putcolu.c putcolui.c putcoluj.c putcoluk.c
      putkey.c quantize.c region.c ricecomp.c scalnull.c simplerng.c swapproc.c
