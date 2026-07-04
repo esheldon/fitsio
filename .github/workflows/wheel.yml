@@ -233,10 +233,19 @@ jobs:
           set pystr=${{ env.PYVER }}
           set pystr=%pystr:.=%
           echo python version string is %pystr%
+          if errorlevel 1 exit 1
+          
           python -m pip install pip
+          if errorlevel 1 exit 1
+
           pip install numpy pytest pytest-run-parallel
+          if errorlevel 1 exit 1
+
           for %%f in (.\wheelhouse\*cp%pystr%*.whl) do pip install %%f
+          if errorlevel 1 exit 1
+          
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
+          if errorlevel 1 exit 1
 
       - uses: actions/upload-artifact@v7
         with:
