@@ -216,12 +216,15 @@ class build_ext_subclass(build_ext):
         self.include_dirs.insert(
             0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
         )
-        # turns out we need to set the include dirs here too
+        self.library_dirs.insert(
+            0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
+        )
+        # turns out we need to set the include/lib dirs here too
         # directly for the compiler
         self.compiler.include_dirs.insert(
             0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
         )
-        self.library_dirs.insert(
+        self.compiler.library_dirs.insert(
             0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
         )
 
