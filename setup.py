@@ -127,9 +127,9 @@ class build_ext_subclass(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
 
-        self.cfitsio_build_dir = os.path.abspath(os.path.join(
-            self.build_temp, self.cfitsio_dir
-        ))
+        self.cfitsio_build_dir = os.path.abspath(
+            os.path.join(self.build_temp, self.cfitsio_dir)
+        )
         self.cfitsio_patch_dir = os.path.abspath(
             os.path.join(self.build_temp, 'patches')
         )
@@ -268,6 +268,33 @@ class build_ext_subclass(build_ext):
             check=True,
             cwd=self.cfitsio_cmake_build_dir,
         )
+
+        # figure out if we have curl support
+        r = subprocess.run(
+            [
+                "dumpbin",
+                "/symbols",
+                os.path.join(
+                    self.cfitsio_cmake_prefix_dir, "lib", "cfitsio.lib"
+                ),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        _print_msg("stdout: " + r.stdout)
+        _print_msg("stderr: " + r.stderr)
+
+        if "_curl_" in r.stdout + r.stderr:
+            _print_msg(
+                "found curl in symbols\nlinking Python extension to curl"
+            )
+            self.compiler.add_library('libcurl')
+            self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
+        else:
+            _print_msg(
+                "did not find found curl in symbols\ncurl support is disabled"
+            )
 
     def build_cfitsio_unix(self):
         CCold = self.compiler.compiler
