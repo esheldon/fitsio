@@ -229,11 +229,11 @@ jobs:
 
       - name: test wheel for python ${{ env.PYVER }}
         run: |
-          pystr='${{ env.PYVER }}'
-          pystr=${pystr//./}
+          set pystr=${{ env.PYVER }}
+          set pystr=%pystr:.=%
           python -m pip install pip
           pip install numpy pytest pytest-run-parallel
-          pip install ./wheelhouse/*cp${pystr}*.whl
+          for %%f in (.\wheelhouse\*cp${pystr}*.whl) do pip install %%f
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
