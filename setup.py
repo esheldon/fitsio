@@ -250,7 +250,6 @@ class build_ext_subclass(build_ext):
         customize_compiler(tmp_cc)
         tmp_cc.initialize(self.plat_name)
         env["CC"] = tmp_cc.cc
-        env["CC"] = "blah"
         _print_msg("setting windows compiler to " + env["CC"])
         subprocess.run(
             [
