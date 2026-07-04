@@ -4,6 +4,8 @@ version 1.4.1
 Changes
 
     - Added support for windows.
+    - Added function `cfitsio_is_reentrant()` to return whether or not the
+      underlying cfitsio library was compiled with reentrant support.
 
 Bug Fixes
 
