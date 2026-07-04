@@ -3,7 +3,7 @@ version 1.4.1
 
 Changes
 
-    - Added support for windows.
+    - Added wheels and CI for windows.
     - Added function `cfitsio_is_reentrant()` to return whether or not the
       underlying cfitsio library was compiled with reentrant support.
 
@@ -12,6 +12,7 @@ Bug Fixes
     - Marked test for reproducible lossy float compression as xfail for external
       cfitsio libraries.
     - Added global lock on `cfitsio` calls for non-reentrant builds.
+    - Fixed compilation bugs on windows.
 
 version 1.4.0
 -------------
