@@ -244,7 +244,7 @@ jobs:
           for %%f in (.\wheelhouse\*cp%pystr%*.whl) do pip install %%f
           if errorlevel 1 exit 1
           
-          pytest --pyargs fitsio --parallel-threads 4 --iterations 4
+          pytest --pyargs fitsio
           if errorlevel 1 exit 1
 
       - uses: actions/upload-artifact@v7
