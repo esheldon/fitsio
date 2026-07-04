@@ -12,7 +12,7 @@ Bug Fixes
     - Marked test for reproducible lossy float compression as xfail for external
       cfitsio libraries.
     - Added global lock on `cfitsio` calls for non-reentrant builds.
-    - Fixed compilation bugs on windows.
+    - Fixed bug where `hdu_list` and `hdu_map` can go out of sync.
 
 version 1.4.0
 -------------
