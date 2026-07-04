@@ -172,6 +172,9 @@ class build_ext_subclass(build_ext):
                 self.build_cfitsio_unix()
             else:
                 self.build_cfitsio_win()
+                # on windows we build a full static lib so we have to tell
+                # the compiler to link against it
+                self.compiler.add_library('cfitsio')
         else:
             self.compiler.add_library('cfitsio')
 
