@@ -233,9 +233,6 @@ class build_ext_subclass(build_ext):
         os.makedirs(self.cfitsio_cmake_build_dir, exist_ok=True)
         os.makedirs(self.cfitsio_cmake_prefix_dir, exist_ok=True)
 
-        env = {}
-        env.update(os.environ)
-        env["CC"] = self.compiler.cc
         subprocess.run(
             [
                 "cmake",
@@ -248,7 +245,6 @@ class build_ext_subclass(build_ext):
             ],
             check=True,
             cwd=self.cfitsio_cmake_build_dir,
-            env=env,
         )
         subprocess.run(
             ["nmake"],
