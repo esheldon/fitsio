@@ -5804,6 +5804,14 @@ static PyObject *PyFITS_cfitsio_null_value_for_nan(void) {
     return PyFloat_FromDouble((double)INFINITY);
 }
 
+static PyObject *PyFITS_cfitsio_is_reentrant(void) {
+    if (fits_is_reentrant() == 0) {
+        Py_RETURN_FALSE;
+    } else {
+        Py_RETURN_TRUE;
+    }
+}
+
 /*
 
 'C',              'L',     'I',     'F'             'X'
@@ -6110,6 +6118,10 @@ static PyMethodDef fitstype_methods[] = {
      (PyCFunction)PyFITS_cfitsio_null_value_for_nan, METH_NOARGS,
      "cfitsio_null_value_for_nan\n\nReturn our default null value for "
      "floats, which is INFINITY and/or np.inf"},
+    {"cfitsio_is_reentrant", (PyCFunction)PyFITS_cfitsio_is_reentrant,
+     METH_NOARGS,
+     "cfitsio_is_reentrant\n\nReturn True if cfitsio was compiled with "
+     "reentrant support."},
     {"parse_card", (PyCFunction)PyFITS_parse_card, METH_VARARGS,
      "parse_card\n\nparse the card to get the key name, value (as a string), "
      "data type and comment."},
