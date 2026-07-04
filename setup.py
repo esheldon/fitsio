@@ -149,9 +149,15 @@ class build_ext_subclass(build_ext):
                     _print_msg(f"Adding lib directory '{pth}'")
                     self.library_dirs.insert(0, pth)
         else:
-            # We defer configuration of the bundled cfitsio to build_extensions
-            # because we will know the compiler there.
-            pass
+            if os.name == "nt":
+                self.include_dirs.insert(
+                    0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
+                )
+                self.library_dirs.insert(
+                    0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
+                )
+            else:
+                self.include_dirs.insert(0, self.cfitsio_build_dir)
 
     def run(self):
         # For extensions that require 'numpy' in their include dirs,
@@ -220,20 +226,20 @@ class build_ext_subclass(build_ext):
         build_ext.build_extensions(self)
 
     def build_cfitsio_win(self):
-        self.include_dirs.insert(
-            0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
-        )
-        self.library_dirs.insert(
-            0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
-        )
-        # turns out we need to set the include/lib dirs here too
-        # directly for the compiler
-        self.compiler.include_dirs.insert(
-            0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
-        )
-        self.compiler.library_dirs.insert(
-            0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
-        )
+        # self.include_dirs.insert(
+        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
+        # )
+        # self.library_dirs.insert(
+        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
+        # )
+        # # turns out we need to set the include/lib dirs here too
+        # # directly for the compiler
+        # self.compiler.include_dirs.insert(
+        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "include")
+        # )
+        # self.compiler.library_dirs.insert(
+        #     0, os.path.join(self.cfitsio_cmake_prefix_dir, "lib")
+        # )
 
         self.extract_cfitsio()
 
@@ -277,10 +283,10 @@ class build_ext_subclass(build_ext):
         )
 
     def build_cfitsio_unix(self):
-        self.include_dirs.insert(0, self.cfitsio_build_dir)
-        # turns out we need to set the include dirs here too
-        # directly for the compiler
-        self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
+        # self.include_dirs.insert(0, self.cfitsio_build_dir)
+        # # turns out we need to set the include dirs here too
+        # # directly for the compiler
+        # self.compiler.include_dirs.insert(0, self.cfitsio_build_dir)
 
         CCold = self.compiler.compiler
         if 'ccache' in CCold:
