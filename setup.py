@@ -296,7 +296,7 @@ class build_ext_subclass(build_ext):
             self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
         else:
             _print_msg(
-                "did not find found curl in symbols\ncurl support is disabled"
+                "did not find curl in symbols\ncurl support is disabled"
             )
 
     def build_cfitsio_unix(self):
