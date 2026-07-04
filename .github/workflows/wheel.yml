@@ -233,7 +233,7 @@ jobs:
           set pystr=%pystr:.=%
           python -m pip install pip
           pip install numpy pytest pytest-run-parallel
-          for %%f in (.\wheelhouse\*cp${pystr}*.whl) do ( pip install %%f )
+          pip install (Get-ChildItem .\wheelhouse\*cp%pystr%*.whl).FullName
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
