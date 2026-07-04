@@ -488,6 +488,8 @@ class build_ext_subclass(build_ext):
             '--without-fortran',
             '--disable-shared',
             '--enable-reentrant',
+            # we bundle zlib directly so skip check
+            '--without-zlib-check',
         ]
         # we use -fPIC and -fvisibility=hidden to ensure we build a linkable
         # static library with the symbols hidden
