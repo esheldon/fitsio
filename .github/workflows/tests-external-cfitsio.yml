@@ -102,7 +102,7 @@ jobs:
           if [[ "${{ matrix.config.cftsver }}" == *3* ]]; then
             config_flags="${{ matrix.config.cf }}"
           else
-            config_flags="--without-fortran --disable-shared --without-zlib-check ${{ matrix.config.cf }}"
+            config_flags="--without-fortran --disable-shared ${{ matrix.config.cf }}"
           fi
 
           echo "CFITSIO_CONFIG_FLAGS=${config_flags}" >> ${GITHUB_ENV}
