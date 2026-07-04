@@ -217,6 +217,9 @@ jobs:
         with:
           python-version: '${{ env.PYVER }}'
 
+      - name: make nmake available
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: build wheels
         uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
         env:
