@@ -26,6 +26,7 @@ concurrency:
 env:
   PYVER: '3.11'
   CIBW_SKIP_VAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.cibw_skip || 'cp36* cp37* pp* cp38* cp39*' }}
+  DEPS: numpy pytest pytest-run-parallel pytest-skip-slow
 
 jobs:
   linux-manylinux:
@@ -63,8 +64,8 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
+          python -m pip install --upgrade pip
+          pip install ${{ env.DEPS }}
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
@@ -117,7 +118,7 @@ jobs:
           mkdir test-venv
           python3 -m venv test-venv
           . test-venv/bin/activate
-          pip install numpy pytest pytest-run-parallel
+          pip install ${{ env.DEPS }}
           pip install ./wheelhouse/*cp${pystr}-musl*.whl
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
           deactivate
@@ -155,8 +156,8 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
+          python -m pip install --upgrade pip
+          pip install ${{ env.DEPS }}
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
@@ -193,8 +194,8 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
+          python -m pip install --upgrade pip
+          pip install ${{ env.DEPS }}
           pip install ./wheelhouse/*cp${pystr}*.whl
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
@@ -235,10 +236,10 @@ jobs:
           echo python version string is %pystr%
           if errorlevel 1 exit 1
           
-          python -m pip install pip
+          python -m pip install --upgrade pip
           if errorlevel 1 exit 1
 
-          pip install numpy pytest pytest-run-parallel
+          pip install ${{ env.DEPS }}
           if errorlevel 1 exit 1
 
           for %%f in (.\wheelhouse\*cp%pystr%*.whl) do pip install %%f
