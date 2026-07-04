@@ -15,6 +15,7 @@ from setuptools.command.build_ext import (
 import warnings
 import tempfile
 import tarfile
+import shlex
 import sys
 import os
 import subprocess
@@ -245,7 +246,10 @@ class build_ext_subclass(build_ext):
         _print_msg("setting windows compiler to " + env["CC"])
         cmake_cmd = [
             "cmake",
-            os.environ.get("CMAKE_ARGS", ""),
+        ]
+        if "CMAKE_ARGS" in os.environ:
+            cmake_cmd += shlex.split(os.environ["CMAKE_ARGS"], posix=False)
+        cmake_cmd += [
             "-G",
             "NMake Makefiles",
             f"-DCMAKE_INSTALL_PREFIX={self.cfitsio_cmake_prefix_dir}",
