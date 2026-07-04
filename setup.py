@@ -6,7 +6,11 @@
 
 from __future__ import print_function
 from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
+from setuptools.command.build_ext import (
+    build_ext,
+    new_compiler,
+    customize_compiler,
+)
 
 import warnings
 import tempfile
@@ -241,9 +245,13 @@ class build_ext_subclass(build_ext):
 
         env = {}
         env.update(os.environ)
-        self.compiler.initialize()
-        env["CC"] = self.compiler.cc
-        _print_msg("setting windows compiler: " + env["CC"])
+        # make a new instance to get name without changing current instance
+        tmp_cc = new_compiler()
+        customize_compiler(tmp_cc)
+        tmp_cc.initialize(self.plat_name)
+        env["CC"] = tmp_cc.cc
+        env["CC"] = "blah"
+        _print_msg("setting windows compiler to " + env["CC"])
         subprocess.run(
             [
                 "cmake",
