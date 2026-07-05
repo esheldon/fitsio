@@ -847,60 +847,103 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     }
 
     dict = PyDict_New();
+    if (dict == NULL) {
+        UNLOCK_FITS(self);
+        return NULL;
+    }
     ext = hdunum - 1;
 
-    add_long_to_dict(dict, "hdunum", (long)hdunum);
-    add_long_to_dict(dict, "extnum", (long)ext);
-    add_long_to_dict(dict, "hdutype", (long)hdutype);
+    if (add_long_to_dict(dict, "hdunum", (long)hdunum)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_to_dict(dict, "extnum", (long)ext)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_to_dict(dict, "hdutype", (long)hdutype)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
 
     tstatus = 0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
                       &tstatus) == 0) {
         convert_extname_to_ascii(extname);
-        add_string_to_dict(dict, "extname", extname);
     } else {
-        add_string_to_dict(dict, "extname", "");
+        extname[0] = '\0';
+    }
+    if (add_string_to_dict(dict, "extname", extname)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL,
                       &tstatus) == 0) {
         convert_extname_to_ascii(hduname);
-        add_string_to_dict(dict, "hduname", hduname);
     } else {
-        add_string_to_dict(dict, "hduname", "");
+        hduname[0] = '\0';
+    }
+    if (add_string_to_dict(dict, "hduname", hduname)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "extver", (long)extver);
-    } else {
-        add_long_to_dict(dict, "extver", (long)0);
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)) {
+        extver = 0;
+    }
+    if (add_long_to_dict(dict, "extver", (long)extver)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "hduver", (long)hduver);
-    } else {
-        add_long_to_dict(dict, "hduver", (long)0);
+    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)) {
+        hduver = 0;
+    }
+    if (add_long_to_dict(dict, "hduver", (long)hduver)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
     is_compressed = fits_is_compressed_image(self->fits, &tstatus);
-    add_long_to_dict(dict, "is_compressed_image", (long)is_compressed);
+    if (add_long_to_dict(dict, "is_compressed_image", (long)is_compressed)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
 
     // get byte offsets
-    if (0 == fits_get_hduaddrll(self->fits, &header_start, &data_start,
-                                &data_end, &tstatus)) {
-        add_long_long_to_dict(dict, "header_start", (long)header_start);
-        add_long_long_to_dict(dict, "data_start", (long)data_start);
-        add_long_long_to_dict(dict, "data_end", (long)data_end);
-    } else {
-        add_long_long_to_dict(dict, "header_start", -1);
-        add_long_long_to_dict(dict, "data_start", -1);
-        add_long_long_to_dict(dict, "data_end", -1);
+    if (fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end,
+                           &tstatus)) {
+        header_start = -1;
+        data_start = -1;
+        data_end = -1;
+    }
+    if (add_long_long_to_dict(dict, "header_start", (long)header_start)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_long_to_dict(dict, "data_start", (long)data_start)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_long_to_dict(dict, "data_end", (long)data_end)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     int ndims = 0;
