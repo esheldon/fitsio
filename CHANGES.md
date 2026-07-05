@@ -5,6 +5,8 @@
 Changes
 
 - Added development dependencies to the `pyproject.toml`.
+- Reformatted `CHANGES.md` for clarity and added linting
+  to ensure consistent formatting in the future.
 
 ## 1.4.0
 
