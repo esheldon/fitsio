@@ -83,11 +83,7 @@ struct PyFITSObject {
 
 // check unicode for python3, string for python2
 static int is_python_string(const PyObject *obj) {
-#if PY_MAJOR_VERSION >= 3
     return PyUnicode_Check(obj) || PyBytes_Check(obj);
-#else
-    return PyUnicode_Check(obj) || PyString_Check(obj);
-#endif
 }
 
 /*
@@ -182,11 +178,24 @@ static int has_invalid_keyword_chars(char *str) {
 static char *get_unicode_as_string(PyObject *obj) {
     PyObject *tmp = NULL;
     char *strdata = NULL;
+
     tmp = PyObject_CallMethod(obj, "encode", NULL);
+    if (tmp == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
+
+    strdata = PyBytes_AsString(tmp);
+    if (strdata == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
 
     strdata = strdup(PyBytes_AsString(tmp));
-    Py_XDECREF(tmp);
+    if (strdata == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
 
+get_unicode_as_string_cleanup:
+    Py_XDECREF(tmp);
     return strdata;
 }
 
@@ -195,54 +204,55 @@ static char *get_object_as_string(PyObject *obj) {
     PyObject *args = NULL;
     char *strdata = NULL;
     PyObject *tmpobj1 = NULL;
+    PyObject *tmpobj2 = NULL;
 
     if (PyUnicode_Check(obj)) {
-
         strdata = get_unicode_as_string(obj);
-
     } else {
-
-#if PY_MAJOR_VERSION >= 3
-
         if (PyBytes_Check(obj)) {
-            strdata = strdup(PyBytes_AsString(obj));
+            strdata = PyBytes_AsString(obj);
+            if (strdata == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+            strdata = strdup(strdata);
         } else {
-            PyObject *tmpobj2 = NULL;
             format = Py_BuildValue("s", "%s");
+            if (format == NULL) {
+                goto get_object_as_string_cleanup;
+            }
             // this is not a string object
             args = PyTuple_New(1);
+            if (args == NULL) {
+                goto get_object_as_string_cleanup;
+            }
 
-            PyTuple_SetItem(args, 0, obj);
+            if (PyTuple_SetItem(args, 0, obj)) {
+                goto get_object_as_string_cleanup;
+            }
+
             tmpobj2 = PyUnicode_Format(format, args);
+            if (tmpobj2 == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+
             tmpobj1 = PyObject_CallMethod(tmpobj2, "encode", NULL);
+            if (tmpobj1 == NULL) {
+                goto get_object_as_string_cleanup;
+            }
 
-            Py_XDECREF(args);
-            Py_XDECREF(tmpobj2);
-
-            strdata = strdup(PyBytes_AsString(tmpobj1));
-            Py_XDECREF(tmpobj1);
-            Py_XDECREF(format);
+            strdata = PyBytes_AsString(tmpobj1);
+            if (strdata == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+            strdata = strdup(strdata);
         }
-
-#else
-        // convert to a string as needed
-        if (PyString_Check(obj)) {
-            strdata = strdup(PyString_AsString(obj));
-        } else {
-            format = Py_BuildValue("s", "%s");
-            args = PyTuple_New(1);
-
-            PyTuple_SetItem(args, 0, obj);
-            tmpobj1 = PyString_Format(format, args);
-
-            strdata = strdup(PyString_AsString(tmpobj1));
-            Py_XDECREF(args);
-            Py_XDECREF(tmpobj1);
-            Py_XDECREF(format);
-        }
-#endif
     }
 
+get_object_as_string_cleanup:
+    Py_XDECREF(args);
+    Py_XDECREF(tmpobj2);
+    Py_XDECREF(tmpobj1);
+    Py_XDECREF(format);
     return strdata;
 }
 
@@ -431,75 +441,134 @@ static int stringlist_addfrom_listobj(struct stringlist *slist,
     return 0;
 }
 
-static void add_double_to_dict(PyObject *dict, const char *key, double value) {
+static int add_double_to_dict(PyObject *dict, const char *key, double value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyFloat_FromDouble(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_double_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_double_to_dict_cleanup;
+    }
+
+add_double_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_long_to_dict(PyObject *dict, const char *key, long value) {
+static int add_long_to_dict(PyObject *dict, const char *key, long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyLong_FromLong(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_long_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_long_to_dict_cleanup;
+    }
+
+add_long_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_long_long_to_dict(PyObject *dict, const char *key,
-                                  long long value) {
+static int add_long_long_to_dict(PyObject *dict, const char *key,
+                                 long long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyLong_FromLongLong(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_long_long_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_long_long_to_dict_cleanup;
+    }
+
+add_long_long_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_string_to_dict(PyObject *dict, const char *key,
-                               const char *str) {
+static int add_string_to_dict(PyObject *dict, const char *key,
+                              const char *str) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = Py_BuildValue("s", str);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_string_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_string_to_dict_cleanup;
+    }
+
+add_string_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_none_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_None);
-    Py_XINCREF(Py_None);
-}
-static void add_true_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_True);
-    Py_XINCREF(Py_True);
-}
-static void add_false_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_False);
-    Py_XINCREF(Py_False);
+static int add_none_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_None)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_None);
+        return 0;
+    }
 }
 
-/*
-static
-void append_long_to_list(PyObject* list, long value) {
-    PyObject* tobj=NULL;
-    tobj=PyLong_FromLong(value);
-    PyList_Append(list, tobj);
-    Py_XDECREF(tobj);
+static int add_true_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_True)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_True);
+        return 0;
+    }
 }
-*/
 
-static void append_long_long_to_list(PyObject *list, long long value) {
+static int add_false_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_False)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_True);
+        return 0;
+    }
+}
+
+static int append_long_long_to_list(PyObject *list, long long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
-    tobj = PyLong_FromLongLong(value);
-    PyList_Append(list, tobj);
-    Py_XDECREF(tobj);
-}
 
-/*
-static
-void append_string_to_list(PyObject* list, const char* str) {
-    PyObject* tobj=NULL;
-    tobj=Py_BuildValue("s",str);
-    PyList_Append(list, tobj);
+    tobj = PyLong_FromLongLong(value);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto append_long_long_to_list_cleanup;
+    }
+
+    if (PyList_Append(list, tobj)) {
+        retcode = -1;
+        goto append_long_long_to_list_cleanup;
+    }
+
+append_long_long_to_list_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
-*/
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
@@ -613,13 +682,7 @@ static void PyFITSObject_dealloc(struct PyFITSObject *self) {
         self->fits = NULL;
     }
     UNLOCK_FITS(self);
-#if PY_MAJOR_VERSION >= 3
-    // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
-#else
-    // old way, removed in python 3
-    self->ob_type->tp_free((PyObject *)self);
-#endif
 }
 
 // this will need to be updated for array string columns.
@@ -2702,11 +2765,7 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
     for (icol = 0; icol < ncols; icol++) {
 
         tmp_obj = PyList_GetItem(colnum_list, icol);
-#if PY_MAJOR_VERSION >= 3
         colnums[icol] = 1 + (int)PyLong_AsLong(tmp_obj);
-#else
-        colnums[icol] = 1 + (int)PyInt_AsLong(tmp_obj);
-#endif
 
         tmp_array = (PyArrayObject *)PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
@@ -4155,12 +4214,9 @@ static PyObject *read_var_string(fitsfile *fits, int colnum, LONGLONG row,
                       strarr, anynul, status) > 0) {
         goto read_var_string_cleanup;
     }
-#if PY_MAJOR_VERSION >= 3
     // bytes
     stringObj = Py_BuildValue("y", str);
-#else
-    stringObj = Py_BuildValue("s", str);
-#endif
+
     if (NULL == stringObj) {
         PyErr_Format(PyExc_MemoryError,
                      "Could not allocate py string of size %lld", nchar);
@@ -6045,19 +6101,14 @@ static PyMethodDef PyFITSObject_methods[] = {
 };
 
 static PyTypeObject PyFITSType = {
-#if PY_MAJOR_VERSION >= 3
-    PyVarObject_HEAD_INIT(NULL, 0)
-#else
-    PyObject_HEAD_INIT(NULL) 0, /*ob_size*/
-#endif
-        "_fitsio.FITS",               /*tp_name*/
-    sizeof(struct PyFITSObject),      /*tp_basicsize*/
-    0,                                /*tp_itemsize*/
-    (destructor)PyFITSObject_dealloc, /*tp_dealloc*/
-    0,                                /*tp_print*/
-    0,                                /*tp_getattr*/
-    0,                                /*tp_setattr*/
-    0,                                /*tp_compare*/
+    PyVarObject_HEAD_INIT(NULL, 0) "_fitsio.FITS", /*tp_name*/
+    sizeof(struct PyFITSObject),                   /*tp_basicsize*/
+    0,                                             /*tp_itemsize*/
+    (destructor)PyFITSObject_dealloc,              /*tp_dealloc*/
+    0,                                             /*tp_print*/
+    0,                                             /*tp_getattr*/
+    0,                                             /*tp_setattr*/
+    0,                                             /*tp_compare*/
     // 0,                         /*tp_repr*/
     (reprfunc)PyFITSObject_repr,              /*tp_repr*/
     0,                                        /*tp_as_number*/
@@ -6120,7 +6171,6 @@ static PyMethodDef fitstype_methods[] = {
     {NULL} /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "_fitsio_wrap",                            /* m_name */
@@ -6132,23 +6182,15 @@ static struct PyModuleDef moduledef = {
     NULL,                                      /* m_clear */
     NULL,                                      /* m_free */
 };
-#endif
 
 #ifndef PyMODINIT_FUNC /* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
-PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
-PyInit__fitsio_wrap(void)
-#else
-init_fitsio_wrap(void)
-#endif
-{
+PyMODINIT_FUNC PyInit__fitsio_wrap(void) {
     PyObject *m;
 
     PyFITSType.tp_new = PyType_GenericNew;
 
-#if PY_MAJOR_VERSION >= 3
     if (PyType_Ready(&PyFITSType) < 0) {
         return NULL;
     }
@@ -6157,31 +6199,16 @@ init_fitsio_wrap(void)
         return NULL;
     }
 
-#else
-    if (PyType_Ready(&PyFITSType) < 0) {
-        return;
-    }
-    m = Py_InitModule3("_fitsio_wrap", fitstype_methods,
-                       "Define FITS type and methods.");
-    if (m == NULL) {
-        return;
-    }
-#endif
-
     Py_INCREF(&PyFITSType);
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
 
     import_array();
 
-#if PY_MAJOR_VERSION >= 3
 #ifdef Py_GIL_DISABLED
     if (fits_is_reentrant() != 0) {
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
     }
 #endif
-#endif
 
-#if PY_MAJOR_VERSION >= 3
     return m;
-#endif
 }
