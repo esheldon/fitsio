@@ -126,3 +126,7 @@ fitsio/_version.py
 .ruff_cache
 
 prof/
+
+.DS_Store
+cfitsio-*/
+zlib/
