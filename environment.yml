@@ -2,8 +2,8 @@ name: fitsio-dev
 channels:
   - conda-forge
 dependencies:
-  - python
-  - numpy
+  - python >=3.10
+  - numpy >=1.7
   - pip
   - setuptools
   - setuptools-scm >=8

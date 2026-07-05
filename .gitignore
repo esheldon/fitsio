@@ -127,7 +127,6 @@ fitsio/_version.py
 
 prof/
 
-*.DS_Store
-
-zlib/*
-cfitsio-*/*
+.DS_Store
+cfitsio-*/
+zlib/
