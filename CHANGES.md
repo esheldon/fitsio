@@ -1,5 +1,12 @@
-version 1.4.0
--------------
+# Changes
+
+## 1.4.1 (unreleased)
+
+Changes
+
+- Added development dependencies to the `pyproject.toml`.
+
+## 1.4.0
 
 Changes
 
@@ -40,8 +47,7 @@ Bug Fixes
       instructions in order to maintain reproducible lossy image
       compression.
 
-version 1.3.0
--------------
+## 1.3.0
 
 Changes
 
@@ -105,8 +111,7 @@ Bug Fixes
     - Fixed a bug where the FITS HDU properties could go out of sync as header
       keys were added, modified, etc.
 
-version 1.2.8
--------------
+## 1.2.8
 
 Changes
 
@@ -122,15 +127,13 @@ Bug Fixes
 
     - Fixed error in PyPI uploads.
 
-version 1.2.7
--------------
+## 1.2.7
 
 Changes
 
     - Replace deprecated `NPY_*` constants (Michał Górny)
 
-version 1.2.6
--------------
+## 1.2.6
 
 Bug Fixes
 
@@ -139,8 +142,7 @@ Bug Fixes
       1 vectors in numpy 2.
     - Fix building against NumPy 2.3.0.
 
-version 1.2.5
--------------
+## 1.2.5
 
 New Features
 
@@ -152,15 +154,13 @@ Bug Fixes
 
     - Fix bug slicing tables that have TBIT columns
 
-version 1.2.4
--------------
+## 1.2.4
 
 Changes
 
     - use cfitsio-4.4.1-20240617 which reverts to a free license
 
-version 1.2.3
--------------
+## 1.2.3
 
 Changes
 
@@ -173,8 +173,7 @@ Bug Fixes
     - Using cfitsio 4.4.0 fixes a bug reading HIERARCH+CONTINUE keywords
     - zlib subdir not in manifest
 
-version 1.2.2
--------------
+## 1.2.2
 
 Changes
 
@@ -182,8 +181,7 @@ Changes
     - setup.py: rename env variable BZIP2 to FITSIO_BZIP2_DIR (Maximillian Bensch)
     - Add support for LoongArch (liuxiang)
 
-version 1.2.1
--------------
+## 1.2.1
 
 Changes
 
@@ -198,8 +196,7 @@ Bug Fixes
     - work around cfitsio bug when creating HDU for lossless gzip compression,
       reopen file instead of just an update hdu list
 
-version 1.2.0
---------------
+## 1.2.0
 
 Changes
 
@@ -213,8 +210,7 @@ Bug Fixes
     - Fixed builds of the bundled cfitsio code to hide symbols and directly
       include the *.o files when linking.
 
-version 1.1.10
---------------
+## 1.1.10
 
 Changes
 
@@ -224,8 +220,7 @@ Bug Fixes
       types were 32 rather than 64 bit assumed by the C code.
     - Fix checks for rows being sent to C codes
 
-version 1.1.9
--------------
+## 1.1.9
 
 Changes
 
@@ -240,14 +235,12 @@ Bug Fixes
     - Bug updating header string cards was adding new key rather than updating
     - Bug gzip compression when not using quantization
 
-version 1.1.8
--------------
+## 1.1.8
 
 Bug Fixes
     - Bug in repr of FITS where it only worked the first time it was generated
 
-version 1.1.7
--------------
+## 1.1.7
 
 Bug Fixes
 
@@ -257,8 +250,7 @@ Bug Fixes
       Also a bug with not upper casing things like 1.0E20 which is the
       fits standard
 
-version 1.1.6
--------------
+## 1.1.6
 
 Bug Fixes
 
@@ -266,8 +258,7 @@ Bug Fixes
       exception (user ussegliog)
     - fix bug append not forwarding arguments to write (Nicolas Tessore)
 
-version 1.1.5
----------------------------------
+## 1.1.5
 
 Bug Fixes
 
@@ -287,8 +278,7 @@ Changes
     - Non-allowed characters in header keywords are now converted to `_` instead
       of `JUNK___...`.
 
-version 1.1.4
----------------------------------
+## 1.1.4
 
 New Features
 
@@ -305,8 +295,7 @@ Compatibility changes
     - moved to sing `bool` rather than `np.bool` to be compatible
       with numpy 1.2
 
-version 1.1.3
----------------------------------
+## 1.1.3
 
 This release moves to cfitsio 3.49, which has bug fixes and now properly
 supports reading certain classes of lossless compressed files
@@ -339,24 +328,21 @@ Bug Fixes
     - Return zero length result when requested rows have
       zero length (rainwoodman)
 
-version 1.1.2
----------------------------------
+## 1.1.2
 
 Bug Fixes
 
     - Fixed deprecation warnings for extra keyword arguments.
     - Fixed SyntaxWarning: "is" with a literal (Michka Popoff)
 
-version 1.1.1
----------------------------------
+## 1.1.1
 
 Bug Fixes
 
     - Fix bug in drvrnet.c in printf statement, causing compile
       issues on some systems.
 
-version 1.1.0
----------------------------------
+## 1.1.0
 
 Bumping the minor version due to the update of the cfitsio version
 
@@ -385,8 +371,7 @@ Deprecations
       keyword arguments. A warning will be raised in any keyword arguments
       are passed. In version `1.2`, this warning will become an error.
 
-version 1.0.5
----------------------------------
+## 1.0.5
 
 Bug Fixes
 
@@ -394,8 +379,7 @@ Bug Fixes
     - fixed bug writing 64 bit images (#256, #257)
     - fixed HISTORY card value not being read
 
-version 1.0.4
----------------------------------
+## 1.0.4
 
 New Features
 
@@ -410,8 +394,7 @@ Bug Fixes
     - fixed many bugs reading headers; these were a casualty of
       the header reading optimizations put in for  1.0.1
 
-version 1.0.3
----------------------------------
+## 1.0.3
 
 This is a bug fix release
 
@@ -420,8 +403,7 @@ Bug Fixes
     - The new header reading code did not deal properly with some
       HIERARCH non-standard header key values.
 
-version 1.0.2
----------------------------------
+## 1.0.2
 
 This is a bug fix release
 
@@ -430,8 +412,7 @@ Bug Fixes
     - the read_header function was not treating the case_sensitive
       keyword properly (Stephen Bailey)
 
-version 1.0.1
----------------------------------
+## 1.0.1
 
 Backwards Incompatible Changes
 
@@ -468,8 +449,7 @@ Deprecations
 
     - removed `convert` keyword in `FITSRecord` and `FITSHDR` classes.
 
-version 0.9.12
----------------------------------
+## 0.9.12
 
 New Features
 
@@ -510,8 +490,7 @@ Bug Fixes
       to upper case
     - link against libm explicitly for compatibility on some systems
 
-version 0.9.11
----------------------------------
+## 0.9.11
 
 New Features
 
@@ -533,8 +512,7 @@ Bug Fixes
     - Fix bug for missing key in FITSHDR object using the hdr[key]
       notation.  Also raise KeyError rather than ValueError
 
-version 0.9.10
----------------
+## 0.9.10
 
 Bug Fixes
 
@@ -565,13 +543,11 @@ Workarounds
       -O2 fixes the issue.  This was an issue on linux in both anaconda python2
       and python3.
 
-version 0.9.9.1
-----------------------------------
+## 0.9.9.1
 
 New tag so that pypi will accept the updated version
 
-version 0.9.9
-----------------------------------
+## 0.9.9
 
 New Features
 
@@ -597,8 +573,7 @@ Bug Fixes
       PyFITSObject_create_image_hdu, rather than npy_intp.
       (thanks Ole Streicher)
 
-version 0.9.8
-----------------------------------
+## 0.9.8
 
 New Features
 
@@ -644,8 +619,7 @@ Dev features
 
     - added travis ci
 
-version 0.9.7
-----------------------------------
+## 0.9.7
 
 New Features
 
@@ -662,8 +636,7 @@ New Features
     - IOError is now used to indicate a number of errors that
         were previously ValueError
 
-version 0.9.6
---------------
+## 0.9.6
 
 New Features
 
@@ -686,8 +659,7 @@ Bug Fixes
     - fixed bug with empty string in header card
     - deal with cfitsio treating first 4 comments specially
 
-version 0.9.5
---------------------------------
+## 0.9.5
 
 Note the version 0.9.4 was skipped because some people had been using the
 master branch in production, which had version 0.9.4 set.  This will allow
@@ -723,8 +695,7 @@ Bug Fixes
 
 All changes E. Sheldon except where noted.
 
-version 0.9.3
---------------------------
+## 0.9.3
 
 New Features
 
@@ -776,8 +747,7 @@ Bug Fixes
       npy_longlong, which is not correct.
     - fixed bug in order of iteration of HDUs
 
-version 0.9.2
---------------------------
+## 0.9.2
 
 New Features
 
@@ -790,11 +760,11 @@ New Features
       using or at read time using the lower= and upper= keywords.
 
 bug fixes
+
     - more sensible data structure for header keywords.  Now works in all known
       cases when reading and rewriting string fields.
 
-version 0.9.1
--------------------------
+## 0.9.1
 
 New features
 
@@ -826,8 +796,7 @@ bug fixes
     - required header keywords are stripped from input header objects before
       writing.
 
-version 0.9.0 (2011-10-21)
--------------------------
+## 0.9.0 (2011-10-21)
 
 This is the first "official" release. A patched version of cfitsio 3.28 is now
 bundled.  This will make it easier for folks to install, and provide a
