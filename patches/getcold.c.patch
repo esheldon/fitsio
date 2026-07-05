@@ -1,0 +1,38 @@
+--- a/getcold.c
++++ b/getcold.c
+@@ -1418,7 +1418,7 @@ int fffr4r8(float *input,         /* I - array of values to be converted     */
+                         nullarray[ii] = 1;
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = 0;
++                     output[ii] = (double) input[ii];
+               }
+               else
+                 output[ii] = (double) input[ii];
+@@ -1439,7 +1439,7 @@ int fffr4r8(float *input,         /* I - array of values to be converted     */
+                         nullarray[ii] = 1;
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = zero;
++                     output[ii] = input[ii] * scale + zero;
+               }
+               else
+                   output[ii] = input[ii] * scale + zero;
+@@ -1519,7 +1519,7 @@ int fffr8r8(double *input,        /* I - array of values to be converted     */
+                     }
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = 0;
++                     output[ii] = input[ii];
+               }
+               else
+                   output[ii] = input[ii];
+@@ -1544,7 +1544,7 @@ int fffr8r8(double *input,        /* I - array of values to be converted     */
+                     }
+                   }
+                   else            /* it's an underflow */
+-                     output[ii] = zero;
++                     output[ii] = input[ii] * scale + zero;
+               }
+               else
+                   output[ii] = input[ii] * scale + zero;

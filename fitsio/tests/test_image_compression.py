@@ -887,6 +887,24 @@ def test_image_compression_read_from_osx_arm64():
     np.testing.assert_array_equal(data, cdata)
 
 
+def test_image_compression_gzip_subnormal_cast_to_zero():
+    data = np.zeros(
+        (5, 1), dtype='>f4'
+    )  # a single 5x1 tile, big-endian float32
+    data[:, 0] = [134.97459, 248.02034, 183.40105, 57.59670, 216.31425]
+
+    fn = "mini.fits"
+    if os.path.exists(fn):
+        os.remove(fn)
+    with FITS(fn, "rw") as f:
+        f.write(
+            data, compress="GZIP_1", tile_dims=(5, 1), qlevel=5, qmethod=-1
+        )
+
+    back = FITS(fn)[1].read()
+    assert not back.ravel()[0] == 0, back.ravel()
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
