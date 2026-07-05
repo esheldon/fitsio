@@ -29,3 +29,8 @@ repos:
       - id: clang-format
         types_or: [c]
         args: [ "-style={BasedOnStyle: llvm, IndentWidth: 4}" ]
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.23.0
+    hooks:
+      - id: markdownlint-cli2
+        files: CHANGES.md
