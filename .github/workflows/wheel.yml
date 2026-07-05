@@ -114,7 +114,7 @@ jobs:
         run: |
           python --version
           pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
-          whl=$(ls ./wheelhouse/*cp${pystr}*.whl)
+          whl=$(ls ./wheelhouse/*cp${pystr}-musl*.whl)
           mkdir test-venv
           python3 -m venv test-venv
           . test-venv/bin/activate
