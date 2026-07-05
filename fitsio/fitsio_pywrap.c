@@ -958,16 +958,37 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         PyObject *dimsObj = PyList_New(0);
         int i = 0;
 
+        if (dimsObj == NULL) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+
         // if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
         //                        dims, pcount_p, gcount_p, extend_p, &status))
         //                        {
         if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims,
                                  &tstatus)) {
-            add_string_to_dict(dict, "error",
-                               "could not determine image parameters");
+            if (add_string_to_dict(dict, "error",
+                                   "could not determine image parameters")) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         } else {
-            add_long_to_dict(dict, "ndims", (long)ndims);
-            add_long_to_dict(dict, "img_type", (long)bitpix);
+            if (add_long_to_dict(dict, "ndims", (long)ndims)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
+            if (add_long_to_dict(dict, "img_type", (long)bitpix)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
             if (ignore_scaling == TRUE) {
                 // Get the raw type if scaling is being ignored.
@@ -976,23 +997,48 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
             }
 
-            add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv);
+            if (add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
             tstatus = 0;
             if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL,
                               &tstatus) == 0) {
                 convert_to_ascii(comptype);
-                add_string_to_dict(dict, "comptype", comptype);
+                if (add_string_to_dict(dict, "comptype", comptype)) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             } else {
-                add_none_to_dict(dict, "comptype");
+                if (add_none_to_dict(dict, "comptype")) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             }
 
             for (i = 0; i < ndims; i++) {
-                append_long_long_to_list(dimsObj, (long long)dims[i]);
+                if (append_long_long_to_list(dimsObj, (long long)dims[i])) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             }
-            PyDict_SetItemString(dict, "dims", dimsObj);
-            Py_XDECREF(dimsObj);
+            if (PyDict_SetItemString(dict, "dims", dimsObj)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         }
+        Py_XDECREF(dimsObj);
 
     } else if (hdutype == BINARY_TBL) {
         int tstatus = 0;
