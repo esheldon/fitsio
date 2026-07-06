@@ -63,9 +63,9 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
-          pip install ./wheelhouse/*cp${pystr}*.whl
+          whl=$(ls ./wheelhouse/*cp${pystr}*.whl)
+          python -m pip install --upgrade pip
+          pip install "${whl}[dev]"
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
@@ -114,11 +114,12 @@ jobs:
         run: |
           python --version
           pystr=$(python --version | cut -d' ' -f 2 | cut -d'.' -f 1)$(python --version | cut -d' ' -f 2 | cut -d'.' -f 2)
+          whl=$(ls ./wheelhouse/*cp${pystr}-musl*.whl)
           mkdir test-venv
           python3 -m venv test-venv
           . test-venv/bin/activate
-          pip install numpy pytest pytest-run-parallel
-          pip install ./wheelhouse/*cp${pystr}-musl*.whl
+          python -m pip install --upgrade pip
+          pip install "${whl}[dev]"
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
           deactivate
 
@@ -155,9 +156,9 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
-          pip install ./wheelhouse/*cp${pystr}*.whl
+          whl=$(ls ./wheelhouse/*cp${pystr}*.whl)
+          python -m pip install --upgrade pip
+          pip install "${whl}[dev]"
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
@@ -193,9 +194,9 @@ jobs:
         run: |
           pystr='${{ env.PYVER }}'
           pystr=${pystr//./}
-          python -m pip install pip
-          pip install numpy pytest pytest-run-parallel
-          pip install ./wheelhouse/*cp${pystr}*.whl
+          whl=$(ls ./wheelhouse/*cp${pystr}*.whl)
+          python -m pip install --upgrade pip
+          pip install "${whl}[dev]"
           pytest --pyargs fitsio --parallel-threads 4 --iterations 4
 
       - uses: actions/upload-artifact@v7
