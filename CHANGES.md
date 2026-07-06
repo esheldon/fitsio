@@ -8,6 +8,10 @@ Changes
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
 
+Bug Fixes
+
+- Added missing memory allocation checks in C layer.
+
 ## 1.4.0
 
 Changes
