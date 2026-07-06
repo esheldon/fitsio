@@ -16,10 +16,6 @@ Bug Fixes
 - Marked test for reproducible lossy float compression as xfail for external
   cfitsio libraries.
 - Added global lock on `cfitsio` calls for non-reentrant builds.
-- Fixed bug where `hdu_list` and `hdu_map` can go out of sync.
-
-Bug Fixes
-
 - Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
 
 ## 1.4.0
