@@ -8,6 +8,10 @@ Changes
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
 
+Bug Fixes
+
+- Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
+
 ## 1.4.0
 
 Changes
