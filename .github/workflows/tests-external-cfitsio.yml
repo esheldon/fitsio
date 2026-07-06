@@ -155,6 +155,11 @@ jobs:
           else
             python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
           fi
+          if [[ "${{ matrix.config.cf}}" != "" ]]; then
+            python -c "import fitsio; assert fitsio.cfitsio_is_reentrant()"
+          else
+            python -c "import fitsio; assert not fitsio.cfitsio_is_reentrant()"
+          fi
 
           pytest -vv --durations=20 ${PRP_FLAGS} fitsio
 

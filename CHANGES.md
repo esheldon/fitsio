@@ -7,10 +7,13 @@ Changes
 - Added development dependencies to the `pyproject.toml`.
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
+- Added function `cfitsio_is_reentrant()` to return whether or not the
+  underlying cfitsio library was compiled with reentrant support.
 
 Bug Fixes
 
 - Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
+- Added global lock on `cfitsio` calls for non-reentrant builds.
 
 ## 1.4.0
 
