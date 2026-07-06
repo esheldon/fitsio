@@ -10,7 +10,7 @@ Changes
 
 Bug Fixes
 
-- Fixed (rare) bug where `hdu_list` and `hdu_map` can go out of sync.
+- Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
 
 ## 1.4.0
 
