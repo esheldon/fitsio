@@ -1,4 +1,5 @@
 import pytest
+import struct
 import sys
 import os
 import tempfile
@@ -610,6 +611,13 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.skipif(
+    condition=struct.calcsize("P") * 8 == 32,
+    reason=(
+        "Cannot test writing of compressed tables "
+        "with more than 2**32 bytes on 32-bit platforms"
+    ),
+)
 @pytest.mark.slow
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
@@ -792,8 +800,9 @@ def test_image_compression_nulls_patches_with_subnormal(
                 # however, on read, we send nullcheck=NAN and as a side
                 # effect the subnormal float value in this row gets truncated
                 # to zero
-                np.testing.assert_array_equal(read_data[1, 1:], 0.0)
-                np.testing.assert_array_equal(read_slice1[1:], 0.0)
+                if not cfitsio_is_bundled():
+                    np.testing.assert_array_equal(read_data[1, 1:], 0.0)
+                    np.testing.assert_array_equal(read_slice1[1:], 0.0)
 
                 # this does not happen for row index 2 which doesn't have
                 # subnormal float values
@@ -842,6 +851,13 @@ def test_image_compression_read_chunks():
                 assert np.all(read_data == data[start:end])
 
 
+@pytest.mark.xfail(
+    condition=not cfitsio_is_bundled(),
+    reason=(
+        "system cfitsio must be compiled without FMA instructions to "
+        "enable reproducible lossy float compression"
+    ),
+)
 def test_image_compression_write_read_comp_to_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),
@@ -868,6 +884,13 @@ def test_image_compression_write_read_comp_to_osx_arm64():
     np.testing.assert_array_equal(data, tdata)
 
 
+@pytest.mark.xfail(
+    condition=not cfitsio_is_bundled(),
+    reason=(
+        "system cfitsio must be compiled without FMA instructions to "
+        "enable reproducible lossy float compression"
+    ),
+)
 def test_image_compression_read_from_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),
@@ -885,6 +908,27 @@ def test_image_compression_read_from_osx_arm64():
     data = read(pth)
 
     np.testing.assert_array_equal(data, cdata)
+
+
+def test_image_compression_gzip_subnormal_cast_to_zero():
+    # test code from astrofrog in https://github.com/esheldon/fitsio/issues/513
+    data = np.zeros(
+        (5, 1), dtype='>f4'
+    )  # a single 5x1 tile, big-endian float32
+    data[:, 0] = [134.97459, 248.02034, 183.40105, 57.59670, 216.31425]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fn = os.path.join(tmpdir, "mini.fit")
+        with FITS(fn, "rw") as f:
+            f.write(
+                data, compress="GZIP_1", tile_dims=(5, 1), qlevel=5, qmethod=-1
+            )
+
+        back = read(fn)
+        if cfitsio_is_bundled():
+            assert not back.ravel()[0] == 0, back.ravel()
+        else:
+            assert back.ravel()[0] == 0, back.ravel()
 
 
 if __name__ == '__main__':
