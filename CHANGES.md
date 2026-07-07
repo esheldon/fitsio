@@ -18,6 +18,7 @@ Bug Fixes
 - Added global lock on `cfitsio` calls for non-reentrant builds.
 - Marked tests for reproducible lossy float compression as xfail for external
   cfitsio libraries.
+- Skip tests for large compressed images exceeding `2**32` bytes on 32-bit platforms.
 
 ## 1.4.0
 
