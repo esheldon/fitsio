@@ -7,6 +7,8 @@ Changes
 - Added development dependencies to the `pyproject.toml`.
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
+- Added back patch of `cfitsio` to prevent subnormal floats from being
+  cast to zero for bundled builds.
 
 Bug Fixes
 
