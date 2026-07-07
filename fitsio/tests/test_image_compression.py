@@ -1,4 +1,5 @@
 import pytest
+import struct
 import sys
 import os
 import tempfile
@@ -610,6 +611,13 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
+@pytest.mark.skipif(
+    condition=struct.calcsize("P") * 8 == 32,
+    reason=(
+        "Cannot test writing of compressed tables "
+        "with more than 2**32 bytes on 32-bit platforms"
+    ),
+)
 @pytest.mark.slow
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
