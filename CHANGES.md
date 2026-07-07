@@ -10,13 +10,15 @@ Changes
 - Added wheels and CI for windows.
 - Added function `cfitsio_is_reentrant()` to return whether or not the
   underlying cfitsio library was compiled with reentrant support.
+- Added back patch of `cfitsio` to prevent subnormal floats from being
+  cast to zero for bundled builds.
 
 Bug Fixes
 
-- Marked test for reproducible lossy float compression as xfail for external
-  cfitsio libraries.
-- Added global lock on `cfitsio` calls for non-reentrant builds.
 - Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
+- Added global lock on `cfitsio` calls for non-reentrant builds.
+- Marked tests for reproducible lossy float compression as xfail for external
+  cfitsio libraries.
 
 ## 1.4.0
 
