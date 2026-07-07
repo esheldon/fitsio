@@ -843,6 +843,13 @@ def test_image_compression_read_chunks():
                 assert np.all(read_data == data[start:end])
 
 
+@pytest.mark.xfail(
+    condition=not cfitsio_is_bundled(),
+    reason=(
+        "system cfitsio must be compiled without FMA instructions to "
+        "enable reproducible lossy float compression"
+    ),
+)
 def test_image_compression_write_read_comp_to_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),
@@ -869,6 +876,13 @@ def test_image_compression_write_read_comp_to_osx_arm64():
     np.testing.assert_array_equal(data, tdata)
 
 
+@pytest.mark.xfail(
+    condition=not cfitsio_is_bundled(),
+    reason=(
+        "system cfitsio must be compiled without FMA instructions to "
+        "enable reproducible lossy float compression"
+    ),
+)
 def test_image_compression_read_from_osx_arm64():
     pth = os.path.join(
         os.path.dirname(__file__),

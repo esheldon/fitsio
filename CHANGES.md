@@ -13,6 +13,8 @@ Changes
 Bug Fixes
 
 - Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
+- Marked tests for reproducible lossy float compression as xfail for external
+  cfitsio libraries.
 
 ## 1.4.0
 
