@@ -155,6 +155,7 @@ class build_ext_subclass(build_ext):
                 self.compiler.library_dirs.insert(0, USE_RSFITSIO)
             self.compiler.add_library('rsfitsio')
             self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
+            self.compiler.define_macro('FITSIO_HAS_BZIP2_SUPPORT')
         elif not USE_SYSTEM_FITSIO:
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.

@@ -93,7 +93,7 @@ jobs:
           pip install ${PIP_OPTIONS} -e .
 
           pytest -vv --durations=20 ${PRP_FLAGS} fitsio
-          python -c "import fitsio; assert not fitsio.backend_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.backend_has_bzip2_support()"
           python -c "import fitsio; assert fitsio.backend_has_curl_support()"
           python -c "import fitsio; assert not fitsio.backend_is_bundled()"
           python -c "import fitsio; assert fitsio.backend_is_reentrant()"
