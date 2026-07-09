@@ -41,11 +41,18 @@ from .util import (
     FITSRuntimeWarning,
     cfitsio_is_bundled,
 )
+
+backend_version = cfitsio_version
+backend_is_bundled = cfitsio_is_bundled
 from ._fitsio_wrap import (
     cfitsio_has_bzip2_support,
     cfitsio_has_curl_support,
     cfitsio_is_reentrant,
     fitsio_backend,
 )
+
+backend_has_bzip2_support = cfitsio_has_bzip2_support
+backend_has_curl_support = cfitsio_has_curl_support
+backend_is_reentrant = cfitsio_is_reentrant
 
 from .fits_exceptions import FITSFormatError

@@ -75,9 +75,9 @@ def test_image_write_read_unaligned(dtype, with_nan):
     by hand to fix a bug.
     """
 
-    if (
-        dtype == ">f4" or ("f" in dtype and with_nan)
-    ) and not cfitsio_is_bundled():
+    if (dtype == ">f4" or ("f" in dtype and with_nan)) and (
+        fitsio_backend() == "cfitsio" and not cfitsio_is_bundled()
+    ):
         pytest.xfail(
             reason=(
                 "Non-bundled cfitsio libraries have a bug for "
@@ -575,7 +575,7 @@ def test_image_write_subset_2d(
         with_nan
         and with_nan_base_img
         and partial_overlap_str in partial_overlap_str_cases
-        and not cfitsio_is_bundled()
+        and (fitsio_backend() == "cfitsio" and not cfitsio_is_bundled())
         and compress_kws
         and compress_kws.get("qlevel", 0) > 0
     ):
