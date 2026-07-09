@@ -150,11 +150,9 @@ class build_ext_subclass(build_ext):
         if USE_RSFITSIO:
             if isinstance(USE_RSFITSIO, str):
                 self.compiler.include_dirs.insert(
-                    0, os.path.join(USE_RSFITSIO, "c")
+                    0, os.path.join(USE_RSFITSIO, "..", "..", "c")
                 )
-                self.compiler.library_dirs.insert(
-                    0, os.path.join(USE_RSFITSIO, "target", "debug")
-                )
+                self.compiler.library_dirs.insert(0, USE_RSFITSIO)
             self.compiler.add_library('rsfitsio')
             self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
         elif not USE_SYSTEM_FITSIO:
@@ -271,8 +269,9 @@ class build_ext_subclass(build_ext):
 
             self.compiler.add_library('z')
 
-        # fitsio requires libm as well.
-        self.compiler.add_library('m')
+        if not USE_RSFITSIO:
+            # fitsio requires libm as well.
+            self.compiler.add_library('m')
 
         # call the original build_extensions
         build_ext.build_extensions(self)
