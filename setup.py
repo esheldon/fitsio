@@ -156,6 +156,7 @@ class build_ext_subclass(build_ext):
                     0, os.path.join(USE_RSFITSIO, "target", "debug")
                 )
             self.compiler.add_library('rsfitsio')
+            self.compiler.define_macro('FITSIO_HAS_CURL_SUPPORT')
         elif not USE_SYSTEM_FITSIO:
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.

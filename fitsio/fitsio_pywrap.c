@@ -5803,9 +5803,11 @@ static PyObject *PyFITS_cfitsio_version(void) {
 static PyObject *PyFITS_cfitsio_is_bundled(void) {
 #ifdef FITSIO_USING_SYSTEM_FITSIO
     Py_RETURN_FALSE;
-#else
-    Py_RETURN_TRUE;
 #endif
+#ifdef FITSIO_BACKEND_RSFITSIO
+    Py_RETURN_FALSE;
+#endif
+    Py_RETURN_TRUE;
 }
 
 static PyObject *PyFITS_cfitsio_has_bzip2_support(void) {

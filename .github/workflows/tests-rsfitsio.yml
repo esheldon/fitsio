@@ -84,16 +84,17 @@ jobs:
           pushd rsfitsio
           RUSTFLAGS="--sysroot=${CONDA_PREFIX}" cargo build --release
           popd
-      
+
       - name: build fitsio
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
           export FITSIO_USE_RSFITSIO=`pwd`/rsfitsio/target/release
-          
+
           pip install ${PIP_OPTIONS} -e .
 
           pytest -vv --durations=20 ${PRP_FLAGS} fitsio
           python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
-          python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
-          python -c "import fitsio; assert not fitsio.cfitsio_is_reentrant()"
+          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
+          python -c "import fitsio; assert not fitsio.cfitsio_is_bundled()"
+          python -c "import fitsio; assert fitsio.cfitsio_is_reentrant()"
           python -c "import fitsio; assert fitsio.fitsio_backend() == 'rsfitsio'"
