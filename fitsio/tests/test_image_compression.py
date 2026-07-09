@@ -736,7 +736,6 @@ def test_image_compression_big_gzip(coef):
     with tempfile.TemporaryDirectory() as tmpdir:
         tot = 0
         pth = os.path.join(tmpdir, "test.fits.gz")
-
         with FITS(pth, "rw", clobber=True) as out:
             for i in range(nHDU):
                 out_list = []
