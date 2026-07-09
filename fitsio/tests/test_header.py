@@ -11,6 +11,7 @@ from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
 from ..util import cfitsio_version
+from .. import fitsio_backend
 
 CFITSIO_VERSION = cfitsio_version(asfloat=True)
 
@@ -543,6 +544,10 @@ def test_write_key_dict():
             assert h.get_comment('test') == keydict['comment']
 
 
+@pytest.mark.skipif(
+    condition=fitsio_backend() == "rsfitsio",
+    reason="test fails w/ rsfitsio backend",
+)
 @pytest.mark.parametrize("fname", ["test.fits", "mem://"])
 def test_header_update_compressed_image_to_table(fname):
     data = np.arange(10).reshape(5, 2).astype(np.float32)

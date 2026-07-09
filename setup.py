@@ -26,6 +26,25 @@ if "FITSIO_FAIL_ON_BAD_PATCHES" in os.environ:
 else:
     FITSIO_FAIL_ON_BAD_PATCHES = True
 
+if "--use-rsfitsio" in sys.argv or any(
+    a.startswith("--use-rsfitsio=") for a in sys.argv
+):
+    if "--use-rsfitsio" in sys.argv:
+        USE_RSFITSIO = True
+        ind = sys.argv.index("--use-rsfitsio")
+        del sys.argv[ind]
+    else:
+        for ind in range(len(sys.argv)):
+            if sys.argv[ind].startswith("--use-rsfitsio="):
+                break
+        USE_RSFITSIO = sys.argv[ind].split("=", 1)[1]
+        del sys.argv[ind]
+else:
+    USE_RSFITSIO = os.environ.get(
+        "FITSIO_USE_RSFITSIO",
+        False,
+    )
+
 if "--use-system-fitsio" in sys.argv:
     del sys.argv[sys.argv.index("--use-system-fitsio")]
     USE_SYSTEM_FITSIO = True
@@ -96,6 +115,12 @@ class build_ext_subclass(build_ext):
                 self.include_dirs.insert(0, SYSTEM_FITSIO_INCLUDEDIR)
             if SYSTEM_FITSIO_LIBDIR is not None:
                 self.library_dirs.insert(0, SYSTEM_FITSIO_LIBDIR)
+        elif USE_RSFITSIO:
+            if isinstance(USE_RSFITSIO, str):
+                self.include_dirs.insert(
+                    0, os.path.join(USE_RSFITSIO, "..", "..", "c")
+                )
+                self.library_dirs.insert(0, USE_RSFITSIO)
         else:
             # We defer configuration of the bundled cfitsio to build_extensions
             # because we will know the compiler there.
@@ -117,7 +142,21 @@ class build_ext_subclass(build_ext):
         build_ext.run(self)
 
     def build_extensions(self):
-        if not USE_SYSTEM_FITSIO:
+        if not USE_RSFITSIO:
+            self.compiler.define_macro('FITSIO_BACKEND_CFITSIO')
+        else:
+            self.compiler.define_macro('FITSIO_BACKEND_RSFITSIO')
+
+        if USE_RSFITSIO:
+            if isinstance(USE_RSFITSIO, str):
+                self.compiler.include_dirs.insert(
+                    0, os.path.join(USE_RSFITSIO, "c")
+                )
+                self.compiler.library_dirs.insert(
+                    0, os.path.join(USE_RSFITSIO, "target", "debug")
+                )
+            self.compiler.add_library('rsfitsio')
+        elif not USE_SYSTEM_FITSIO:
             # Use the compiler for building python to build cfitsio
             # for maximized compatibility.
 
@@ -450,7 +489,16 @@ class build_ext_subclass(build_ext):
 
 sources = ["fitsio/fitsio_pywrap.c"]
 
-ext = Extension("fitsio._fitsio_wrap", sources, include_dirs=['numpy'])
+kwargs = {}
+if USE_RSFITSIO and isinstance(USE_RSFITSIO, str):
+    kwargs["extra_link_args"] = [
+        "-Wl,-rpath," + USE_RSFITSIO,
+        "-L" + USE_RSFITSIO,
+    ]
+
+ext = Extension(
+    "fitsio._fitsio_wrap", sources, include_dirs=['numpy'], **kwargs
+)
 
 setup(
     ext_modules=[ext],

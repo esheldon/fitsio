@@ -45,6 +45,7 @@ from ._fitsio_wrap import (
     cfitsio_has_bzip2_support,
     cfitsio_has_curl_support,
     cfitsio_is_reentrant,
+    fitsio_backend,
 )
 
 from .fits_exceptions import FITSFormatError

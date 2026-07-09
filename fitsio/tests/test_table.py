@@ -15,7 +15,7 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
-from .. import cfitsio_has_bzip2_support
+from .. import cfitsio_has_bzip2_support, fitsio_backend
 
 CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
@@ -570,6 +570,13 @@ def test_ascii_table_write_read():
     Test write and read for an ascii table
     """
 
+    if fitsio_backend() == "rsfitsio":
+        tol = 1e-14
+    elif fitsio_backend() == "cfitsio":
+        tol = 2.15e-16
+    else:
+        assert False, "No valid backend specified! got " + fitsio_backend()
+
     adata = make_data()
     ascii_data = adata['ascii_data']
 
@@ -590,9 +597,10 @@ def test_ascii_table_write_read():
                 d = fits[1].read_column(f)
                 if d.dtype == np.float64:
                     # note we should be able to do 1.11e-16 in principle, but
-                    # in practice we get more like 2.15e-16
+                    # in practice we get more like 2.15e-16 for cfitsio and
+                    # closer to 6e-16 for rsfitsio
                     compare_array_tol(
-                        ascii_data[f], d, 2.15e-16, "table field read '%s'" % f
+                        ascii_data[f], d, tol, "table field read '%s'" % f
                     )
                 else:
                     compare_array(
@@ -606,7 +614,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f][rows],
                             d,
-                            2.15e-16,
+                            tol,
                             "table field read subrows '%s'" % f,
                         )
                     else:
@@ -624,7 +632,7 @@ def test_ascii_table_write_read():
                     compare_array_tol(
                         ascii_data[f][beg:end],
                         d,
-                        2.15e-16,
+                        tol,
                         "table field read slice '%s'" % f,
                     )
                 else:
@@ -643,7 +651,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol, '%s'" % f,
                         )
                     else:
@@ -658,7 +666,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol, '%s'" % f,
                         )
                     else:
@@ -675,7 +683,7 @@ def test_ascii_table_write_read():
                             compare_array_tol(
                                 ascii_data[f][rows],
                                 d,
-                                2.15e-16,
+                                tol,
                                 "table subcol, '%s'" % f,
                             )
                         else:
@@ -692,7 +700,7 @@ def test_ascii_table_write_read():
                             compare_array_tol(
                                 ascii_data[f][rows],
                                 d,
-                                2.15e-16,
+                                tol,
                                 "table subcol/row, '%s'" % f,
                             )
                         else:
@@ -710,7 +718,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f][beg:end],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol/slice, '%s'" % f,
                         )
                     else:

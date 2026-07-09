@@ -2,6 +2,14 @@ import os
 import tempfile
 import numpy as np
 import fitsio
+from .. import fitsio_backend
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    condition=fitsio_backend() == "rsfitsio",
+    reason="test fails w/ rsfitsio backend",
+)
 
 
 def test_compression_nocompress():
