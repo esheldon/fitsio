@@ -14,7 +14,6 @@ from ..fitslib import (
     write,
     RICE_1,
     SUBTRACTIVE_DITHER_1,
-    PLIO_1,
 )
 from ..util import cfitsio_is_bundled, cfitsio_version
 from .. import fitsio_backend
@@ -623,7 +622,7 @@ def test_image_compression_inmem_lossess_int(compress, dtype, fname):
                 "and https://github.com/HEASARC/cfitsio/pull/99."
             ),
         )
-    if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
+    if compress == "plio" and dtype in [np.int16, np.uint32, np.int32]:
         pytest.skip(
             reason="PLIO lossless compression of int16, uint32, and "
             "int32 types is not supported by cfitsio",
