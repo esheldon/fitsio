@@ -213,8 +213,7 @@ class ImageHDU(HDUBase):
                     )
 
                     # we have to reverse the dimensions here since cfitsio
-                    # uses fortran order and offset by 1 for fortan
-                    # indexing
+                    # uses fortran order and offset by 1 for fortan indexing
                     firstpixel = firstpixel[::-1] + 1
                     lastpixel = lastpixel[::-1] + 1
 
@@ -255,8 +254,7 @@ class ImageHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being "
-                "ignored! This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -415,10 +413,9 @@ class ImageHDU(HDUBase):
         steps = numpy.array(steps, dtype='i8')
 
         array = numpy.zeros(arrdims, dtype=npy_dtype)
-        with self._lock:
-            self._FITS.read_image_slice(
-                self._ext + 1, first, last, steps, self._ignore_scaling, array
-            )
+        self._FITS.read_image_slice(
+            self._ext + 1, first, last, steps, self._ignore_scaling, array
+        )
         return array
 
     def _expand_if_needed(self, dims, write_dims, start):
