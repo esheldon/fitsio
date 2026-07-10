@@ -912,6 +912,7 @@ class FITS(metaclass=SynchronizedMeta):
         ------------
         The File must be opened READWRITE
         """
+
         self.create_image_hdu(
             img,
             header=header,
@@ -1249,6 +1250,7 @@ class FITS(metaclass=SynchronizedMeta):
         if data.size == 0:
             raise ValueError("data must have at least 1 row")
         """
+
         self.create_table_hdu(
             data=data,
             header=header,
