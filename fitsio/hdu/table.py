@@ -207,10 +207,9 @@ class TableHDU(HDUBase):
         elif lastrow > self._info['nrows']:
             raise ValueError('lastrow cannot be greater than nrows')
         nrows = lastrow - firstrow
-        with self._lock:
-            return self._FITS.where(
-                self._ext + 1, expression, firstrow + 1, nrows
-            )
+        return self._FITS.where(
+            self._ext + 1, expression, firstrow + 1, nrows
+        )
 
     def write(
         self, data, firstrow=0, columns=None, names=None, slow=False, **keys
@@ -247,8 +246,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -315,8 +313,7 @@ class TableHDU(HDUBase):
                 if not isobj[i]:
                     nonobj_colnums.append(colnums_all[i])
                     if isrec:
-                        # this still leaves possibility of
-                        # f-order sub-arrays..
+                        # this still leaves possibility of f-order sub-arrays..
                         colref = array_to_native(data_list[i], inplace=False)
                     else:
                         colref = array_to_native_c(data_list[i], inplace=False)
@@ -371,8 +368,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -490,8 +486,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! This "
-                "warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -537,8 +532,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -614,8 +608,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -644,6 +637,7 @@ class TableHDU(HDUBase):
                 rows2delete = [3,88,76]
                 fits['mytable'].delete_rows(rows2delete)
         """
+
         if rows is None:
             return
 
@@ -692,6 +686,7 @@ class TableHDU(HDUBase):
             If True, add or remove rows from the front.  Default
             is False
         """
+
         nrows_current = self.get_nrows()
         if nrows == nrows_current:
             return
@@ -774,8 +769,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -843,8 +837,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -959,8 +952,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -1013,8 +1005,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -1132,8 +1123,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
@@ -1149,8 +1139,7 @@ class TableHDU(HDUBase):
                 trim_strings=trim_strings,
             )
 
-        # if columns is None, returns all.  Guaranteed to be unique and
-        # sorted
+        # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
         if isinstance(colnums, int):
             # scalar sent, don't read as a recarray
@@ -1270,8 +1259,7 @@ class TableHDU(HDUBase):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
