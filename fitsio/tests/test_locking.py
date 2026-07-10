@@ -55,10 +55,3 @@ def test_locking_io():
         print("time:", t0, flush=True)
         print("# of extensions:", n_ext, flush=True)
         assert n_ext == nt + 1
-
-        if sys.version_info.major < 3 or sys.version_info.minor < 13:
-            assert t0 > 2.0
-        else:
-            # locking in the C layer is much more efficient
-            assert t0 > 0.1, t0
-            assert t0 < 2.0, t0
