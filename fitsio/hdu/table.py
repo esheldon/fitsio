@@ -207,9 +207,7 @@ class TableHDU(HDUBase):
         elif lastrow > self._info['nrows']:
             raise ValueError('lastrow cannot be greater than nrows')
         nrows = lastrow - firstrow
-        return self._FITS.where(
-            self._ext + 1, expression, firstrow + 1, nrows
-        )
+        return self._FITS.where(self._ext + 1, expression, firstrow + 1, nrows)
 
     def write(
         self, data, firstrow=0, columns=None, names=None, slow=False, **keys
