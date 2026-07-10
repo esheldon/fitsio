@@ -3,6 +3,7 @@ utilities for the fits library
 """
 
 from contextlib import contextmanager
+import functools
 import sys
 import numpy
 
@@ -219,3 +220,31 @@ def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
     finally:
         if has_nonfinite:
             data[msk_nonfinite] = old_vals
+
+
+class SynchronizedMeta(type):
+    """A metaclass that automatically wraps all methods with an RLock."""
+
+    def __new__(cls, name, bases, attrs):
+        # Create a lock bound to the instance, or shared depending on design.
+        # It's safest to wrap functions into locked methods dynamically.
+
+        for attr_name, attr_value in list(attrs.items()):
+            # Only wrap callables, ignoring special magic methods like __init__
+            if callable(attr_value) and attr_name not in [
+                "__init__",
+                "__new__",
+                "__enter__",
+                "__exit__",
+            ]:
+                attrs[name] = cls._make_synchronized(attr_value)
+        return super().__new__(cls, name, bases, attrs)
+
+    @staticmethod
+    def _make_synchronized(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            with self._lock:
+                return func(self, *args, **kwargs)
+
+        return wrapper

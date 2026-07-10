@@ -34,6 +34,7 @@ from .util import (
     isstring,
     copy_if_needed,
     _nonfinite_as_cfitsio_floating_null_value,
+    SynchronizedMeta,
 )
 from .header import FITSHDR
 from .hdu import (
@@ -526,7 +527,7 @@ def write(
         )
 
 
-class FITS(object):
+class FITS(metaclass=SynchronizedMeta):
     """
     A class to read and write FITS images and tables.
 
@@ -655,16 +656,15 @@ class FITS(object):
         """
         Close the fits file and set relevant metadata to None
         """
-        with self._lock:
-            if hasattr(self, '_FITS'):
-                self._FITS.close()
-                del self._FITS
-            self._filename = None
-            self.mode = None
-            self.charmode = None
-            self.intmode = None
-            self.hdu_list = None
-            self.hdu_map = None
+        if hasattr(self, '_FITS'):
+            self._FITS.close()
+            del self._FITS
+        self._filename = None
+        self.mode = None
+        self.charmode = None
+        self.intmode = None
+        self.hdu_list = None
+        self.hdu_map = None
 
     def movabs_ext(self, ext):
         """
@@ -684,8 +684,7 @@ class FITS(object):
         format_err = False
 
         try:
-            with self._lock:
-                hdu_type = self._FITS.movabs_hdu(hdunum)
+            hdu_type = self._FITS.movabs_hdu(hdunum)
         except IOError as err:
             # to support python 2 we can't use exception chaining.
             # do this to avoid "During handling of the above exception, another
@@ -710,8 +709,7 @@ class FITS(object):
         returns the zero-offset extension number
         """
         extname = mks(extname)
-        with self._lock:
-            hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+        hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         return hdu - 1
 
     def movnam_hdu(self, extname, hdutype=ANY_HDU, extver=0):
@@ -726,8 +724,7 @@ class FITS(object):
 
         extname = mks(extname)
         try:
-            with self._lock:
-                hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
+            hdu = self._FITS.movnam_hdu(hdutype, extname, extver)
         except IOError as err:
             # to support python 2 we can't use exception chaining.
             # do this to avoid "During handling of the above exception, another
@@ -753,10 +750,9 @@ class FITS(object):
         # in the mem:// file. So we skip the close+reopen cycle for
         # mem:// files. We always update the hdu list and this appears
         # to be important.
-        with self._lock:
-            if not self._filename.startswith("mem://"):
-                self._FITS.reopen()
-            self.update_hdu_list()
+        if not self._filename.startswith("mem://"):
+            self._FITS.reopen()
+        self.update_hdu_list()
 
     @_doc_string_formatter
     def write(
@@ -916,23 +912,22 @@ class FITS(object):
         ------------
         The File must be opened READWRITE
         """
-        with self._lock:
-            self.create_image_hdu(
-                img,
-                header=header,
-                extname=extname,
-                extver=extver,
-                compress=compress,
-                tile_dims=tile_dims,
-                qlevel=qlevel,
-                qmethod=qmethod,
-                dither_seed=dither_seed,
-                hcomp_scale=hcomp_scale,
-                hcomp_smooth=hcomp_smooth,
-            )
+        self.create_image_hdu(
+            img,
+            header=header,
+            extname=extname,
+            extver=extver,
+            compress=compress,
+            tile_dims=tile_dims,
+            qlevel=qlevel,
+            qmethod=qmethod,
+            dither_seed=dither_seed,
+            hcomp_scale=hcomp_scale,
+            hcomp_smooth=hcomp_smooth,
+        )
 
-            if header is not None:
-                self[-1].write_keys(header)
+        if header is not None:
+            self[-1].write_keys(header)
 
         # if img is not None:
         #    self[-1].write(img)
@@ -1153,24 +1148,23 @@ class FITS(object):
             img2send, hdu_is_compressed
         ) as img2send_any_nan:
             img2send, any_nan = img2send_any_nan
-            with self._lock:
-                self._FITS.create_image_hdu(
-                    img2send,
-                    nkeys,
-                    dims=dims2send,
-                    comptype=comptype,
-                    tile_dims=tile_dims,
-                    qlevel=qlevel,
-                    qmethod=qmethod,
-                    dither_seed=dither_seed,
-                    hcomp_scale=hcomp_scale,
-                    hcomp_smooth=hcs,
-                    extname=extname,
-                    extver=extver,
-                    any_nan=1 if any_nan else 0,
-                )
+            self._FITS.create_image_hdu(
+                img2send,
+                nkeys,
+                dims=dims2send,
+                comptype=comptype,
+                tile_dims=tile_dims,
+                qlevel=qlevel,
+                qmethod=qmethod,
+                dither_seed=dither_seed,
+                hcomp_scale=hcomp_scale,
+                hcomp_smooth=hcs,
+                extname=extname,
+                extver=extver,
+                any_nan=1 if any_nan else 0,
+            )
 
-                self.update_hdu_list(rebuild=False)
+        self.update_hdu_list(rebuild=False)
 
     def _ensure_empty_image_ok(self):
         """
@@ -1255,29 +1249,27 @@ class FITS(object):
         if data.size == 0:
             raise ValueError("data must have at least 1 row")
         """
-        with self._lock:
-            self.create_table_hdu(
-                data=data,
-                header=header,
-                names=names,
-                units=units,
-                extname=extname,
-                extver=extver,
-                table_type=table_type,
-                write_bitcols=write_bitcols,
-            )
+        self.create_table_hdu(
+            data=data,
+            header=header,
+            names=names,
+            units=units,
+            extname=extname,
+            extver=extver,
+            table_type=table_type,
+            write_bitcols=write_bitcols,
+        )
 
-            if header is not None:
-                self[-1].write_keys(header)
+        if header is not None:
+            self[-1].write_keys(header)
 
-            self[-1].write(data, names=names)
+        self[-1].write(data, names=names)
 
     def read_raw(self):
         """
         Reads the raw FITS file contents, returning a Python string.
         """
-        with self._lock:
-            return self._FITS.read_raw()
+        return self._FITS.read_raw()
 
     def create_table_hdu(
         self,
@@ -1443,21 +1435,20 @@ class FITS(object):
             nkeys = 0
 
         # note we can create extname in the c code for tables, but not images
-        with self._lock:
-            self._FITS.create_table_hdu(
-                table_type_int,
-                nkeys,
-                names,
-                formats,
-                tunit=units,
-                tdim=dims,
-                extname=extname,
-                extver=extver,
-            )
+        self._FITS.create_table_hdu(
+            table_type_int,
+            nkeys,
+            names,
+            formats,
+            tunit=units,
+            tdim=dims,
+            extname=extname,
+            extver=extver,
+        )
 
-            # don't rebuild the whole list unless this is the first hdu
-            # to be created
-            self.update_hdu_list(rebuild=False)
+        # don't rebuild the whole list unless this is the first hdu
+        # to be created
+        self.update_hdu_list(rebuild=False)
 
     def update_hdu_list(self, rebuild=True):
         """
@@ -1468,33 +1459,30 @@ class FITS(object):
         if rebuild is false or the hdu_list is not yet set, the list is
         rebuilt from scratch
         """
-        with self._lock:
-            if (not hasattr(self, 'hdu_list')) or (
-                not hasattr(self, "hdu_map")
-            ):
-                rebuild = True
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
+            rebuild = True
 
-            if rebuild:
-                self.hdu_list = []
-                self.hdu_map = {}
+        if rebuild:
+            self.hdu_list = []
+            self.hdu_map = {}
 
-                # we don't know how many hdus there are, so iterate
-                # until we can't open any more
-                ext_start = 0
-            else:
-                # start from last
-                ext_start = len(self)
+            # we don't know how many hdus there are, so iterate
+            # until we can't open any more
+            ext_start = 0
+        else:
+            # start from last
+            ext_start = len(self)
 
-            ext = ext_start
-            while True:
-                try:
-                    self._append_hdu_info(ext)
-                except IOError:
-                    break
-                except RuntimeError:
-                    break
+        ext = ext_start
+        while True:
+            try:
+                self._append_hdu_info(ext)
+            except IOError:
+                break
+            except RuntimeError:
+                break
 
-                ext = ext + 1
+            ext = ext + 1
 
     def _append_hdu_info(self, ext):
         """
@@ -1560,11 +1548,8 @@ class FITS(object):
         """
         begin iteration over HDUs
         """
-        with self._lock():
-            if (not hasattr(self, 'hdu_list')) or (
-                not hasattr(self, "hdu_map")
-            ):
-                self.update_hdu_list()
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
+            self.update_hdu_list()
         self._iter_index = 0
         return self
 
@@ -1584,12 +1569,9 @@ class FITS(object):
         """
         get the number of extensions
         """
-        with self._lock:
-            if (not hasattr(self, 'hdu_list')) or (
-                not hasattr(self, "hdu_map")
-            ):
-                self.update_hdu_list()
-            return len(self.hdu_list)
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
+            self.update_hdu_list()
+        return len(self.hdu_list)
 
     def _extract_item(self, item):
         """
@@ -1613,49 +1595,44 @@ class FITS(object):
         """
         Get an hdu by number, name, and possibly version
         """
-        with self._lock:
-            if (not hasattr(self, 'hdu_list')) or (
-                not hasattr(self, "hdu_map")
-            ):
-                if self._did_create:
-                    # we created the file and haven't written anything yet
-                    raise ValueError("Requested hdu '%s' not present" % item)
-
-                self.update_hdu_list()
-
-            if len(self) == 0:
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
+            if self._did_create:
+                # we created the file and haven't written anything yet
                 raise ValueError("Requested hdu '%s' not present" % item)
 
-            ext, ver, ver_sent = self._extract_item(item)
+            self.update_hdu_list()
 
-            try:
-                # if it is an int
-                hdu = self.hdu_list[ext]
-            except Exception:
-                # might be a string
-                ext = mks(ext)
-                if not self.case_sensitive:
-                    mess = '(case insensitive)'
-                    ext = ext.lower()
-                else:
-                    mess = '(case sensitive)'
+        if len(self) == 0:
+            raise ValueError("Requested hdu '%s' not present" % item)
 
-                if ver > 0:
-                    key = '%s-%s' % (ext, ver)
-                    if key not in self.hdu_map:
-                        raise IOError(
-                            "extension not found: %s, "
-                            "version %s %s" % (ext, ver, mess)
-                        )
-                    hdu = self.hdu_map[key]
-                else:
-                    if ext not in self.hdu_map:
-                        raise IOError(
-                            "extension not found: %s %s" % (ext, mess)
-                        )
-                    hdu = self.hdu_map[ext]
+        ext, ver, ver_sent = self._extract_item(item)
 
-            return hdu
+        try:
+            # if it is an int
+            hdu = self.hdu_list[ext]
+        except Exception:
+            # might be a string
+            ext = mks(ext)
+            if not self.case_sensitive:
+                mess = '(case insensitive)'
+                ext = ext.lower()
+            else:
+                mess = '(case sensitive)'
+
+            if ver > 0:
+                key = '%s-%s' % (ext, ver)
+                if key not in self.hdu_map:
+                    raise IOError(
+                        "extension not found: %s, "
+                        "version %s %s" % (ext, ver, mess)
+                    )
+                hdu = self.hdu_map[key]
+            else:
+                if ext not in self.hdu_map:
+                    raise IOError("extension not found: %s %s" % (ext, mess))
+                hdu = self.hdu_map[ext]
+
+        return hdu
 
     def __contains__(self, item):
         """
@@ -1679,13 +1656,10 @@ class FITS(object):
 
         rep.append('%sextnum %-15s %s' % (spacing, "hdutype", "hduname[v]"))
 
-        with self._lock:
-            if (not hasattr(self, 'hdu_list')) or (
-                not hasattr(self, "hdu_map")
-            ):
-                if not self._did_create:
-                    # we expect some stuff
-                    self.update_hdu_list()
+        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
+            if not self._did_create:
+                # we expect some stuff
+                self.update_hdu_list()
 
         for i, hdu in enumerate(self.hdu_list):
             t = hdu._info['hdutype']
