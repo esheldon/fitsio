@@ -2234,15 +2234,13 @@ class AsciiTableHDU(TableHDU):
             import warnings
 
             warnings.warn(
-                "The keyword arguments '%s' are being ignored! "
-                "This warning "
+                "The keyword arguments '%s' are being ignored! This warning "
                 "will be an error in a future version of `fitsio`!" % keys,
                 DeprecationWarning,
                 stacklevel=2,
             )
 
-        # if columns is None, returns all.  Guaranteed to be
-        # unique and sorted
+        # if columns is None, returns all.  Guaranteed to be unique and sorted
         colnums = self._extract_colnums(columns)
         if isinstance(colnums, int):
             # scalar sent, don't read as a recarray
