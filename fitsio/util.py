@@ -224,19 +224,29 @@ def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
 
 def synchronized_class(cls):
     """A class decorator that wraps all public methods with an RLock."""
+
+    from contextlib import nullcontext
+
+    cls._lock = nullcontext()
+
     # Wrap every callable method
-    for key, value in list(cls.__dict__.items()):
+    for key in list(dir(cls)):
+        value = getattr(cls, key)
         if callable(value) and key not in [
             "__init__",
+            "__init_subclass__",
             "__new__",
             "__enter__",
             "__exit__",
+            "__class__",
         ]:
+            if key == "__getattribute":
+                value = object.__getattribute__
 
             def make_locked(func=value):
                 @functools.wraps(func)
                 def wrapper(self, *args, **kwargs):
-                    with self._lock:
+                    with object.__getattribute__(self, "_lock"):
                         return func(self, *args, **kwargs)
 
                 return wrapper
