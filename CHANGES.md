@@ -1,6 +1,6 @@
 # Changes
 
-## 1.4.1 (unreleased)
+## 1.4.1
 
 Changes
 
