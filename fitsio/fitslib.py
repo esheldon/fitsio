@@ -34,7 +34,7 @@ from .util import (
     isstring,
     copy_if_needed,
     _nonfinite_as_cfitsio_floating_null_value,
-    SynchronizedMeta,
+    synchronized_class,
 )
 from .header import FITSHDR
 from .hdu import (
@@ -527,7 +527,8 @@ def write(
         )
 
 
-class FITS(metaclass=SynchronizedMeta):
+@synchronized_class
+class FITS:
     """
     A class to read and write FITS images and tables.
 
@@ -598,6 +599,8 @@ class FITS(metaclass=SynchronizedMeta):
         clobber=False,
         **keys,
     ):
+        self._lock = threading.RLock()
+
         if keys:
             import warnings
 
@@ -617,7 +620,6 @@ class FITS(metaclass=SynchronizedMeta):
         self.write_bitcols = write_bitcols
         filename = extract_filename(filename)
         self._filename = filename
-        self._lock = threading.RLock()
 
         # self.mode=keys.get('mode','r')
         self.mode = mode

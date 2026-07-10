@@ -8,7 +8,7 @@ from ..util import (
     _itypes,
     _ftypes,
     FITSRuntimeWarning,
-    SynchronizedMeta,
+    synchronized_class,
 )
 from ..header import FITSHDR
 
@@ -29,7 +29,8 @@ _hdu_type_map = {
 }
 
 
-class HDUBase(metaclass=SynchronizedMeta):
+@synchronized_class
+class HDUBase:
     """
     A representation of a FITS HDU
 
@@ -43,6 +44,7 @@ class HDUBase(metaclass=SynchronizedMeta):
     """
 
     def __init__(self, fits, ext, lock=None, **keys):
+        self._lock = lock or nullcontext()
         if keys:
             import warnings
 
@@ -56,7 +58,6 @@ class HDUBase(metaclass=SynchronizedMeta):
         self._FITS = fits
         self._ext = ext
         self._ignore_scaling = False
-        self._lock = lock or nullcontext()
 
         # init info cache to none
         self._cached_info = None

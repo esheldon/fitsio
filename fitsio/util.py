@@ -222,29 +222,25 @@ def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
             data[msk_nonfinite] = old_vals
 
 
-class SynchronizedMeta(type):
-    """A metaclass that automatically wraps all methods with an RLock."""
+def synchronized_class(cls):
+    """A class decorator that wraps all public methods with an RLock."""
+    # Wrap every callable method
+    for key, value in list(cls.__dict__.items()):
+        if callable(value) and key not in [
+            "__init__",
+            "__new__",
+            "__enter__",
+            "__exit__",
+        ]:
 
-    def __new__(cls, name, bases, attrs):
-        # Create a lock bound to the instance, or shared depending on design.
-        # It's safest to wrap functions into locked methods dynamically.
+            def make_locked(func=value):
+                @functools.wraps(func)
+                def wrapper(self, *args, **kwargs):
+                    with self._lock:
+                        return func(self, *args, **kwargs)
 
-        for attr_name, attr_value in list(attrs.items()):
-            # Only wrap callables, ignoring special magic methods like __init__
-            if callable(attr_value) and attr_name not in [
-                "__init__",
-                "__new__",
-                "__enter__",
-                "__exit__",
-            ]:
-                attrs[name] = cls._make_synchronized(attr_value)
-        return super().__new__(cls, name, bases, attrs)
+                return wrapper
 
-    @staticmethod
-    def _make_synchronized(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            with self._lock:
-                return func(self, *args, **kwargs)
+            setattr(cls, key, make_locked())
 
-        return wrapper
+    return cls
