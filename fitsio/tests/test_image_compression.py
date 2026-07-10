@@ -1038,6 +1038,25 @@ def test_image_compression_gzip_subnormal_cast_to_zero():
             assert back.ravel()[0] == 0, back.ravel()
 
 
+def test_image_compression_simple():
+    data = np.arange(10).reshape(5, 2).astype(np.float32)
+
+    fname = "test.fits"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(data, compress="RICE", qlevel=1, dither_seed=10)
+
+        with FITS(fpth, "r") as fits:
+            rdata = fits[0].read()
+
+        assert not np.array_equal(data, rdata)
+
+
 if __name__ == '__main__':
     test_compressed_seed(
         compress='rice',
