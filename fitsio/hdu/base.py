@@ -342,6 +342,7 @@ class HDUBase(metaclass=SynchronizedMeta):
         Input keys named COMMENT and HISTORY are written using the
         write_comment and write_history methods.
         """
+
         if isinstance(records_in, FITSHDR):
             hdr = records_in
         else:
