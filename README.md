@@ -408,7 +408,7 @@ cd fitsio
 git update
 ```
 
-Use `tar xvfz` to unpack the file, enter the `fitsio` directory and type
+To install, run
 
 ```bash
 pip install .
@@ -417,7 +417,7 @@ pip install .
 ## Requirements
 
 - python >=3.10
-- a C compiler and build tools like `make`, `patch`, etc.
+- a C compiler and build tools (`make`, `patch`, etc. for linux/osx; `cmake`, `nmake`, `patch`, etc. for windows)
 - numpy (See the note below. Generally, numpy 1.11 or later is better.)
 
 ### Do not use `numpy` 1.10.0 or 1.10.1

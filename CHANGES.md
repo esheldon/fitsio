@@ -7,6 +7,7 @@ Changes
 - Added development dependencies to the `pyproject.toml`.
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
+- Added wheels and CI for windows.
 - Added function `cfitsio_is_reentrant()` to return whether or not the
   underlying cfitsio library was compiled with reentrant support.
 - Added back patch of `cfitsio` to prevent subnormal floats from being
