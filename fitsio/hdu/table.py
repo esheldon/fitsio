@@ -1000,7 +1000,6 @@ class TableHDU(HDUBase):
             If True, trim trailing spaces from strings. Will over-ride the
             trim_strings= keyword from constructor.
         """
-
         if keys:
             import warnings
 
