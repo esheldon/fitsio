@@ -250,6 +250,7 @@ class ImageHDU(HDUBase):
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
         """
+
         if keys:
             import warnings
 
