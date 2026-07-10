@@ -492,10 +492,8 @@ on multithreaded programs from `cfitsio`. Specifically this means that
   on its own, getting a unique `fitsio.FITS` object.
 - Concurrent writing to FITS files is NOT thread-safe.
 - `fitsio.FITS` file objects can be shared between threads for reading, but only one thread
-  can use the file object at a time. On Python 3.13 or newer, `fitsio` employs a lock on the
-  underlying `cfitsio` data structure to enforce this condition and help prevent race conditions.
-  Even with this lock, you will likely need to employ your own locks from the `threading` module in order
-  to prevent race conditions arising from how the `fitsio` library is being used. See the example below.
+  can use the file object at a time. You will need to employ a lock from the `threading` module in order
+  to prevent race conditions. See the example below.
 
 `fitsio` is compatible with Python free threading, and will not reenable the GIL
 when imported. However, the constraints above must be respected even when using Python
@@ -565,7 +563,8 @@ useful resource for learning more about the concepts above.
 To enforce the threading constraints, we use the following macros in the C layer:
 
 - `LOCK_FITS(x)` & `UNLOCK_FITS(x)`: These macros take a pointer to the `PyFITSObject`
-  object, and lock/unlock the underlying FITS file pointer for use by a single thread.
+  object, and for non-reentrant builds, use a global lock to avoid concurrent calls
+  to non-reentrant builds of the `cfitsio` library.
   This lock is not reentrant (i.e., every `LOCK_FITS` call must be paired with an
   `UNLOCK_FITS` call). The implementation of this lock uses the one from the Python C
   API so it will not deadlock with the GIL-related macros below.
@@ -579,12 +578,13 @@ To enforce the threading constraints, we use the following macros in the C layer
   concise. You cannot use this macro in between calls to `RELEASE_GIL` and `CAPTURE_GIL`.
 
 All of these macros (except `NOGIL`) must be followed by a semicolon when used in C code
-(e.g., `ALLOW_NOGIL;`). You must also take care to properly unlock the FITS file pointer
+(e.g., `ALLOW_NOGIL;`). You must also take care to properly unlock the global lock
 and/or release the GIL for all possible execution paths through your function (including
 branches for error handling). C `goto` statements can be very helpful for this task.
 
-In the C wrapper of `cfitsio` on Python 3.13 and above, we always lock the underlying FITS
-file pointer, and we do our best to release the GIL during I/O and/or long-running operations.
+In the C wrapper of `cfitsio` on Python 3.13 and above, we always employ a global lock for
+non-reentrant builds of `cfitsio`, and we do our best to release the GIL during I/O and/or
+long-running operations.
 
 ## TODO
 
