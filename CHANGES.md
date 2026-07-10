@@ -11,7 +11,7 @@ Changes
   underlying cfitsio library was compiled with reentrant support.
 - Added back patch of `cfitsio` to prevent subnormal floats from being
   cast to zero for bundled builds.
-- Updated docs to clarify threaded usage of `FITS` files.
+- Updated docs to clarify threaded usage of `FITS` objects.
 - Removed extra lock in C layer. Users must employ their own locks
   in Python for correct results.
 
