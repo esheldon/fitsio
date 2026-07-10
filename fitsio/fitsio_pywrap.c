@@ -45,11 +45,9 @@ for details on how to use these macros.
 #if (PY_MAJOR_VERSION >= 3) && (PY_MINOR_VERSION >= 13)
 #define PYFITS_HAS_LOCK
 #define LOCK_FITS(x)                                                           \
-    (fits_is_reentrant() == 0 ? PyMutex_Lock(&GLOBAL_FITS_LOCK)                \
-                              : PyMutex_Lock(&(x->fits_lock)))
+    (fits_is_reentrant() == 0 ? PyMutex_Lock(&GLOBAL_FITS_LOCK) : (void)NULL)
 #define UNLOCK_FITS(x)                                                         \
-    (fits_is_reentrant() == 0 ? PyMutex_Unlock(&GLOBAL_FITS_LOCK)              \
-                              : PyMutex_Unlock(&(x->fits_lock)))
+    (fits_is_reentrant() == 0 ? PyMutex_Unlock(&GLOBAL_FITS_LOCK) : (void)NULL)
 #define ALLOW_NOGIL                                                            \
     PyThreadState *_save1_ = NULL;                                             \
     int _evaltmp123_
@@ -84,10 +82,6 @@ struct PyFITSObject {
     // messages as they happen. sometimes cfitsio will clear
     // the error stack and this removes important debugging info
     char pyfits_errmsg[PYFITS_ERRMSG_LEN];
-#ifdef PYFITS_HAS_LOCK
-    // lock for cfitsio FITS data when free-threading
-    PyMutex fits_lock;
-#endif
 };
 
 // check unicode for python3, string for python2
@@ -521,10 +515,6 @@ static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
     // init the error message to an empty string
     self->pyfits_errmsg[0] = '\0';
     self->fits = NULL;
-
-#ifdef PYFITS_HAS_LOCK
-    memset(&(self->fits_lock), 0, sizeof(PyMutex));
-#endif
 
     if (!PyArg_ParseTuple(args, (char *)"sii", &filename, &mode, &create)) {
         return -1;

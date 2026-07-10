@@ -11,6 +11,7 @@ Changes
   underlying cfitsio library was compiled with reentrant support.
 - Added back patch of `cfitsio` to prevent subnormal floats from being
   cast to zero for bundled builds.
+- Updated docs to clarify threaded usage of `FITS` files.
 
 Bug Fixes
 
@@ -19,6 +20,7 @@ Bug Fixes
 - Marked tests for reproducible lossy float compression as xfail for external
   cfitsio libraries.
 - Skip tests for large compressed images exceeding `2**32` bytes on 32-bit platforms.
+- Removed incorrect test of threaded usage.
 
 ## 1.4.0
 
