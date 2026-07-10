@@ -2,7 +2,7 @@
 utilities for the fits library
 """
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import functools
 import sys
 import numpy
@@ -223,10 +223,10 @@ def _nonfinite_as_cfitsio_floating_null_value(data, target_hdu_compressed):
 
 
 def synchronized_class(cls):
-    """A class decorator that wraps all public methods with an RLock."""
+    """A class decorator that wraps all class methods with an RLock."""
 
-    from contextlib import nullcontext
-
+    # ensure the class has some lock even if it does nothing
+    # instances can override
     cls._lock = nullcontext()
 
     # Wrap every callable method
