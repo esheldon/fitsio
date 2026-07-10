@@ -612,6 +612,49 @@ static PyObject *PyFITSObject_close(struct PyFITSObject *self) {
     Py_RETURN_NONE;
 }
 
+static PyObject *PyFITSObject_reopen(struct PyFITSObject *self) {
+    ALLOW_NOGIL;
+    int status = 0;
+    int istatus = 0;
+    fitsfile *old_fits = NULL;
+
+    LOCK_FITS(self);
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "could not reopen FITS file!");
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
+    RELEASE_GIL;
+
+    old_fits = self->fits;
+    if (fits_reopen_file(old_fits, &self->fits, &status)) {
+        fits_close_file(self->fits, &status);
+        if (self->fits != NULL) {
+            istatus = 0;
+            fits_close_file(self->fits, &istatus);
+            self->fits = NULL;
+        }
+        if (old_fits != NULL) {
+            istatus = 0;
+            fits_close_file(old_fits, &istatus);
+        }
+        CAPTURE_GIL;
+        PyErr_SetString(PyExc_ValueError, "could not reopen FITS file!");
+        UNLOCK_FITS(self);
+        return NULL;
+    } else {
+        if (old_fits != NULL) {
+            istatus = 0;
+            fits_close_file(old_fits, &istatus);
+        }
+        CAPTURE_GIL;
+        UNLOCK_FITS(self);
+        Py_RETURN_NONE;
+    }
+}
+
 static void PyFITSObject_dealloc(struct PyFITSObject *self) {
     ALLOW_NOGIL;
     int status = 0;
@@ -6058,6 +6101,10 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"close", (PyCFunction)PyFITSObject_close, METH_VARARGS,
      "close\n\nClose the fits file."},
+
+    {"reopen", (PyCFunction)PyFITSObject_reopen, METH_VARARGS,
+     "reopen\n\nReopen the fits file."},
+
     {NULL} /* Sentinel */
 };
 

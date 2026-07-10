@@ -45,15 +45,16 @@ class ImageHDU(HDUBase):
         Call parent method and make sure this is in fact a
         image HDU.  Set dims in C order
         """
-        super(ImageHDU, self)._update_info()
+        with self._lock:
+            super(ImageHDU, self)._update_info()
 
-        if self._info['hdutype'] != IMAGE_HDU:
-            mess = "Extension %s is not a Image HDU" % self.ext
-            raise ValueError(mess)
+            if self._info['hdutype'] != IMAGE_HDU:
+                mess = "Extension %s is not a Image HDU" % self.ext
+                raise ValueError(mess)
 
-        # convert to c order
-        if 'dims' in self._info:
-            self._info['dims'] = list(reversed(self._info['dims']))
+            # convert to c order
+            if 'dims' in self._info:
+                self._info['dims'] = list(reversed(self._info['dims']))
 
     def has_data(self):
         """
@@ -120,8 +121,9 @@ class ImageHDU(HDUBase):
         adims = numpy.array(dims, ndmin=1, dtype='i8')
         # we have to reverse the dimensions here since cfitsio
         # uses fortran order
-        self._FITS.reshape_image(self._ext + 1, adims[::-1])
-        self._cached_info = None  # invalidate info cache
+        with self._lock:
+            self._FITS.reshape_image(self._ext + 1, adims[::-1])
+            self._cached_info = None  # invalidate info cache
 
     def write(self, img, start=0, **keys):
         """
@@ -189,59 +191,63 @@ class ImageHDU(HDUBase):
         else:
             write_subset = False
 
-        with _nonfinite_as_cfitsio_floating_null_value(
-            img_send, self.is_compressed()
-        ) as img_send_any_nan:
-            img_send, any_nan = img_send_any_nan
-            if not write_subset:
-                # write in image at start in a single pass
-                offset = 0
-                self._FITS.write_image(
-                    self._ext + 1,
-                    img_send,
-                    offset + 1,
-                    1 if any_nan else 0,
-                )
-            else:
-                if not any_nan and not self.is_compressed():
-                    firstpixel = numpy.array(start, ndmin=1, dtype='i8')
-                    # lastpixel is the index of the lastpixel so subtract 1
-                    lastpixel = (
-                        firstpixel
-                        + numpy.array(img_send.shape, ndmin=1, dtype='i8')
-                        - 1
-                    )
-
-                    # we have to reverse the dimensions here since cfitsio
-                    # uses fortran order and offset by 1 for fortan indexing
-                    firstpixel = firstpixel[::-1] + 1
-                    lastpixel = lastpixel[::-1] + 1
-
-                    self._FITS.write_subset(
-                        self._ext + 1, img_send, firstpixel, lastpixel
+        with self._lock:
+            with _nonfinite_as_cfitsio_floating_null_value(
+                img_send, self.is_compressed()
+            ) as img_send_any_nan:
+                img_send, any_nan = img_send_any_nan
+                if not write_subset:
+                    # write in image at start in a single pass
+                    offset = 0
+                    self._FITS.write_image(
+                        self._ext + 1,
+                        img_send,
+                        offset + 1,
+                        1 if any_nan else 0,
                     )
                 else:
-                    # the C API doesn't support nan handling w/ rectangular
-                    # subsets, so emulate in python
-                    # go "row by row" but in more than two dimensions
-                    ndims = len(dims)
-                    for index in numpy.ndindex(*(img_send.shape[:-1])):
-                        new_start = [
-                            start[i] + index[i] for i in range(ndims - 1)
-                        ]
-                        new_start += [start[-1]]
-                        offset = _convert_full_start_to_offset(dims, new_start)
-                        img_slice = tuple(
-                            [slice(ns, ns + 1) for ns in index]
-                        ) + (slice(None),)
-                        self._FITS.write_image(
-                            self._ext + 1,
-                            img_send[img_slice],
-                            offset + 1,
-                            1 if any_nan else 0,
+                    if not any_nan and not self.is_compressed():
+                        firstpixel = numpy.array(start, ndmin=1, dtype='i8')
+                        # lastpixel is the index of the lastpixel so subtract 1
+                        lastpixel = (
+                            firstpixel
+                            + numpy.array(img_send.shape, ndmin=1, dtype='i8')
+                            - 1
                         )
 
-        self._cached_info = None  # invalidate info cache
+                        # we have to reverse the dimensions here since cfitsio
+                        # uses fortran order and offset by 1 for fortan
+                        # indexing
+                        firstpixel = firstpixel[::-1] + 1
+                        lastpixel = lastpixel[::-1] + 1
+
+                        self._FITS.write_subset(
+                            self._ext + 1, img_send, firstpixel, lastpixel
+                        )
+                    else:
+                        # the C API doesn't support nan handling w/ rectangular
+                        # subsets, so emulate in python
+                        # go "row by row" but in more than two dimensions
+                        ndims = len(dims)
+                        for index in numpy.ndindex(*(img_send.shape[:-1])):
+                            new_start = [
+                                start[i] + index[i] for i in range(ndims - 1)
+                            ]
+                            new_start += [start[-1]]
+                            offset = _convert_full_start_to_offset(
+                                dims, new_start
+                            )
+                            img_slice = tuple(
+                                [slice(ns, ns + 1) for ns in index]
+                            ) + (slice(None),)
+                            self._FITS.write_image(
+                                self._ext + 1,
+                                img_send[img_slice],
+                                offset + 1,
+                                1 if any_nan else 0,
+                            )
+
+            self._cached_info = None  # invalidate info cache
 
     def read(self, **keys):
         """
@@ -250,24 +256,25 @@ class ImageHDU(HDUBase):
         If the HDU is an IMAGE_HDU, read the corresponding image.  Compression
         and scaling are dealt with properly.
         """
+        with self._lock:
+            if keys:
+                import warnings
 
-        if keys:
-            import warnings
+                warnings.warn(
+                    "The keyword arguments '%s' are being "
+                    "ignored! This warning "
+                    "will be an error in a future version of `fitsio`!" % keys,
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
 
-            warnings.warn(
-                "The keyword arguments '%s' are being ignored! This warning "
-                "will be an error in a future version of `fitsio`!" % keys,
-                DeprecationWarning,
-                stacklevel=2,
-            )
+            if not self.has_data():
+                return None
 
-        if not self.has_data():
-            return None
-
-        dtype, shape = self._get_dtype_and_shape()
-        array = numpy.zeros(shape, dtype=dtype)
-        self._FITS.read_image(self._ext + 1, array)
-        return array
+            dtype, shape = self._get_dtype_and_shape()
+            array = numpy.zeros(shape, dtype=dtype)
+            self._FITS.read_image(self._ext + 1, array)
+            return array
 
     def _get_dtype_and_shape(self):
         """
@@ -414,9 +421,10 @@ class ImageHDU(HDUBase):
         steps = numpy.array(steps, dtype='i8')
 
         array = numpy.zeros(arrdims, dtype=npy_dtype)
-        self._FITS.read_image_slice(
-            self._ext + 1, first, last, steps, self._ignore_scaling, array
-        )
+        with self._lock:
+            self._FITS.read_image_slice(
+                self._ext + 1, first, last, steps, self._ignore_scaling, array
+            )
         return array
 
     def _expand_if_needed(self, dims, write_dims, start):

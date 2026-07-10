@@ -17,15 +17,17 @@ def test_locking_io():
 
     lock = threading.RLock()
 
-    def _read_file(fp):
+    def _read_file(fp, i):
         # older pythons need a lock
         if sys.version_info.major < 3 or sys.version_info.minor < 13:
             with lock:
                 time.sleep(0.1)
+                fp.reopen()
                 fp.write_image(data)
                 return fp[0].read()
         else:
             time.sleep(0.1)
+            fp.reopen()
             fp.write_image(data)
             return fp[0].read()
 
@@ -41,7 +43,7 @@ def test_locking_io():
         with fitsio.FITS(fname, "rw") as fp:
             t0 = time.time()
             with ThreadPoolExecutor(max_workers=nt) as exc:
-                futs = [exc.submit(_read_file, fp) for _ in range(nt)]
+                futs = [exc.submit(_read_file, fp, i) for i in range(nt)]
                 for fut in futs:
                     res = fut.result()
                     np.testing.assert_array_equal(res, data)
@@ -50,9 +52,13 @@ def test_locking_io():
         with fitsio.FITS(fname) as fp:
             n_ext = len(fp)
 
+        print("time:", t0, flush=True)
+        print("# of extensions:", n_ext, flush=True)
         assert n_ext == nt + 1
+
         if sys.version_info.major < 3 or sys.version_info.minor < 13:
             assert t0 > 1.0
         else:
             # locking in the C layer is much more efficient
-            assert t0 > 0.1
+            assert t0 > 0.1, t0
+            assert t0 < 1.0, t0
