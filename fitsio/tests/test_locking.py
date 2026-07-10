@@ -10,7 +10,7 @@ import uuid
 import fitsio
 
 
-def test_locking_io(thread_index, iteration_index):
+def test_locking_io():
     nt = 10
     rng = np.random.RandomState(seed=10)
     data = rng.normal(size=(100, 100))
@@ -32,11 +32,7 @@ def test_locking_io(thread_index, iteration_index):
     with tempfile.TemporaryDirectory() as tmpdir:
         fname = os.path.join(
             tmpdir,
-            "fname"
-            + str(uuid.uuid4().hex)
-            + str(thread_index)
-            + str(iteration_index)
-            + ".fits",
+            "fname" + str(uuid.uuid4().hex) + ".fits",
         )
 
         with fitsio.FITS(fname, "rw", clobber=True) as fp:
@@ -53,14 +49,6 @@ def test_locking_io(thread_index, iteration_index):
 
         with fitsio.FITS(fname) as fp:
             n_ext = len(fp)
-
-        print(
-            "thread|iter|n_ext:",
-            thread_index,
-            iteration_index,
-            n_ext,
-            flush=True,
-        )
 
         assert n_ext == nt + 1
         if sys.version_info.major < 3 or sys.version_info.minor < 13:

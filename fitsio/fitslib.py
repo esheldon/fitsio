@@ -23,6 +23,7 @@ See the main docs at https://github.com/esheldon/fitsio
 
 from __future__ import with_statement, print_function
 import os
+import threading
 import numpy
 
 from . import _fitsio_wrap
@@ -615,6 +616,7 @@ class FITS(object):
         self.write_bitcols = write_bitcols
         filename = extract_filename(filename)
         self._filename = filename
+        self._lock = threading.RLock()
 
         # self.mode=keys.get('mode','r')
         self.mode = mode
@@ -646,22 +648,24 @@ class FITS(object):
                     create = 1
 
         self._did_create = create == 1
-        self._FITS = _fitsio_wrap.FITS(filename, self.intmode, create)
+        with self._lock:
+            self._FITS = _fitsio_wrap.FITS(filename, self.intmode, create)
 
     def close(self):
         """
         Close the fits file and set relevant metadata to None
         """
-        if hasattr(self, '_FITS'):
-            if self._FITS is not None:
-                self._FITS.close()
-                self._FITS = None
-        self._filename = None
-        self.mode = None
-        self.charmode = None
-        self.intmode = None
-        self.hdu_list = None
-        self.hdu_map = None
+        with self._lock:
+            if hasattr(self, '_FITS'):
+                if self._FITS is not None:
+                    self._FITS.close()
+                    self._FITS = None
+            self._filename = None
+            self.mode = None
+            self.charmode = None
+            self.intmode = None
+            self.hdu_list = None
+            self.hdu_map = None
 
     def movabs_ext(self, ext):
         """
@@ -747,11 +751,12 @@ class FITS(object):
         # in the mem:// file. So we skip the close+reopen cycle for
         # mem:// files. We always update the hdu list and this appears
         # to be important.
-        if not self._filename.startswith("mem://"):
-            self._FITS.close()
-            del self._FITS
-            self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
-        self.update_hdu_list()
+        with self._lock:
+            if not self._filename.startswith("mem://"):
+                self._FITS.close()
+                del self._FITS
+                self._FITS = _fitsio_wrap.FITS(self._filename, self.intmode, 0)
+            self.update_hdu_list()
 
     @_doc_string_formatter
     def write(
@@ -1460,30 +1465,33 @@ class FITS(object):
         if rebuild is false or the hdu_list is not yet set, the list is
         rebuilt from scratch
         """
-        if (not hasattr(self, 'hdu_list')) or (not hasattr(self, "hdu_map")):
-            rebuild = True
+        with self._lock:
+            if (not hasattr(self, 'hdu_list')) or (
+                not hasattr(self, "hdu_map")
+            ):
+                rebuild = True
 
-        if rebuild:
-            self.hdu_list = []
-            self.hdu_map = {}
+            if rebuild:
+                self.hdu_list = []
+                self.hdu_map = {}
 
-            # we don't know how many hdus there are, so iterate
-            # until we can't open any more
-            ext_start = 0
-        else:
-            # start from last
-            ext_start = len(self)
+                # we don't know how many hdus there are, so iterate
+                # until we can't open any more
+                ext_start = 0
+            else:
+                # start from last
+                ext_start = len(self)
 
-        ext = ext_start
-        while True:
-            try:
-                self._append_hdu_info(ext)
-            except IOError:
-                break
-            except RuntimeError:
-                break
+            ext = ext_start
+            while True:
+                try:
+                    self._append_hdu_info(ext)
+                except IOError:
+                    break
+                except RuntimeError:
+                    break
 
-            ext = ext + 1
+                ext = ext + 1
 
     def _append_hdu_info(self, ext):
         """
