@@ -15,7 +15,7 @@ from ..fitslib import (
     RICE_1,
     SUBTRACTIVE_DITHER_1,
 )
-from ..util import backend_is_bundled, cfitsio_version
+from .. import backend_is_bundled, cfitsio_version
 from .. import fitsio_backend
 
 CFITSIO_VERSION = cfitsio_version(asfloat=True)

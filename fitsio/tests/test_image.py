@@ -5,7 +5,7 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
-from ..util import cfitsio_version, backend_is_bundled
+from .. import cfitsio_version, backend_is_bundled
 import numpy as np
 from ..fitslib import FITS
 from .. import fitsio_backend
