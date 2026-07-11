@@ -15,10 +15,10 @@ from ..fitslib import (
     RICE_1,
     SUBTRACTIVE_DITHER_1,
 )
-from .. import backend_is_bundled, cfitsio_version
+from .. import backend_is_bundled, backend_version
 from .. import fitsio_backend
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 
 
 @pytest.mark.parametrize("with_nan", [False, True])
@@ -201,7 +201,10 @@ def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
-@pytest.mark.skipif(CFITSIO_VERSION < 3.49, reason='bug in cfitsio < 3.49')
+@pytest.mark.skipif(
+    BACKEND_VERSION < 3.49 and fitsio_backend() == "cfitsio",
+    reason='bug in cfitsio < 3.49',
+)
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
@@ -625,11 +628,12 @@ def test_image_mem_reopen_noop():
             2,
             marks=[
                 pytest.mark.xfail(
-                    condition=CFITSIO_VERSION < 4.04
+                    condition=BACKEND_VERSION < 4.04
+                    and fitsio_backend() == "cfitsio"
                     and fitsio_backend() == "cfitsio",
                     reason=(
                         "Writing compressed binary tables exceeding "
-                        "2**32 bytes fails for cfitsio < 4.040!"
+                        "2**32 bytes fails for cfitsio < 4.04!"
                     ),
                 ),
                 pytest.mark.slow,

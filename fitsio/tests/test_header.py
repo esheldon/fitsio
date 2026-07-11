@@ -10,9 +10,9 @@ from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
-from ..util import cfitsio_version
+from .. import backend_version, fitsio_backend
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 
 
 def test_free_form_string():
@@ -106,7 +106,9 @@ def test_header_write_read():
                 'unders': '1_000_000',  # test string with underscore
                 'longs': lorem_ipsum,
             }
-            if CFITSIO_VERSION > 4.02:
+            if (
+                fitsio_backend() == "cfitsio" and BACKEND_VERSION > 4.02
+            ) or fitsio_backend() == "rsfitsio":
                 # force hierarch + continue
                 header["long_keyword_name"] = lorem_ipsum
 

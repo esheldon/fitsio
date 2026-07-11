@@ -5,14 +5,15 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
-from .. import cfitsio_version, backend_is_bundled
+from .. import backend_version, backend_is_bundled, fitsio_backend
 import numpy as np
 from ..fitslib import FITS
-from .. import fitsio_backend
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
-if CFITSIO_VERSION > 3.44:
+if (
+    BACKEND_VERSION > 3.44 and fitsio_backend() == "cfitsio"
+) or fitsio_backend() == "rsfitsio":
     DTYPES += ["u8"]
 
 
@@ -786,7 +787,7 @@ def test_image_read_write_ulonglong():
         with FITS(fname, 'rw') as fits:
             data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
             header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
-            if CFITSIO_VERSION < 3.45:
+            if BACKEND_VERSION < 3.45 and fitsio_backend() == "cfitsio":
                 with pytest.raises(TypeError) as e:
                     fits.write_image(data, header=header)
                 assert (
@@ -802,6 +803,8 @@ def test_image_read_write_ulonglong():
                 rh = fits[-1].read_header()
                 check_header(header, rh)
 
-        if CFITSIO_VERSION >= 3.45:
+        if (
+            BACKEND_VERSION >= 3.45 and fitsio_backend() == "cfitsio"
+        ) or fitsio_backend() == "rsfitsio":
             with FITS(fname) as fits:
                 assert not fits[0].is_compressed(), 'not compressed'
