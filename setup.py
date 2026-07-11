@@ -166,7 +166,6 @@ class build_ext_subclass(build_ext):
                     _print_msg(f"Adding include directory '{pth}'")
                     self.include_dirs.insert(0, pth)
             if SYSTEM_FITSIO_LIBDIR is not None:
-                self.library_dirs.insert(0, SYSTEM_FITSIO_LIBDIR)
                 for pth in SYSTEM_FITSIO_LIBDIR.split(os.pathsep):
                     _print_msg(f"Adding lib directory '{pth}'")
                     self.library_dirs.insert(0, pth)
