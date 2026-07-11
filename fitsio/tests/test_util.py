@@ -5,10 +5,9 @@ import pytest
 
 from ..util import (
     _nonfinite_as_cfitsio_floating_null_value,
-    backend_version,
     _FLOATING_NULL_VALUE,
 )
-from .. import fitsio_backend
+from .. import fitsio_backend, backend_version
 
 BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
