@@ -157,7 +157,7 @@ def test_compression_qlevel_default():
         bigimg = np.random.uniform(size=(H, W))
         # Default qlevel
         with fitsio.FITS(fn, 'rw', clobber=True) as fits:
-            fits.write(bigimg, compress='GZIP')
+            fits.write(bigimg, compress='GZIP', dither_seed=42)
         size_def = os.stat(fn).st_size
         hdr = fitsio.read_header(fn, ext=1)
         print(hdr)
@@ -168,15 +168,15 @@ def test_compression_qlevel_default():
             assert hdr[key] == val
         # qlevel=0
         with fitsio.FITS(fn, 'rw', clobber=True) as fits:
-            fits.write(bigimg, compress='GZIP', qlevel=0)
+            fits.write(bigimg, compress='GZIP', qlevel=0, dither_seed=42)
         size_0 = os.stat(fn).st_size
         # qlevel=4
         with fitsio.FITS(fn, 'rw', clobber=True) as fits:
-            fits.write(bigimg, compress='GZIP', qlevel=4)
+            fits.write(bigimg, compress='GZIP', qlevel=4, dither_seed=42)
         size_4 = os.stat(fn).st_size
         # qlevel=16
         with fitsio.FITS(fn, 'rw', clobber=True) as fits:
-            fits.write(bigimg, compress='GZIP', qlevel=16)
+            fits.write(bigimg, compress='GZIP', qlevel=16, dither_seed=42)
         size_16 = os.stat(fn).st_size
         # zero means NO COMPRESSION
         assert size_0 > size_4
