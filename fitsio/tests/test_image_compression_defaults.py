@@ -2,14 +2,6 @@ import os
 import tempfile
 import numpy as np
 import fitsio
-from .. import fitsio_backend
-
-import pytest
-
-# pytestmark = pytest.mark.skipif(
-#     condition=fitsio_backend() == "rsfitsio",
-#     reason="test fails w/ rsfitsio backend",
-# )
 
 
 def test_compression_nocompress():
@@ -23,10 +15,6 @@ def test_compression_nocompress():
             assert len(fits) == 1
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_compression_diskfile_kwargs():
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
@@ -72,10 +60,6 @@ def test_compression_efns():
             assert hdr[key] == val
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_compression_efns_kwargs():
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
@@ -96,10 +80,6 @@ def test_compression_efns_kwargs():
             assert hdr[key] == val
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_compression_qlevels_none_zero():
     default_kws = {
         "compress": fitsio.GZIP_2,
@@ -144,10 +124,6 @@ def test_compression_qlevels_none_zero():
             assert rms1 <= rms2
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_compression_hcomp_args():
     with tempfile.TemporaryDirectory() as tmpdir:
         fn = os.path.join(tmpdir, 'test.fits')
@@ -172,10 +148,6 @@ def test_compression_hcomp_args():
             assert hdr[key] == val
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_compression_qlevel_default():
     # Check that if not specified, qlevel defaults to 4.
     with tempfile.TemporaryDirectory() as tmpdir:

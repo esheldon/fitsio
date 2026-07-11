@@ -41,23 +41,6 @@ def test_compressed_write_read(compress, dtype, with_nan):
     """
     Test writing and reading a rice compressed image
     """
-
-    if fitsio_backend() == "rsfitsio":
-        if compress in [
-            "hcompress",
-            "gzip",
-            "gzip_2",
-            "gzip_lossless",
-            "gzip_2_lossless",
-        ]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "plio" and dtype in ["i1", "i2", "i4", "f4", "f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "rice" and dtype in ["f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
     nrows = 5
     ncols = 20
     if compress in ['rice', 'hcompress'] or 'gzip' in compress:
@@ -139,23 +122,6 @@ def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
 
     In this version, keep the fits object open
     """
-
-    if fitsio_backend() == "rsfitsio":
-        if compress in [
-            "hcompress",
-            "gzip",
-            "gzip_2",
-            "gzip_lossless",
-            "gzip_2_lossless",
-        ]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "plio" and dtype in ["i1", "i2", "i4", "f4", "f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "rice" and dtype in ["f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
     if (
         "gzip" in compress
         and dtype in ["u2", "i2", "u4", "i4"]
@@ -234,10 +200,6 @@ def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
             assert fits[1].is_compressed(), "is compressed"
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
 @pytest.mark.skipif(CFITSIO_VERSION < 3.49, reason='bug in cfitsio < 3.49')
 def test_gzip_tile_compressed_read_lossless_astropy():
@@ -257,10 +219,6 @@ def test_gzip_tile_compressed_read_lossless_astropy():
     compare_array(data, data * 0.0, "astropy lossless compressed image")
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.parametrize("with_nan", [False, True])
 def test_compress_preserve_zeros(with_nan):
     """
@@ -331,23 +289,6 @@ def test_compressed_seed(
     """
     Test writing and reading a rice compressed image
     """
-
-    if fitsio_backend() == "rsfitsio":
-        if compress in [
-            "hcompress",
-            "gzip",
-            "gzip_2",
-            "gzip_lossless",
-            "gzip_2_lossless",
-        ]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "plio" and dtype in ["i1", "i2", "i4", "f4", "f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
-        if compress == "rice" and dtype in ["f8"]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
     nrows = 5
     ncols = 20
 
@@ -475,10 +416,6 @@ def test_compressed_seed_bad(dither_seed):
             )
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_memory_compressed_seed():
     import fitsio
 
@@ -521,10 +458,6 @@ def test_memory_compressed_seed():
         assert dither1 == dither2
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_image_compression_inmem_subdither2():
     H, W = 100, 100
     rng = np.random.RandomState(seed=10)
@@ -545,10 +478,6 @@ def test_image_compression_inmem_subdither2():
     assert minval == 0
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.parametrize(
     "kw,val",
     [
@@ -603,17 +532,6 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
 )
 @pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 def test_image_compression_inmem_lossess_int(compress, dtype, fname):
-    if fitsio_backend() == "rsfitsio":
-        if compress in [
-            "hcompress",
-            "gzip",
-            "gzip_2",
-            "gzip_lossless",
-            "gzip_2_lossless",
-            "plio",
-        ]:
-            pytest.skip(reason="test fails w/ rsfitsio backend")
-
     if fitsio_backend() == "cfitsio" and not cfitsio_is_bundled():
         pytest.xfail(
             reason=(
@@ -658,10 +576,6 @@ def test_image_compression_inmem_lossessgzip_int_zeros():
         assert np.array_equal(rimg, img)
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_image_compression_inmem_lossessgzip_float():
     rng = np.random.RandomState(seed=10)
     img = rng.normal(size=(300, 300))
@@ -693,10 +607,6 @@ def test_image_mem_reopen_noop():
         assert np.array_equal(rimg, img)
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.skipif(
     condition=struct.calcsize("P") * 8 == 32,
     reason=(
@@ -774,10 +684,6 @@ def test_image_compression_big_gzip(coef):
                 assert np.array_equal(h[-1][name][:], out_list[k])
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.parametrize("nan_value", [np.nan, np.inf, -np.inf])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize(
@@ -829,10 +735,6 @@ def test_image_compression_nulls(fname, dtype, nan_value):
                 )
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.parametrize(
     "compress,qlevel",
     [
@@ -918,10 +820,6 @@ def test_image_compression_nulls_patches_with_subnormal(
             )
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_image_compression_read_chunks():
     data = np.arange(127, dtype='i4')
 
@@ -950,10 +848,6 @@ def test_image_compression_read_chunks():
                 assert np.all(read_data == data[start:end])
 
 
-@pytest.mark.xfail(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.xfail(
     condition=(fitsio_backend() == "cfitsio" and not cfitsio_is_bundled()),
     reason=(
@@ -1013,10 +907,6 @@ def test_image_compression_read_from_osx_arm64():
     np.testing.assert_array_equal(data, cdata)
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 def test_image_compression_gzip_subnormal_cast_to_zero():
     # test code from astrofrog in https://github.com/esheldon/fitsio/issues/513
     data = np.zeros(

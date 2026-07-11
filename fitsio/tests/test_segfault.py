@@ -52,10 +52,6 @@ def _run_mixed(n):
     print("completed without abort")
 
 
-@pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
 @pytest.mark.slow
 @pytest.mark.skipif(
     (fitsio_backend() == "cfitsio" and not cfitsio_is_bundled()),

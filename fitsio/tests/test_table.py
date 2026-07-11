@@ -1105,10 +1105,6 @@ def test_gz_write_read():
 
 
 @pytest.mark.skipif(
-    condition=fitsio_backend() == "rsfitsio",
-    reason="test fails w/ rsfitsio backend",
-)
-@pytest.mark.skipif(
     not cfitsio_has_bzip2_support(),
     reason='cfitsio was not built with bzip2 support',
 )
