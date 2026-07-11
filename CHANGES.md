@@ -1,16 +1,20 @@
 # Changes
 
-## 1.4.1 (unreleased)
+## 1.4.1
 
 Changes
 
 - Added development dependencies to the `pyproject.toml`.
 - Reformatted `CHANGES.md` for clarity and added linting
   to ensure consistent formatting in the future.
+- Added wheels and CI for windows.
 - Added function `cfitsio_is_reentrant()` to return whether or not the
   underlying cfitsio library was compiled with reentrant support.
 - Added back patch of `cfitsio` to prevent subnormal floats from being
   cast to zero for bundled builds.
+- Updated docs to clarify threaded usage of `FITS` objects.
+- Removed extra lock in C layer. Users must employ their own locks
+  in Python for correct results.
 
 Bug Fixes
 
@@ -19,6 +23,7 @@ Bug Fixes
 - Marked tests for reproducible lossy float compression as xfail for external
   cfitsio libraries.
 - Skip tests for large compressed images exceeding `2**32` bytes on 32-bit platforms.
+- Fixed incorrect test of threaded usage.
 
 ## 1.4.0
 

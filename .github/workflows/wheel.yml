@@ -204,9 +204,55 @@ jobs:
           name: whl-arm
           path: ./wheelhouse/*.whl
 
+  win-amd64:
+    name: win-amd64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: '${{ env.PYVER }}'
+
+      - name: make nmake available
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: build wheels
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
+        env:
+          CIBW_BUILD: "*win_amd64*"
+          CIBW_ARCHS: auto64
+          CIBW_SKIP: ${{ env.CIBW_SKIP_VAL }}
+
+      - name: test wheel for python ${{ env.PYVER }}
+        shell: cmd
+        run: |
+          set pystr=${{ env.PYVER }}
+          set pystr=%pystr:.=%
+          echo python version string is %pystr%
+          if errorlevel 1 exit 1
+
+          python -m pip install --upgrade pip
+          if errorlevel 1 exit 1
+
+          for %%f in (.\wheelhouse\*cp%pystr%*.whl) do pip install %%f[dev]
+          if errorlevel 1 exit 1
+
+          pytest --pyargs fitsio
+          if errorlevel 1 exit 1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: whl-win-amd64
+          path: ./wheelhouse/*.whl
+
   sdist:
     name: sdist
-    needs: [linux-manylinux, linux-musl, osx-intel, osx-arm]
+    needs: [linux-manylinux, linux-musl, osx-intel, osx-arm, win-amd64]
     # Just need to build sdist on a single machine
     runs-on: ubuntu-latest
     steps:
