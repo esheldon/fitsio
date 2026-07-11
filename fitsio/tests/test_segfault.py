@@ -4,7 +4,7 @@ import tempfile
 import numpy as np
 
 import fitsio
-from .. import fitsio_backend, cfitsio_is_bundled
+from .. import fitsio_backend, backend_is_bundled
 
 import pytest
 
@@ -54,7 +54,7 @@ def _run_mixed(n):
 
 @pytest.mark.slow
 @pytest.mark.skipif(
-    (fitsio_backend() == "cfitsio" and not cfitsio_is_bundled()),
+    (fitsio_backend() == "cfitsio" and not backend_is_bundled()),
     reason=(
         "small images cause a memory corruption w/ PLIO "
         "compression (see https://github.com/heasarc/cfitsio/issues/136)"

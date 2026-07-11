@@ -5,7 +5,7 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
-from ..util import cfitsio_version, cfitsio_is_bundled
+from ..util import cfitsio_version, backend_is_bundled
 import numpy as np
 from ..fitslib import FITS
 from .. import fitsio_backend
@@ -76,7 +76,7 @@ def test_image_write_read_unaligned(dtype, with_nan):
     """
 
     if (dtype == ">f4" or ("f" in dtype and with_nan)) and (
-        fitsio_backend() == "cfitsio" and not cfitsio_is_bundled()
+        fitsio_backend() == "cfitsio" and not backend_is_bundled()
     ):
         pytest.xfail(
             reason=(
@@ -562,7 +562,7 @@ def test_image_write_subset_2d(
         with_nan
         and with_nan_base_img
         and partial_overlap_str in partial_overlap_str_cases
-        and (fitsio_backend() == "cfitsio" and not cfitsio_is_bundled())
+        and (fitsio_backend() == "cfitsio" and not backend_is_bundled())
         and compress_kws
         and compress_kws.get("qlevel", 0) > 0
     ):

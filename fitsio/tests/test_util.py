@@ -5,13 +5,16 @@ import pytest
 
 from ..util import (
     _nonfinite_as_cfitsio_floating_null_value,
-    cfitsio_version,
+    backend_version,
     _FLOATING_NULL_VALUE,
 )
+from .. import fitsio_backend
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
-if CFITSIO_VERSION > 3.44:
+if (
+    fitsio_backend() == "cfitsio" and BACKEND_VERSION > 3.44
+) or fitsio_backend() == "rsfitsio":
     DTYPES += ["u8"]
 
 
