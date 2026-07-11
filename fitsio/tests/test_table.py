@@ -15,11 +15,13 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
-from .. import backend_has_bzip2_support, fitsio_backend
+from .. import backend_has_bzip2_support, fitsio_backend, backend_version
 
-CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
-if CFITSIO_VERSION > 4:
+if (
+    BACKEND_VERSION > 4 and fitsio_backend() == "cfitsio"
+) or fitsio_backend() == "rsfitsio":
     DTYPES += ["u8"]
 
 
@@ -896,7 +898,9 @@ def test_table_resize():
         add_data['u4scalar'] = 2**31
         add_data['u4vec'] = 2**31
         add_data['u4arr'] = 2**31
-        if CFITSIO_VERSION > 4:
+        if (
+            BACKEND_VERSION > 4 and fitsio_backend() == "cfitsio"
+        ) or fitsio_backend() == "rsfitsio":
             add_data['u8scalar'] = 2**63
             add_data['u8vec'] = 2**63
             add_data['u8arr'] = 2**63
@@ -1578,7 +1582,9 @@ def test_table_big_col(table_type):
         pth = os.path.join(tmpdir, "test.fits")
         # v3 cfitsio that is not bundled fails for big
         # columns
-        if table_type == "ascii" or CFITSIO_VERSION < 4:
+        if table_type == "ascii" or (
+            fitsio_backend() == "cfitsio" and BACKEND_VERSION < 4
+        ):
             with pytest.raises(OSError) as e:
                 write(pth, d, table_type=table_type)
             assert "FITSIO status = 236: column exceeds width of table" in str(
@@ -1594,7 +1600,7 @@ def test_table_big_col(table_type):
 
 
 @pytest.mark.xfail(
-    condition=CFITSIO_VERSION < 4,
+    condition=fitsio_backend() == "cfitsio" and BACKEND_VERSION < 4,
     reason=(
         "cfitsio versions < 4 do not easily support null-terminated strings"
     ),
@@ -1625,7 +1631,7 @@ def test_table_read_write_ulonglong():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            if CFITSIO_VERSION < 3.45:
+            if fitsio_backend() == "cfitsio" and BACKEND_VERSION < 3.45:
                 with pytest.raises(IOError) as e:
                     fits.write_table(
                         adata,
