@@ -40,5 +40,5 @@ jobs:
 
       - name: test
         run: |
-          python -c "import fitsio; assert not fitsio.cfitsio_is_reentrant()"
+          python -c "import fitsio; assert not fitsio.backend_is_reentrant()"
           pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio

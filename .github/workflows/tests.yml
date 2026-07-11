@@ -88,14 +88,14 @@ jobs:
           pip install ${PIP_OPTIONS} -e .
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             pytest -vv --durations=20 ${PRP_FLAGS} fitsio
-            python -c "import fitsio; assert not fitsio.cfitsio_has_bzip2_support()"
-            python -c "import fitsio; assert not fitsio.cfitsio_has_curl_support()"
+            python -c "import fitsio; assert not fitsio.backend_has_bzip2_support()"
+            python -c "import fitsio; assert not fitsio.backend_has_curl_support()"
           else
             pytest -vv --durations=20 ${PRP_FLAGS} fitsio
-            python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
-            python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
+            python -c "import fitsio; assert fitsio.backend_has_bzip2_support()"
+            python -c "import fitsio; assert fitsio.backend_has_curl_support()"
           fi
-          python -c "import fitsio; assert fitsio.cfitsio_is_reentrant()"
+          python -c "import fitsio; assert fitsio.backend_is_reentrant()"
 
       - name: install bzip2 and curl on linux
         if: matrix.os == 'ubuntu-latest'
@@ -141,9 +141,9 @@ jobs:
 
           pip install ${PIP_OPTIONS} -e .
           pytest -vv --durations=20 ${PRP_FLAGS} fitsio
-          python -c "import fitsio; assert fitsio.cfitsio_has_bzip2_support()"
-          python -c "import fitsio; assert fitsio.cfitsio_has_curl_support()"
-          python -c "import fitsio; assert fitsio.cfitsio_is_reentrant()"
+          python -c "import fitsio; assert fitsio.backend_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.backend_has_curl_support()"
+          python -c "import fitsio; assert fitsio.backend_is_reentrant()"
 
           popd
           popd

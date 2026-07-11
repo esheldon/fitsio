@@ -15,7 +15,7 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
-from .. import cfitsio_has_bzip2_support, fitsio_backend
+from .. import backend_has_bzip2_support, fitsio_backend
 
 CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
@@ -1105,7 +1105,7 @@ def test_gz_write_read():
 
 
 @pytest.mark.skipif(
-    not cfitsio_has_bzip2_support(),
+    not backend_has_bzip2_support(),
     reason='cfitsio was not built with bzip2 support',
 )
 def test_bz2_read():
