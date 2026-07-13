@@ -1,0 +1,44 @@
+name: tests-windows
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+env:
+  PY_COLORS: "1"
+
+jobs:
+  tests-windows:
+    name: tests-windows
+    strategy:
+      fail-fast: false
+      matrix:
+        pyver: ["3.10", "3.14"]
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: ${{ matrix.pyver }}
+
+      - name: make nmake available
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: install code
+        run: |
+          python -m pip install --upgrade pip
+          pip install -v -e .[dev]
+          python -c "import fitsio"
+
+      - name: test
+        run: |
+          python -c "import fitsio; assert not fitsio.cfitsio_is_reentrant()"
+          pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio
