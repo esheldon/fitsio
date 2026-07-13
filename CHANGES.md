@@ -18,6 +18,7 @@ Changes
 
 Bug Fixes
 
+- Added missing memory allocation checks in C layer.
 - Fixed (rare) bug where `FITS.hdu_list` and `FITS.hdu_map` can go out of sync.
 - Added global lock on `cfitsio` calls for non-reentrant builds.
 - Marked tests for reproducible lossy float compression as xfail for external
