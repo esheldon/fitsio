@@ -404,6 +404,7 @@ class build_ext_subclass(build_ext):
         # link against the .a library in cfitsio;
         # It should have been a 'static' library of relocatable objects
         # (-fPIC), since we use the python compiler flags
+
         link_objects = glob.glob(os.path.join(self.cfitsio_build_dir, '*.o'))
 
         self.compiler.set_link_objects(link_objects)
