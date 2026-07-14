@@ -15,13 +15,19 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
-from .. import backend_has_bzip2_support, fitsio_backend, backend_version
+from .. import (
+    backend_has_bzip2_support,
+    fitsio_backend,
+    backend_version,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 
 BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 if (
-    BACKEND_VERSION > 4 and fitsio_backend() == "cfitsio"
-) or fitsio_backend() == "rsfitsio":
+    BACKEND_VERSION > 4 and fitsio_backend() == CFITSIO_BACKEND
+) or fitsio_backend() == RSFITSIO_BACKEND:
     DTYPES += ["u8"]
 
 
@@ -572,9 +578,9 @@ def test_ascii_table_write_read():
     Test write and read for an ascii table
     """
 
-    if fitsio_backend() == "rsfitsio":
+    if fitsio_backend() == RSFITSIO_BACKEND:
         tol = 1e-14
-    elif fitsio_backend() == "cfitsio":
+    elif fitsio_backend() == CFITSIO_BACKEND:
         tol = 2.15e-16
     else:
         assert False, "No valid backend specified! got " + fitsio_backend()
@@ -899,8 +905,8 @@ def test_table_resize():
         add_data['u4vec'] = 2**31
         add_data['u4arr'] = 2**31
         if (
-            BACKEND_VERSION > 4 and fitsio_backend() == "cfitsio"
-        ) or fitsio_backend() == "rsfitsio":
+            BACKEND_VERSION > 4 and fitsio_backend() == CFITSIO_BACKEND
+        ) or fitsio_backend() == RSFITSIO_BACKEND:
             add_data['u8scalar'] = 2**63
             add_data['u8vec'] = 2**63
             add_data['u8arr'] = 2**63
@@ -1583,7 +1589,7 @@ def test_table_big_col(table_type):
         # v3 cfitsio that is not bundled fails for big
         # columns
         if table_type == "ascii" or (
-            fitsio_backend() == "cfitsio" and BACKEND_VERSION < 4
+            fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 4
         ):
             with pytest.raises(OSError) as e:
                 write(pth, d, table_type=table_type)
@@ -1600,7 +1606,7 @@ def test_table_big_col(table_type):
 
 
 @pytest.mark.xfail(
-    condition=fitsio_backend() == "cfitsio" and BACKEND_VERSION < 4,
+    condition=fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 4,
     reason=(
         "cfitsio versions < 4 do not easily support null-terminated strings"
     ),
@@ -1631,7 +1637,7 @@ def test_table_read_write_ulonglong():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            if fitsio_backend() == "cfitsio" and BACKEND_VERSION < 3.45:
+            if fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 3.45:
                 with pytest.raises(IOError) as e:
                     fits.write_table(
                         adata,

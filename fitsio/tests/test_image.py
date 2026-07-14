@@ -5,15 +5,21 @@ import pytest
 
 # import warnings
 from .checks import check_header, compare_array
-from .. import backend_version, backend_is_bundled, fitsio_backend
+from .. import (
+    backend_version,
+    backend_is_bundled,
+    fitsio_backend,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 import numpy as np
 from ..fitslib import FITS
 
 BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 if (
-    BACKEND_VERSION > 3.44 and fitsio_backend() == "cfitsio"
-) or fitsio_backend() == "rsfitsio":
+    BACKEND_VERSION > 3.44 and fitsio_backend() == CFITSIO_BACKEND
+) or fitsio_backend() == RSFITSIO_BACKEND:
     DTYPES += ["u8"]
 
 
@@ -77,7 +83,7 @@ def test_image_write_read_unaligned(dtype, with_nan):
     """
 
     if (dtype == ">f4" or ("f" in dtype and with_nan)) and (
-        fitsio_backend() == "cfitsio" and not backend_is_bundled()
+        fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled()
     ):
         pytest.xfail(
             reason=(
@@ -563,7 +569,7 @@ def test_image_write_subset_2d(
         with_nan
         and with_nan_base_img
         and partial_overlap_str in partial_overlap_str_cases
-        and (fitsio_backend() == "cfitsio" and not backend_is_bundled())
+        and (fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled())
         and compress_kws
         and compress_kws.get("qlevel", 0) > 0
     ):
@@ -787,7 +793,7 @@ def test_image_read_write_ulonglong():
         with FITS(fname, 'rw') as fits:
             data = np.arange(5 * 20, dtype='u8').reshape(5, 20)
             header = {'DTYPE': 'u8', 'NBYTES': data.dtype.itemsize}
-            if BACKEND_VERSION < 3.45 and fitsio_backend() == "cfitsio":
+            if BACKEND_VERSION < 3.45 and fitsio_backend() == CFITSIO_BACKEND:
                 with pytest.raises(TypeError) as e:
                     fits.write_image(data, header=header)
                 assert (
@@ -804,7 +810,7 @@ def test_image_read_write_ulonglong():
                 check_header(header, rh)
 
         if (
-            BACKEND_VERSION >= 3.45 and fitsio_backend() == "cfitsio"
-        ) or fitsio_backend() == "rsfitsio":
+            BACKEND_VERSION >= 3.45 and fitsio_backend() == CFITSIO_BACKEND
+        ) or fitsio_backend() == RSFITSIO_BACKEND:
             with FITS(fname) as fits:
                 assert not fits[0].is_compressed(), 'not compressed'

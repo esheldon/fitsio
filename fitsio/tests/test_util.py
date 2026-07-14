@@ -7,13 +7,18 @@ from ..util import (
     _nonfinite_as_cfitsio_floating_null_value,
     _FLOATING_NULL_VALUE,
 )
-from .. import fitsio_backend, backend_version
+from .. import (
+    fitsio_backend,
+    backend_version,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 
 BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
 if (
-    fitsio_backend() == "cfitsio" and BACKEND_VERSION > 3.44
-) or fitsio_backend() == "rsfitsio":
+    fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 3.44
+) or fitsio_backend() == RSFITSIO_BACKEND:
     DTYPES += ["u8"]
 
 

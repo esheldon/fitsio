@@ -10,7 +10,12 @@ from .checks import check_header, compare_headerlist_header
 from ..fitslib import FITS, read_header, write
 from ..header import FITSHDR
 from ..hdu.base import INVALID_HDR_CHARS
-from .. import backend_version, fitsio_backend
+from .. import (
+    backend_version,
+    fitsio_backend,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 
 BACKEND_VERSION = backend_version(asfloat=True)
 
@@ -107,8 +112,8 @@ def test_header_write_read():
                 'longs': lorem_ipsum,
             }
             if (
-                fitsio_backend() == "cfitsio" and BACKEND_VERSION > 4.02
-            ) or fitsio_backend() == "rsfitsio":
+                fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4.02
+            ) or fitsio_backend() == RSFITSIO_BACKEND:
                 # force hierarch + continue
                 header["long_keyword_name"] = lorem_ipsum
 

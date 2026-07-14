@@ -55,4 +55,9 @@ backend_has_bzip2_support = cfitsio_has_bzip2_support
 backend_has_curl_support = cfitsio_has_curl_support
 backend_is_reentrant = cfitsio_is_reentrant
 
+# return values of fitsio_backend, here to help make code
+# clearer and avoid mispelling errors in testing strings
+CFITSIO_BACKEND = "cfitsio"
+RSFITSIO_BACKEND = "rsfitsio"
+
 from .fits_exceptions import FITSFormatError
