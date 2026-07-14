@@ -206,7 +206,6 @@ def test_threading_read_one_file():
             t0 = time.time()
             _read_file(fname)
             t0_one += time.time() - t0
-            print("\none file time:", t0_one, flush=True)
 
             t0 = time.time()
             with ThreadPoolExecutor(max_workers=nt) as pool:
@@ -224,6 +223,7 @@ def test_threading_read_one_file():
         t0_serial /= n_trials
         t0_threads /= n_trials
 
+        print("\none file time:", t0_one, flush=True)
         print(
             "parallel time / one file time",
             t0_threads / t0_one,
