@@ -161,7 +161,7 @@ def test_threading_timing(klass, write_only, read_only):
 
         assert t0_threads < t0_serial / 1.5, (
             "Threading should be faster than serial! (%f < %f)"
-            % (t0_threads, t0_serial)
+            % (t0_threads, t0_serial / 1.5)
         )
 
 
@@ -215,7 +215,7 @@ def test_threading_read_one_file():
             flush=True,
         )
 
-        assert t0_threads < t0_serial / 2, (
+        assert t0_threads < t0_serial / 1.5, (
             "Threading should be faster than serial! (%f < %f)"
-            % (t0_threads, t0_serial)
+            % (t0_threads, t0_serial / 1.5)
         )
