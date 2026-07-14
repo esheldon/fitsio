@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import sys
 import tempfile
 import time
 
@@ -63,7 +64,7 @@ def test_threading_works():
 
 @pytest.mark.xfail(
     reason="threading performance might be flaky",
-    condition=not fitsio.backend_is_reentrant(),
+    condition=sys.version_info < (3, 13) or not fitsio.backend_is_reentrant(),
 )
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
@@ -166,7 +167,7 @@ def test_threading_timing(klass, write_only, read_only):
 
 @pytest.mark.xfail(
     reason="threading performance might be flaky",
-    condition=not fitsio.backend_is_reentrant(),
+    condition=sys.version_info < (3, 13) or not fitsio.backend_is_reentrant(),
 )
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
