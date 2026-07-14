@@ -101,11 +101,7 @@ struct PyFITSObject {
 
 // check unicode for python3, string for python2
 static int is_python_string(const PyObject *obj) {
-#if PY_MAJOR_VERSION >= 3
     return PyUnicode_Check(obj) || PyBytes_Check(obj);
-#else
-    return PyUnicode_Check(obj) || PyString_Check(obj);
-#endif
 }
 
 /*
@@ -200,11 +196,24 @@ static int has_invalid_keyword_chars(char *str) {
 static char *get_unicode_as_string(PyObject *obj) {
     PyObject *tmp = NULL;
     char *strdata = NULL;
+
     tmp = PyObject_CallMethod(obj, "encode", NULL);
+    if (tmp == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
+
+    strdata = PyBytes_AsString(tmp);
+    if (strdata == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
 
     strdata = strdup(PyBytes_AsString(tmp));
-    Py_XDECREF(tmp);
+    if (strdata == NULL) {
+        goto get_unicode_as_string_cleanup;
+    }
 
+get_unicode_as_string_cleanup:
+    Py_XDECREF(tmp);
     return strdata;
 }
 
@@ -213,54 +222,55 @@ static char *get_object_as_string(PyObject *obj) {
     PyObject *args = NULL;
     char *strdata = NULL;
     PyObject *tmpobj1 = NULL;
+    PyObject *tmpobj2 = NULL;
 
     if (PyUnicode_Check(obj)) {
-
         strdata = get_unicode_as_string(obj);
-
     } else {
-
-#if PY_MAJOR_VERSION >= 3
-
         if (PyBytes_Check(obj)) {
-            strdata = strdup(PyBytes_AsString(obj));
+            strdata = PyBytes_AsString(obj);
+            if (strdata == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+            strdata = strdup(strdata);
         } else {
-            PyObject *tmpobj2 = NULL;
             format = Py_BuildValue("s", "%s");
+            if (format == NULL) {
+                goto get_object_as_string_cleanup;
+            }
             // this is not a string object
             args = PyTuple_New(1);
+            if (args == NULL) {
+                goto get_object_as_string_cleanup;
+            }
 
-            PyTuple_SetItem(args, 0, obj);
+            if (PyTuple_SetItem(args, 0, obj)) {
+                goto get_object_as_string_cleanup;
+            }
+
             tmpobj2 = PyUnicode_Format(format, args);
+            if (tmpobj2 == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+
             tmpobj1 = PyObject_CallMethod(tmpobj2, "encode", NULL);
+            if (tmpobj1 == NULL) {
+                goto get_object_as_string_cleanup;
+            }
 
-            Py_XDECREF(args);
-            Py_XDECREF(tmpobj2);
-
-            strdata = strdup(PyBytes_AsString(tmpobj1));
-            Py_XDECREF(tmpobj1);
-            Py_XDECREF(format);
+            strdata = PyBytes_AsString(tmpobj1);
+            if (strdata == NULL) {
+                goto get_object_as_string_cleanup;
+            }
+            strdata = strdup(strdata);
         }
-
-#else
-        // convert to a string as needed
-        if (PyString_Check(obj)) {
-            strdata = strdup(PyString_AsString(obj));
-        } else {
-            format = Py_BuildValue("s", "%s");
-            args = PyTuple_New(1);
-
-            PyTuple_SetItem(args, 0, obj);
-            tmpobj1 = PyString_Format(format, args);
-
-            strdata = strdup(PyString_AsString(tmpobj1));
-            Py_XDECREF(args);
-            Py_XDECREF(tmpobj1);
-            Py_XDECREF(format);
-        }
-#endif
     }
 
+get_object_as_string_cleanup:
+    Py_XDECREF(args);
+    Py_XDECREF(tmpobj2);
+    Py_XDECREF(tmpobj1);
+    Py_XDECREF(format);
     return strdata;
 }
 
@@ -449,75 +459,134 @@ static int stringlist_addfrom_listobj(struct stringlist *slist,
     return 0;
 }
 
-static void add_double_to_dict(PyObject *dict, const char *key, double value) {
+static int add_double_to_dict(PyObject *dict, const char *key, double value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyFloat_FromDouble(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_double_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_double_to_dict_cleanup;
+    }
+
+add_double_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_long_to_dict(PyObject *dict, const char *key, long value) {
+static int add_long_to_dict(PyObject *dict, const char *key, long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyLong_FromLong(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_long_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_long_to_dict_cleanup;
+    }
+
+add_long_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_long_long_to_dict(PyObject *dict, const char *key,
-                                  long long value) {
+static int add_long_long_to_dict(PyObject *dict, const char *key,
+                                 long long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = PyLong_FromLongLong(value);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_long_long_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_long_long_to_dict_cleanup;
+    }
+
+add_long_long_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_string_to_dict(PyObject *dict, const char *key,
-                               const char *str) {
+static int add_string_to_dict(PyObject *dict, const char *key,
+                              const char *str) {
+    int retcode = 0;
     PyObject *tobj = NULL;
+
     tobj = Py_BuildValue("s", str);
-    PyDict_SetItemString(dict, key, tobj);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto add_string_to_dict_cleanup;
+    }
+
+    if (PyDict_SetItemString(dict, key, tobj)) {
+        retcode = -1;
+        goto add_string_to_dict_cleanup;
+    }
+
+add_string_to_dict_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
 
-static void add_none_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_None);
-    Py_XINCREF(Py_None);
-}
-static void add_true_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_True);
-    Py_XINCREF(Py_True);
-}
-static void add_false_to_dict(PyObject *dict, const char *key) {
-    PyDict_SetItemString(dict, key, Py_False);
-    Py_XINCREF(Py_False);
+static int add_none_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_None)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_None);
+        return 0;
+    }
 }
 
-/*
-static
-void append_long_to_list(PyObject* list, long value) {
-    PyObject* tobj=NULL;
-    tobj=PyLong_FromLong(value);
-    PyList_Append(list, tobj);
-    Py_XDECREF(tobj);
+static int add_true_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_True)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_True);
+        return 0;
+    }
 }
-*/
 
-static void append_long_long_to_list(PyObject *list, long long value) {
+static int add_false_to_dict(PyObject *dict, const char *key) {
+    if (PyDict_SetItemString(dict, key, Py_False)) {
+        return -1;
+    } else {
+        Py_XINCREF(Py_True);
+        return 0;
+    }
+}
+
+static int append_long_long_to_list(PyObject *list, long long value) {
+    int retcode = 0;
     PyObject *tobj = NULL;
-    tobj = PyLong_FromLongLong(value);
-    PyList_Append(list, tobj);
-    Py_XDECREF(tobj);
-}
 
-/*
-static
-void append_string_to_list(PyObject* list, const char* str) {
-    PyObject* tobj=NULL;
-    tobj=Py_BuildValue("s",str);
-    PyList_Append(list, tobj);
+    tobj = PyLong_FromLongLong(value);
+    if (tobj == NULL) {
+        retcode = -1;
+        goto append_long_long_to_list_cleanup;
+    }
+
+    if (PyList_Append(list, tobj)) {
+        retcode = -1;
+        goto append_long_long_to_list_cleanup;
+    }
+
+append_long_long_to_list_cleanup:
     Py_XDECREF(tobj);
+    return retcode;
 }
-*/
 
 static int PyFITSObject_init(struct PyFITSObject *self, PyObject *args,
                              PyObject *kwds) {
@@ -627,13 +696,7 @@ static void PyFITSObject_dealloc(struct PyFITSObject *self) {
         self->fits = NULL;
     }
     UNLOCK_FITS(self);
-#if PY_MAJOR_VERSION >= 3
-    // introduced in python 2.6
     Py_TYPE(self)->tp_free((PyObject *)self);
-#else
-    // old way, removed in python 3
-    self->ob_type->tp_free((PyObject *)self);
-#endif
 }
 
 // this will need to be updated for array string columns.
@@ -798,60 +861,104 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     }
 
     dict = PyDict_New();
+    if (dict == NULL) {
+        UNLOCK_FITS(self);
+        return NULL;
+    }
     ext = hdunum - 1;
 
-    add_long_to_dict(dict, "hdunum", (long)hdunum);
-    add_long_to_dict(dict, "extnum", (long)ext);
-    add_long_to_dict(dict, "hdutype", (long)hdutype);
+    if (add_long_to_dict(dict, "hdunum", (long)hdunum)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_to_dict(dict, "extnum", (long)ext)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_to_dict(dict, "hdutype", (long)hdutype)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
 
     tstatus = 0;
     if (fits_read_key(self->fits, TSTRING, "EXTNAME", extname, NULL,
                       &tstatus) == 0) {
         convert_extname_to_ascii(extname);
-        add_string_to_dict(dict, "extname", extname);
     } else {
-        add_string_to_dict(dict, "extname", "");
+        extname[0] = '\0';
+    }
+    if (add_string_to_dict(dict, "extname", extname)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
     if (fits_read_key(self->fits, TSTRING, "HDUNAME", hduname, NULL,
                       &tstatus) == 0) {
         convert_extname_to_ascii(hduname);
-        add_string_to_dict(dict, "hduname", hduname);
     } else {
-        add_string_to_dict(dict, "hduname", "");
+        hduname[0] = '\0';
+    }
+    if (add_string_to_dict(dict, "hduname", hduname)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "extver", (long)extver);
-    } else {
-        add_long_to_dict(dict, "extver", (long)0);
+    if (fits_read_key(self->fits, TINT, "EXTVER", &extver, NULL, &tstatus)) {
+        extver = 0;
+    }
+    if (add_long_to_dict(dict, "extver", (long)extver)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
-    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus) ==
-        0) {
-        add_long_to_dict(dict, "hduver", (long)hduver);
-    } else {
-        add_long_to_dict(dict, "hduver", (long)0);
+    if (fits_read_key(self->fits, TINT, "HDUVER", &hduver, NULL, &tstatus)) {
+        hduver = 0;
+    }
+    if (add_long_to_dict(dict, "hduver", (long)hduver)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     tstatus = 0;
     is_compressed = fits_is_compressed_image(self->fits, &tstatus);
-    add_long_to_dict(dict, "is_compressed_image", (long)is_compressed);
+    if (add_long_to_dict(dict, "is_compressed_image", (long)is_compressed)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
 
     // get byte offsets
-    if (0 == fits_get_hduaddrll(self->fits, &header_start, &data_start,
-                                &data_end, &tstatus)) {
-        add_long_long_to_dict(dict, "header_start", (long)header_start);
-        add_long_long_to_dict(dict, "data_start", (long)data_start);
-        add_long_long_to_dict(dict, "data_end", (long)data_end);
-    } else {
-        add_long_long_to_dict(dict, "header_start", -1);
-        add_long_long_to_dict(dict, "data_start", -1);
-        add_long_long_to_dict(dict, "data_end", -1);
+    tstatus = 0;
+    if (fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end,
+                           &tstatus)) {
+        header_start = -1;
+        data_start = -1;
+        data_end = -1;
+    }
+    if (add_long_long_to_dict(dict, "header_start", (long)header_start)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_long_to_dict(dict, "data_start", (long)data_start)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+    if (add_long_long_to_dict(dict, "data_end", (long)data_end)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
     }
 
     int ndims = 0;
@@ -866,41 +973,90 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         PyObject *dimsObj = PyList_New(0);
         int i = 0;
 
+        if (dimsObj == NULL) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+
+        tstatus = 0;
         // if (fits_read_imghdrll(self->fits, maxdim, simple_p, &bitpix, &ndims,
         //                        dims, pcount_p, gcount_p, extend_p, &status))
         //                        {
         if (fits_get_img_paramll(self->fits, maxdim, &bitpix, &ndims, dims,
                                  &tstatus)) {
-            add_string_to_dict(dict, "error",
-                               "could not determine image parameters");
+            if (add_string_to_dict(dict, "error",
+                                   "could not determine image parameters")) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         } else {
-            add_long_to_dict(dict, "ndims", (long)ndims);
-            add_long_to_dict(dict, "img_type", (long)bitpix);
-
-            if (ignore_scaling == TRUE) {
-                // Get the raw type if scaling is being ignored.
-                fits_get_img_type(self->fits, &bitpix_equiv, &status);
-            } else {
-                fits_get_img_equivtype(self->fits, &bitpix_equiv, &status);
+            if (add_long_to_dict(dict, "ndims", (long)ndims)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
+            if (add_long_to_dict(dict, "img_type", (long)bitpix)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
             }
 
-            add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv);
+            tstatus = 0;
+            if (ignore_scaling == TRUE) {
+                // Get the raw type if scaling is being ignored.
+                fits_get_img_type(self->fits, &bitpix_equiv, &tstatus);
+            } else {
+                fits_get_img_equivtype(self->fits, &bitpix_equiv, &tstatus);
+            }
+
+            if (add_long_to_dict(dict, "img_equiv_type", (long)bitpix_equiv)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
             tstatus = 0;
             if (fits_read_key(self->fits, TSTRING, "ZCMPTYPE", comptype, NULL,
                               &tstatus) == 0) {
                 convert_to_ascii(comptype);
-                add_string_to_dict(dict, "comptype", comptype);
+                if (add_string_to_dict(dict, "comptype", comptype)) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             } else {
-                add_none_to_dict(dict, "comptype");
+                if (add_none_to_dict(dict, "comptype")) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             }
 
             for (i = 0; i < ndims; i++) {
-                append_long_long_to_list(dimsObj, (long long)dims[i]);
+                if (append_long_long_to_list(dimsObj, (long long)dims[i])) {
+                    Py_XDECREF(dimsObj);
+                    Py_XDECREF(dict);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
             }
-            PyDict_SetItemString(dict, "dims", dimsObj);
-            Py_XDECREF(dimsObj);
+            if (PyDict_SetItemString(dict, "dims", dimsObj)) {
+                Py_XDECREF(dimsObj);
+                Py_XDECREF(dict);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         }
+        Py_XDECREF(dimsObj);
+        dimsObj = NULL;
 
     } else if (hdutype == BINARY_TBL) {
         int tstatus = 0;
@@ -909,10 +1065,28 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         PyObject *colinfo = PyList_New(0);
         int i = 0, j = 0;
 
+        if (colinfo == NULL) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+
+        tstatus = 0;
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
+        tstatus = 0;
         fits_get_num_cols(self->fits, &ncols, &tstatus);
-        add_long_long_to_dict(dict, "nrows", (long long)nrows);
-        add_long_to_dict(dict, "ncols", (long)ncols);
+        if (add_long_long_to_dict(dict, "nrows", (long long)nrows)) {
+            Py_XDECREF(colinfo);
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+        if (add_long_to_dict(dict, "ncols", (long)ncols)) {
+            Py_XDECREF(colinfo);
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
 
         {
             PyObject *d = NULL;
@@ -955,6 +1129,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 }
             }
             // just get the names: no other way to do it!
+            tstatus = 0;
             fits_read_btblhdrll(self->fits, ncols, NULL, NULL, names->data,
                                 tforms->data, NULL, NULL, NULL, &tstatus);
 
@@ -964,51 +1139,180 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 LONGLONG repeat = 0;
                 LONGLONG width = 0;
 
-                convert_to_ascii(names->data[i]);
-                add_string_to_dict(d, "name", names->data[i]);
-                convert_to_ascii(tforms->data[i]);
-                add_string_to_dict(d, "tform", tforms->data[i]);
+                if (d == NULL) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
+                convert_to_ascii(names->data[i]);
+                if (add_string_to_dict(d, "name", names->data[i])) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                convert_to_ascii(tforms->data[i]);
+                if (add_string_to_dict(d, "tform", tforms->data[i])) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+
+                tstatus = 0;
                 fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
                                    &tstatus);
-                add_long_to_dict(d, "type", (long)type);
-                add_long_long_to_dict(d, "repeat", (long long)repeat);
-                add_long_long_to_dict(d, "width", (long long)width);
+                if (add_long_to_dict(d, "type", (long)type)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_long_long_to_dict(d, "repeat", (long long)repeat)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_long_long_to_dict(d, "width", (long long)width)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
+                tstatus = 0;
                 fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
                                      &tstatus);
-                add_long_to_dict(d, "eqtype", (long)type);
+                if (add_long_to_dict(d, "eqtype", (long)type)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
                 tstatus = 0;
                 if (fits_read_tdimll(self->fits, i + 1, maxdim, &ndims, dims,
                                      &tstatus)) {
-                    add_none_to_dict(d, "tdim");
+                    if (add_none_to_dict(d, "tdim")) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else {
                     PyObject *dimsObj = PyList_New(0);
+
+                    if (dimsObj == NULL) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                     for (j = 0; j < ndims; j++) {
-                        append_long_long_to_list(dimsObj, (long long)dims[j]);
+                        if (append_long_long_to_list(dimsObj,
+                                                     (long long)dims[j])) {
+                            names = stringlist_delete(names);
+                            tforms = stringlist_delete(tforms);
+                            Py_XDECREF(dimsObj);
+                            Py_XDECREF(d);
+                            Py_XDECREF(dict);
+                            Py_XDECREF(colinfo);
+                            UNLOCK_FITS(self);
+                            return NULL;
+                        }
                     }
 
-                    PyDict_SetItemString(d, "tdim", dimsObj);
+                    if (PyDict_SetItemString(d, "tdim", dimsObj)) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(dimsObj);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                     Py_XDECREF(dimsObj);
+                    dimsObj = NULL;
                 }
 
                 // using the struct, could cause problems
                 // actually, we can use ffgcprll to get this info, but will
                 // be redundant with some others above
                 col = &self->fits->Fptr->tableptr[i];
-                add_double_to_dict(d, "tscale", col->tscale);
-                add_double_to_dict(d, "tzero", col->tzero);
+                if (add_double_to_dict(d, "tscale", col->tscale)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_double_to_dict(d, "tzero", col->tzero)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
-                PyList_Append(colinfo, d);
+                if (PyList_Append(colinfo, d)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
                 Py_XDECREF(d);
+                d = NULL;
             }
             names = stringlist_delete(names);
             tforms = stringlist_delete(tforms);
 
-            PyDict_SetItemString(dict, "colinfo", colinfo);
-            Py_XDECREF(colinfo);
+            if (PyDict_SetItemString(dict, "colinfo", colinfo)) {
+                Py_XDECREF(dict);
+                Py_XDECREF(colinfo);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         }
+        Py_XDECREF(colinfo);
+        colinfo = NULL;
     } else {
         int tstatus = 0;
         LONGLONG nrows = 0;
@@ -1016,10 +1320,26 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         PyObject *colinfo = PyList_New(0);
         int i = 0, j = 0;
 
+        if (colinfo == NULL) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+
         fits_get_num_rowsll(self->fits, &nrows, &tstatus);
         fits_get_num_cols(self->fits, &ncols, &tstatus);
-        add_long_long_to_dict(dict, "nrows", (long long)nrows);
-        add_long_to_dict(dict, "ncols", (long)ncols);
+        if (add_long_long_to_dict(dict, "nrows", (long long)nrows)) {
+            Py_XDECREF(dict);
+            Py_XDECREF(colinfo);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+        if (add_long_to_dict(dict, "ncols", (long)ncols)) {
+            Py_XDECREF(dict);
+            Py_XDECREF(colinfo);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
 
         {
             tcolumn *col = NULL;
@@ -1063,6 +1383,7 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
             // just get the names: no other way to do it!
 
             //                                        rowlen nrows
+            tstatus = 0;
             fits_read_atblhdrll(self->fits, ncols, NULL, NULL,
                                 //          tfields             tbcol units
                                 NULL, names->data, NULL, tforms->data, NULL,
@@ -1075,51 +1396,178 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
                 LONGLONG repeat = 0;
                 LONGLONG width = 0;
 
-                convert_to_ascii(names->data[i]);
-                add_string_to_dict(d, "name", names->data[i]);
-                convert_to_ascii(tforms->data[i]);
-                add_string_to_dict(d, "tform", tforms->data[i]);
+                if (d == NULL) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
+                convert_to_ascii(names->data[i]);
+                if (add_string_to_dict(d, "name", names->data[i])) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                convert_to_ascii(tforms->data[i]);
+                if (add_string_to_dict(d, "tform", tforms->data[i])) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+
+                tstatus = 0;
                 fits_get_coltypell(self->fits, i + 1, &type, &repeat, &width,
                                    &tstatus);
-                add_long_to_dict(d, "type", (long)type);
-                add_long_long_to_dict(d, "repeat", (long long)repeat);
-                add_long_long_to_dict(d, "width", (long long)width);
+                if (add_long_to_dict(d, "type", (long)type)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_long_long_to_dict(d, "repeat", (long long)repeat)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_long_long_to_dict(d, "width", (long long)width)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
+                tstatus = 0;
                 fits_get_eqcoltypell(self->fits, i + 1, &type, &repeat, &width,
                                      &tstatus);
-                add_long_to_dict(d, "eqtype", (long)type);
+                if (add_long_to_dict(d, "eqtype", (long)type)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
                 tstatus = 0;
                 if (fits_read_tdimll(self->fits, i + 1, maxdim, &ndims, dims,
                                      &tstatus)) {
-                    add_none_to_dict(dict, "tdim");
+                    if (add_none_to_dict(dict, "tdim")) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else {
                     PyObject *dimsObj = PyList_New(0);
+                    if (dimsObj == NULL) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                     for (j = 0; j < ndims; j++) {
-                        append_long_long_to_list(dimsObj, (long long)dims[j]);
+                        if (append_long_long_to_list(dimsObj,
+                                                     (long long)dims[j])) {
+                            names = stringlist_delete(names);
+                            tforms = stringlist_delete(tforms);
+                            Py_XDECREF(dimsObj);
+                            Py_XDECREF(d);
+                            Py_XDECREF(dict);
+                            Py_XDECREF(colinfo);
+                            UNLOCK_FITS(self);
+                            return NULL;
+                        }
                     }
 
-                    PyDict_SetItemString(d, "tdim", dimsObj);
+                    if (PyDict_SetItemString(d, "tdim", dimsObj)) {
+                        names = stringlist_delete(names);
+                        tforms = stringlist_delete(tforms);
+                        Py_XDECREF(dimsObj);
+                        Py_XDECREF(d);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(colinfo);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                     Py_XDECREF(dimsObj);
+                    dimsObj = NULL;
                 }
 
                 // using the struct, could cause problems
                 // actually, we can use ffgcprll to get this info, but will
                 // be redundant with some others above
                 col = &self->fits->Fptr->tableptr[i];
-                add_double_to_dict(d, "tscale", col->tscale);
-                add_double_to_dict(d, "tzero", col->tzero);
+                if (add_double_to_dict(d, "tscale", col->tscale)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
+                if (add_double_to_dict(d, "tzero", col->tzero)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
-                PyList_Append(colinfo, d);
+                if (PyList_Append(colinfo, d)) {
+                    names = stringlist_delete(names);
+                    tforms = stringlist_delete(tforms);
+                    Py_XDECREF(d);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(colinfo);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
                 Py_XDECREF(d);
+                d = NULL;
             }
             names = stringlist_delete(names);
             tforms = stringlist_delete(tforms);
 
-            PyDict_SetItemString(dict, "colinfo", colinfo);
-            Py_XDECREF(colinfo);
+            if (PyDict_SetItemString(dict, "colinfo", colinfo)) {
+                Py_XDECREF(dict);
+                Py_XDECREF(colinfo);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
         }
+        Py_XDECREF(colinfo);
+        colinfo = NULL;
     }
     UNLOCK_FITS(self);
     return dict;
@@ -2716,11 +3164,7 @@ static PyObject *PyFITSObject_write_columns(struct PyFITSObject *self,
     for (icol = 0; icol < ncols; icol++) {
 
         tmp_obj = PyList_GetItem(colnum_list, icol);
-#if PY_MAJOR_VERSION >= 3
         colnums[icol] = 1 + (int)PyLong_AsLong(tmp_obj);
-#else
-        colnums[icol] = 1 + (int)PyInt_AsLong(tmp_obj);
-#endif
 
         tmp_array = (PyArrayObject *)PyList_GetItem(array_list, icol);
         npy_dtype = PyArray_TYPE(tmp_array);
@@ -4169,12 +4613,9 @@ static PyObject *read_var_string(fitsfile *fits, int colnum, LONGLONG row,
                       strarr, anynul, status) > 0) {
         goto read_var_string_cleanup;
     }
-#if PY_MAJOR_VERSION >= 3
     // bytes
     stringObj = Py_BuildValue("y", str);
-#else
-    stringObj = Py_BuildValue("s", str);
-#endif
+
     if (NULL == stringObj) {
         PyErr_Format(PyExc_MemoryError,
                      "Could not allocate py string of size %lld", nchar);
@@ -4346,8 +4787,11 @@ static PyObject *PyFITSObject_read_var_column_as_list(struct PyFITSObject *self,
             tstatus = 1;
             goto read_var_column_cleanup;
         }
-        PyList_Append(listObj, tempObj);
+        if (PyList_Append(listObj, tempObj)) {
+            goto read_var_column_cleanup;
+        }
         Py_XDECREF(tempObj);
+        tempObj = NULL;
     }
 
 read_var_column_cleanup:
@@ -5485,20 +5929,62 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
             return NULL;
         }
         convert_to_ascii(card);
-        add_string_to_dict(dict, "card_string", card);
+        if (add_string_to_dict(dict, "card_string", card)) {
+            free(longstr);
+            Py_XDECREF(dict);
+            Py_XDECREF(list);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
 
         if (is_blank_key) {
-            add_none_to_dict(dict, "name");
-            add_string_to_dict(dict, "value", "");
+            if (add_none_to_dict(dict, "name")) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
+            if (add_string_to_dict(dict, "value", "")) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
             convert_to_ascii(scomment);
-            add_string_to_dict(dict, "comment", scomment);
+            if (add_string_to_dict(dict, "comment", scomment)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
         } else if (is_comment_or_history) {
             // comment or history
             convert_to_ascii(scomment);
-            add_string_to_dict(dict, "name", keyname);
-            add_string_to_dict(dict, "value", scomment);
-            add_string_to_dict(dict, "comment", scomment);
+            if (add_string_to_dict(dict, "name", keyname)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
+            if (add_string_to_dict(dict, "value", scomment)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
+            if (add_string_to_dict(dict, "comment", scomment)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
         } else {
 
@@ -5529,41 +6015,89 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
                 convert_keyword_to_allowed_ascii_template_and_nonascii_only(
                     keyname);
             }
-            add_string_to_dict(dict, "name", keyname);
+            if (add_string_to_dict(dict, "name", keyname)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
             convert_to_ascii(comment);
-            add_string_to_dict(dict, "comment", comment);
+            if (add_string_to_dict(dict, "comment", comment)) {
+                free(longstr);
+                Py_XDECREF(dict);
+                Py_XDECREF(list);
+                UNLOCK_FITS(self);
+                return NULL;
+            }
 
             // if not a comment but empty value, put in None
             tocomp = (ls < lcomm) ? ls : lcomm;
             // if (!is_string_value && 0==strlen(longstr) && !is_comment) {
             if (!is_string_value && 0 == strlen(longstr)) {
 
-                add_none_to_dict(dict, "value");
+                if (add_none_to_dict(dict, "value")) {
+                    free(longstr);
+                    Py_XDECREF(dict);
+                    Py_XDECREF(list);
+                    UNLOCK_FITS(self);
+                    return NULL;
+                }
 
             } else {
 
                 // if it's a string we just store it.
                 if (is_string_value) {
                     convert_to_ascii(longstr);
-                    add_string_to_dict(dict, "value", longstr);
+                    if (add_string_to_dict(dict, "value", longstr)) {
+                        free(longstr);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(list);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else if (longstr[0] == 'T') {
-                    add_true_to_dict(dict, "value");
+                    if (add_true_to_dict(dict, "value")) {
+                        free(longstr);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(list);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else if (longstr[0] == 'F') {
-                    add_false_to_dict(dict, "value");
+                    if (add_false_to_dict(dict, "value")) {
+                        free(longstr);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(list);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else if (was_converted) {
                     // if we had to convert bad characters in the keyword name
                     // we can't attempt to get a numerical value using
                     // fits_read_key because some characters in a keyword name
                     // cause a seg fault
                     convert_to_ascii(longstr);
-                    add_string_to_dict(dict, "value", longstr);
+                    if (add_string_to_dict(dict, "value", longstr)) {
+                        free(longstr);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(list);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else if ((strchr(longstr, '.') != NULL) ||
                            (strchr(longstr, 'E') != NULL) ||
                            (strchr(longstr, 'e') != NULL)) {
                     // we found a floating point value
                     fits_read_key(self->fits, TDOUBLE, keyname, &dval, comment,
                                   &status);
-                    add_double_to_dict(dict, "value", dval);
+                    if (add_double_to_dict(dict, "value", dval)) {
+                        free(longstr);
+                        Py_XDECREF(dict);
+                        Py_XDECREF(list);
+                        UNLOCK_FITS(self);
+                        return NULL;
+                    }
                 } else {
 
                     // we might have found an integer
@@ -5572,11 +6106,24 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
 
                         // something non standard, just store it as a string
                         convert_to_ascii(longstr);
-                        add_string_to_dict(dict, "value", longstr);
+                        if (add_string_to_dict(dict, "value", longstr)) {
+                            free(longstr);
+                            Py_XDECREF(dict);
+                            Py_XDECREF(list);
+                            UNLOCK_FITS(self);
+                            return NULL;
+                        }
                         status = 0;
 
                     } else {
-                        add_long_long_to_dict(dict, "value", (long long)lval);
+                        if (add_long_long_to_dict(dict, "value",
+                                                  (long long)lval)) {
+                            free(longstr);
+                            Py_XDECREF(dict);
+                            Py_XDECREF(list);
+                            UNLOCK_FITS(self);
+                            return NULL;
+                        }
                     }
                 }
             }
@@ -5585,8 +6132,14 @@ static PyObject *PyFITSObject_read_header(struct PyFITSObject *self,
         free(longstr);
         longstr = NULL;
 
-        PyList_Append(list, dict);
+        if (PyList_Append(list, dict)) {
+            Py_XDECREF(dict);
+            Py_XDECREF(list);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
         Py_XDECREF(dict);
+        dict = NULL;
     }
 
     UNLOCK_FITS(self);
@@ -5638,8 +6191,16 @@ write_checksum_cleanup:
     // we can simply return it.
     dict = PyDict_New();
     if (dict != NULL) {
-        add_long_long_to_dict(dict, "datasum", (long long)datasum);
-        add_long_long_to_dict(dict, "hdusum", (long long)hdusum);
+        if (add_long_long_to_dict(dict, "datasum", (long long)datasum)) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+        if (add_long_long_to_dict(dict, "hdusum", (long long)hdusum)) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
     }
     UNLOCK_FITS(self);
     return dict;
@@ -5686,8 +6247,16 @@ verify_checksum_cleanup:
     // we can simply return it.
     dict = PyDict_New();
     if (dict != NULL) {
-        add_long_to_dict(dict, "dataok", (long)dataok);
-        add_long_to_dict(dict, "hduok", (long)hduok);
+        if (add_long_to_dict(dict, "dataok", (long)dataok)) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
+        if (add_long_to_dict(dict, "hduok", (long)hduok)) {
+            Py_XDECREF(dict);
+            UNLOCK_FITS(self);
+            return NULL;
+        }
     }
     UNLOCK_FITS(self);
     return dict;
@@ -6081,19 +6650,14 @@ static PyMethodDef PyFITSObject_methods[] = {
 };
 
 static PyTypeObject PyFITSType = {
-#if PY_MAJOR_VERSION >= 3
-    PyVarObject_HEAD_INIT(NULL, 0)
-#else
-    PyObject_HEAD_INIT(NULL) 0, /*ob_size*/
-#endif
-        "_fitsio.FITS",               /*tp_name*/
-    sizeof(struct PyFITSObject),      /*tp_basicsize*/
-    0,                                /*tp_itemsize*/
-    (destructor)PyFITSObject_dealloc, /*tp_dealloc*/
-    0,                                /*tp_print*/
-    0,                                /*tp_getattr*/
-    0,                                /*tp_setattr*/
-    0,                                /*tp_compare*/
+    PyVarObject_HEAD_INIT(NULL, 0) "_fitsio.FITS", /*tp_name*/
+    sizeof(struct PyFITSObject),                   /*tp_basicsize*/
+    0,                                             /*tp_itemsize*/
+    (destructor)PyFITSObject_dealloc,              /*tp_dealloc*/
+    0,                                             /*tp_print*/
+    0,                                             /*tp_getattr*/
+    0,                                             /*tp_setattr*/
+    0,                                             /*tp_compare*/
     // 0,                         /*tp_repr*/
     (reprfunc)PyFITSObject_repr,              /*tp_repr*/
     0,                                        /*tp_as_number*/
@@ -6163,7 +6727,6 @@ static PyMethodDef fitstype_methods[] = {
     {NULL} /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "_fitsio_wrap",                            /* m_name */
@@ -6175,23 +6738,15 @@ static struct PyModuleDef moduledef = {
     NULL,                                      /* m_clear */
     NULL,                                      /* m_free */
 };
-#endif
 
 #ifndef PyMODINIT_FUNC /* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
-PyMODINIT_FUNC
-#if PY_MAJOR_VERSION >= 3
-PyInit__fitsio_wrap(void)
-#else
-init_fitsio_wrap(void)
-#endif
-{
+PyMODINIT_FUNC PyInit__fitsio_wrap(void) {
     PyObject *m;
 
     PyFITSType.tp_new = PyType_GenericNew;
 
-#if PY_MAJOR_VERSION >= 3
     if (PyType_Ready(&PyFITSType) < 0) {
         return NULL;
     }
@@ -6200,31 +6755,16 @@ init_fitsio_wrap(void)
         return NULL;
     }
 
-#else
-    if (PyType_Ready(&PyFITSType) < 0) {
-        return;
-    }
-    m = Py_InitModule3("_fitsio_wrap", fitstype_methods,
-                       "Define FITS type and methods.");
-    if (m == NULL) {
-        return;
-    }
-#endif
-
     Py_INCREF(&PyFITSType);
     PyModule_AddObject(m, "FITS", (PyObject *)&PyFITSType);
 
     import_array();
 
-#if PY_MAJOR_VERSION >= 3
 #ifdef Py_GIL_DISABLED
     if (fits_is_reentrant() != 0) {
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
     }
 #endif
-#endif
 
-#if PY_MAJOR_VERSION >= 3
     return m;
-#endif
 }

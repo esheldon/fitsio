@@ -1,5 +1,13 @@
 # Changes
 
+## 1.4.2 (unreleased)
+
+Changes
+
+Bug Fixes
+
+- Added missing memory allocation checks in C layer.
+
 ## 1.4.1
 
 Changes
