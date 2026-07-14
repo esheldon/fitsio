@@ -61,7 +61,10 @@ def test_threading_works():
                 pass
 
 
-@pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.xfail(
+    reason="threading performance might be flaky",
+    condition=not fitsio.backend_is_reentrant(),
+)
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
 @pytest.mark.parametrize(
@@ -161,7 +164,10 @@ def test_threading_timing(klass, write_only, read_only):
         )
 
 
-@pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.xfail(
+    reason="threading performance might be flaky",
+    condition=not fitsio.backend_is_reentrant(),
+)
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
 def test_threading_read_one_file():
