@@ -32,13 +32,14 @@ jobs:
       - name: make nmake available
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: install code
+      - name: build fitsio
         run: |
           python -m pip install --upgrade pip
           pip install -v -e .[dev]
           python -c "import fitsio"
 
-      - name: test
+      - name: test fitsio
         run: |
           python -c "import fitsio; assert not fitsio.backend_is_reentrant()"
-          pytest -vv --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio
+          python -c "import fitsio; assert fitsio.fitsio_backend() == 'cfitsio'"
+          pytest --durations=20 --parallel-threads 4 --iterations 4 --ignore-gil-enabled fitsio

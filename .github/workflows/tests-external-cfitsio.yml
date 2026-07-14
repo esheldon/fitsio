@@ -140,7 +140,7 @@ jobs:
           cd ..
           cd ..
 
-      - name: test non-bundled build
+      - name: build non-bundled fitsio
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -149,6 +149,8 @@ jobs:
             --config-settings="--global-option=--system-fitsio-includedir=$HOME/cfitsio-static-install/include" \
             --config-settings="--global-option=--system-fitsio-libdir=$HOME/cfitsio-static-install/lib"
 
+      - name: test non-bundled build
+        run: |
           python -c "import fitsio; assert not fitsio.backend_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.backend_has_curl_support()"
@@ -160,8 +162,9 @@ jobs:
           else
             python -c "import fitsio; assert not fitsio.backend_is_reentrant()"
           fi
+          python -c "import fitsio; assert fitsio.fitsio_backend() == 'cfitsio'"
 
-          pytest -vv --durations=20 ${PRP_FLAGS} fitsio
+          pytest --durations=20 ${PRP_FLAGS} fitsio
 
       - name: install bzip2 on linux
         if: matrix.os == 'ubuntu-latest'
@@ -201,7 +204,7 @@ jobs:
           cd ..
           cd ..
 
-      - name: test non-bundled build w/ env vars w/ bzip2
+      - name: build non-bundled fitsio w/ env vars w/ bzip2
         run: |
           export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
 
@@ -213,11 +216,14 @@ jobs:
           export FITSIO_SYSTEM_FITSIO_LIBDIR=$HOME/cfitsio-static-install/lib
           pip install ${PIP_OPTIONS} -e .
 
+      - name: test non-bundled build w/ env vars w/ bzip2
+        run: |
           python -c "import fitsio; assert fitsio.backend_has_bzip2_support()"
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             python -c "import fitsio; assert not fitsio.backend_has_curl_support()"
           else
             python -c "import fitsio; assert fitsio.backend_has_curl_support()"
           fi
+          python -c "import fitsio; assert fitsio.fitsio_backend() == 'cfitsio'"
 
-          pytest -vv --durations=20 ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
+          pytest --durations=20 ${{ matrix.config.doslow }} ${PRP_FLAGS} fitsio
