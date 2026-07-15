@@ -4,6 +4,10 @@
 
 Changes
 
+- Added patches to remove builds of `cfitsio` programs for bundled builds.
+- Added patches to ship `config.guess` and `config.sub` to `cfitsio` to help
+  enable easier cross-compiled builds.
+
 Bug Fixes
 
 - Added missing memory allocation checks in C layer.

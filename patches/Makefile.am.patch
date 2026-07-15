@@ -12,3 +12,42 @@
  
  if !NOFORTRAN
  libcfitsio_la_SOURCES += $(F77_WRAPPERS)
+@@ -127,15 +127,7 @@
+ 
+ AUTOMAKE_OPTIONS = subdir-objects
+ 
+-bin_PROGRAMS = \
+-	cookbook \
+-	fitscopy \
+-	fitsverify \
+-	fpack \
+-	funpack \
+-	imcopy \
+-	smem \
+-	speed
++bin_PROGRAMS = 
+ 
+ cookbook_SOURCES = utilities/cookbook.c
+ 
+@@ -162,18 +154,18 @@
+ 
+ LDADD = libcfitsio.la ${LIBS}
+ 
+-noinst_PROGRAMS = testprog
++noinst_PROGRAMS = 
+ 
+ if !NOFORTRAN
+ 
+-noinst_PROGRAMS+= testf77
++noinst_PROGRAMS+= 
+ testf77_SOURCES = utilities/testf77.f
+ 
+ endif
+ 
+ if BUILD_ITER
+ 
+-noinst_PROGRAMS+= iter_image iter_var
++noinst_PROGRAMS+= 
+ iter_image_SOURCES = utilities/iter_image.c
+ iter_var_SOURCES = utilities/iter_var.c
+ 
