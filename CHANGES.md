@@ -4,6 +4,8 @@
 
 Changes
 
+- Added patches to remove builds of `cfitsio` programs for bundled builds.
+
 Bug Fixes
 
 - Added missing memory allocation checks in C layer.
