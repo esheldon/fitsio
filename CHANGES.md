@@ -1,5 +1,15 @@
 # Changes
 
+## 1.5.0 (unreleased)
+
+Changes
+
+- Added support for `rsfitsio` as a backend in addition to `cfitsio`.
+- Added function `fitsio_backend` to return the current backend.
+- Renamed `cfitsio_*` functions to `backend_*` functions for clarity.
+- Added constant `CFITSIO_BACKEND` and `RSFITSIO_BACKEND` which are
+  the return values of `fitsio_backend`.
+
 ## 1.4.2
 
 Changes

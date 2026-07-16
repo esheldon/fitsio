@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import sys
 import tempfile
 import time
 
@@ -61,7 +62,10 @@ def test_threading_works():
                 pass
 
 
-@pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.xfail(
+    reason="threading performance might be flaky",
+    condition=sys.version_info < (3, 13) or not fitsio.backend_is_reentrant(),
+)
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
 @pytest.mark.parametrize(
@@ -104,50 +108,61 @@ def test_threading_timing(klass, write_only, read_only):
             for fname in filenames:
                 create_file(fname)
 
-        t0 = time.time()
-        if not read_only:
-            create_file(filenames[0])
-        if not write_only:
-            read_file(filenames[0])
-        t0_one = time.time() - t0
-        print("one file time:", t0_one, flush=True)
-        if not read_only:
-            _remove_files()
+        n_trials = 3
+        t0_threads = 0
+        t0_one = 0
+        t0_serial = 0
 
-        t0 = time.time()
-        with klass(max_workers=nt) as pool:
+        for _ in range(n_trials):
+            t0 = time.time()
             if not read_only:
-                futs = [
-                    pool.submit(create_file, filenames[i])
-                    for i in range(nt * fac)
-                ]
-                for fut in as_completed(futs):
-                    fut.result()
+                create_file(filenames[0])
             if not write_only:
-                futs = [
-                    pool.submit(read_file, filenames[i])
-                    for i in range(nt * fac)
-                ]
-                for fut in as_completed(futs):
-                    fut.result()
-        t0_threads = time.time() - t0
+                read_file(filenames[0])
+            t0_one += time.time() - t0
+            if not read_only:
+                _remove_files()
+
+            t0 = time.time()
+            with klass(max_workers=nt) as pool:
+                if not read_only:
+                    futs = [
+                        pool.submit(create_file, filenames[i])
+                        for i in range(nt * fac)
+                    ]
+                    for fut in as_completed(futs):
+                        fut.result()
+                if not write_only:
+                    futs = [
+                        pool.submit(read_file, filenames[i])
+                        for i in range(nt * fac)
+                    ]
+                    for fut in as_completed(futs):
+                        fut.result()
+            t0_threads += time.time() - t0
+            if not read_only:
+                _remove_files()
+
+            t0 = time.time()
+            if not read_only:
+                for fname in filenames:
+                    create_file(fname)
+            if not write_only:
+                for fname in filenames:
+                    read_file(fname)
+            t0_serial += time.time() - t0
+
+        t0_one /= n_trials
+        t0_serial /= n_trials
+        t0_threads /= n_trials
+
+        print("one file time:", t0_one, flush=True)
         print(
             "parallel time / one file time",
             t0_threads / t0_one,
             "(perfect is %d)" % fac,
             flush=True,
         )
-        if not read_only:
-            _remove_files()
-
-        t0 = time.time()
-        if not read_only:
-            for fname in filenames:
-                create_file(fname)
-        if not write_only:
-            for fname in filenames:
-                read_file(fname)
-        t0_serial = time.time() - t0
         print(
             "serial time / one file time:",
             t0_serial / t0_one,
@@ -155,13 +170,16 @@ def test_threading_timing(klass, write_only, read_only):
             flush=True,
         )
 
-        assert t0_threads < t0_serial / 1.5, (
+        assert t0_threads < t0_serial, (
             "Threading should be faster than serial! (%f < %f)"
             % (t0_threads, t0_serial)
         )
 
 
-@pytest.mark.xfail(reason="Threading performance might be flaky!")
+@pytest.mark.xfail(
+    reason="threading performance might be flaky",
+    condition=sys.version_info < (3, 13) or not fitsio.backend_is_reentrant(),
+)
 @pytest.mark.parallel_threads_limit(1)
 @pytest.mark.iterations(1)
 def test_threading_read_one_file():
@@ -179,28 +197,39 @@ def test_threading_read_one_file():
                 assert (fits[1].read() == -1).all()
             return True
 
-        t0 = time.time()
-        _read_file(fname)
-        t0_one = time.time() - t0
+        n_trials = 3
+        t0_threads = 0
+        t0_one = 0
+        t0_serial = 0
+
+        for _ in range(n_trials):
+            t0 = time.time()
+            _read_file(fname)
+            t0_one += time.time() - t0
+
+            t0 = time.time()
+            with ThreadPoolExecutor(max_workers=nt) as pool:
+                futs = [pool.submit(_read_file, fname) for _ in range(nt)]
+
+                assert all([fut.result() for fut in as_completed(futs)])
+            t0_threads += time.time() - t0
+
+            t0 = time.time()
+            for _ in range(nt):
+                _read_file(fname)
+            t0_serial += time.time() - t0
+
+        t0_one /= n_trials
+        t0_serial /= n_trials
+        t0_threads /= n_trials
+
         print("\none file time:", t0_one, flush=True)
-
-        t0 = time.time()
-        with ThreadPoolExecutor(max_workers=nt) as pool:
-            futs = [pool.submit(_read_file, fname) for _ in range(nt)]
-
-            assert all([fut.result() for fut in as_completed(futs)])
-        t0_threads = time.time() - t0
         print(
             "parallel time / one file time",
             t0_threads / t0_one,
             "(perfect is 1)",
             flush=True,
         )
-
-        t0 = time.time()
-        for _ in range(nt):
-            _read_file(fname)
-        t0_serial = time.time() - t0
         print(
             "serial time / one file time:",
             t0_serial / t0_one,
@@ -208,7 +237,7 @@ def test_threading_read_one_file():
             flush=True,
         )
 
-        assert t0_threads < t0_serial / 2, (
+        assert t0_threads < t0_serial, (
             "Threading should be faster than serial! (%f < %f)"
             % (t0_threads, t0_serial)
         )

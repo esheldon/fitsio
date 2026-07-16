@@ -14,14 +14,11 @@ from ..fitslib import (
     write,
     RICE_1,
     SUBTRACTIVE_DITHER_1,
-    GZIP_1,
-    GZIP_2,
-    PLIO_1,
-    HCOMPRESS_1,
 )
-from ..util import cfitsio_is_bundled, cfitsio_version
+from .. import backend_is_bundled, backend_version
+from .. import fitsio_backend, CFITSIO_BACKEND
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 
 
 @pytest.mark.parametrize("with_nan", [False, True])
@@ -125,11 +122,10 @@ def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
 
     In this version, keep the fits object open
     """
-
     if (
         "gzip" in compress
         and dtype in ["u2", "i2", "u4", "i4"]
-        and not cfitsio_is_bundled()
+        and (fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled())
     ):
         pytest.xfail(
             reason=(
@@ -205,7 +201,10 @@ def test_compressed_write_read_fitsobj(compress, dtype, with_nan):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 9), reason='importlib bug in 3.8')
-@pytest.mark.skipif(CFITSIO_VERSION < 3.49, reason='bug in cfitsio < 3.49')
+@pytest.mark.skipif(
+    BACKEND_VERSION < 3.49 and fitsio_backend() == CFITSIO_BACKEND,
+    reason='bug in cfitsio < 3.49',
+)
 def test_gzip_tile_compressed_read_lossless_astropy():
     """
     Test reading an image gzip compressed by astropy (fixed by cfitsio 3.49)
@@ -516,11 +515,11 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
 @pytest.mark.parametrize(
     "compress",
     [
-        RICE_1,
-        GZIP_1,
-        GZIP_2,
-        PLIO_1,
-        HCOMPRESS_1,
+        "rice",
+        "gzip",
+        "gzip_2",
+        "plio",
+        "hcompress",
     ],
 )
 @pytest.mark.parametrize(
@@ -536,7 +535,7 @@ def test_image_compression_raises_on_python_set(kw, val, set_val_to_none):
 )
 @pytest.mark.parametrize("fname", ["mem://", "test.fits"])
 def test_image_compression_inmem_lossess_int(compress, dtype, fname):
-    if not cfitsio_is_bundled():
+    if fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled():
         pytest.xfail(
             reason=(
                 "Non-bundled cfitsio libraries have a bug. "
@@ -544,7 +543,7 @@ def test_image_compression_inmem_lossess_int(compress, dtype, fname):
                 "and https://github.com/HEASARC/cfitsio/pull/99."
             ),
         )
-    if compress == PLIO_1 and dtype in [np.int16, np.uint32, np.int32]:
+    if compress == "plio" and dtype in [np.int16, np.uint32, np.int32]:
         pytest.skip(
             reason="PLIO lossless compression of int16, uint32, and "
             "int32 types is not supported by cfitsio",
@@ -629,10 +628,12 @@ def test_image_mem_reopen_noop():
             2,
             marks=[
                 pytest.mark.xfail(
-                    condition=CFITSIO_VERSION < 4.04,
+                    condition=BACKEND_VERSION < 4.04
+                    and fitsio_backend() == CFITSIO_BACKEND
+                    and fitsio_backend() == CFITSIO_BACKEND,
                     reason=(
                         "Writing compressed binary tables exceeding "
-                        "2**32 bytes fails for cfitsio < 4.040!"
+                        "2**32 bytes fails for cfitsio < 4.04!"
                     ),
                 ),
                 pytest.mark.slow,
@@ -800,7 +801,10 @@ def test_image_compression_nulls_patches_with_subnormal(
                 # however, on read, we send nullcheck=NAN and as a side
                 # effect the subnormal float value in this row gets truncated
                 # to zero
-                if not cfitsio_is_bundled():
+                if (
+                    fitsio_backend() == CFITSIO_BACKEND
+                    and not backend_is_bundled()
+                ):
                     np.testing.assert_array_equal(read_data[1, 1:], 0.0)
                     np.testing.assert_array_equal(read_slice1[1:], 0.0)
 
@@ -852,7 +856,9 @@ def test_image_compression_read_chunks():
 
 
 @pytest.mark.xfail(
-    condition=not cfitsio_is_bundled(),
+    condition=(
+        fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled()
+    ),
     reason=(
         "system cfitsio must be compiled without FMA instructions to "
         "enable reproducible lossy float compression"
@@ -885,7 +891,9 @@ def test_image_compression_write_read_comp_to_osx_arm64():
 
 
 @pytest.mark.xfail(
-    condition=not cfitsio_is_bundled(),
+    condition=(
+        fitsio_backend() == CFITSIO_BACKEND and not backend_is_bundled()
+    ),
     reason=(
         "system cfitsio must be compiled without FMA instructions to "
         "enable reproducible lossy float compression"
@@ -925,10 +933,29 @@ def test_image_compression_gzip_subnormal_cast_to_zero():
             )
 
         back = read(fn)
-        if cfitsio_is_bundled():
+        if fitsio_backend() == CFITSIO_BACKEND and backend_is_bundled():
             assert not back.ravel()[0] == 0, back.ravel()
         else:
             assert back.ravel()[0] == 0, back.ravel()
+
+
+def test_image_compression_simple():
+    data = np.arange(10).reshape(5, 2).astype(np.float32)
+
+    fname = "test.fits"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if "mem://" not in fname:
+            fpth = os.path.join(tmpdir, fname)
+        else:
+            fpth = fname
+
+        with FITS(fpth, "rw") as fits:
+            fits.write(data, compress="RICE", qlevel=1, dither_seed=10)
+
+        with FITS(fpth, "r") as fits:
+            rdata = fits[0].read()
+
+        assert not np.array_equal(data, rdata)
 
 
 if __name__ == '__main__':

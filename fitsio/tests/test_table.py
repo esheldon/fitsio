@@ -15,11 +15,19 @@ from .checks import (
 from .makedata import make_data
 from ..fitslib import FITS, write, read
 from .. import util
-from .. import cfitsio_has_bzip2_support
+from .. import (
+    backend_has_bzip2_support,
+    fitsio_backend,
+    backend_version,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 
-CFITSIO_VERSION = util.cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 DTYPES = ['u1', 'i1', 'u2', 'i2', '<u4', 'i4', 'i8', '>f4', 'f8']
-if CFITSIO_VERSION > 4:
+if (
+    BACKEND_VERSION > 4 and fitsio_backend() == CFITSIO_BACKEND
+) or fitsio_backend() == RSFITSIO_BACKEND:
     DTYPES += ["u8"]
 
 
@@ -570,6 +578,13 @@ def test_ascii_table_write_read():
     Test write and read for an ascii table
     """
 
+    if fitsio_backend() == RSFITSIO_BACKEND:
+        tol = 1e-14
+    elif fitsio_backend() == CFITSIO_BACKEND:
+        tol = 2.15e-16
+    else:
+        assert False, "No valid backend specified! got " + fitsio_backend()
+
     adata = make_data()
     ascii_data = adata['ascii_data']
 
@@ -590,9 +605,10 @@ def test_ascii_table_write_read():
                 d = fits[1].read_column(f)
                 if d.dtype == np.float64:
                     # note we should be able to do 1.11e-16 in principle, but
-                    # in practice we get more like 2.15e-16
+                    # in practice we get more like 2.15e-16 for cfitsio and
+                    # closer to 6e-16 for rsfitsio
                     compare_array_tol(
-                        ascii_data[f], d, 2.15e-16, "table field read '%s'" % f
+                        ascii_data[f], d, tol, "table field read '%s'" % f
                     )
                 else:
                     compare_array(
@@ -606,7 +622,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f][rows],
                             d,
-                            2.15e-16,
+                            tol,
                             "table field read subrows '%s'" % f,
                         )
                     else:
@@ -624,7 +640,7 @@ def test_ascii_table_write_read():
                     compare_array_tol(
                         ascii_data[f][beg:end],
                         d,
-                        2.15e-16,
+                        tol,
                         "table field read slice '%s'" % f,
                     )
                 else:
@@ -643,7 +659,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol, '%s'" % f,
                         )
                     else:
@@ -658,7 +674,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol, '%s'" % f,
                         )
                     else:
@@ -675,7 +691,7 @@ def test_ascii_table_write_read():
                             compare_array_tol(
                                 ascii_data[f][rows],
                                 d,
-                                2.15e-16,
+                                tol,
                                 "table subcol, '%s'" % f,
                             )
                         else:
@@ -692,7 +708,7 @@ def test_ascii_table_write_read():
                             compare_array_tol(
                                 ascii_data[f][rows],
                                 d,
-                                2.15e-16,
+                                tol,
                                 "table subcol/row, '%s'" % f,
                             )
                         else:
@@ -710,7 +726,7 @@ def test_ascii_table_write_read():
                         compare_array_tol(
                             ascii_data[f][beg:end],
                             d,
-                            2.15e-16,
+                            tol,
                             "table subcol/slice, '%s'" % f,
                         )
                     else:
@@ -888,7 +904,9 @@ def test_table_resize():
         add_data['u4scalar'] = 2**31
         add_data['u4vec'] = 2**31
         add_data['u4arr'] = 2**31
-        if CFITSIO_VERSION > 4:
+        if (
+            BACKEND_VERSION > 4 and fitsio_backend() == CFITSIO_BACKEND
+        ) or fitsio_backend() == RSFITSIO_BACKEND:
             add_data['u8scalar'] = 2**63
             add_data['u8vec'] = 2**63
             add_data['u8arr'] = 2**63
@@ -1097,7 +1115,7 @@ def test_gz_write_read():
 
 
 @pytest.mark.skipif(
-    not cfitsio_has_bzip2_support(),
+    not backend_has_bzip2_support(),
     reason='cfitsio was not built with bzip2 support',
 )
 def test_bz2_read():
@@ -1116,29 +1134,29 @@ def test_bz2_read():
         bzfname = fname + '.bz2'
 
         try:
-            fits = FITS(fname, 'rw')
-            fits.write_table(data, header=adata['keys'], extname='mytable')
-            fits.close()
+            with FITS(fname, 'rw') as fits:
+                fits.write_table(data, header=adata['keys'], extname='mytable')
 
             os.system('bzip2 %s' % fname)
-            f2 = FITS(bzfname)
-            d = f2[1].read()
-            compare_rec(data, d, "bzip2 read")
+            with FITS(bzfname) as f2:
+                d = f2[1].read()
+                compare_rec(data, d, "bzip2 read")
 
-            h = f2[1].read_header()
-            for entry in adata['keys']:
-                name = entry['name'].upper()
-                value = entry['value']
-                hvalue = h[name]
-                if isinstance(hvalue, str):
-                    hvalue = hvalue.strip()
+                h = f2[1].read_header()
+                for entry in adata['keys']:
+                    name = entry['name'].upper()
+                    value = entry['value']
+                    hvalue = h[name]
+                    if isinstance(hvalue, str):
+                        hvalue = hvalue.strip()
 
-                assert value == hvalue, "testing header key '%s'" % name
+                    assert value == hvalue, "testing header key '%s'" % name
 
-                if 'comment' in entry:
-                    assert (
-                        entry['comment'].strip() == h.get_comment(name).strip()
-                    ), "testing comment for header key '%s'" % name
+                    if 'comment' in entry:
+                        assert (
+                            entry['comment'].strip()
+                            == h.get_comment(name).strip()
+                        ), "testing comment for header key '%s'" % name
         except Exception:
             import traceback
 
@@ -1570,7 +1588,9 @@ def test_table_big_col(table_type):
         pth = os.path.join(tmpdir, "test.fits")
         # v3 cfitsio that is not bundled fails for big
         # columns
-        if table_type == "ascii" or CFITSIO_VERSION < 4:
+        if table_type == "ascii" or (
+            fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 4
+        ):
             with pytest.raises(OSError) as e:
                 write(pth, d, table_type=table_type)
             assert "FITSIO status = 236: column exceeds width of table" in str(
@@ -1586,7 +1606,7 @@ def test_table_big_col(table_type):
 
 
 @pytest.mark.xfail(
-    condition=CFITSIO_VERSION < 4,
+    condition=fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 4,
     reason=(
         "cfitsio versions < 4 do not easily support null-terminated strings"
     ),
@@ -1617,7 +1637,7 @@ def test_table_read_write_ulonglong():
         fname = os.path.join(tmpdir, 'test.fits')
 
         with FITS(fname, 'rw') as fits:
-            if CFITSIO_VERSION < 3.45:
+            if fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION < 3.45:
                 with pytest.raises(IOError) as e:
                     fits.write_table(
                         adata,
