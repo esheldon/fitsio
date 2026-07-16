@@ -1,5 +1,5 @@
 --- cfitsio-4.6.4/configure	2026-04-27 14:00:54
-+++ cfitsio-4.6.4-build//configure	2026-05-10 07:32:05
++++ cfitsio-4.6.4-build//configure	2026-07-15 12:52:35
 @@ -1,9 +1,9 @@
  #! /bin/sh
  # Guess values for system-dependent variables and create Makefiles.

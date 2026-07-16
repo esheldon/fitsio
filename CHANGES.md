@@ -1,6 +1,6 @@
 # Changes
 
-## 1.4.2 (unreleased)
+## 1.5.0 (unreleased)
 
 Changes
 
@@ -9,6 +9,14 @@ Changes
 - Renamed `cfitsio_*` functions to `backend_*` functions for clarity.
 - Added constant `CFITSIO_BACKEND` and `RSFITSIO_BACKEND` which are
   the return values of `fitsio_backend`.
+
+## 1.4.2
+
+Changes
+
+- Added patches to remove builds of `cfitsio` programs for bundled builds.
+- Added patches to ship `config.guess` and `config.sub` to `cfitsio` to help
+  enable easier cross-compiled builds.
 
 Bug Fixes
 
