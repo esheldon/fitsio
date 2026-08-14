@@ -4,7 +4,7 @@
 
 Bug Fixes
 
-- Fixed further PLIO compression bugs using patch from https://github.com/heasarc/cfitsio/pull/174.
+- Fixed further PLIO compression bugs using patch from [PR #174](https://github.com/heasarc/cfitsio/pull/174).
 
 ## 1.4.2
 
