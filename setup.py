@@ -399,16 +399,21 @@ class build_ext_subclass(build_ext):
 
         patches = glob.glob(os.path.join(self.cfitsio_patch_dir, '*.patch'))
         for patch in patches:
-            fname = os.path.basename(patch.replace('.patch', ''))
             try:
-                subprocess.check_call(
+                print("trying patch:", patch, flush=True)
+                subprocess.run(
                     [
                         "patch",
                         "-N",
                         "--dry-run",
-                        os.path.join(self.cfitsio_build_dir, fname),
+                        "-p1",
+                        "--batch",
+                        "--reject-file=/dev/null",
+                        "--input",
                         patch,
-                    ]
+                    ],
+                    check=True,
+                    cwd=self.cfitsio_build_dir,
                 )
             except subprocess.CalledProcessError as e:
                 warnings.warn(
@@ -417,12 +422,18 @@ class build_ext_subclass(build_ext):
                 if FITSIO_FAIL_ON_BAD_PATCHES:
                     raise e
             else:
-                subprocess.check_call(
+                print("applying patch:", patch, flush=True)
+                subprocess.run(
                     [
                         "patch",
-                        os.path.join(self.cfitsio_build_dir, fname),
+                        "-p1",
+                        "--batch",
+                        "--reject-file=/dev/null",
+                        "--input",
                         patch,
                     ],
+                    check=True,
+                    cwd=self.cfitsio_build_dir,
                 )
 
     def extract_cfitsio(self):
