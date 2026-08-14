@@ -1,0 +1,50 @@
+From e28f703a2bf05b7e1868940603a3d6988f3f714f Mon Sep 17 00:00:00 2001
+From: cruzzil <1434309+cruzzil@users.noreply.github.com>
+Date: Thu, 13 Aug 2026 23:00:04 +0800
+Subject: [PATCH] Fix PLIO compressed tile buffer overflow
+
+imcomp_calc_max_elem() sized the PLIO output buffer at nx * sizeof(int),
+i.e. 2 shorts per pixel, but pl_p2li() writes a 7 short line list header
+followed by up to 3 shorts per pixel: 2 to encode a pixel value that
+differs from the previous one by more than 4095, plus 1 for the run
+length.  imcomp_compress_tile() therefore handed pl_p2li() a buffer that
+could be far too small, and pl_p2li() had no way to know how big it was.
+
+Compressing a 3x3 image with PLIO overran a 12 byte heap block; with
+worst case data the overflow happens at every image size, running about
+50% past the end of the buffer.  Reported as heasarc/cfitsio#136.
+
+Size the buffer at (3 * nx + 7) shorts, which is the largest line list
+pl_p2li() can produce, and pass the buffer length to pl_p2li() so that it
+returns an error instead of writing past the end if the estimate is ever
+wrong again.  This mirrors pl_l2pi(), which already takes a srclen.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ fitsio2.h               |  2 +-
+ imcompress.c            | 11 ++++-
+ pliocomp.c              | 23 ++++++++--
+ tests/test_imcompress.c | 87 +++++++++++++++++++++++++++++++++++++
+ tests/test_pliocomp.c   | 96 ++++++++++++++++++++++++++++++++++++++---
+ 5 files changed, 207 insertions(+), 12 deletions(-)
+
+diff --git a/imcompress.c b/imcompress.c
+index fe571596..d0c8c485 100644
+--- a/imcompress.c
++++ b/imcompress.c
+@@ -1476,6 +1476,15 @@ int imcomp_calc_max_elem (int comptype, int nx, int zbitpix, int blocksize)
+         else
+             return( (int) (nx * 4.4 + 26));   /* will be compressing 32-bit int array */
+     }
++    else if (comptype == PLIO_1)
++    {
++        /* pl_p2li writes a 7 short header, followed by at most 3 shorts per
++	   pixel (2 to encode a pixel value that differs from the previous one
++	   by more than 4095, plus 1 for the run length).  Note that this is
++	   larger than the uncompressed 32-bit array for small tiles. */
++
++        return((int) ((3 * (size_t) nx + 7) * sizeof(short)));
++    }
+     else
+         return(nx * sizeof(int));
+ }
