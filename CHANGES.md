@@ -10,6 +10,12 @@ Changes
 - Added constant `CFITSIO_BACKEND` and `RSFITSIO_BACKEND` which are
   the return values of `fitsio_backend`.
 
+## 1.4.3
+
+Bug Fixes
+
+- Fixed further PLIO compression bugs using patch from [PR #174](https://github.com/heasarc/cfitsio/pull/174).
+
 ## 1.4.2
 
 Changes
