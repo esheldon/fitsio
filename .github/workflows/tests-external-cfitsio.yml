@@ -166,7 +166,7 @@ jobs:
       - name: install bzip2 on linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install bzip2-dev bzip2 bzip2-doc
+          sudo apt-get install libbz2-dev bzip2 bzip2-doc
 
       - name: build external cfitsio w/ bzip2
         run: |
