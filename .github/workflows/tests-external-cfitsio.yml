@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: free disk space
         if: matrix.os == 'ubuntu-latest'
-        uses: endersonmenezes/free-disk-space@v3
+        uses: endersonmenezes/free-disk-space@v4
         with:
           remove_android: true
           remove_dotnet: true
@@ -68,7 +68,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9  #v3.1.0
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  #v3.2.1
         with:
           environment-name: fitsio-dev
           environment-file: environment.yml
@@ -169,6 +169,7 @@ jobs:
       - name: install bzip2 on linux
         if: matrix.os == 'ubuntu-latest'
         run: |
+          sudo apt-get update
           sudo apt-get install libbz2-dev
 
       - name: build external cfitsio w/ bzip2
