@@ -1,0 +1,102 @@
+name: tests-rsfitsio
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+env:
+  PY_COLORS: "1"
+  # These compiler flags force the tests to fail if arrays are
+  # accessed at the C level from an unaligned location.
+  TEST_CFLAGS: "-fsanitize=alignment -fno-sanitize-recover=alignment"
+
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-rsfitsio:
+    name: tests-rsfitsio
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        config:
+          # - { pyver: "3.10", npver: "1", ft: ""}
+          # - { pyver: "3.11", npver: "1.26", ft: "python-gil"}
+          # - { pyver: "3.12", npver: "1.26", ft: "python-gil"}
+          # - { pyver: "3.11", npver: "2", ft: "python-gil"}
+          # - { pyver: "3.12", npver: "2", ft: "python-gil"}
+          # - { pyver: "3.13", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-gil"}
+          - { pyver: "3.14", npver: "2", ft: "python-freethreading"}
+
+    runs-on: ${{ matrix.os }}
+    env:
+      PIP_OPTIONS: "--no-cache-dir --no-deps --no-build-isolation -v"
+
+    steps:
+      - name: free disk space
+        if: matrix.os == 'ubuntu-latest'
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          rm_cmd: "rmz"
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: mamba-org/setup-micromamba@d7c9bd84e824b79d2af72a2d4196c7f4300d3476  #v3.0.0
+        with:
+          environment-name: fitsio-dev
+          environment-file: environment.yml
+          condarc: |
+            channels:
+            - conda-forge
+            show_channel_urls: true
+            channel_priority: strict
+            always_yes: true
+          create-args: >-
+            python=${{ matrix.config.pyver }}
+            numpy=${{ matrix.config.npver }}
+            ${{ matrix.config.ft }}
+            rust
+
+      - name: set parallel testing flags
+        run: |
+          if [[ "${{ matrix.config.pyver }}" == "3.14" ]]; then
+            echo "PRP_FLAGS=--parallel-threads 4 --iterations 4" >> ${GITHUB_ENV}
+          fi
+
+      - name: build rsfitsio
+        run: |
+          git clone https://github.com/cruzzil/rsfitsio.git
+          pushd rsfitsio
+          RUSTFLAGS="--sysroot=${CONDA_PREFIX}" cargo build --release
+          popd
+
+      - name: build fitsio
+        run: |
+          export CFLAGS="${CFLAGS} ${TEST_CFLAGS}"
+          export FITSIO_USE_RSFITSIO=`pwd`/rsfitsio/target/release
+
+          pip install ${PIP_OPTIONS} -e .
+
+      - name: test fitsio
+        run: |
+          pytest --durations=20 ${PRP_FLAGS} fitsio
+          python -c "import fitsio; assert fitsio.backend_has_bzip2_support()"
+          python -c "import fitsio; assert fitsio.backend_has_curl_support()"
+          python -c "import fitsio; assert not fitsio.backend_is_bundled()"
+          python -c "import fitsio; assert fitsio.backend_is_reentrant()"
+          python -c "import fitsio; assert fitsio.fitsio_backend() == 'rsfitsio'"
