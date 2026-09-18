@@ -920,8 +920,12 @@ def test_image_compression_read_from_osx_arm64():
 
 def test_image_compression_gzip_subnormal_cast_to_zero():
     # test code from astrofrog in https://github.com/esheldon/fitsio/issues/513
+    if sys.byteorder == 'big':
+        dtype = '<f4'
+    else:
+        dtype = '>f4'
     data = np.zeros(
-        (5, 1), dtype='>f4'
+        (5, 1), dtype=dtype
     )  # a single 5x1 tile, big-endian float32
     data[:, 0] = [134.97459, 248.02034, 183.40105, 57.59670, 216.31425]
 
