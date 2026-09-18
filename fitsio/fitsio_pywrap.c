@@ -21,11 +21,26 @@
 */
 
 #include "fitsio.h"
-#include "fitsio2.h"
 #include <Python.h>
 #include <string.h>
 // #include "fitsio_pywrap_lists.h"
 #include <numpy/arrayobject.h>
+
+#ifdef FITSIO_BACKEND_RSFITSIO
+/* random extras needed by fitsio */
+int CFITS_API fits_unset_compression_request(fitsfile *fptr, int *status);
+int ffgbytoff(fitsfile *fptr, long gsize, long ngroups, long offset,
+              void *buffer, int *status);
+int ffseek(FITSfile *fptr, LONGLONG position);
+int ffread(FITSfile *fptr, long nbytes, void *buffer, int *status);
+#define REPORT_EOF 0
+#define FSTRCMP(a, b)                                                          \
+    ((a)[0]<(b)[0] ? -1 : (a)[0]>(b)[0] ? 1 : strcmp((a), (b)))
+#endif
+
+#ifdef FITSIO_BACKEND_CFITSIO
+#include "fitsio2.h"
+#endif
 
 // this is not defined anywhere in cfitsio except in
 // the fits file structure
@@ -6347,9 +6362,11 @@ static PyObject *PyFITS_cfitsio_version(void) {
 static PyObject *PyFITS_cfitsio_is_bundled(void) {
 #ifdef FITSIO_USING_SYSTEM_FITSIO
     Py_RETURN_FALSE;
-#else
-    Py_RETURN_TRUE;
 #endif
+#ifdef FITSIO_BACKEND_RSFITSIO
+    Py_RETURN_FALSE;
+#endif
+    Py_RETURN_TRUE;
 }
 
 static PyObject *PyFITS_cfitsio_has_bzip2_support(void) {
@@ -6378,6 +6395,18 @@ static PyObject *PyFITS_cfitsio_is_reentrant(void) {
     } else {
         Py_RETURN_TRUE;
     }
+}
+
+static PyObject *PyFITS_fitsio_backend(void) {
+#ifdef FITSIO_BACKEND_CFITSIO
+    return PyUnicode_FromString("cfitsio");
+#endif
+#ifdef FITSIO_BACKEND_RSFITSIO
+    return PyUnicode_FromString("rsfitsio");
+#endif
+    PyErr_SetString(PyExc_ValueError,
+                    "No valid fitsio backend specified in C layer!");
+    return NULL;
 }
 
 /*
@@ -6685,6 +6714,9 @@ static PyMethodDef fitstype_methods[] = {
      METH_NOARGS,
      "cfitsio_is_reentrant\n\nReturn True if cfitsio was compiled with "
      "reentrant support."},
+    {"fitsio_backend", (PyCFunction)PyFITS_fitsio_backend, METH_NOARGS,
+     "fitsio_backend\n\nReturn the backend FITS library (e.g., 'cfitsio', "
+     "'rsfitsio')."},
     {"parse_card", (PyCFunction)PyFITS_parse_card, METH_VARARGS,
      "parse_card\n\nparse the card to get the key name, value (as a string), "
      "data type and comment."},
