@@ -922,6 +922,24 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
         return NULL;
     }
 
+    // a tile-compressed table (ZTABLE convention) is stored as a binary
+    // table with ZTABLE = T in the header.  cfitsio cannot read these, we
+    // only detect them
+    tstatus = 0;
+    is_compressed = 0;
+    if (hdutype == BINARY_TBL) {
+        int ztable = 0;
+        if (fits_read_key(self->fits, TLOGICAL, "ZTABLE", &ztable, NULL,
+                          &tstatus) == 0) {
+            is_compressed = (ztable != 0);
+        }
+    }
+    if (add_long_to_dict(dict, "is_compressed_table", (long)is_compressed)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
     // get byte offsets
     tstatus = 0;
     if (fits_get_hduaddrll(self->fits, &header_start, &data_start, &data_end,

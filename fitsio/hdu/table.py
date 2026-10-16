@@ -166,6 +166,20 @@ class TableHDU(HDUBase):
         else:
             return False
 
+    def is_compressed(self):
+        """
+        returns True if this is a tile-compressed table
+        """
+        return self._info['is_compressed_table'] == 1
+
+    def get_compression(self):
+        """
+        Get the compression algorithm for each column.
+
+        None if the table is not compressed.
+        """
+        return None
+
     def where(self, expression, firstrow=None, lastrow=None):
         """
         Return the indices where the expression evaluates to true.
@@ -2333,6 +2347,200 @@ class AsciiTableHDU(TableHDU):
         return array
 
     read_ascii = read
+
+
+class CompressedTableHDU(TableHDU):
+    """
+    A tile-compressed table HDU, following the ZTABLE convention
+
+    cfitsio can't read tile-compressed tables, so the data cannot be read or
+    written with fitsio either.  The header can be read and modified, and the
+    metadata (row count, column names, compression algorithms) describe the
+    uncompressed table.  Reading or writing the data raises NotImplementedError
+    with a message explaining how to proceed.
+
+    See the TableHDU docs for the construction parameters.
+    """
+
+    def _update_info(self):
+        """
+        Call parent method and make sure this is in fact a compressed table.
+        Replace the row count with that of the uncompressed table and set the
+        compression information for each column.
+        """
+        super(CompressedTableHDU, self)._update_info()
+        if not self.is_compressed():
+            mess = "Extension %s is not a compressed table HDU" % self._ext
+            raise ValueError(mess)
+
+        hdr = self.read_header()
+
+        # cfitsio sees one row per tile; report the uncompressed row count
+        self._info['nrows'] = hdr['ZNAXIS2']
+        self._info['ztilelen'] = hdr.get('ZTILELEN', self._info['nrows'])
+
+        for colnum, c in enumerate(self._info['colinfo']):
+            c['zform'] = hdr.get('ZFORM%d' % (colnum + 1), None)
+            c['zctype'] = hdr.get('ZCTYP%d' % (colnum + 1), None)
+
+    def get_compression(self):
+        """
+        Get the compression algorithm for each column.
+
+        returns
+        -------
+        A dict keyed by column name, with the algorithm name as value, e.g.
+        'RICE_1', 'GZIP_1' or 'GZIP_2'.
+        """
+        return dict([(c['name'], c['zctype']) for c in self._info['colinfo']])
+
+    def _not_supported(self):
+        """
+        Raise NotImplementedError explaining that cfitsio cannot read
+        tile-compressed tables.
+        """
+        mess = (
+            "Extension %s is a tile-compressed table (ZTABLE).  cfitsio "
+            "cannot read tile-compressed tables, so fitsio cannot read or "
+            "write the data in this HDU.  Either uncompress the file with "
+            "funpack or read it with rustfits "
+            "(https://github.com/esheldon/rustfits)" % self._ext
+        )
+        raise NotImplementedError(mess)
+
+    def read(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def read_column(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def read_columns(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def read_rows(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def read_slice(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def where(self, *args, **keys):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def __getitem__(self, arg):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def __iter__(self):
+        """
+        Reading is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def write(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def write_column(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def write_var_column(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def insert_column(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def append(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def delete_rows(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def resize(self, *args, **keys):
+        """
+        Writing is not supported for tile-compressed tables, see the class
+        docs
+        """
+        self._not_supported()
+
+    def __repr__(self):
+        """
+        textual representation for some metadata
+        """
+        text, spacing = self._get_repr_list()
+
+        text.append('%scompressed table (ZTABLE)' % spacing)
+        text.append('%srows: %d' % (spacing, self._info['nrows']))
+        text.append('%srows per tile: %d' % (spacing, self._info['ztilelen']))
+        text.append('%scolumn info:' % spacing)
+
+        cspacing = ' ' * 4
+        nname = 15
+        nform = 6
+        format = cspacing + "%-" + str(nname) + "s %" + str(nform) + "s  %s"
+
+        for c in self._info['colinfo']:
+            text.append(format % (c['name'], c['zform'], c['zctype']))
+
+        text.append('')
+        text.append(
+            '%scfitsio cannot read tile-compressed tables.  Either '
+            'uncompress the' % spacing
+        )
+        text.append('%sfile with funpack or read it with rustfits' % spacing)
+
+        text = '\n'.join(text)
+        return text
 
 
 class TableColumnSubset(object):

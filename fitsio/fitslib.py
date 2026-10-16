@@ -43,6 +43,7 @@ from .hdu import (
     ImageHDU,
     AsciiTableHDU,
     TableHDU,
+    CompressedTableHDU,
     _table_npy2fits_form,
     _npy2fits,
     _hdu_type_map,
@@ -1509,6 +1510,19 @@ class FITS(object):
                 iter_row_buffer=self.iter_row_buffer,
                 write_bitcols=self.write_bitcols,
             )
+            if hdu.is_compressed():
+                # a tile-compressed table, which cfitsio cannot read
+                hdu = CompressedTableHDU(
+                    self._FITS,
+                    ext,
+                    lower=self.lower,
+                    upper=self.upper,
+                    trim_strings=self.trim_strings,
+                    vstorage=self.vstorage,
+                    case_sensitive=self.case_sensitive,
+                    iter_row_buffer=self.iter_row_buffer,
+                    write_bitcols=self.write_bitcols,
+                )
         elif hdu_type == ASCII_TBL:
             hdu = AsciiTableHDU(
                 self._FITS,

@@ -27,6 +27,8 @@ your own, nor will this conflict with a version you have installed.
 - Query the columns and rows in a table.
 - Read and write header keywords.
 - Read and write images in tile-compressed format (`RICE`, `GZIP`, `PLIO` ,`HCOMPRESS`).
+- Detect tile-compressed tables, which `cfitsio` cannot read, and explain how
+  to proceed.
 - Read/write `GZIP` files directly.
 - Read unix compress (`.Z`, `.zip`) and bzip2 (`.bz2`) files.
 - `TDIM` information is used to return array columns in the correct shape.
@@ -353,7 +355,11 @@ f[1].get_extver()
 f[1].get_extnum()           # return zero-offset extension number
 f[1].get_exttype()          # 'BINARY_TBL' or 'ASCII_TBL' or 'IMAGE_HDU'
 f[1].get_offsets()          # byte offsets (header_start, data_start, data_end)
-f[1].is_compressed()        # for images. True if tile-compressed
+f[1].is_compressed()        # True if tile-compressed. Tile-compressed
+                            # tables are detected but cannot be read,
+                            # since cfitsio cannot read them
+f[1].get_compression()      # for tables, dict of compression algorithm by
+                            # column name, or None if not compressed
 f[1].get_colnames()         # for tables
 f[1].get_colname(colnum)    # for tables find the name from column number
 f[1].get_nrows()            # for tables
