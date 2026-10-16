@@ -1499,7 +1499,13 @@ class FITS(object):
         if hdu_type == IMAGE_HDU:
             hdu = ImageHDU(self._FITS, ext)
         elif hdu_type == BINARY_TBL:
-            hdu = TableHDU(
+            if self._FITS.is_compressed_table(ext + 1):
+                # a tile-compressed table, which cfitsio cannot read
+                cls = CompressedTableHDU
+            else:
+                cls = TableHDU
+
+            hdu = cls(
                 self._FITS,
                 ext,
                 lower=self.lower,
@@ -1510,19 +1516,6 @@ class FITS(object):
                 iter_row_buffer=self.iter_row_buffer,
                 write_bitcols=self.write_bitcols,
             )
-            if hdu.is_compressed():
-                # a tile-compressed table, which cfitsio cannot read
-                hdu = CompressedTableHDU(
-                    self._FITS,
-                    ext,
-                    lower=self.lower,
-                    upper=self.upper,
-                    trim_strings=self.trim_strings,
-                    vstorage=self.vstorage,
-                    case_sensitive=self.case_sensitive,
-                    iter_row_buffer=self.iter_row_buffer,
-                    write_bitcols=self.write_bitcols,
-                )
         elif hdu_type == ASCII_TBL:
             hdu = AsciiTableHDU(
                 self._FITS,
