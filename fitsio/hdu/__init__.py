@@ -9,6 +9,7 @@ from .image import ImageHDU  # noqa
 from .table import (  # noqa
     TableHDU,
     AsciiTableHDU,
+    CompressedTableHDU,
     _table_npy2fits_form,
     _npy2fits,
 )

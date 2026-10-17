@@ -773,6 +773,62 @@ movnam_hdu_cleanup:
     }
 }
 
+/*
+ * Return 1 if the current HDU is a tile-compressed table (ZTABLE
+ * convention), 0 otherwise.  These are stored as binary tables with
+ * ZTABLE = T in the header.  cfitsio cannot read them, so we only detect.
+ * A missing keyword or any error means not compressed.
+ */
+static int pyfitsio_is_compressed_table(fitsfile *fits) {
+    int hdutype = 0;
+    int ztable = 0;
+    int status = 0;
+
+    if (fits_get_hdu_type(fits, &hdutype, &status)) {
+        return 0;
+    }
+    if (hdutype != BINARY_TBL) {
+        return 0;
+    }
+    if (fits_read_key(fits, TLOGICAL, "ZTABLE", &ztable, NULL, &status)) {
+        return 0;
+    }
+    return (ztable != 0);
+}
+
+static PyObject *PyFITSObject_is_compressed_table(struct PyFITSObject *self,
+                                                  PyObject *args) {
+    ALLOW_NOGIL;
+    int hdunum = 0, hdutype = 0;
+    int status = 0;
+    int is_compressed = 0;
+
+    LOCK_FITS(self);
+
+    if (self->fits == NULL) {
+        PyErr_SetString(PyExc_ValueError, "fits file is NULL");
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, (char *)"i", &hdunum)) {
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
+    NOGIL(fits_movabs_hdu(self->fits, hdunum, &hdutype, &status));
+    if (status != 0) {
+        set_ioerr_string_from_status(status, self);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
+    NOGIL(is_compressed = pyfitsio_is_compressed_table(self->fits));
+
+    UNLOCK_FITS(self);
+    return PyBool_FromLong((long)is_compressed);
+}
+
 static PyObject *PyFITSObject_movabs_hdu(struct PyFITSObject *self,
                                          PyObject *args) {
     ALLOW_NOGIL;
@@ -917,6 +973,13 @@ static PyObject *PyFITSObject_get_hdu_info(struct PyFITSObject *self,
     tstatus = 0;
     is_compressed = fits_is_compressed_image(self->fits, &tstatus);
     if (add_long_to_dict(dict, "is_compressed_image", (long)is_compressed)) {
+        Py_XDECREF(dict);
+        UNLOCK_FITS(self);
+        return NULL;
+    }
+
+    is_compressed = pyfitsio_is_compressed_table(self->fits);
+    if (add_long_to_dict(dict, "is_compressed_table", (long)is_compressed)) {
         Py_XDECREF(dict);
         UNLOCK_FITS(self);
         return NULL;
@@ -6503,6 +6566,10 @@ static PyMethodDef PyFITSObject_methods[] = {
 
     {"movabs_hdu", (PyCFunction)PyFITSObject_movabs_hdu, METH_VARARGS,
      "movabs_hdu\n\nMove to the specified HDU."},
+    {"is_compressed_table", (PyCFunction)PyFITSObject_is_compressed_table,
+     METH_VARARGS,
+     "is_compressed_table\n\nReturn True if the specified HDU is a "
+     "tile-compressed table (ZTABLE convention), which cfitsio cannot read."},
     {"movnam_hdu", (PyCFunction)PyFITSObject_movnam_hdu, METH_VARARGS,
      "movnam_hdu\n\nMove to the specified HDU by name and return the hdu "
      "number."},

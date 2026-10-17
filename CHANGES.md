@@ -2,6 +2,14 @@
 
 ## 1.4.3
 
+New Features
+
+- Added detection of tile-compressed tables (the `ZTABLE` convention), which
+  `cfitsio` cannot read.  These are now represented by a `CompressedTableHDU`
+  with the metadata of the uncompressed table.  Accessing the data raises a
+  `NotImplementedError` explaining that the file must be uncompressed with
+  `funpack` or read with `rustfits`, where previously garbage was returned.
+
 Bug Fixes
 
 - Fixed further PLIO compression bugs using patch from [PR #174](https://github.com/heasarc/cfitsio/pull/174).
