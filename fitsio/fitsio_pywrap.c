@@ -389,8 +389,8 @@ static struct stringlist *stringlist_delete(struct stringlist *slist) {
             for (i = 0; i < slist->size; i++) {
                 free(slist->data[i]);
             }
+            free(slist->data);
         }
-        free(slist->data);
         free(slist);
     }
     return NULL;
