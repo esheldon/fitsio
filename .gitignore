@@ -130,3 +130,5 @@ prof/
 .DS_Store
 cfitsio-*/
 zlib/
+
+rsfitsio/

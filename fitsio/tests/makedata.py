@@ -2,9 +2,14 @@ import sys
 import numpy as np
 from functools import lru_cache
 
-from ..util import cfitsio_version
+from .. import (
+    backend_version,
+    fitsio_backend,
+    CFITSIO_BACKEND,
+    RSFITSIO_BACKEND,
+)
 
-CFITSIO_VERSION = cfitsio_version(asfloat=True)
+BACKEND_VERSION = backend_version(asfloat=True)
 
 lorem_ipsum = (
     'Lorem ipsum dolor sit amet, consectetur adipiscing '
@@ -65,7 +70,9 @@ def make_data():
         ('Sarr', Sdtype, ashape),
     ]
 
-    if CFITSIO_VERSION > 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         dtype += [
             ('u8scalar', 'u8'),
             ('u8vec', 'u8', nvec),
@@ -75,7 +82,9 @@ def make_data():
     # cfitsio 3 or earlier does not
     # handle non-space padded strings
     # properly
-    if CFITSIO_VERSION >= 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         dtype += [
             ('Sscalar_nopad', Sdtype),
             ('Svec_nopad', Sdtype, nvec),
@@ -92,7 +101,9 @@ def make_data():
         # cfitsio 3 or earlier does not
         # handle non-space padded strings
         # properly
-        if CFITSIO_VERSION >= 4:
+        if (
+            fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+        ) or fitsio_backend() == RSFITSIO_BACKEND:
             dtype += [
                 ('Uscalar_nopad', Udtype),
                 ('Uvec_nopad', Udtype, nvec),
@@ -121,7 +132,9 @@ def make_data():
         'c8',
         'c16',
     ]
-    if CFITSIO_VERSION > 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         dtypes += ["u8"]
 
     for t in dtypes:
@@ -175,7 +188,9 @@ def make_data():
     # cfitsio 3 or earlier does not
     # handle non-space padded strings
     # properly
-    if CFITSIO_VERSION >= 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         data['Sscalar_nopad'] = ['hello', 'world', 'good', 'bye']
         data['Svec_nopad'][:, 0] = 'hello'
         data['Svec_nopad'][:, 1] = 'world'
@@ -198,7 +213,9 @@ def make_data():
         # cfitsio 3 or earlier does not
         # handle non-space padded strings
         # properly
-        if CFITSIO_VERSION >= 4:
+        if (
+            fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+        ) or fitsio_backend() == RSFITSIO_BACKEND:
             data['Uscalar_nopad'] = ['hello', 'world', 'good', 'bye']
             data['Uvec_nopad'][:, 0] = 'hello'
             data['Uvec_nopad'][:, 1] = 'world'
@@ -343,7 +360,9 @@ def make_data():
         ('Svec', Sdtype, nvec),
         ('Sarr', Sdtype, ashape),
     ]
-    if CFITSIO_VERSION > 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         dtype += [
             ('u8vec', 'u8', nvec),
             ('u8arr', 'u8', ashape),
@@ -362,7 +381,9 @@ def make_data():
     vardata = np.zeros(nrows, dtype=dtype)
 
     _dtypes = ['u1', 'i1', 'u2', 'i2', 'u4', 'i4', 'i8', 'f4', 'f8']
-    if CFITSIO_VERSION > 4:
+    if (
+        fitsio_backend() == CFITSIO_BACKEND and BACKEND_VERSION > 4
+    ) or fitsio_backend() == RSFITSIO_BACKEND:
         _dtypes += ["u8"]
     for t in _dtypes:
         vardata[t + 'scalar'] = 1 + np.arange(nrows, dtype=t)
